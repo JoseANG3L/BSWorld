@@ -1,17 +1,13 @@
-import { Component, signal } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
-import { Header } from "./header/header";
-import { Sidebar } from "./sidebar/sidebar";
+import { Component } from '@angular/core';
+import { Router, RouterModule } from '@angular/router';
 
 @Component({
-  selector: 'app-root',
-  imports: [RouterOutlet, Header, Sidebar],
-  templateUrl: './app.html',
-  styleUrl: './app.css'
+  selector: 'app-header',
+  imports: [RouterModule],
+  templateUrl: './header.html',
+  styleUrl: './header.css'
 })
-export class App {
-  protected readonly title = signal('bsworld');
-
+export class Header {
   theme: 'light' | 'dark' = 'light';
 
   constructor() {

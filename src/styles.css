@@ -1,1 +1,37 @@
-/* You can add global styles to this file, and also import other style files */
+html,
+body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    color: var(--bs-body-color) !important;
+    background: var(--bs-body-bg) !important;
+}
+
+:root,
+[data-bs-theme="light"] {
+    --bs-body-bg: #EEEEEE !important;
+    --bs-body-content: #ffffff !important;
+    --bs-body-color: #000000 !important;
+}
+
+[data-bs-theme="dark"] {
+    --bs-body-bg: #121212 !important;
+    --bs-body-content: #1D1D1D !important;
+    --bs-body-color: #ffffff !important;
+}
+
+.bg-body-bg {
+    background: var(--bs-body-bg) !important;
+}
+
+.bg-body-color {
+    background: var(--bs-body-color) !important;
+}
+
+.bg-body-content {
+    background: var(--bs-body-content) !important;
+}
+
+i {
+    color: var(--bs-body-color) !important;
+}
