@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Estilos base para transiciones suaves de tema */
+body {
+  @apply bg-light-bg text-black transition-colors duration-300;
+}
+
+/* Estilos cuando el modo oscuro está activo */
+.dark body {
+  @apply bg-dark-bg text-white;
+}
+
+/* src/index.css */
+
+/* Animación de entrada suave hacia arriba */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.5s ease-out forwards;
+  opacity: 0; /* Comienza invisible */
+}
+
+/* src/index.css */
+
+@keyframes boing {
+  0% {
+    transform: scale(1) translateY(0);
+  }
+  20% {
+    transform: scale(1.08) translateY(-3px); /* Sube y crece */
+  }
+  40% {
+    transform: scale(1.15) translateY(-6px); /* Cae */
+  }
+  70% {
+    transform: scale(1.08) translateY(-3px); /* Rebotito pequeño */
+  }
+  100% {
+    transform: scale(1) translateY(0); /* Se queda en el sitio (grande) */
+  }
+}
+
+/* Clase de utilidad para usarla en Tailwind */
+.hover-boing:hover .icon-boing {
+  animation: boing .3s cubic-bezier(0.36, 0, 0.66, -0.56) forwards;
+  /* Alternativa más suave si la de arriba es muy brusca: */
+  animation: boing .3s ease-out forwards;
+}
