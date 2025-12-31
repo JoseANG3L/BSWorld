@@ -14,7 +14,7 @@ const Layout = ({ toggleTheme, isDarkMode }) => {
       <div className="flex flex-col flex-1 gap-2 md:gap-3">
         <Header toggleTheme={toggleTheme} isDarkMode={isDarkMode} />
         
-        <main className="flex-1 overflow-auto rounded-xl bg-light-surface dark:bg-dark-surface shadow-lg p-6 transition-colors duration-300">
+        <main className="flex-1 overflow-auto rounded-xl bg-light-surface dark:bg-dark-surface shadow-lg p-6 transition-colors duration-300 border border-gray-200 dark:border-gray-800">
           <Outlet />
         </main>
       </div>

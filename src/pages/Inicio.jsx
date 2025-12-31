@@ -6,7 +6,7 @@ import { clsx } from 'clsx';
 const FeatureCard = ({ to, icon: Icon, title, desc, colorClass }) => (
   <Link 
     to={to}
-    className="group relative p-6 rounded-2xl bg-white dark:bg-[#1e1e1e] border border-gray-100 dark:border-gray-800 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden"
+    className="group relative p-6 rounded-2xl bg-white dark:bg-[#1e1e1e] border border-gray-300 dark:border-gray-700 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden"
   >
     {/* Fondo decorativo con gradiente suave al hover */}
     <div className={clsx(
@@ -14,10 +14,10 @@ const FeatureCard = ({ to, icon: Icon, title, desc, colorClass }) => (
       colorClass
     )} />
 
-    <div className="relative z-10 flex flex-col h-full">
+    <div className="relative z-10 flex flex-col h-fit">
       <div className={clsx(
-        "w-12 h-12 rounded-xl flex items-center justify-center mb-4 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3 shadow-sm",
-        "bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 group-hover:text-white",
+        "w-12 h-12 rounded-xl border border-gray-300 dark:border-gray-700 flex items-center justify-center mb-4 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3 shadow-sm",
+        "bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 group-hover:text-dark dark:group-hover:text-white",
         // Al hacer hover, el icono toma el color del gradiente
         `group-hover:${colorClass.replace('from-', 'bg-')}` 
       )}>
@@ -41,7 +41,7 @@ const FeatureCard = ({ to, icon: Icon, title, desc, colorClass }) => (
 
 const Inicio = () => {
   return (
-    <div className="h-full flex flex-col gap-8">
+    <div className="h-full flex flex-col gap-8 my-3">
       
       {/* --- HERO SECTION --- */}
       <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-primary-900 via-primary-800 to-primary-600 shadow-2xl p-8 md:p-12 text-white">

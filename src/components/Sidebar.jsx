@@ -25,14 +25,14 @@ const SidebarItem = ({ to, icon: Icon, label }) => (
     to={to}
     className={({ isActive }) => twMerge(clsx(
       // Agregamos 'group' para coordinar la animación
-      "hover-boing flex items-center gap-3 px-4 py-3 my-1 mx-3 rounded-xl transition-all duration-200 font-bold border-2 transform will-change-transform group",
+      "hover-boing flex items-center gap-3 px-4 py-3 mx-2 rounded-xl transition-all duration-200 font-bold border-2 transform will-change-transform group",
       
       isActive 
         // ACTIVO
         ? "bg-primary-50 dark:bg-primary-900/40 text-primary-600 dark:text-primary-100 border-primary-500 dark:border-primary-400 shadow-[2px_2px_0px_#8b5cf6] dark:shadow-[2px_2px_0px_#a78bfa] scale-105"
         
         // INACTIVO
-        : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-400 border-gray-300 dark:border-gray-600 shadow-[2px_2px_0px_rgba(0,0,0,0.1)] " +
+        : "bg-white dark:bg-gray-800/40 text-gray-700 dark:text-gray-400 border-gray-300 dark:border-gray-700 shadow-[2px_2px_0px_rgba(0,0,0,0.1)] " +
           // HOVER CONTENEDOR
           "hover:scale-105 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:border-primary-500 hover:shadow-[2px_2px_0px_#8b5cf6] hover:text-primary-700 dark:hover:text-primary-100 dark:hover:border-primary-400"
     ))}
@@ -60,12 +60,12 @@ const SidebarItem = ({ to, icon: Icon, label }) => (
 
 const Sidebar = () => {
   return (
-    <div className="flex flex-col h-full w-64 bg-light-surface dark:bg-dark-surface shadow-lg rounded-xl p-4 transition-colors duration-300">
+    <div className="flex flex-col h-full w-56 bg-light-surface dark:bg-dark-surface shadow-lg rounded-xl px-3 py-4 transition-colors duration-300 border border-gray-200 dark:border-gray-800">
       <h1 className="text-2xl font-bold mb-6 px-4 text-gray-900 dark:text-white cursor-default hover:text-primary-700 transition-colors duration-300">
         BSWorld
       </h1>
       
-      <ul className="flex flex-col gap-1 overflow-y-auto custom-scrollbar flex-1">
+      <ul className="flex flex-col gap-2 overflow-y-auto custom-scrollbar flex-1">
         {menuItems.map((item, index) => (
           <li 
             key={item.to}

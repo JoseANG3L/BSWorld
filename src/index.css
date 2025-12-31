@@ -38,13 +38,13 @@ body {
     transform: scale(1) translateY(0);
   }
   20% {
-    transform: scale(1.08) translateY(-3px); /* Sube y crece */
+    transform: scale(1.08) translateY(-2px); /* Sube y crece */
   }
   40% {
-    transform: scale(1.15) translateY(-6px); /* Cae */
+    transform: scale(1.15) translateY(-4px); /* Cae */
   }
   70% {
-    transform: scale(1.08) translateY(-3px); /* Rebotito pequeño */
+    transform: scale(1.08) translateY(-2px); /* Rebotito pequeño */
   }
   100% {
     transform: scale(1) translateY(0); /* Se queda en el sitio (grande) */
@@ -53,7 +53,5 @@ body {
 
 /* Clase de utilidad para usarla en Tailwind */
 .hover-boing:hover .icon-boing {
-  animation: boing .3s cubic-bezier(0.36, 0, 0.66, -0.56) forwards;
-  /* Alternativa más suave si la de arriba es muy brusca: */
   animation: boing .3s ease-out forwards;
 }

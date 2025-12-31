@@ -32,7 +32,7 @@ const Header = ({ toggleTheme, isDarkMode }) => {
           onBlur={() => setIsFocused(false)}
           className={clsx(
             "w-full py-2.5 pl-11 pr-4 rounded-full text-sm font-medium transition-all duration-300 outline-none border shadow-sm",
-            "bg-white dark:bg-[#252525] border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 placeholder-gray-400",
+            "bg-white dark:bg-[#1e1e1e] border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-200 placeholder-gray-400",
             // CAMBIO: Borde Púrpura usando tu paleta
             "focus:border-primary-600 dark:focus:border-primary-500 focus:ring-0" 
           )}
@@ -50,7 +50,7 @@ const Header = ({ toggleTheme, isDarkMode }) => {
           className={clsx(
             "p-2.5 rounded-full bg-white dark:bg-[#252525] border border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400 transition-all duration-200 shadow-md",
             // CAMBIO: Hover usa la paleta primary
-            "hover:scale-105 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400 hover:border-primary-500 dark:hover:border-primary-600"
+            "hover:scale-105 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400 hover:border-primary-500 dark:hover:border-primary-500"
           )}
           title={isDarkMode ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
         >
