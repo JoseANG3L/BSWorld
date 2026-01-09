@@ -27,15 +27,15 @@ const SidebarItem = ({ to, icon: Icon, label, isCollapsed }) => (
       "hover-boing flex items-center rounded-xl transition-all duration-300 font-semibold border-2 transform will-change-transform group whitespace-nowrap",
       
       // AJUSTE DE PADDING Y ALINEACIÓN SEGÚN ESTADO
-      isCollapsed ? "justify-center px-1 py-2.5 mx-1" : "gap-3 px-3.5 py-2.5 mx-2",
+      isCollapsed ? "justify-center px-1 py-2.5 mx-0.5" : "gap-3 px-3.5 py-2.5 mx-2",
 
       isActive
         // ACTIVO
-        ? "bg-primary-50 dark:bg-primary-900/40 text-primary-600 dark:text-primary-100 border-primary-500 dark:border-primary-400 scale-105"
+        ? "bg-primary-50 dark:bg-primary-900/40 text-primary-600 dark:text-primary-100 border-primary-500 dark:border-primary-400 "
 
         // INACTIVO
-        : "bg-white dark:bg-gray-800/40 text-gray-700 dark:text-gray-400 border-gray-300 dark:border-gray-700 " +
-        "hover:scale-105 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:border-primary-500 hover:text-primary-700 dark:hover:text-primary-100 dark:hover:border-primary-400"
+        : "text-gray-700 dark:text-gray-400 border-transparent " +
+        "hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:border-primary-500 hover:text-primary-700 dark:hover:text-primary-100 dark:hover:border-primary-400"
     ))}
   >
     {({ isActive }) => (
@@ -71,7 +71,7 @@ const Sidebar = () => {
       className={clsx(
         "flex flex-col h-full bg-light-surface dark:bg-dark-surface shadow-lg rounded-xl transition-all duration-300 border border-gray-200 dark:border-gray-800",
         // CAMBIO DE ANCHO: 20 (80px) cerrado vs 64 (256px) abierto
-        isCollapsed ? "w-16" : "w-56"
+        isCollapsed ? "w-16" : "w-48"
       )}
     >
       {/* HEADER DEL SIDEBAR */}
@@ -81,10 +81,10 @@ const Sidebar = () => {
       )}>
         {/* Título: Se oculta si está colapsado */}
         <h1 className={clsx(
-          "text-xl font-bold text-gray-900 dark:text-white cursor-default whitespace-nowrap overflow-hidden transition-all duration-300",
+          "text-lg font-bold text-gray-900 dark:text-white cursor-default whitespace-nowrap overflow-hidden transition-all duration-300",
           isCollapsed ? "w-0 opacity-0 px-0" : "w-auto opacity-100 ps-1"
         )}>
-          <Earth size={24} className="inline-block mb-1 mr-2 text-primary-600 dark:text-primary-400" />
+          <Earth size={24} className="inline-block mb-1 mr-2 text-primary-600 dark:text-primary-400 pb-0.5" />
           BSWorld
         </h1>
 
@@ -94,13 +94,13 @@ const Sidebar = () => {
           className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
           title={isCollapsed ? "Expandir menú" : "Colapsar menú"}
         >
-          {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
+          {isCollapsed ? <ChevronRight size={20} strokeWidth={3} /> : <ChevronLeft size={20} strokeWidth={3} />}
         </button>
       </div>
 
       {/* LISTA DE ITEMS */}
       <div className="overflow-x-hidden overflow-y-auto px-1 custom-scrollbar flex-1">
-        <ul className={clsx("flex flex-col gap-1.5", isCollapsed ? "py-2" : "py-3")}>
+        <ul className={clsx("flex flex-col", isCollapsed ? "py-2" : "py-3")}>
           {menuItems.map((item, index) => (
             <li
               key={item.to}
