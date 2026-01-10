@@ -18,14 +18,15 @@ const Card = ({ image, title, downloads = [], creator, tags }) => {
   }, []);
 
   return (
-    <div className="group flex flex-col bg-white dark:bg-[#1e1e1e] border border-gray-100 dark:border-gray-800 rounded-2xl overflow-hidden shadow-lg transition-all duration-300 z-0 relative">
+    <div className="group flex flex-col bg-white dark:bg-[#1e1e1e] border border-gray-300 dark:border-gray-700 rounded-2xl overflow-hidden shadow-lg transition-all duration-300 z-0 relative">
       
       {/* 1. IMAGEN */}
       <div className="relative w-full aspect-video overflow-hidden bg-gray-100 dark:bg-gray-800">
         <img 
-          src={image} 
+          src={image || 'default.jpg'} 
           alt={title} 
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+          onError={(e) => { e.target.src = 'default.jpg'; }}
         />
         <div className="absolute inset-0 bg-primary-900/0 group-hover:bg-primary-900/10 transition-colors duration-300" />
       </div>

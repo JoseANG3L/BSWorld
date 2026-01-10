@@ -4,12 +4,12 @@ import Card from '../components/Card.jsx';
 
 const Personajes = () => {
   const personajesList = [
-    { id: 1, nombre: 'Steve', rol: 'Explorador', img: 'https://via.placeholder.com/150/0d6efd/FFFFFF?text=Steve', downloads: [{ label: 'Descargar', url: '#' }] },
-    { id: 2, nombre: 'Alex', rol: 'Guerrera', img: 'https://via.placeholder.com/150/dc3545/FFFFFF?text=Alex', downloads: [{ label: 'Descargar', url: '#' }] },
-    { id: 3, nombre: 'Aldeano', rol: 'Comerciante', img: 'https://via.placeholder.com/150/ffc107/000000?text=Aldeano', downloads: [{ label: 'Descargar', url: '#' }] },
-    { id: 4, nombre: 'Zombie', rol: 'Enemigo', img: 'https://via.placeholder.com/150/198754/FFFFFF?text=Zombie', downloads: [{ label: 'Descargar', url: '#' }] },
-    { id: 5, nombre: 'Creeper', rol: 'Explosivo', img: 'https://via.placeholder.com/150/20c997/FFFFFF?text=Creeper', downloads: [{ label: 'Descargar', url: '#' }] },
-    { id: 6, nombre: 'Enderman', rol: 'Misterioso', img: 'https://via.placeholder.com/150/6610f2/FFFFFF?text=Enderman', downloads: [{ label: 'Descargar', url: '#' }] },
+    { id: 1, nombre: 'Steve', rol: 'Explorador', img: '', downloads: [{ label: 'Descargar', url: '#' }] },
+    { id: 2, nombre: 'Alex', rol: 'Guerrera', img: '', downloads: [{ label: 'Descargar', url: '#' }] },
+    { id: 3, nombre: 'AldeanoAldeano Aldeano Aldeano Aldeano', rol: 'Comerciante', img: '', downloads: [{ label: 'Descargar', url: '#' }] },
+    { id: 4, nombre: 'Zombie', rol: 'Enemigo', img: '', downloads: [{ label: 'Descargar', url: '#' }] },
+    { id: 5, nombre: 'Creeper', rol: 'Explosivo', img: '', downloads: [{ label: 'Descargar', url: '#' }] },
+    { id: 6, nombre: 'Enderman', rol: 'Misterioso', img: '', downloads: [{ label: 'Descargar', url: '#' }] },
   ];
 
   return (
