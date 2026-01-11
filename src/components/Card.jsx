@@ -25,7 +25,7 @@ const Card = ({ image, title, downloads = [], creator, tags }) => {
         <img 
           src={image || 'default.jpg'} 
           alt={title} 
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
           onError={(e) => { e.target.src = 'default.jpg'; }}
         />
         <div className="absolute inset-0 bg-primary-900/0 group-hover:bg-primary-900/10 transition-colors duration-300" />
@@ -59,7 +59,7 @@ const Card = ({ image, title, downloads = [], creator, tags }) => {
 
           {/* MENÚ DESPLEGABLE */}
           {isOpen && (
-            <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#252525] border border-gray-300 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden origin-top">
+            <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-[#252525] border border-gray-300 dark:border-gray-700 rounded-xl shadow-md z-50 overflow-hidden origin-top">
               <div className="py-1">
                 {downloads.length > 0 ? (
                   downloads.map((option, index) => (
