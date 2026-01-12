@@ -8,7 +8,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
   const [isFocused, setIsFocused] = useState(false);
 
   return (
-    <header className="flex items-center gap-4 sticky top-0 z-40 px-3 py-2 md:p-0 bg-white md:bg-light-bg md:dark:bg-dark-bg/80 backdrop-blur-sm transition-colors duration-300">
+    <header className="flex items-center gap-4 sticky top-0 z-40 px-3 py-2 md:p-0 bg-white dark:bg-[#1e1e1e] md:bg-light-bg md:dark:bg-dark-bg/80 backdrop-blur-sm transition-colors duration-300">
       
       {/* --- NUEVO: BOTÓN MENÚ Y LOGO (SOLO MÓVIL) --- */}
       {/* Se oculta automáticamente en pantallas medianas/grandes (md:hidden) */}
@@ -17,11 +17,13 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
           onClick={onMenuClick}
           className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors active:scale-95"
         >
-          <Menu size={24} className="text-primary-600 dark:text-primary-400" />
+          <Menu size={24} className="text-primary-600 dark:text-primary-300" />
         </button>
-        <span className="font-bold text-lg text-gray-900 dark:text-white tracking-tight">
-          BSWorld
-        </span>
+        <Link to="/" className="flex items-center gap-1">
+          <span className="font-bold text-lg text-gray-900 dark:text-white tracking-tight">
+            BSWorld
+          </span>
+        </Link>
       </div>
 
       {/* --- BARRA DE BÚSQUEDA RESPONSIVA --- */}
