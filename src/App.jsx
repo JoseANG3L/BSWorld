@@ -14,14 +14,21 @@ const Placeholder = ({ title }) => (
 );
 
 function App() {
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  // 1. CAMBIO: Inicializamos el estado con una función (Lazy Initialization)
+  // Esto verifica el localStorage antes de renderizar por primera vez.
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    const savedTheme = localStorage.getItem('theme');
+    return savedTheme === 'dark'; // Si es 'dark' devuelve true, si no false
+  });
 
   useEffect(() => {
-    // Lógica para Tailwind: agregar/quitar clase 'dark' al html
+    // 2. CAMBIO: Aplicar clase al HTML Y guardar en localStorage
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark'); // Guardamos 'dark'
     } else {
       document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light'); // Guardamos 'light'
     }
   }, [isDarkMode]);
 

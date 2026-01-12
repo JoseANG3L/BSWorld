@@ -24,7 +24,8 @@ const Card = ({ image, title, downloads = [], creator, tags }) => {
       <div className="relative w-full aspect-video overflow-hidden bg-gray-100 dark:bg-gray-800">
         <img 
           src={image || 'default.jpg'} 
-          alt={title} 
+          alt={title}
+          loading="lazy"
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
           onError={(e) => { e.target.src = 'default.jpg'; }}
         />
@@ -32,7 +33,7 @@ const Card = ({ image, title, downloads = [], creator, tags }) => {
       </div>
 
       {/* CONTENIDO */}
-      <div className="flex flex-col flex-1 px-4 pt-2.5 pb-4">
+      <div className="flex flex-col flex-1 px-3 pt-1.5 pb-3 md:px-4 md:pt-2.5 md:pb-4">
         
         <h3 className="text-md font-bold text-gray-900 dark:text-white mb-2.5 line-clamp-1" title={title}>
           {title}
@@ -99,7 +100,7 @@ const Card = ({ image, title, downloads = [], creator, tags }) => {
           {tags && tags.map((tag, index) => (
             <span 
               key={index} 
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-gray-50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700"
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-gray-50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-700"
             >
               {tag}
             </span>
