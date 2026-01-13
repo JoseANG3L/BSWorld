@@ -54,8 +54,8 @@ const Personajes = () => {
       // Aquí defines cómo se ve CADA item
       renderItem={(item) => (
         <Card 
-          image={item.img} 
-          title={item.nombre}
+          image={item.imagen} 
+          title={item.titulo}
           downloads={item.descargas}
           creator={item.creador}
           tags={item.tags}
