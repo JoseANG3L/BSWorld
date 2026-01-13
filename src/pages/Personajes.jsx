@@ -1,52 +1,67 @@
-import React from 'react';
-import { Icon, Plus, Sparkles } from 'lucide-react';
-import Card from '../components/Card.jsx';
-import { clsx } from 'clsx';
+import React, { useState, useEffect } from 'react';
+import { Sparkles, Loader2 } from 'lucide-react'; // Importamos Loader2 para carga
+import DataContainer from '../components/DataContainer';
+import Card from '../components/Card';
+
+// FIREBASE IMPORTS
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '../firebase/config';
 
 const Personajes = () => {
-  const personajesList = [
-    { id: 1, nombre: 'Steve', rol: 'Explorador', img: '', downloads: [{ label: 'Descargar', url: '#' }] },
-    { id: 2, nombre: 'Alex', rol: 'Guerrera', img: '', downloads: [{ label: 'Descargar', url: '#' }] },
-    { id: 3, nombre: 'AldeanoAldeano Aldeano Aldeano Aldeano', rol: 'Comerciante', img: '', downloads: [{ label: 'Descargar', url: '#' }] },
-    { id: 4, nombre: 'Zombie', rol: 'Enemigo', img: '', downloads: [{ label: 'Descargar', url: '#' }] },
-    { id: 5, nombre: 'Creeper', rol: 'Explosivo', img: '', downloads: [{ label: 'Descargar', url: '#' }] },
-    { id: 6, nombre: 'Enderman', rol: 'Misterioso', img: '', downloads: [{ label: 'Descargar', url: '#' }] },
-  ];
+  const [personajes, setPersonajes] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Cargar datos al montar el componente
+  useEffect(() => {
+    const obtenerPersonajes = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, "personajes"));
+        // Mapeamos los datos de Firebase a un array normal
+        const docs = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setPersonajes(docs);
+      } catch (error) {
+        console.error("Error cargando personajes:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    obtenerPersonajes();
+  }, []);
+
+  // --- ESTADO DE CARGA (Loading Spinner) ---
+  if (loading) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center text-primary-600 dark:text-primary-400">
+        <Loader2 size={48} className="animate-spin mb-4" />
+        <p className="font-medium animate-pulse">Cargando el mundo...</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="h-full">
-      <div className="flex justify-between items-center mb-4 md:mb-5">
-        <h2 className="flex text-2xl font-bold text-gray-800 dark:text-white ml-1 align-middle gap-2">
-          <div className={clsx(
-              "w-8 h-8 rounded-xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3 shadow-md",
-              "text-gray-700 dark:text-gray-200 group-hover:text-dark dark:group-hover:text-white",
-              // Al hacer hover, el icono toma el color del gradiente
-              `bg-gradient-to-br from-pink-500 to-purple-400 text-white` 
-          )}>
-              <Sparkles size={18} strokeWidth={2.5} />
-          </div>
-          Personajes
-        </h2>
-        {/* <button className="flex items-center gap-2 px-4 py-2 border border-blue-600 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors text-sm font-medium">
-          <Plus size={18} />
-          Nuevo Personaje
-        </button> */}
-      </div>
-
-      {/* Grilla Responsive */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 md:gap-3">
-        {personajesList.map((personaje) => (
-          <Card 
-            key={personaje.id}
-            image={personaje.img}
-            title={personaje.nombre}
-            downloads={personaje.downloads}
-            creator="Desconocido"
-            tags={[personaje.rol]}
-          />
-        ))}
-      </div>
-    </div>
+    <DataContainer
+      title="Personajes"
+      icon={Sparkles} // Icono personalizado
+      gradientClass="from-pink-500 to-purple-500" // Color personalizado
+      items={personajes}
+      searchKey="nombre" // Buscamos por la propiedad 'nombre'
+      dateKey="fecha"    // Ordenamos por la propiedad 'fecha'
+      
+      // Aquí defines cómo se ve CADA item
+      renderItem={(item) => (
+        <Card 
+          image={item.img} 
+          title={item.nombre}
+          downloads={item.descargas}
+          creator={item.creador}
+          tags={item.tags}
+        />
+      )}
+    />
   );
 };
 

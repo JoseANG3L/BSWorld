@@ -4,6 +4,13 @@ import Layout from './components/Layout';
 import Personajes from './pages/Personajes';
 import { Wrench } from 'lucide-react';
 import Inicio from './pages/Inicio';
+import Mapas from './pages/Mapas';
+import Minijuegos from './pages/Minijuegos';
+import Mods from './pages/Mods';
+import Modpacks from './pages/Modpacks';
+import Paquetes from './pages/Paquetes';
+import AcercaDe from './pages/AcercaDe';
+import Contacto from './pages/Contacto';
 
 const Placeholder = ({ title }) => (
   <div className="flex flex-col justify-center items-center h-full text-gray-400 dark:text-gray-600">
@@ -40,13 +47,13 @@ function App() {
         <Route path="/" element={<Layout toggleTheme={toggleTheme} isDarkMode={isDarkMode} />}>
           <Route index element={<Inicio />} />
           <Route path="personajes" element={<Personajes />} />
-          <Route path="mapas" element={<Placeholder title="Mapas" />} />
-          <Route path="minijuegos" element={<Placeholder title="Minijuegos" />} />
-          <Route path="mods" element={<Placeholder title="Mods" />} />
-          <Route path="modpacks" element={<Placeholder title="Modpacks" />} />
-          <Route path="paquetes" element={<Placeholder title="Paquetes" />} />
-          <Route path="acerca-de" element={<Placeholder title="Acerca de" />} />
-          <Route path="contacto" element={<Placeholder title="Contacto" />} />
+          <Route path="mapas" element={<Mapas />} />
+          <Route path="minijuegos" element={<Minijuegos />} />
+          <Route path="mods" element={<Mods />} />
+          <Route path="modpacks" element={<Modpacks />} />
+          <Route path="paquetes" element={<Paquetes />} />
+          <Route path="acerca-de" element={<AcercaDe />} />
+          <Route path="contacto" element={<Contacto />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Route>
       </Routes>

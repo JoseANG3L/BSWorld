@@ -18,10 +18,10 @@ const Card = ({ image, title, downloads = [], creator, tags }) => {
   }, []);
 
   return (
-    <div className="group flex flex-col bg-white dark:bg-[#1e1e1e] border border-gray-300 dark:border-gray-700 rounded-2xl overflow-hidden shadow-lg transition-all duration-300 z-0 relative">
+    <div className="group flex flex-col bg-white dark:bg-[#1e1e1e] border border-gray-300 dark:border-gray-700 rounded-2xl shadow-lg transition-all duration-300 z-0 relative">
       
       {/* 1. IMAGEN */}
-      <div className="relative w-full aspect-video overflow-hidden bg-gray-100 dark:bg-gray-800">
+      <div className="relative w-full aspect-video overflow-hidden bg-gray-100 dark:bg-gray-800 rounded-t-2xl">
         <img 
           src={image || 'default.jpg'} 
           alt={title}
@@ -33,9 +33,9 @@ const Card = ({ image, title, downloads = [], creator, tags }) => {
       </div>
 
       {/* CONTENIDO */}
-      <div className="flex flex-col flex-1 px-3 pt-1.5 pb-3 md:px-4 md:pt-2.5 md:pb-4">
+      <div className="flex flex-col flex-1 px-3 pt-1.5 pb-3.5 md:px-4 md:pt-2.5 md:pb-4">
         
-        <h3 className="text-md font-bold text-gray-900 dark:text-white mb-2.5 line-clamp-1" title={title}>
+        <h3 className="text-md font-bold text-gray-900 dark:text-white mb-1.5 md:mb-2.5 line-clamp-1" title={title}>
           {title}
         </h3>
 
@@ -90,9 +90,7 @@ const Card = ({ image, title, downloads = [], creator, tags }) => {
           <div className="p-1 rounded-full bg-gray-100 dark:bg-gray-800">
             <User size={14} className="text-primary-600 dark:text-primary-400" />
           </div>
-          <span className="truncate">
-            Por <span className="font-semibold text-gray-700 dark:text-gray-200">{creator}</span>
-          </span>
+          <span className="text-gray-700 dark:text-gray-300">{creator}</span>
         </div>
 
         {/* 4. TAGS */}
