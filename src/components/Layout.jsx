@@ -48,7 +48,7 @@ const Layout = ({ toggleTheme, isDarkMode }) => {
           onMenuClick={() => setIsMobileMenuOpen(true)} 
         />
         
-        <main className="flex-1 overflow-auto rounded-none md:rounded-xl bg-light-surface dark:bg-dark-surface shadow-lg p-3 md:p-6 transition-colors duration-300 border border-gray-200 dark:border-gray-800 relative z-0">
+        <main className="flex-1 overflow-auto rounded-none md:rounded-xl bg-light-surface dark:bg-dark-surface shadow-lg p-3 md:p-6 transition-colors duration-300 border-0 md:border border-gray-200 dark:border-gray-800 relative z-0">
           <Outlet />
         </main>
       </div>

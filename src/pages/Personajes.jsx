@@ -13,34 +13,22 @@ const Personajes = () => {
 
   // Cargar datos al montar el componente
   useEffect(() => {
-    const obtenerPersonajes = async () => {
+    const loadData = async () => {
       try {
-        const querySnapshot = await getDocs(collection(db, "personajes"));
-        // Mapeamos los datos de Firebase a un array normal
-        const docs = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        setPersonajes(docs);
+        // SOLICITAMOS SOLO EL TIPO 'personaje'
+        const data = await getContentByType("personaje");
+        setPersonajes(data);
       } catch (error) {
-        console.error("Error cargando personajes:", error);
+        console.error("Error cargando personajes");
       } finally {
         setLoading(false);
       }
     };
 
-    obtenerPersonajes();
+    loadData();
   }, []);
 
-  // --- ESTADO DE CARGA (Loading Spinner) ---
-  if (loading) {
-    return (
-      <div className="h-full flex flex-col items-center justify-center text-primary-600 dark:text-primary-400">
-        <Loader2 size={48} className="animate-spin mb-4" />
-        <p className="font-medium animate-pulse">Cargando el mundo...</p>
-      </div>
-    );
-  }
+  if (loading) return <div className="h-full flex items-center justify-center"><Loader2 className="animate-spin text-primary-600" size={48} /></div>;
 
   return (
     <DataContainer

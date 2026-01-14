@@ -23,7 +23,7 @@ const Inicio = () => {
             <Star size={18} className="text-yellow-500 fill-yellow-500" />
             Destacados
           </button>
-          <button className="px-5 py-2 md:px-6 md:py-3 rounded-xl bg-primary-500/50 backdrop-blur-sm border border-white/10 text-white font-semibold hover:bg-primary-700/70 transition-all duration-200">
+          <button className="px-5 py-2 md:px-6 md:py-3 rounded-xl bg-primary-800 backdrop-blur-sm border border-primary-400 text-white/90 font-semibold hover:bg-primary-700 transition-all duration-200">
             Novedades
           </button>
         </div>

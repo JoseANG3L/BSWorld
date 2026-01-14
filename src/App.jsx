@@ -11,6 +11,9 @@ import Modpacks from './pages/Modpacks';
 import Paquetes from './pages/Paquetes';
 import AcercaDe from './pages/AcercaDe';
 import Contacto from './pages/Contacto';
+import AdminUpload from './pages/AdminUpload';
+import { AuthProvider } from './context/AuthContext';
+import Login from './pages/Login';
 
 const Placeholder = ({ title }) => (
   <div className="flex flex-col justify-center items-center h-full text-gray-400 dark:text-gray-600">
@@ -42,22 +45,26 @@ function App() {
   const toggleTheme = () => setIsDarkMode(!isDarkMode);
 
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Layout toggleTheme={toggleTheme} isDarkMode={isDarkMode} />}>
-          <Route index element={<Inicio />} />
-          <Route path="personajes" element={<Personajes />} />
-          <Route path="mapas" element={<Mapas />} />
-          <Route path="minijuegos" element={<Minijuegos />} />
-          <Route path="mods" element={<Mods />} />
-          <Route path="modpacks" element={<Modpacks />} />
-          <Route path="paquetes" element={<Paquetes />} />
-          <Route path="acerca-de" element={<AcercaDe />} />
-          <Route path="contacto" element={<Contacto />} />
-          <Route path="*" element={<Navigate to="/" />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Layout toggleTheme={toggleTheme} isDarkMode={isDarkMode} />}>
+            <Route index element={<Inicio />} />
+            <Route path="personajes" element={<Personajes />} />
+            <Route path="mapas" element={<Mapas />} />
+            <Route path="minijuegos" element={<Minijuegos />} />
+            <Route path="mods" element={<Mods />} />
+            <Route path="modpacks" element={<Modpacks />} />
+            <Route path="paquetes" element={<Paquetes />} />
+            <Route path="acerca-de" element={<AcercaDe />} />
+            <Route path="contacto" element={<Contacto />} />
+            <Route path="admin-upload" element={<AdminUpload />} />
+            <Route path="login" element={<Login />} />
+            <Route path="*" element={<Navigate to="/" />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
 
