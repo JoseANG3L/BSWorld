@@ -6,7 +6,7 @@ import {
   onAuthStateChanged,
   updateProfile 
 } from "firebase/auth";
-import { doc, getDoc, setDoc } from "firebase/firestore"; 
+import { doc, getDoc, setDoc, collection, query, where, getDocs } from "firebase/firestore"; 
 import { auth, db } from "../firebase/config";
 
 const AuthContext = createContext();
@@ -24,13 +24,27 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // --- FUNCIÓN SIGNUP MODIFICADA ---
   const signup = async (email, password, username, avatarUrl) => {
-    // ... tu lógica de signup ...
-    // (Resumen para no hacer largo el código: crea usuario en auth y firestore)
+    
+    // 1. VERIFICAR SI EL USERNAME YA EXISTE EN FIRESTORE
+    const usersRef = collection(db, "users");
+    const q = query(usersRef, where("username", "==", username));
+    const querySnapshot = await getDocs(q);
+
+    if (!querySnapshot.empty) {
+      // Si la consulta devuelve algo, lanzamos un error personalizado
+      throw { code: "custom/username-taken" };
+    }
+
+    // 2. SI NO EXISTE, PROCEDEMOS A CREAR LA CUENTA
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const firebaseUser = userCredential.user;
+    
     const finalAvatar = avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`;
+
     await updateProfile(firebaseUser, { displayName: username, photoURL: finalAvatar });
+    
     await setDoc(doc(db, "users", firebaseUser.uid), {
         uid: firebaseUser.uid,
         username: username,
@@ -39,6 +53,7 @@ export const AuthProvider = ({ children }) => {
         role: "user",
         createdAt: new Date().toISOString()
     });
+    
     setUser({ ...firebaseUser, displayName: username, photoURL: finalAvatar, role: "user" });
     return userCredential;
   };

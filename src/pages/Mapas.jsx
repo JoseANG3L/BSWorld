@@ -6,12 +6,12 @@ import Card from '../components/Card';
 const Mapas = () => {
   // DATOS
   const mapasList = [
-    { id: 1, nombre: 'Steve', creador: 'Minecraft', tags: ['Explorador'], fecha: '2023-11-01', img: 'https://via.placeholder.com/640x360', descargas: [{ label: 'Descargar', url: '#' }] },
-    { id: 2, nombre: 'Alex', creador: 'Minecraft', tags: ['Guerrera'], fecha: '2023-12-15', img: 'https://via.placeholder.com/640x360', descargas: [{ label: 'Descargar', url: '#' }] },
-    { id: 3, nombre: 'Aldeano', creador: 'Minecraft', tags: ['Comerciante'], fecha: '2023-10-20', img: 'https://via.placeholder.com/640x360', descargas: [{ label: 'Descargar', url: '#' }] },
-    { id: 4, nombre: 'Zombie', creador: 'Minecraft', tags: ['Enemigo'], fecha: '2024-01-05', img: 'https://via.placeholder.com/640x360', descargas: [{ label: 'Descargar', url: '#' }] },
-    { id: 5, nombre: 'Creeper', creador:'Minecraft' , tags:['Explosivo'] , fecha:'2023-09-10' , img:'https://via.placeholder.com/640x360' , descargas:[{ label:'Descargar' , url:'#' }] },
-    { id: 6, nombre:'Enderman' , creador:'Minecraft' , tags:['Misterioso'] , fecha:'2024-01-20' , img:'https://via.placeholder.com/640x360' , descargas:[{ label:'Descargar' , url:'#' }] },
+    { id: 1, titulo: 'Steve', creadores: ['Minecraft'], tags: ['Explorador'], fecha: '2023-11-01', imagen: 'https://via.placeholder.com/640x360', descargas: [{ label: 'Descargar', url: '#' }] },
+    { id: 2, titulo: 'Alex', creadores: ['Minecraft'], tags: ['Guerrera'], fecha: '2023-12-15', imagen: 'https://via.placeholder.com/640x360', descargas: [{ label: 'Descargar', url: '#' }] },
+    { id: 3, titulo: 'Aldeano', creadores: ['Minecraft'], tags: ['Comerciante'], fecha: '2023-10-20', imagen: 'https://via.placeholder.com/640x360', descargas: [{ label: 'Descargar', url: '#' }] },
+    { id: 4, titulo: 'Zombie', creadores: ['Minecraft'], tags: ['Enemigo'], fecha: '2024-01-05', imagen: 'https://via.placeholder.com/640x360', descargas: [{ label: 'Descargar', url: '#' }] },
+    { id: 5, titulo:'Creeper' , creadores:['Minecraft'] , tags:['Explosivo'] , fecha:'2023-09-10' , imagen:'https://via.placeholder.com/640x360' , descargas:[{ label:'Descargar' , url:'#' }] },
+    { id: 6, titulo:'Enderman' , creadores:['Minecraft'] , tags:['Misterioso'] , fecha:'2024-01-20' , imagen:'https://via.placeholder.com/640x360' , descargas:[{ label:'Descargar' , url:'#' }] },
   ];
 
   return (
@@ -26,10 +26,10 @@ const Mapas = () => {
       // Aquí defines cómo se ve CADA item
       renderItem={(item) => (
         <Card 
-          image={item.img} 
-          title={item.nombre}
-          downloads={item.descargas}
-          creator={item.creador}
+          imagen={item.imagen} 
+          titulo={item.titulo}
+          descargas={item.descargas}
+          creadores={item.creadores}
           tags={item.tags}
         />
       )}

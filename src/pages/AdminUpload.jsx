@@ -4,28 +4,30 @@ import {
   Link as LinkIcon, Users, Tag, Type, Layers, Calendar, Eye 
 } from 'lucide-react';
 import { clsx } from 'clsx';
-import { createContent } from '../services/api';
-import Card from '../components/Card'; // Importamos el componente Card existente
+import { createContent } from '../services/api'; // Asegúrate de tener esta función en api.js
+import { useAuth } from '../context/AuthContext';
+import Card from '../components/Card';
 
 const AdminUpload = () => {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   
-  // Estado principal del formulario
+  // --- ESTADOS DEL FORMULARIO ---
   const [formData, setFormData] = useState({
     titulo: '',
-    tipo: 'personaje',
+    tipo: 'personaje', // Valor por defecto
     imagen: '',
-    creadores: '',
+    creadores: '',     // String separado por comas
     tags: '',
-    creado: new Date().toISOString().split('T')[0] // Fecha de hoy por defecto (YYYY-MM-DD)
+    creado: new Date().toISOString().split('T')[0] // Fecha de hoy (YYYY-MM-DD)
   });
 
-  // Estado para las descargas (Array dinámico)
+  // Array dinámico para descargas
   const [descargas, setDescargas] = useState([
     { label: 'Descarga Principal', url: '' }
   ]);
 
-  // --- HANDLERS ---
+  // --- MANEJADORES ---
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -45,35 +47,68 @@ const AdminUpload = () => {
     setDescargas(newDescargas);
   };
 
+  // --- LÓGICA DE PROCESAMIENTO DE CREADORES (PREVIEW) ---
+  // Esta función simula cómo quedará el array de objetos para la vista previa
+  const getPreviewCreators = () => {
+    if (!formData.creadores) return [];
+    
+    return formData.creadores.split(',').map(text => {
+      const nombreLimpio = text.trim();
+      if (!nombreLimpio) return null;
+
+      // Lógica de coincidencia con tu usuario actual
+      const miNombre = user?.displayName || user?.username;
+      
+      if (miNombre && nombreLimpio.toLowerCase() === miNombre.toLowerCase()) {
+        return {
+          nombre: nombreLimpio,
+          imagen: user.photoURL || user.avatar
+        };
+      }
+
+      return {
+        nombre: nombreLimpio,
+        imagen: `https://api.dicebear.com/7.x/avataaars/svg?seed=${nombreLimpio}`
+      };
+    }).filter(Boolean);
+  };
+
   // --- ENVÍO A FIREBASE ---
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      // 1. Procesar datos (Strings a Arrays)
-      const creadoresArray = formData.creadores.split(',').map(s => s.trim()).filter(s => s);
+      // 1. Procesar Creadores (Texto -> Objetos Reales)
+      const creadoresProcesados = getPreviewCreators();
+
+      // 2. Generar Array de búsqueda simple (Texto plano)
+      const nombresBusqueda = creadoresProcesados.map(c => c.nombre);
+
+      // 3. Procesar Tags
       const tagsArray = formData.tags.split(',').map(s => s.trim()).filter(s => s);
 
-      // 2. Construir objeto final
+      // 4. Construir Payload Final
       const payload = {
         titulo: formData.titulo,
         tipo: formData.tipo,
         imagen: formData.imagen,
-        creadores: creadoresArray,
+        
+        creadores: creadoresProcesados, // Array de Objetos {nombre, imagen}
+        nombresBusqueda: nombresBusqueda, // Array de Strings ["Nombre1", "Nombre2"]
+        
         tags: tagsArray,
-        descargas: descargas.filter(d => d.url !== ''), // Limpiar descargas vacías
-        // Convertir la fecha del input a ISO String completo para Firebase
+        descargas: descargas.filter(d => d.url !== ''),
         creado: new Date(formData.creado).toISOString() 
-        // 'actualizado' se genera automáticamente en la API
+        // actualizado: se genera en la API
       };
 
-      // 3. Llamar a la API
+      // 5. Enviar
       await createContent(payload);
       
-      alert("¡Contenido subido correctamente!");
+      alert("¡Contenido publicado con éxito!");
       
-      // 4. Limpiar formulario
+      // 6. Resetear
       setFormData({
         titulo: '',
         tipo: 'personaje',
@@ -85,6 +120,7 @@ const AdminUpload = () => {
       setDescargas([{ label: 'Descarga Principal', url: '' }]);
 
     } catch (error) {
+      console.error(error);
       alert("Error al subir contenido. Revisa la consola.");
     } finally {
       setLoading(false);
@@ -94,25 +130,24 @@ const AdminUpload = () => {
   return (
     <div className="max-w-7xl mx-auto pb-10 animate-fade-in-up">
       
-      {/* HEADER DE LA PÁGINA */}
+      {/* HEADER */}
       <div className="flex items-center gap-3 mb-8">
         <div className="p-3 bg-primary-600 rounded-xl text-white shadow-lg shadow-primary-600/30">
           <Layers size={24} />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Gestor de Contenido</h1>
-          <p className="text-gray-500 dark:text-gray-400 text-sm">Sube mapas, mods y personajes a la base de datos.</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Panel de Carga</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-sm">Sube nuevo contenido a la base de datos.</p>
         </div>
       </div>
 
-      {/* GRID PRINCIPAL: 2 Columnas (Formulario izq, Preview der) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         
-        {/* --- COLUMNA 1: FORMULARIO (Ocupa 2 espacios) --- */}
+        {/* --- COLUMNA IZQUIERDA: FORMULARIO --- */}
         <div className="lg:col-span-2 flex flex-col gap-6">
           <form onSubmit={handleSubmit} className="flex flex-col gap-6">
             
-            {/* SECCIÓN DATOS BÁSICOS */}
+            {/* SECCIÓN 1: DATOS PRINCIPALES */}
             <div className="bg-white dark:bg-[#1e1e1e] p-6 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
               <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-4 border-b border-gray-100 dark:border-gray-700 pb-2">
                 Información General
@@ -150,9 +185,9 @@ const AdminUpload = () => {
                   </select>
                 </div>
 
-                {/* Fecha Creación */}
+                {/* Fecha */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Fecha Publicación</label>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Publicado el</label>
                   <div className="relative">
                     <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                     <input 
@@ -165,7 +200,7 @@ const AdminUpload = () => {
 
                 {/* Imagen */}
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">URL de Imagen (16:9 Recomendado)</label>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">URL de Imagen (Horizontal)</label>
                   <div className="relative">
                     <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                     <input 
@@ -179,21 +214,22 @@ const AdminUpload = () => {
 
                 {/* Creadores */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Creadores (separar con comas)</label>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Creadores (separar por comas)</label>
                   <div className="relative">
                     <Users className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                     <input 
                       type="text" name="creadores"
                       value={formData.creadores} onChange={handleChange}
-                      placeholder="Ej: Mojang, Notch"
+                      placeholder="Ej: Mojang, TuUsuario"
                       className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white"
                     />
                   </div>
+                  <p className="text-xs text-gray-400 mt-1">Si pones tu nombre de usuario, se usará tu avatar.</p>
                 </div>
 
                 {/* Tags */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Tags (separar con comas)</label>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Tags (separar por comas)</label>
                   <div className="relative">
                     <Tag className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                     <input 
@@ -207,10 +243,10 @@ const AdminUpload = () => {
               </div>
             </div>
 
-            {/* SECCIÓN ENLACES DE DESCARGA */}
+            {/* SECCIÓN 2: DESCARGAS */}
             <div className="bg-white dark:bg-[#1e1e1e] p-6 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
               <div className="flex justify-between items-center mb-4 border-b border-gray-100 dark:border-gray-700 pb-2">
-                <h3 className="text-lg font-bold text-gray-800 dark:text-white">Gestor de Enlaces</h3>
+                <h3 className="text-lg font-bold text-gray-800 dark:text-white">Enlaces de Descarga</h3>
                 <button 
                   type="button" onClick={addDownloadField}
                   className="flex items-center gap-1 text-sm font-bold text-primary-600 dark:text-primary-400 hover:text-primary-700 transition-colors"
@@ -225,14 +261,14 @@ const AdminUpload = () => {
                     <div className="flex-1">
                       <label className="text-xs text-gray-500 mb-1 block">Etiqueta</label>
                       <input 
-                        type="text" placeholder="Ej: Versión PC"
+                        type="text" placeholder="Ej: Mediafire"
                         value={item.label}
                         onChange={(e) => handleDownloadChange(index, 'label', e.target.value)}
                         className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none focus:border-primary-500 dark:text-white text-sm"
                       />
                     </div>
                     <div className="flex-[2]">
-                      <label className="text-xs text-gray-500 mb-1 block">URL de Descarga</label>
+                      <label className="text-xs text-gray-500 mb-1 block">URL</label>
                       <div className="relative">
                          <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
                          <input 
@@ -263,12 +299,12 @@ const AdminUpload = () => {
                 loading ? "bg-gray-400 cursor-not-allowed" : "bg-primary-600 hover:bg-primary-700 hover:scale-[1.01]"
               )}
             >
-              {loading ? "Subiendo..." : <><Save size={20} /> Guardar Contenido</>}
+              {loading ? "Publicando..." : <><Save size={20} /> Guardar Contenido</>}
             </button>
           </form>
         </div>
 
-        {/* --- COLUMNA 2: PREVISUALIZACIÓN (STICKY) --- */}
+        {/* --- COLUMNA DERECHA: PREVIEW STICKY --- */}
         <div className="lg:col-span-1">
           <div className="sticky top-24 flex flex-col gap-4">
             
@@ -277,30 +313,20 @@ const AdminUpload = () => {
               <h3 className="font-bold text-sm uppercase tracking-wider">Vista Previa</h3>
             </div>
 
-            {/* AQUI RENDERIZAMOS EL COMPONENTE CARD REAL */}
-            {/* Pasamos los datos del form al componente Card simulando cómo se verá */}
-            <div className="pointer-events-none select-none"> {/* pointer-events-none para que no cliquen 'Descargar' en el preview */}
+            <div className="pointer-events-none select-none">
               <Card 
-                image={formData.imagen || "https://via.placeholder.com/640x360?text=Sin+Imagen"} 
+                image={formData.imagen || "https://via.placeholder.com/640x360?text=Tu+Imagen"} 
                 title={formData.titulo || "Título del Contenido"}
-                creator={formData.creadores || "Creador"}
-                downloads={descargas} // Pasamos el array de descargas actual
-                // Convertimos el string de tags a array para que el Card lo lea bien
+                downloads={descargas}
+                // Usamos la función getPreviewCreators para simular los objetos con imagen
+                creadores={getPreviewCreators().length > 0 ? getPreviewCreators() : [{nombre: "Creador", imagen: "https://via.placeholder.com/50"}]}
                 tags={formData.tags ? formData.tags.split(',').filter(t => t.trim()) : ["TAG1", "TAG2"]}
               />
             </div>
 
             <div className="p-4 bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-900/30 rounded-xl text-xs text-yellow-800 dark:text-yellow-200">
-              <p><strong>Nota:</strong> Esta es una representación aproximada de cómo se verá la tarjeta en el listado.</p>
+              <p><strong>Nota:</strong> Así se verá la tarjeta. Si pones tu usuario en creadores, se mostrará tu avatar real.</p>
             </div>
-
-            {/* Debug (Opcional, para ver el JSON crudo) */}
-            <details className="mt-4">
-              <summary className="text-xs text-gray-400 cursor-pointer">Ver JSON Crudo</summary>
-              <pre className="mt-2 p-3 bg-gray-100 dark:bg-black/30 rounded-lg text-[10px] text-gray-500 font-mono overflow-auto">
-                {JSON.stringify(formData, null, 2)}
-              </pre>
-            </details>
 
           </div>
         </div>

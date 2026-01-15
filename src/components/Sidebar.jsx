@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
-  Home, Map, Gamepad2, Wrench, Boxes, Package,
+  Home, Map, Gamepad2, Wrench, Boxes, Package, Crown,
   User, Info, Mail, ChevronLeft, ChevronRight, Earth
 } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -9,6 +9,7 @@ import { twMerge } from 'tailwind-merge';
 
 const menuItems = [
   { to: "/", icon: Home, label: "Inicio" },
+  { to: "/creadores", icon: Crown, label: "Creadores" },
   { to: "/mapas", icon: Map, label: "Mapas" },
   { to: "/minijuegos", icon: Gamepad2, label: "Minijuegos" },
   { to: "/mods", icon: Wrench, label: "Mods" },
