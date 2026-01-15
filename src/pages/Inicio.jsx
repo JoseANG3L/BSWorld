@@ -1,5 +1,5 @@
 import React from 'react';
-import { Map, Gamepad2, Wrench, Boxes, Package, ArrowRight, Star, Sparkles } from 'lucide-react';
+import { Map, Gamepad2, Wrench, Boxes, Package, ArrowRight, Star, User } from 'lucide-react';
 import { clsx } from 'clsx';
 import FeatureCard from '../components/FeatureCard.jsx';
 
@@ -46,14 +46,6 @@ const Inicio = () => {
           />
           
           <FeatureCard 
-            to="/mods"
-            icon={Wrench}
-            title="Mods & Herramientas"
-            desc="Mejora tu juego con nuevas mecánicas, potenciadores y funcionalidades."
-            colorClass="from-purple-500 to-pink-500"
-          />
-          
-          <FeatureCard 
             to="/minijuegos"
             icon={Gamepad2}
             title="Minijuegos"
@@ -70,6 +62,14 @@ const Inicio = () => {
           />
 
           <FeatureCard 
+            to="/mods"
+            icon={Wrench}
+            title="Mods & Herramientas"
+            desc="Mejora tu juego con nuevas mecánicas, potenciadores y funcionalidades."
+            colorClass="from-purple-500 to-pink-500"
+          />
+
+          <FeatureCard 
             to="/paquetes"
             icon={Package}
             title="Paquetes de Recursos"
@@ -79,7 +79,7 @@ const Inicio = () => {
 
           <FeatureCard
             to="/personajes"
-            icon={Sparkles}
+            icon={User}
             title="Personajes"
             desc="Personaliza tu experiencia con personajes únicos y estilizados."
             colorClass="from-pink-500 to-purple-400"

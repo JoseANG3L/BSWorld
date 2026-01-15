@@ -1,37 +1,44 @@
-import React from 'react';
-import { User, Sparkles } from 'lucide-react';
-import DataContainer from '../components/DataContainer'; // Importa el contenedor
+import React, { useState, useEffect } from 'react';
+import { Map, Loader2 } from 'lucide-react'; 
+import DataContainer from '../components/DataContainer';
 import Card from '../components/Card';
+import { getContentByType } from '../services/api';
 
 const Mapas = () => {
-  // DATOS
-  const mapasList = [
-    { id: 1, titulo: 'Steve', creadores: ['Minecraft'], tags: ['Explorador'], fecha: '2023-11-01', imagen: 'https://via.placeholder.com/640x360', descargas: [{ label: 'Descargar', url: '#' }] },
-    { id: 2, titulo: 'Alex', creadores: ['Minecraft'], tags: ['Guerrera'], fecha: '2023-12-15', imagen: 'https://via.placeholder.com/640x360', descargas: [{ label: 'Descargar', url: '#' }] },
-    { id: 3, titulo: 'Aldeano', creadores: ['Minecraft'], tags: ['Comerciante'], fecha: '2023-10-20', imagen: 'https://via.placeholder.com/640x360', descargas: [{ label: 'Descargar', url: '#' }] },
-    { id: 4, titulo: 'Zombie', creadores: ['Minecraft'], tags: ['Enemigo'], fecha: '2024-01-05', imagen: 'https://via.placeholder.com/640x360', descargas: [{ label: 'Descargar', url: '#' }] },
-    { id: 5, titulo:'Creeper' , creadores:['Minecraft'] , tags:['Explosivo'] , fecha:'2023-09-10' , imagen:'https://via.placeholder.com/640x360' , descargas:[{ label:'Descargar' , url:'#' }] },
-    { id: 6, titulo:'Enderman' , creadores:['Minecraft'] , tags:['Misterioso'] , fecha:'2024-01-20' , imagen:'https://via.placeholder.com/640x360' , descargas:[{ label:'Descargar' , url:'#' }] },
-  ];
+  const [mapas, setMapas] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        // Llamamos a la función importada
+        const data = await getContentByType("mapa");
+        setMapas(data);
+      } catch (error) {
+        console.error("Error cargando mapas:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  if (loading) return (
+    <div className="h-full flex items-center justify-center min-h-[50vh]">
+      <Loader2 className="animate-spin text-primary-600" size={48} />
+    </div>
+  );
 
   return (
     <DataContainer
       title="Mapas"
-      icon={Sparkles} // Icono personalizado
-      gradientClass="from-pink-500 to-purple-500" // Color personalizado
-      items={mapasList}
-      searchKey="nombre" // Buscamos por la propiedad 'nombre'
-      dateKey="fecha"    // Ordenamos por la propiedad 'fecha'
-      
-      // Aquí defines cómo se ve CADA item
+      icon={Map} 
+      gradientClass="from-blue-500 to-cyan-400"
+      items={mapas}
+      searchKey="titulo"
       renderItem={(item) => (
-        <Card 
-          imagen={item.imagen} 
-          titulo={item.titulo}
-          descargas={item.descargas}
-          creadores={item.creadores}
-          tags={item.tags}
-        />
+        <Card key={item.id} {...item} />
       )}
     />
   );

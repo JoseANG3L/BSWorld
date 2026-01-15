@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'; // Necesario para navegar
 import { Download, Tag, ChevronDown, Users } from 'lucide-react';
 import { clsx } from 'clsx';
 
-const Card = ({ imagen, titulo, descargas = [], creadores = [], tags }) => {
+const Card = ({ imagen, titulo, descargas = [], creadores = [], tags, isPreview = false }) => {
   // Estado para el menú de descargas
   const [isOpenDownload, setIsOpenDownload] = useState(false);
   const downloadRef = useRef(null);
@@ -51,7 +51,7 @@ const Card = ({ imagen, titulo, descargas = [], creadores = [], tags }) => {
           alt={titulo}
           loading="lazy"
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-          onError={(e) => { e.target.src = 'https://via.placeholder.com/640x360'; }}
+          onError={(e) => { e.target.src = '/default.jpg'; }}
         />
         <div className="absolute inset-0 bg-primary-900/0 group-hover:bg-primary-900/10 transition-colors duration-300" />
       </div>
@@ -77,7 +77,7 @@ const Card = ({ imagen, titulo, descargas = [], creadores = [], tags }) => {
           </button>
 
           {isOpenDownload && (
-            <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#252525] border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden animate-fade-in-up origin-top" style={{ animationDuration: '200ms' }}>
+            <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#252525] border border-gray-300 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden animate-fade-in-up origin-top" style={{ animationDuration: '200ms' }}>
               <div className="py-1">
                 {descargas.length > 0 ? (
                   descargas.map((option, index) => (
@@ -107,7 +107,7 @@ const Card = ({ imagen, titulo, descargas = [], creadores = [], tags }) => {
                <img 
                  src={primerCreador.imagen} 
                  alt={primerCreador.nombre}
-                 className="w-6 h-6 rounded-full border border-gray-200 dark:border-gray-700 object-cover"
+                 className="w-6 h-6 rounded-full border border-gray-300 dark:border-gray-700 object-cover"
                />
                {/* Badge de contador (+2) */}
                {totalExtra > 0 && (
@@ -135,7 +135,7 @@ const Card = ({ imagen, titulo, descargas = [], creadores = [], tags }) => {
 
           {/* LISTA DESPLEGABLE DE TODOS LOS CREADORES */}
           {isOpenCreators && (
-            <div className="absolute bottom-full left-0 right-0 mb-2 bg-white dark:bg-[#252525] border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden animate-fade-in-up origin-bottom p-1" style={{ animationDuration: '200ms' }}>
+            <div className="absolute bottom-full left-0 right-0 mb-2 bg-white dark:bg-[#252525] border border-gray-300 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden animate-fade-in-up origin-bottom p-1" style={{ animationDuration: '200ms' }}>
               <p className="px-3 py-2 text-[10px] uppercase font-bold text-gray-400 tracking-wider border-b border-gray-100 dark:border-gray-800 mb-1">
                 Creadores
               </p>
@@ -143,8 +143,10 @@ const Card = ({ imagen, titulo, descargas = [], creadores = [], tags }) => {
               <div className="max-h-48 overflow-y-auto">
                 {listaCreadores.map((creador, index) => (
                   <Link 
-                    key={index} 
+                    key={index}
                     to={`/u/${creador.nombre}`}
+                    target={isPreview ? "_blank" : undefined}
+                    rel={isPreview ? "noopener noreferrer" : undefined}
                     className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors"
                   >
                     <img 
@@ -165,7 +167,7 @@ const Card = ({ imagen, titulo, descargas = [], creadores = [], tags }) => {
         {/* TAGS */}
         <div className="mt-auto flex flex-wrap gap-2">
           {tags && tags.map((tag, index) => (
-            <div key={index} className="flex items-center gap-1 px-2 py-1 rounded-md bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+            <div key={index} className="flex items-center gap-1 px-2 py-1 rounded-md bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700">
               <Tag size={10} className="text-gray-400" />
               <span className="text-[10px] font-bold uppercase tracking-wider text-gray-600 dark:text-gray-400">{tag}</span>
             </div>

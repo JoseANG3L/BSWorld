@@ -4,7 +4,7 @@ import {
   Link as LinkIcon, Users, Tag, Type, Layers, Calendar, Eye 
 } from 'lucide-react';
 import { clsx } from 'clsx';
-import { createContent } from '../services/api'; // Asegúrate de tener esta función en api.js
+import { createContent } from '../services/api'; 
 import { useAuth } from '../context/AuthContext';
 import Card from '../components/Card';
 
@@ -15,14 +15,13 @@ const AdminUpload = () => {
   // --- ESTADOS DEL FORMULARIO ---
   const [formData, setFormData] = useState({
     titulo: '',
-    tipo: 'personaje', // Valor por defecto
+    tipo: 'mod', // Valor por defecto
     imagen: '',
-    creadores: '',     // String separado por comas
+    creadores: '', 
     tags: '',
-    creado: new Date().toISOString().split('T')[0] // Fecha de hoy (YYYY-MM-DD)
+    creado: new Date().toISOString().split('T')[0] 
   });
 
-  // Array dinámico para descargas
   const [descargas, setDescargas] = useState([
     { label: 'Descarga Principal', url: '' }
   ]);
@@ -47,8 +46,7 @@ const AdminUpload = () => {
     setDescargas(newDescargas);
   };
 
-  // --- LÓGICA DE PROCESAMIENTO DE CREADORES (PREVIEW) ---
-  // Esta función simula cómo quedará el array de objetos para la vista previa
+  // --- PREVIEW HELPERS ---
   const getPreviewCreators = () => {
     if (!formData.creadores) return [];
     
@@ -56,7 +54,6 @@ const AdminUpload = () => {
       const nombreLimpio = text.trim();
       if (!nombreLimpio) return null;
 
-      // Lógica de coincidencia con tu usuario actual
       const miNombre = user?.displayName || user?.username;
       
       if (miNombre && nombreLimpio.toLowerCase() === miNombre.toLowerCase()) {
@@ -73,45 +70,53 @@ const AdminUpload = () => {
     }).filter(Boolean);
   };
 
+  // Helper para generar los tags de la vista previa incluyendo el TIPO
+  const getPreviewTags = () => {
+    const userTags = formData.tags ? formData.tags.split(',').map(t => t.trim()).filter(Boolean) : ["TAG1", "TAG2"];
+    // Agregamos el TIPO al principio
+    return [formData.tipo, ...userTags];
+  };
+
   // --- ENVÍO A FIREBASE ---
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      // 1. Procesar Creadores (Texto -> Objetos Reales)
+      // 1. Procesar Creadores
       const creadoresProcesados = getPreviewCreators();
-
-      // 2. Generar Array de búsqueda simple (Texto plano)
       const nombresBusqueda = creadoresProcesados.map(c => c.nombre);
 
-      // 3. Procesar Tags
-      const tagsArray = formData.tags.split(',').map(s => s.trim()).filter(s => s);
+      // 2. Procesar Tags (AQUÍ ESTÁ EL CAMBIO)
+      // Obtenemos los tags que escribió el usuario
+      const userTags = formData.tags.split(',').map(s => s.trim()).filter(s => s);
+      
+      // Agregamos el TIPO como el PRIMER tag
+      // (Ej: ['mod', 'aventura', 'fps'])
+      const finalTags = [formData.tipo, ...userTags];
 
-      // 4. Construir Payload Final
+      // 3. Construir Payload
       const payload = {
         titulo: formData.titulo,
         tipo: formData.tipo,
         imagen: formData.imagen,
+        creadores: creadoresProcesados,
+        nombresBusqueda: nombresBusqueda,
         
-        creadores: creadoresProcesados, // Array de Objetos {nombre, imagen}
-        nombresBusqueda: nombresBusqueda, // Array de Strings ["Nombre1", "Nombre2"]
+        tags: finalTags, // Usamos la lista combinada
         
-        tags: tagsArray,
         descargas: descargas.filter(d => d.url !== ''),
         creado: new Date(formData.creado).toISOString() 
-        // actualizado: se genera en la API
       };
 
-      // 5. Enviar
       await createContent(payload);
       
       alert("¡Contenido publicado con éxito!");
       
-      // 6. Resetear
+      // Resetear
       setFormData({
         titulo: '',
-        tipo: 'personaje',
+        tipo: 'mod',
         imagen: '',
         creadores: '',
         tags: '',
@@ -128,7 +133,7 @@ const AdminUpload = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto pb-10 animate-fade-in-up">
+    <div className="max-w-7xl mx-auto pb-10 animate-fade-in-up px-4 md:px-0">
       
       {/* HEADER */}
       <div className="flex items-center gap-3 mb-8">
@@ -147,7 +152,6 @@ const AdminUpload = () => {
         <div className="lg:col-span-2 flex flex-col gap-6">
           <form onSubmit={handleSubmit} className="flex flex-col gap-6">
             
-            {/* SECCIÓN 1: DATOS PRINCIPALES */}
             <div className="bg-white dark:bg-[#1e1e1e] p-6 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
               <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-4 border-b border-gray-100 dark:border-gray-700 pb-2">
                 Información General
@@ -176,12 +180,12 @@ const AdminUpload = () => {
                     value={formData.tipo} onChange={handleChange}
                     className="w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white"
                   >
-                    <option value="personaje">Personaje</option>
                     <option value="mapa">Mapa</option>
                     <option value="minijuego">Minijuego</option>
-                    <option value="mod">Mod</option>
                     <option value="modpack">Modpack</option>
-                    <option value="paquete">Texture Pack</option>
+                    <option value="mod">Mod</option>
+                    <option value="paquete">Paquete</option>
+                    <option value="personaje">Personaje</option>
                   </select>
                 </div>
 
@@ -313,19 +317,20 @@ const AdminUpload = () => {
               <h3 className="font-bold text-sm uppercase tracking-wider">Vista Previa</h3>
             </div>
 
-            <div className="pointer-events-none select-none">
-              <Card 
-                image={formData.imagen || "https://via.placeholder.com/640x360?text=Tu+Imagen"} 
-                title={formData.titulo || "Título del Contenido"}
-                downloads={descargas}
-                // Usamos la función getPreviewCreators para simular los objetos con imagen
-                creadores={getPreviewCreators().length > 0 ? getPreviewCreators() : [{nombre: "Creador", imagen: "https://via.placeholder.com/50"}]}
-                tags={formData.tags ? formData.tags.split(',').filter(t => t.trim()) : ["TAG1", "TAG2"]}
-              />
-            </div>
+            <Card 
+              // Corregimos los nombres de props para que coincidan con tu componente Card
+              imagen={formData.imagen || "/default.jpg"} 
+              titulo={formData.titulo || "Título del Contenido"}
+              descargas={descargas}
+              // Vista previa de creadores
+              creadores={getPreviewCreators().length > 0 ? getPreviewCreators() : [{nombre: "Creador", imagen: "https://via.placeholder.com/50"}]}
+              // Vista previa de tags (Incluye el TIPO al principio)
+              tags={getPreviewTags()}
+              isPreview={true}
+            />
 
             <div className="p-4 bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-900/30 rounded-xl text-xs text-yellow-800 dark:text-yellow-200">
-              <p><strong>Nota:</strong> Así se verá la tarjeta. Si pones tu usuario en creadores, se mostrará tu avatar real.</p>
+              <p><strong>Nota:</strong> Así se verá la tarjeta. El tipo "<strong>{formData.tipo}</strong>" se agregará automáticamente como el primer tag.</p>
             </div>
 
           </div>
