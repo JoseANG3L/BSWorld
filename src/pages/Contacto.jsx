@@ -47,7 +47,7 @@ const Contacto = () => {
   };
 
   return (
-    <div className="flex flex-col gap-6 animate-fade-in-up">
+    <div className="flex flex-col gap-6 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
       
       {/* --- HEADER --- */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">

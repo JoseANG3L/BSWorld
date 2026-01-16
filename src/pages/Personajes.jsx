@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, Loader2 } from 'lucide-react'; 
+import { User, Loader2 } from 'lucide-react'; 
 import DataContainer from '../components/DataContainer';
 import Card from '../components/Card';
 import { getContentByType } from '../services/api';
@@ -33,7 +33,7 @@ const Personajes = () => {
   return (
     <DataContainer
       title="Personajes"
-      icon={Sparkles} 
+      icon={User} 
       gradientClass="from-pink-500 to-purple-400"
       items={personajes}
       searchKey="titulo"

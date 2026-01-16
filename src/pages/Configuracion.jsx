@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { clsx } from 'clsx';
 
-const Perfil = () => {
+const Configuracion = () => {
   const { user } = useAuth();
   
   // Estado del formulario
@@ -79,7 +79,7 @@ const Perfil = () => {
     <div className="max-w-4xl mx-auto pb-10 animate-fade-in-up">
       
       <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
-        <User className="text-primary-600" /> Mi Perfil
+        <User className="text-primary-600" /> Configuración de Perfil
       </h1>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -223,4 +223,4 @@ const Perfil = () => {
   );
 };
 
-export default Perfil;
+export default Configuracion;

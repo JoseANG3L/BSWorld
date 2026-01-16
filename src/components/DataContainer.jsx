@@ -41,7 +41,7 @@ const DataContainer = ({
   }, [items, busqueda, orden, searchKey, dateKey]);
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col animate-fade-in-up" style={{ animationDuration: '200ms' }}>
       {/* HEADER */}
       <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-4 md:mb-6">
         <h2 className="flex text-2xl font-bold text-gray-800 dark:text-white items-center gap-3">

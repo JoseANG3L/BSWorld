@@ -1,21 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom'; // 1. Imports de navegación
 import { 
   Save, Plus, Trash2, Image as ImageIcon, 
-  Link as LinkIcon, Users, Tag, Type, Layers, Calendar, Eye 
+  Link as LinkIcon, Users, Tag, Type, Layers, Calendar, Eye, PenTool 
 } from 'lucide-react';
 import { clsx } from 'clsx';
-import { createContent } from '../services/api'; 
+// 2. Importar nuevas funciones de la API
+import { createContent, getContentById, updateContent } from '../services/api'; 
 import { useAuth } from '../context/AuthContext';
 import Card from '../components/Card';
 
 const AdminUpload = () => {
   const { user } = useAuth();
-  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   
+  // 3. DETECTAR MODO EDICIÓN
+  // Si la URL tiene ?edit=xyz, guardamos ese ID
+  const editId = searchParams.get('edit'); 
+  const isEditing = !!editId; // Booleano: true si estamos editando
+
+  const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(!!editId); // Estado de carga inicial (solo si editamos)
+
   // --- ESTADOS DEL FORMULARIO ---
   const [formData, setFormData] = useState({
     titulo: '',
-    tipo: 'mod', // Valor por defecto
+    tipo: 'mod',
     imagen: '',
     creadores: '', 
     tags: '',
@@ -25,6 +36,59 @@ const AdminUpload = () => {
   const [descargas, setDescargas] = useState([
     { label: 'Descarga Principal', url: '' }
   ]);
+
+  // --- 4. EFECTO PARA CARGAR DATOS (SI EDITAMOS) ---
+  useEffect(() => {
+    const loadDataForEdit = async () => {
+      if (!isEditing) return;
+
+      try {
+        const data = await getContentById(editId);
+        if (data) {
+          // CONVERTIR DATOS DE DB A FORMATO FORMULARIO
+          
+          // A. Creadores (Array de objetos -> String "Nombre1, Nombre2")
+          const creadoresString = data.creadores 
+            ? data.creadores.map(c => c.nombre).join(', ') 
+            : '';
+
+          // B. Tags (Array -> String, quitando el Tipo para que no se duplique)
+          // Filtramos el tag que sea igual al tipo para no mostrarlo en el input
+          const tagsString = data.tags 
+            ? data.tags.filter(t => t !== data.tipo).join(', ') 
+            : '';
+
+          // C. Fecha (ISO String -> YYYY-MM-DD para el input date)
+          const fechaInput = data.creado 
+            ? new Date(data.creado).toISOString().split('T')[0] 
+            : new Date().toISOString().split('T')[0];
+
+          setFormData({
+            titulo: data.titulo || '',
+            tipo: data.tipo || 'mod',
+            imagen: data.imagen || '',
+            creadores: creadoresString,
+            tags: tagsString,
+            creado: fechaInput
+          });
+
+          if (data.descargas && data.descargas.length > 0) {
+            setDescargas(data.descargas);
+          }
+        } else {
+          alert("No se encontró el contenido a editar");
+          navigate('/admin'); // Volver si no existe
+        }
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setFetching(false);
+      }
+    };
+
+    loadDataForEdit();
+  }, [editId, isEditing, navigate]);
+
 
   // --- MANEJADORES ---
   const handleChange = (e) => {
@@ -70,79 +134,78 @@ const AdminUpload = () => {
     }).filter(Boolean);
   };
 
-  // Helper para generar los tags de la vista previa incluyendo el TIPO
   const getPreviewTags = () => {
     const userTags = formData.tags ? formData.tags.split(',').map(t => t.trim()).filter(Boolean) : ["TAG1", "TAG2"];
-    // Agregamos el TIPO al principio
     return [formData.tipo, ...userTags];
   };
 
-  // --- ENVÍO A FIREBASE ---
+  // --- ENVÍO A FIREBASE (LÓGICA DUAL) ---
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      // 1. Procesar Creadores
       const creadoresProcesados = getPreviewCreators();
       const nombresBusqueda = creadoresProcesados.map(c => c.nombre);
-
-      // 2. Procesar Tags (AQUÍ ESTÁ EL CAMBIO)
-      // Obtenemos los tags que escribió el usuario
       const userTags = formData.tags.split(',').map(s => s.trim()).filter(s => s);
-      
-      // Agregamos el TIPO como el PRIMER tag
-      // (Ej: ['mod', 'aventura', 'fps'])
       const finalTags = [formData.tipo, ...userTags];
 
-      // 3. Construir Payload
       const payload = {
         titulo: formData.titulo,
         tipo: formData.tipo,
         imagen: formData.imagen,
         creadores: creadoresProcesados,
         nombresBusqueda: nombresBusqueda,
-        
-        tags: finalTags, // Usamos la lista combinada
-        
+        tags: finalTags,
         descargas: descargas.filter(d => d.url !== ''),
         creado: new Date(formData.creado).toISOString() 
       };
 
-      await createContent(payload);
-      
-      alert("¡Contenido publicado con éxito!");
-      
-      // Resetear
-      setFormData({
-        titulo: '',
-        tipo: 'mod',
-        imagen: '',
-        creadores: '',
-        tags: '',
-        creado: new Date().toISOString().split('T')[0]
-      });
-      setDescargas([{ label: 'Descarga Principal', url: '' }]);
+      // 5. DECISIÓN: CREAR O ACTUALIZAR
+      if (isEditing) {
+        await updateContent(editId, payload);
+        alert("¡Contenido actualizado correctamente!");
+        navigate('/admin'); // Redirigir al panel tras editar
+      } else {
+        await createContent(payload);
+        alert("¡Contenido creado con éxito!");
+        // Resetear solo si estamos creando
+        setFormData({
+            titulo: '', tipo: 'mod', imagen: '', creadores: '', tags: '', 
+            creado: new Date().toISOString().split('T')[0] 
+        });
+        setDescargas([{ label: 'Descarga Principal', url: '' }]);
+      }
 
     } catch (error) {
       console.error(error);
-      alert("Error al subir contenido. Revisa la consola.");
+      alert("Error al guardar. Revisa la consola.");
     } finally {
       setLoading(false);
     }
   };
+
+  // Si estamos cargando los datos para editar, mostramos un loader simple
+  if (fetching) return <div className="p-10 text-center">Cargando datos...</div>;
 
   return (
     <div className="max-w-7xl mx-auto pb-10 animate-fade-in-up px-4 md:px-0">
       
       {/* HEADER */}
       <div className="flex items-center gap-3 mb-8">
-        <div className="p-3 bg-primary-600 rounded-xl text-white shadow-lg shadow-primary-600/30">
-          <Layers size={24} />
+        <div className={clsx(
+          "p-3 rounded-xl text-white shadow-lg",
+          isEditing ? "bg-blue-600 shadow-blue-600/30" : "bg-primary-600 shadow-primary-600/30"
+        )}>
+          {isEditing ? <PenTool size={24} /> : <Layers size={24} />}
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Panel de Carga</h1>
-          <p className="text-gray-500 dark:text-gray-400 text-sm">Sube nuevo contenido a la base de datos.</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            {isEditing ? "Editar Contenido" : "Panel de Carga"}
+          </h1>
+          <p className="text-gray-500 dark:text-gray-400 text-sm">
+            {isEditing ? `Editando ID: ${editId}` : "Sube nuevo contenido a la base de datos."}
+          </p>
         </div>
       </div>
 
@@ -299,11 +362,18 @@ const AdminUpload = () => {
             <button 
               type="submit" disabled={loading}
               className={clsx(
-                "w-full py-4 rounded-xl text-white font-bold text-lg flex items-center justify-center gap-2 shadow-xl shadow-primary-600/20 transition-all",
-                loading ? "bg-gray-400 cursor-not-allowed" : "bg-primary-600 hover:bg-primary-700 hover:scale-[1.01]"
+                "w-full py-4 rounded-xl text-white font-bold text-lg flex items-center justify-center gap-2 shadow-xl transition-all",
+                loading ? "bg-gray-400 cursor-not-allowed" : (
+                    isEditing 
+                    ? "bg-blue-600 hover:bg-blue-700 shadow-blue-600/20 hover:scale-[1.01]" 
+                    : "bg-primary-600 hover:bg-primary-700 shadow-primary-600/20 hover:scale-[1.01]"
+                )
               )}
             >
-              {loading ? "Publicando..." : <><Save size={20} /> Guardar Contenido</>}
+              {loading 
+                ? (isEditing ? "Actualizando..." : "Publicando...") 
+                : (isEditing ? <><Save size={20} /> Actualizar Contenido</> : <><Save size={20} /> Guardar Contenido</>)
+              }
             </button>
           </form>
         </div>
@@ -318,19 +388,24 @@ const AdminUpload = () => {
             </div>
 
             <Card 
-              // Corregimos los nombres de props para que coincidan con tu componente Card
               imagen={formData.imagen || "/default.jpg"} 
               titulo={formData.titulo || "Título del Contenido"}
               descargas={descargas}
-              // Vista previa de creadores
               creadores={getPreviewCreators().length > 0 ? getPreviewCreators() : [{nombre: "Creador", imagen: "https://via.placeholder.com/50"}]}
-              // Vista previa de tags (Incluye el TIPO al principio)
               tags={getPreviewTags()}
               isPreview={true}
             />
 
-            <div className="p-4 bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-900/30 rounded-xl text-xs text-yellow-800 dark:text-yellow-200">
-              <p><strong>Nota:</strong> Así se verá la tarjeta. El tipo "<strong>{formData.tipo}</strong>" se agregará automáticamente como el primer tag.</p>
+            <div className={clsx(
+                "p-4 border rounded-xl text-xs",
+                isEditing 
+                  ? "bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-900/30 text-blue-800 dark:text-blue-200" 
+                  : "bg-yellow-50 dark:bg-yellow-900/10 border-yellow-200 dark:border-yellow-900/30 text-yellow-800 dark:text-yellow-200"
+            )}>
+              <p>
+                <strong>{isEditing ? "Modo Edición" : "Nota"}:</strong> 
+                {isEditing ? " Estás modificando un contenido existente." : " Así se verá la tarjeta. El tipo se agregará como primer tag."}
+              </p>
             </div>
 
           </div>

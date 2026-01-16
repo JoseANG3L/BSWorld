@@ -1,11 +1,10 @@
 import React from 'react';
 import { Map, Gamepad2, Wrench, Boxes, Package, ArrowRight, Star, User } from 'lucide-react';
-import { clsx } from 'clsx';
 import FeatureCard from '../components/FeatureCard.jsx';
 
 const Inicio = () => {
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
       
       {/* --- HERO SECTION --- */}
       <div className="relative rounded-3xl bg-gradient-to-r from-primary-800 via-primary-700 to-primary-500 p-4 md:p-6 text-white">

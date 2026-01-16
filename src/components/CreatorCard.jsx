@@ -14,7 +14,7 @@ const CreatorCard = ({ username, avatar, role, createdAt }) => {
     // 1. CAMBIO PRINCIPAL: El contenedor ahora es un <Link>
     <Link 
       to={`/u/${username}`} 
-      className="block group relative bg-white dark:bg-[#1e1e1e] border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+      className="block group relative bg-white dark:bg-[#1e1e1e] border border-gray-300 dark:border-gray-700 rounded-2xl overflow-hidden shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
     >
       
       {/* Banner Superior */}
@@ -34,7 +34,7 @@ const CreatorCard = ({ username, avatar, role, createdAt }) => {
           <img 
             src={avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`} 
             alt={username}
-            className="w-20 h-20 rounded-full border-4 border-white dark:border-[#1e1e1e] bg-gray-200 object-cover shadow-md group-hover:scale-105 transition-transform"
+            className="w-20 h-20 rounded-full border-4 border-white dark:border-[#1e1e1e] object-cover shadow-md group-hover:scale-105 transition-transform"
           />
           
           {/* Icono de flecha (Visual) */}

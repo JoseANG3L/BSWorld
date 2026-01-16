@@ -9,7 +9,7 @@ import { twMerge } from 'tailwind-merge';
 
 const menuItems = [
   { to: "/", icon: Home, label: "Inicio" },
-  { to: "/creadores", icon: Crown, label: "Creadores" },
+  { to: "/comunidad", icon: Crown, label: "Comunidad" },
   { to: "/mapas", icon: Map, label: "Mapas" },
   { to: "/minijuegos", icon: Gamepad2, label: "Minijuegos" },
   { to: "/modpacks", icon: Boxes, label: "Modpacks" },

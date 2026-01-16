@@ -21,9 +21,10 @@ import Modpacks from './pages/Modpacks';
 import Paquetes from './pages/Paquetes';
 
 // Páginas de Funcionalidad y Usuario
+import AdminPanel from './pages/AdminPanel';
 import AdminUpload from './pages/AdminUpload';
-import Perfil from './pages/Perfil';
-import Creadores from './pages/Creadores';
+import Configuracion from './pages/Configuracion';
+import Comunidad from './pages/Comunidad';
 import PublicProfile from './pages/PublicProfile';
 import Resultados from './pages/Resultados'; // <--- IMPORTANTE: Importar Resultados
 
@@ -68,7 +69,7 @@ function App() {
             <Route path="buscar" element={<Resultados />} /> {/* <--- ESTA FALTABA */}
 
             {/* --- COMUNIDAD --- */}
-            <Route path="creadores" element={<Creadores />} />
+            <Route path="comunidad" element={<Comunidad />} />
             <Route path="u/:username" element={<PublicProfile />} />
             
             {/* --- OTROS --- */}
@@ -77,6 +78,14 @@ function App() {
 
             {/* --- RUTAS PROTEGIDAS --- */}
             
+            <Route 
+              path="admin" // Ruta base para administradores
+              element={
+                <ProtectedRoute requireAdmin={true}>
+                  <AdminPanel />
+                </ProtectedRoute>
+              } 
+            />
             {/* Solo Admins */}
             <Route 
               path="admin-upload" 
@@ -89,10 +98,10 @@ function App() {
             
             {/* Usuarios Logueados */}
             <Route 
-              path="perfil" 
+              path="configuracion" 
               element={
                 <ProtectedRoute>
-                  <Perfil />
+                  <Configuracion />
                 </ProtectedRoute>
               } 
             />

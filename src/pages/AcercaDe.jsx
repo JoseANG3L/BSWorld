@@ -22,7 +22,7 @@ const FeatureItem = ({ icon: Icon, title, desc }) => (
 
 const AcercaDe = () => {
   return (
-    <div className="flex flex-col gap-6 animate-fade-in-up">
+    <div className="flex flex-col gap-6 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
       
       {/* --- HERO SECTION --- */}
       <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-primary-900 via-primary-800 to-primary-600 shadow-xl p-8 md:p-12 text-white">

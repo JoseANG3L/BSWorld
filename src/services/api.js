@@ -1,4 +1,8 @@
 import { 
+  doc, 
+  getDoc, 
+  updateDoc, 
+  deleteDoc,
   collection, 
   getDocs, 
   addDoc, 
@@ -19,6 +23,46 @@ export const getContentByType = async (tipo) => {
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   } catch (error) {
     console.error(`Error obteniendo contenido tipo ${tipo}:`, error);
+    throw error;
+  }
+};
+
+// A. OBTENER UN DOCUMENTO POR ID (Para rellenar el form al editar)
+export const getContentById = async (id) => {
+  try {
+    const docRef = doc(db, "content", id);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return { id: docSnap.id, ...docSnap.data() };
+    }
+    return null;
+  } catch (error) {
+    console.error("Error obteniendo documento:", error);
+    return null;
+  }
+};
+
+// B. ACTUALIZAR DOCUMENTO
+export const updateContent = async (id, data) => {
+  try {
+    const docRef = doc(db, "content", id);
+    await updateDoc(docRef, {
+      ...data,
+      actualizado: new Date().toISOString() // Actualizamos la fecha de modificación
+    });
+  } catch (error) {
+    console.error("Error actualizando:", error);
+    throw error;
+  }
+};
+
+export const deleteContent = async (id) => {
+  try {
+    const docRef = doc(db, "content", id);
+    await deleteDoc(docRef);
+    return true; // Retornamos true para saber que salió bien
+  } catch (error) {
+    console.error("Error eliminando contenido:", error);
     throw error;
   }
 };
