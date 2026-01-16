@@ -63,7 +63,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
       <div className="flex items-center gap-3 ml-auto md:ml-0">
 
         {/* THEME TOGGLE */}
-        <button onClick={toggleTheme} className={clsx("p-2.5 rounded-full bg-white dark:bg-[#252525] border border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400 transition-all duration-200 shadow-md", "hover:scale-105 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400")}>
+        <button onClick={toggleTheme} className={clsx("p-2.5 rounded-full bg-white dark:bg-[#252525] border border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400 transition-all duration-200 shadow-md", "hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400")}>
           {isDarkMode ? <Moon size={18} strokeWidth={2.5} /> : <Sun size={18} strokeWidth={2.5} />}
         </button>
 
@@ -88,7 +88,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
 
           {/* MENÚ DESPLEGABLE */}
           {isProfileOpen && (
-            <div className="absolute right-0 mt-3 w-56 bg-white dark:bg-[#1e1e1e] rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 py-2 z-50 animate-fade-in-up origin-top-right overflow-hidden" style={{ animationDuration: '200ms' }}>
+            <div className="absolute right-0 mt-3 w-56 bg-white dark:bg-[#1e1e1e] rounded-xl shadow-xl border border-gray-300 dark:border-gray-700 py-2 z-50 animate-fade-in-up origin-top-right overflow-hidden" style={{ animationDuration: '200ms' }}>
               {user ? (
                 // OPCIONES USUARIO LOGUEADO
                 <>
@@ -108,7 +108,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
 
                   {/* OPCIÓN 2: CONFIGURACIÓN (EDITAR) */}
                   <Link
-                    to="/configuracion" // <--- URL ESTÁTICA DE EDICIÓN
+                    to="configuracion" // <--- URL ESTÁTICA DE EDICIÓN
                     className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
                     onClick={() => setIsUserMenuOpen(false)}
                   >

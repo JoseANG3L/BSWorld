@@ -78,18 +78,14 @@ function App() {
 
             {/* --- RUTAS PROTEGIDAS --- */}
             
-            <Route 
-              path="admin" // Ruta base para administradores
-              element={
+            <Route path="admin" element={
                 <ProtectedRoute requireAdmin={true}>
                   <AdminPanel />
                 </ProtectedRoute>
               } 
             />
             {/* Solo Admins */}
-            <Route 
-              path="admin-upload" 
-              element={
+            <Route path="admin-upload" element={
                 <ProtectedRoute requireAdmin={true}>
                   <AdminUpload />
                 </ProtectedRoute>
@@ -97,9 +93,7 @@ function App() {
             />
             
             {/* Usuarios Logueados */}
-            <Route 
-              path="configuracion" 
-              element={
+            <Route path="configuracion" element={
                 <ProtectedRoute>
                   <Configuracion />
                 </ProtectedRoute>
