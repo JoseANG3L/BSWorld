@@ -4,9 +4,10 @@ import { getContentByCreator, getUserByUsername } from '../services/api';
 import Card from '../components/Card';
 import { 
   Calendar, Shield, UserX, Loader2, 
-  Grid, Boxes, Map, Gamepad2, Package, Wrench, User, Filter, CheckCircle 
+  Grid, Boxes, Map, Gamepad2, Package, Wrench, User, Filter, CheckCircle, ChevronDown
 } from 'lucide-react';
 import { clsx } from 'clsx';
+import AvatarRenderer from '../components/AvatarRenderer'; // Asegúrate de importar esto si lo creaste
 
 const PublicProfile = () => {
   const { username } = useParams();
@@ -44,7 +45,8 @@ const PublicProfile = () => {
     return item.tipo === activeTab;
   });
 
-  // --- CONTADORES ---
+  // --- CONFIGURACIÓN DE TABS (Centralizada) ---
+  // Calculamos los conteos y definimos las tabs aquí para usarlas en el Select y en los Botones
   const counts = {
     mapa: content.filter(i => i.tipo === 'mapa').length,
     minijuego: content.filter(i => i.tipo === 'minijuego').length,
@@ -53,6 +55,16 @@ const PublicProfile = () => {
     paquete: content.filter(i => i.tipo === 'paquete').length,
     personaje: content.filter(i => i.tipo === 'personaje').length,
   };
+
+  const tabsConfig = [
+    { id: 'todos', label: 'Todo', icon: Grid, count: content.length },
+    { id: 'mapa', label: 'Mapas', icon: Map, count: counts.mapa },
+    { id: 'minijuego', label: 'Minijuegos', icon: Gamepad2, count: counts.minijuego },
+    { id: 'modpack', label: 'Modpacks', icon: Boxes, count: counts.modpack },
+    { id: 'mod', label: 'Mods', icon: Wrench, count: counts.mod },
+    { id: 'paquete', label: 'Paquetes', icon: Package, count: counts.paquete },
+    { id: 'personaje', label: 'Personajes', icon: User, count: counts.personaje },
+  ];
 
   if (loading) return (
     <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4">
@@ -69,7 +81,9 @@ const PublicProfile = () => {
     </div>
   );
 
-  const displayAvatar = profile?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`;
+  // Avatar y Banner
+  const displayAvatar = profile?.avatar; 
+  const hasCustomBanner = !!profile?.banner;
   const joinDate = profile?.createdAt 
     ? new Date(profile.createdAt).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }) 
     : 'N/A';
@@ -81,22 +95,37 @@ const PublicProfile = () => {
           SECCIÓN 1: PERFIL EXTENDIDO (ARRIBA)
          ================================================== */}
       <div className="relative mb-8">
-         {/* Fondo del Header (Gradiente) */}
-         <div className="h-48 md:h-64 bg-gradient-to-r from-primary-900 via-purple-900 to-indigo-900 relative overflow-hidden rounded-3xl">
-             <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+         
+         {/* Fondo del Header */}
+         <div 
+           className={clsx(
+             "h-48 md:h-64 relative overflow-hidden bg-gray-900",
+             !hasCustomBanner && "bg-gradient-to-r from-primary-900 via-purple-900 to-indigo-900"
+           )}
+         >
+             {hasCustomBanner ? (
+                <>
+                  <div 
+                    className="absolute inset-0 bg-cover bg-center"
+                    style={{ background: profile.banner?.startsWith('http') ? `url(${profile.banner})` : profile.banner }}
+                  ></div>
+                  <div className="absolute inset-0 bg-black/30"></div>
+                </>
+             ) : (
+                <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+             )}
          </div>
 
-         {/* Contenedor de Info del Usuario */}
+         {/* Info del Usuario */}
          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
              <div className="relative -mt-16 md:-mt-20 flex flex-col items-center text-center">
                  
                  {/* Avatar */}
                  <div className="relative group">
-                    <img 
-                      src={displayAvatar} 
-                      alt={username} 
-                      className="w-32 h-32 md:w-40 md:h-40 rounded-full border-[6px] border-white dark:border-[#121212] bg-gray-200 object-cover shadow-xl"
-                    />
+                    <div className="w-32 h-32 md:w-40 md:h-40 rounded-full border-[6px] border-white dark:border-[#121212] bg-white dark:bg-[#1e1e1e] shadow-xl overflow-hidden">
+                        {/* Usamos el componente AvatarRenderer si lo tienes, sino img normal */}
+                        <AvatarRenderer avatar={displayAvatar} name={username} /> 
+                    </div>
                     {profile?.role === 'admin' && (
                         <div className="absolute bottom-2 right-2 bg-yellow-400 text-yellow-900 p-1.5 rounded-full border-4 border-white dark:border-[#121212]" title="Admin">
                             <Shield size={16} fill="currentColor" />
@@ -104,7 +133,7 @@ const PublicProfile = () => {
                     )}
                  </div>
 
-                 {/* Nombre y Detalles */}
+                 {/* Nombre */}
                  <div className="mt-4">
                      <h1 className="text-3xl md:text-4xl font-black text-gray-900 dark:text-white flex items-center justify-center gap-2">
                         {profile?.displayName || username}
@@ -112,7 +141,7 @@ const PublicProfile = () => {
                      </h1>
                      <p className="text-gray-500 dark:text-gray-400 font-medium">@{username}</p>
                      
-                     {/* Stats Row */}
+                     {/* Stats */}
                      <div className="flex items-center justify-center gap-6 mt-4 text-sm text-gray-600 dark:text-gray-300">
                          <div className="flex flex-col items-center">
                              <span className="font-bold text-lg">{content.length}</span>
@@ -135,45 +164,50 @@ const PublicProfile = () => {
       </div>
 
       {/* ==================================================
-          SECCIÓN 2: MENÚ Y CONTENIDO (ABAJO)
+          SECCIÓN 2: MENÚ DE NAVEGACIÓN
          ================================================== */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
         
-        {/* MENÚ DE TABS (Centrado) */}
-        <div className="flex justify-center mb-8">
-            <div className="flex items-center gap-2 overflow-x-auto pb-2 px-2 scrollbar-hide max-w-full">
-                <TabButton 
-                    active={activeTab === 'todos'} onClick={() => setActiveTab('todos')}
-                    icon={Grid} label="Todo" count={content.length}
-                />
-                <TabButton 
-                    active={activeTab === 'mapa'} onClick={() => setActiveTab('mapa')}
-                    icon={Map} label="Mapas" count={counts.mapa}
-                />
-                <TabButton 
-                    active={activeTab === 'minijuego'} onClick={() => setActiveTab('minijuego')}
-                    icon={Gamepad2} label="Minijuegos" count={counts.minijuego}
-                />
-                <TabButton 
-                    active={activeTab === 'modpack'} onClick={() => setActiveTab('modpack')}
-                    icon={Boxes} label="Modpacks" count={counts.modpack}
-                />
-                <TabButton 
-                    active={activeTab === 'mod'} onClick={() => setActiveTab('mod')}
-                    icon={Wrench} label="Mods" count={counts.mod}
-                />
-                <TabButton 
-                    active={activeTab === 'paquete'} onClick={() => setActiveTab('paquete')}
-                    icon={Package} label="Paquetes" count={counts.paquete}
-                />
-                <TabButton 
-                    active={activeTab === 'personaje'} onClick={() => setActiveTab('personaje')}
-                    icon={User} label="Personajes" count={counts.personaje}
-                />
+        {/* OPCIÓN A: MENU SELECT (SOLO MÓVIL) */}
+        <div className="block md:hidden">
+            <div className="relative">
+                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" size={20} />
+                <select
+                    value={activeTab}
+                    onChange={(e) => setActiveTab(e.target.value)}
+                    className="w-full appearance-none bg-white dark:bg-[#1e1e1e] border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white py-3 pl-4 pr-10 rounded-xl shadow-sm font-medium focus:ring-2 focus:ring-primary-500 focus:outline-none transition-all"
+                >
+                    {tabsConfig.map((tab) => (
+                        <option key={tab.id} value={tab.id}>
+                            {tab.label} {tab.count > 0 ? `(${tab.count})` : ''}
+                        </option>
+                    ))}
+                </select>
             </div>
         </div>
 
-        {/* GRID DE RESULTADOS */}
+        {/* OPCIÓN B: TABS DE BOTONES (SOLO ESCRITORIO) */}
+        <div className="hidden md:flex justify-center">
+            <div className="flex items-center gap-2 overflow-x-auto pb-2 px-2 scrollbar-hide max-w-full">
+                {tabsConfig.map((tab) => (
+                    <TabButton 
+                        key={tab.id}
+                        active={activeTab === tab.id} 
+                        onClick={() => setActiveTab(tab.id)}
+                        icon={tab.icon} 
+                        label={tab.label} 
+                        count={tab.count}
+                    />
+                ))}
+            </div>
+        </div>
+
+      </div>
+
+      {/* ==================================================
+          SECCIÓN 3: GRID DE CONTENIDO
+         ================================================== */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {filteredContent.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredContent.map((item) => (
@@ -210,7 +244,7 @@ const TabButton = ({ active, onClick, icon: Icon, label, count }) => (
     className={clsx(
       "flex items-center gap-2 px-4 py-2.5 rounded-full font-bold text-sm transition-all whitespace-nowrap border select-none",
       active 
-        ? "bg-gray-900 text-white dark:bg-white dark:text-black border-transparent shadow-lg transform" 
+        ? "bg-gray-900 text-white dark:bg-white dark:text-black border-transparent shadow-lg transform scale-105" 
         : "bg-white dark:bg-[#1e1e1e] text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800"
     )}
   >
@@ -218,7 +252,7 @@ const TabButton = ({ active, onClick, icon: Icon, label, count }) => (
     {label}
     {count > 0 && (
       <span className={clsx(
-        "ml-1 text-[10px] px-1.5 rounded-md",
+        "ml-1 text-[10px] px-1.5 py-0.5 rounded-md",
         active ? "bg-white/20 text-white dark:bg-black/10 dark:text-black" : "bg-gray-100 dark:bg-gray-700 text-gray-500"
       )}>
         {count}

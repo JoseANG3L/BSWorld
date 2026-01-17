@@ -52,12 +52,12 @@ const Comunidad = () => {
       items={filteredUsers}
       searchKey="username"
       renderItem={(user) => (
+        // En el renderItem de DataContainer:
         <CreatorCard 
-          // Ya no es estrictamente necesario pasar la key aquí si DataContainer lo maneja,
-          // pero es buena práctica dejarla por si acaso.
-          key={user.id} 
+          key={user.id}
           username={user.username || user.displayName}
           avatar={user.avatar || user.photoURL}
+          banner={user.banner} // <--- ASEGÚRATE DE AGREGAR ESTA LÍNEA
           role={user.role}
           createdAt={user.createdAt}
         />

@@ -4,9 +4,9 @@ import { Search, Sun, Moon, User, Menu, LogOut, ShieldCheck, UserPlus, LogIn, Se
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useAuth } from '../context/AuthContext';
+import AvatarRenderer from './AvatarRenderer'; // <--- 1. IMPORTAR COMPONENTE
 
 const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
-  // ✅ CORRECTO: El hook se llama dentro del componente
   const { user, logout } = useAuth();
 
   const [isFocused, setIsFocused] = useState(false);
@@ -73,9 +73,15 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
         <div className="relative" ref={profileRef}>
           <button onClick={() => setIsProfileOpen(!isProfileOpen)} className="relative group flex items-center outline-none">
             {user ? (
-              // CONECTADO: Avatar
+              // CONECTADO: Avatar con Renderer
               <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary-600 to-primary-900 p-[2px] shadow-md transition-transform duration-200 hover:scale-105">
-                <img src={user.photoURL || user.avatar || "https://via.placeholder.com/150"} alt="Avatar" className="w-full h-full rounded-full object-cover bg-white dark:bg-gray-800" />
+                {/* 2. CONTENEDOR CIRCULAR + AVATAR RENDERER */}
+                <div className="w-full h-full rounded-full overflow-hidden bg-white dark:bg-gray-800">
+                    <AvatarRenderer 
+                        avatar={user.avatar || user.photoURL} 
+                        name={user.displayName || user.username} 
+                    />
+                </div>
                 <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-[#121212] rounded-full"></span>
               </div>
             ) : (
@@ -98,7 +104,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
                   </div>
                   {/* OPCIÓN 1: PERFIL PÚBLICO */}
                   <Link
-                    to={`/u/${user.username || user.displayName}`} // <--- URL DINÁMICA
+                    to={`/u/${user.username || user.displayName}`}
                     className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
                     onClick={() => setIsUserMenuOpen(false)}
                   >
@@ -106,9 +112,9 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
                     <span>Mi Perfil</span>
                   </Link>
 
-                  {/* OPCIÓN 2: CONFIGURACIÓN (EDITAR) */}
+                  {/* OPCIÓN 2: CONFIGURACIÓN */}
                   <Link
-                    to="configuracion" // <--- URL ESTÁTICA DE EDICIÓN
+                    to="/configuracion" 
                     className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
                     onClick={() => setIsUserMenuOpen(false)}
                   >

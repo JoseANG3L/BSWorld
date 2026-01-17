@@ -121,7 +121,9 @@ const AcercaDe = () => {
               <div className="w-24 h-24 mx-auto rounded-full p-1 bg-white dark:bg-[#1e1e1e] mb-4 shadow-lg group-hover:scale-105 transition-transform duration-300">
                 <img 
                   src="https://via.placeholder.com/150" 
-                  alt="Creador" 
+                  alt="Creador"
+                  loading="lazy"
+                  referrerPolicy="no-referrer" crossOrigin="anonymous"
                   className="w-full h-full rounded-full object-cover bg-gray-200"
                 />
               </div>

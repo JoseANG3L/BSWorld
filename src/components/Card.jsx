@@ -1,25 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom'; // Necesario para navegar
+import { Link } from 'react-router-dom';
 import { Download, Tag, ChevronDown, Users } from 'lucide-react';
 import { clsx } from 'clsx';
+import AvatarRenderer from './AvatarRenderer'; // <--- 1. IMPORTAR
 
 const Card = ({ imagen, titulo, descargas = [], creadores = [], tags, isPreview = false }) => {
-  // Estado para el menú de descargas
   const [isOpenDownload, setIsOpenDownload] = useState(false);
   const downloadRef = useRef(null);
 
-  // Estado para el menú de creadores
   const [isOpenCreators, setIsOpenCreators] = useState(false);
   const creatorsRef = useRef(null);
 
-  // Cerrar menús al hacer clic fuera
   useEffect(() => {
     const handleClickOutside = (event) => {
-      // Cerrar descargas
       if (downloadRef.current && !downloadRef.current.contains(event.target)) {
         setIsOpenDownload(false);
       }
-      // Cerrar creadores
       if (creatorsRef.current && !creatorsRef.current.contains(event.target)) {
         setIsOpenCreators(false);
       }
@@ -37,7 +33,6 @@ const Card = ({ imagen, titulo, descargas = [], creadores = [], tags, isPreview 
     };
   });
 
-  // Lógica para el "+2"
   const primerCreador = listaCreadores[0];
   const totalExtra = listaCreadores.length - 1;
 
@@ -50,6 +45,7 @@ const Card = ({ imagen, titulo, descargas = [], creadores = [], tags, isPreview 
           src={imagen || 'https://via.placeholder.com/640x360'} 
           alt={titulo}
           loading="lazy"
+          referrerPolicy="no-referrer" crossOrigin="anonymous"
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
           onError={(e) => { e.target.src = '/default.jpg'; }}
         />
@@ -94,30 +90,30 @@ const Card = ({ imagen, titulo, descargas = [], creadores = [], tags, isPreview 
           )}
         </div>
 
-        {/* --- SECCIÓN CREADORES (NUEVA LÓGICA) --- */}
+        {/* --- SECCIÓN CREADORES --- */}
         <div className="relative mb-2.5" ref={creatorsRef}>
           
-          {/* BOTÓN DISPARADOR: Muestra 1 creador + Badge */}
           <button 
             onClick={() => setIsOpenCreators(!isOpenCreators)}
             className="flex items-center gap-2 w-full px-2 py-1 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-left group/creator"
           >
-            {/* Avatar Principal */}
+            {/* 2. AVATAR PRINCIPAL CON RENDERER */}
             <div className="relative shrink-0">
-               <img 
-                 src={primerCreador.imagen} 
-                 alt={primerCreador.nombre}
-                 className="w-6 h-6 rounded-full border border-gray-300 dark:border-gray-700 object-cover"
-               />
-               {/* Badge de contador (+2) */}
-               {totalExtra > 0 && (
-                 <div className="absolute -top-1 -right-1 bg-gray-900 dark:bg-white text-white dark:text-black text-[10px] font-bold h-4 w-4 flex items-center justify-center rounded-full ring-2 ring-white dark:ring-[#1e1e1e]">
-                   +{totalExtra}
-                 </div>
-               )}
+                <div className="w-6 h-6 rounded-full border border-gray-300 dark:border-gray-700 overflow-hidden bg-gray-200 dark:bg-gray-800">
+                    <AvatarRenderer 
+                        avatar={primerCreador.imagen} 
+                        name={primerCreador.nombre} 
+                    />
+                </div>
+                
+                {/* Badge de contador (+2) */}
+                {totalExtra > 0 && (
+                  <div className="absolute -top-1 -right-1 bg-gray-900 dark:bg-white text-white dark:text-black text-[10px] font-bold h-4 w-4 flex items-center justify-center rounded-full ring-2 ring-white dark:ring-[#1e1e1e]">
+                    +{totalExtra}
+                  </div>
+                )}
             </div>
 
-            {/* Texto */}
             <div className="flex flex-col overflow-hidden">
                <span className="text-sm font-bold text-gray-700 dark:text-gray-200 truncate group-hover/creator:text-primary-600 transition-colors">
                  {primerCreador.nombre}
@@ -129,11 +125,10 @@ const Card = ({ imagen, titulo, descargas = [], creadores = [], tags, isPreview 
                )}
             </div>
 
-            {/* Icono flechita pequeña */}
             <ChevronDown size={14} className={clsx("ml-auto text-gray-400 transition-transform", isOpenCreators && "rotate-180")} />
           </button>
 
-          {/* LISTA DESPLEGABLE DE TODOS LOS CREADORES */}
+          {/* LISTA DESPLEGABLE */}
           {isOpenCreators && (
             <div className="absolute bottom-full left-0 right-0 mb-2 bg-white dark:bg-[#252525] border border-gray-300 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden animate-fade-in-up origin-bottom p-1" style={{ animationDuration: '200ms' }}>
               <p className="px-3 py-2 text-[10px] uppercase font-bold text-gray-400 tracking-wider border-b border-gray-100 dark:border-gray-800 mb-1">
@@ -149,11 +144,14 @@ const Card = ({ imagen, titulo, descargas = [], creadores = [], tags, isPreview 
                     rel={isPreview ? "noopener noreferrer" : undefined}
                     className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors"
                   >
-                    <img 
-                      src={creador.imagen} 
-                      alt={creador.nombre}
-                      className="w-6 h-6 rounded-full object-cover bg-gray-200"
-                    />
+                    {/* 3. AVATAR EN LISTA CON RENDERER */}
+                    <div className="w-6 h-6 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-800 shrink-0">
+                        <AvatarRenderer 
+                            avatar={creador.imagen} 
+                            name={creador.nombre} 
+                        />
+                    </div>
+                    
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-200 hover:text-primary-600 dark:hover:text-primary-400">
                       {creador.nombre}
                     </span>

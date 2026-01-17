@@ -153,7 +153,9 @@ const AdminPanel = () => {
                     <td className="p-4 flex items-center gap-3">
                       <img 
                         src={item.imagen} 
-                        alt="" 
+                        alt=""
+                        loading="lazy"
+                        referrerPolicy="no-referrer" crossOrigin="anonymous"
                         className="w-10 h-10 rounded-lg object-cover bg-gray-200"
                       />
                       <span className="font-medium text-gray-900 dark:text-white truncate max-w-[150px] md:max-w-xs" title={item.titulo}>
