@@ -60,7 +60,7 @@ const InputGroup = ({ icon: Icon, ...props }) => (
     </div>
     <input 
       {...props}
-      className="w-full pl-12 pr-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all dark:text-white placeholder:text-gray-400"
+      className="w-full pl-12 pr-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all dark:text-white placeholder:text-gray-400"
     />
   </div>
 );
@@ -78,26 +78,26 @@ const Contacto = () => {
     <div className="animate-fade-in-up" style={{ animationDuration: '200ms' }}>
       
       {/* --- HERO HEADER --- */}
-      <div className="relative bg-gradient-to-r from-primary-800 via-primary-700 to-primary-500 rounded-3xl overflow-hidden mb-8 text-center p-4 md:p-6">
+      <div className="relative bg-gradient-to-r from-primary-800 via-primary-700 to-primary-500 rounded-3xl overflow-hidden mb-4 md:mb-8 text-center p-4 md:p-6">
         <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
         <div className="relative z-10 max-w-2xl mx-auto">
-          <div className="inline-flex p-3 bg-white/10 rounded-2xl mb-4 backdrop-blur-sm border border-white/10 shadow-inner">
+          <div className="inline-flex p-3 bg-white/10 rounded-2xl mb-2 md:mb-4 backdrop-blur-sm border border-white/10 shadow-inner">
              <Mail className="text-white" size={32} />
           </div>
-          <h1 className="text-3xl md:text-5xl font-black text-white mb-4 tracking-tight">
+          <h1 className="text-2xl md:text-5xl font-black text-white mb-2 md:mb-4 tracking-tight">
             Hablemos de <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-amber-500">Mods</span>
           </h1>
-          <p className="text-lg text-primary-100 leading-relaxed">
+          <p className="text-md md:text-lg text-primary-100 leading-relaxed">
             ¿Tienes una idea brillante, encontraste un bug o simplemente quieres saludar? Estamos aquí para escucharte.
           </p>
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 md:px-6 grid grid-cols-1 lg:grid-cols-12 gap-10">
+      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-10">
         
         {/* --- COLUMNA IZQUIERDA: FORMULARIO (7 cols) --- */}
         <div className="lg:col-span-7">
-          <div className="bg-white dark:bg-[#1e1e1e] p-8 rounded-3xl border border-gray-300 dark:border-gray-700 shadow-md relative overflow-hidden">
+          <div className="bg-white dark:bg-[#1e1e1e] p-4 md:p-8 rounded-3xl border border-gray-300 dark:border-gray-700 shadow-md relative overflow-hidden">
             
             {formStatus === 'success' ? (
               <div className="h-96 flex flex-col items-center justify-center text-center animate-fade-in-up">
@@ -116,7 +116,7 @@ const Contacto = () => {
                 </button>
               </div>
             ) : (
-              <form onSubmit={handleSubmit} className="flex flex-col gap-6 relative z-10">
+              <form onSubmit={handleSubmit} className="flex flex-col gap-3 md:gap-6 relative z-10">
                 <div>
                     <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                         Envíanos un mensaje
@@ -124,7 +124,7 @@ const Contacto = () => {
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Completa el formulario y te responderemos pronto.</p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-5">
                   <InputGroup icon={User} type="text" required placeholder="Tu Nombre" />
                   <InputGroup icon={Mail} type="email" required placeholder="tu@email.com" />
                 </div>
@@ -133,7 +133,7 @@ const Contacto = () => {
                     <div className="absolute left-4 top-3.5 text-gray-400">
                         <HelpCircle size={20} />
                     </div>
-                    <select className="w-full pl-12 pr-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all dark:text-white cursor-pointer appearance-none">
+                    <select className="w-full pl-12 pr-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all dark:text-white cursor-pointer appearance-none">
                         <option>Soporte Técnico</option>
                         <option>Reportar un Bug</option>
                         <option>Subir mi Mod</option>
@@ -173,7 +173,7 @@ const Contacto = () => {
         </div>
 
         {/* --- COLUMNA DERECHA: INFO & FAQ (5 cols) --- */}
-        <div className="lg:col-span-5 flex flex-col gap-6">
+        <div className="lg:col-span-5 flex flex-col gap-4 md:gap-6">
           
           {/* Tarjetas de Contacto */}
           <div className="flex flex-col gap-4">
@@ -196,7 +196,7 @@ const Contacto = () => {
           </div>
 
           {/* FAQ Accordion */}
-          <div className="bg-white dark:bg-[#1e1e1e] p-6 rounded-3xl border border-gray-300 dark:border-gray-700 shadow-sm">
+          <div className="bg-white dark:bg-[#1e1e1e] p-4 md:p-6 rounded-3xl border border-gray-300 dark:border-gray-700 shadow-sm">
             <h3 className="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
               <HelpCircle className="text-primary-500" size={20} />
               Preguntas Frecuentes

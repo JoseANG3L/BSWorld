@@ -20,11 +20,11 @@ const StatCard = ({ icon: Icon, value, label, color, loading }) => (
     {loading ? (
         <Loader2 className="animate-spin text-gray-400 mb-1" size={24} />
     ) : (
-        <span className="text-2xl font-black text-gray-900 dark:text-white mb-1 animate-fade-in-up">
+        <span className="text-xl md:text-2xl font-black text-gray-900 dark:text-white mb-1 animate-fade-in-up">
             {value}
         </span>
     )}
-    <span className="text-xs font-bold uppercase tracking-wider text-gray-400">{label}</span>
+    <span className="text-xs font-bold uppercase tracking-wider text-gray-400 text-center">{label}</span>
   </div>
 );
 
@@ -35,7 +35,7 @@ const TechBadge = ({ label }) => (
 );
 
 const FeatureItem = ({ icon: Icon, title, desc }) => (
-  <div className="flex gap-4 p-5 rounded-2xl bg-white dark:bg-[#1e1e1e] border border-gray-300 dark:border-gray-700 shadow-sm transition-colors">
+  <div className="flex gap-4 p-4 md:p-5 rounded-2xl bg-white dark:bg-[#1e1e1e] border border-gray-300 dark:border-gray-700 shadow-sm transition-colors">
     <div className="p-3 h-fit rounded-xl bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400">
       <Icon size={24} />
     </div>
@@ -154,11 +154,11 @@ const AcercaDe = () => {
           </div>
 
           {/* Stack Tecnológico */}
-          <div className="bg-white dark:bg-[#1e1e1e] p-8 rounded-3xl border border-gray-300 dark:border-gray-700 shadow-sm">
+          <div className="bg-white dark:bg-[#1e1e1e] p-4 md:p-8 rounded-3xl border border-gray-300 dark:border-gray-700 shadow-sm">
             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
               Stack Tecnológico
             </h3>
-            <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">
+            <p className="text-gray-500 dark:text-gray-400 text-sm mb-4 md:mb-6">
               BSWorld está construido con tecnologías modernas para garantizar velocidad, SEO y una experiencia de usuario fluida (SPA).
             </p>
             <div className="flex flex-wrap gap-2">
@@ -171,7 +171,7 @@ const AcercaDe = () => {
         </div>
 
         {/* COLUMNA DERECHA (1/3) */}
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-4 md:gap-6">
           
           {/* Card del Creador */}
           <div className="bg-white dark:bg-[#1e1e1e] px-6 pt-4 pb-6 rounded-3xl border border-gray-300 dark:border-gray-700 shadow-lg text-center relative overflow-hidden group">
@@ -206,7 +206,7 @@ const AcercaDe = () => {
           </div>
 
           {/* Card de Apoyo */}
-          <div className="bg-gradient-to-br from-pink-600 to-rose-600 p-8 rounded-3xl shadow-xl text-white text-center relative overflow-hidden">
+          <div className="bg-gradient-to-br from-pink-600 to-rose-600 p-4 md:p-8 rounded-3xl shadow-xl text-white text-center relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full opacity-10 -mr-10 -mt-10 blur-2xl"></div>
             
             <Heart size={40} className="mx-auto mb-4 text-pink-200 animate-pulse" fill="currentColor" />
