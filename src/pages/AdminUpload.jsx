@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom'; // 1. Imports de navegación
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { 
   Save, Plus, Trash2, Image as ImageIcon, 
   Link as LinkIcon, Users, Tag, Type, Layers, Calendar, Eye, PenTool 
 } from 'lucide-react';
 import { clsx } from 'clsx';
-// 2. Importar nuevas funciones de la API
 import { createContent, getContentById, updateContent } from '../services/api'; 
 import { useAuth } from '../context/AuthContext';
 import Card from '../components/Card';
@@ -15,15 +14,12 @@ const AdminUpload = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   
-  // 3. DETECTAR MODO EDICIÓN
-  // Si la URL tiene ?edit=xyz, guardamos ese ID
   const editId = searchParams.get('edit'); 
-  const isEditing = !!editId; // Booleano: true si estamos editando
+  const isEditing = !!editId;
 
   const [loading, setLoading] = useState(false);
-  const [fetching, setFetching] = useState(!!editId); // Estado de carga inicial (solo si editamos)
+  const [fetching, setFetching] = useState(!!editId);
 
-  // --- ESTADOS DEL FORMULARIO ---
   const [formData, setFormData] = useState({
     titulo: '',
     tipo: 'mod',
@@ -37,7 +33,6 @@ const AdminUpload = () => {
     { label: 'Descarga Principal', url: '' }
   ]);
 
-  // --- 4. EFECTO PARA CARGAR DATOS (SI EDITAMOS) ---
   useEffect(() => {
     const loadDataForEdit = async () => {
       if (!isEditing) return;
@@ -45,20 +40,14 @@ const AdminUpload = () => {
       try {
         const data = await getContentById(editId);
         if (data) {
-          // CONVERTIR DATOS DE DB A FORMATO FORMULARIO
-          
-          // A. Creadores (Array de objetos -> String "Nombre1, Nombre2")
           const creadoresString = data.creadores 
             ? data.creadores.map(c => c.nombre).join(', ') 
             : '';
 
-          // B. Tags (Array -> String, quitando el Tipo para que no se duplique)
-          // Filtramos el tag que sea igual al tipo para no mostrarlo en el input
           const tagsString = data.tags 
             ? data.tags.filter(t => t !== data.tipo).join(', ') 
             : '';
 
-          // C. Fecha (ISO String -> YYYY-MM-DD para el input date)
           const fechaInput = data.creado 
             ? new Date(data.creado).toISOString().split('T')[0] 
             : new Date().toISOString().split('T')[0];
@@ -77,7 +66,7 @@ const AdminUpload = () => {
           }
         } else {
           alert("No se encontró el contenido a editar");
-          navigate('/admin'); // Volver si no existe
+          navigate('/admin'); 
         }
       } catch (error) {
         console.error(error);
@@ -90,7 +79,6 @@ const AdminUpload = () => {
   }, [editId, isEditing, navigate]);
 
 
-  // --- MANEJADORES ---
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -110,7 +98,7 @@ const AdminUpload = () => {
     setDescargas(newDescargas);
   };
 
-  // --- PREVIEW HELPERS ---
+  // --- 1. LÓGICA DE AVATARES EN PREVIEW ---
   const getPreviewCreators = () => {
     if (!formData.creadores) return [];
     
@@ -120,13 +108,16 @@ const AdminUpload = () => {
 
       const miNombre = user?.displayName || user?.username;
       
+      // Si el nombre coincide con el admin logueado
       if (miNombre && nombreLimpio.toLowerCase() === miNombre.toLowerCase()) {
         return {
           nombre: nombreLimpio,
-          imagen: user.photoURL || user.avatar
+          // Si tiene foto, úsala. Si no, pasa null explícitamente.
+          imagen: user.photoURL || user.avatar || null 
         };
       }
 
+      // Si es otro creador, usar Dicebear
       return {
         nombre: nombreLimpio,
         imagen: `https://api.dicebear.com/7.x/avataaars/svg?seed=${nombreLimpio}`
@@ -139,13 +130,20 @@ const AdminUpload = () => {
     return [formData.tipo, ...userTags];
   };
 
-  // --- ENVÍO A FIREBASE (LÓGICA DUAL) ---
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
       const creadoresProcesados = getPreviewCreators();
+      // Aseguramos que si la imagen es null en preview, se guarde como null en la DB (o Dicebear si prefieres persistirlo)
+      const creadoresParaGuardar = creadoresProcesados.map(c => ({
+          ...c,
+          // Si es null (icono user), al guardar podrías decidir guardar null o generar uno.
+          // Aquí lo dejamos tal cual.
+          imagen: c.imagen 
+      }));
+
       const nombresBusqueda = creadoresProcesados.map(c => c.nombre);
       const userTags = formData.tags.split(',').map(s => s.trim()).filter(s => s);
       const finalTags = [formData.tipo, ...userTags];
@@ -154,22 +152,20 @@ const AdminUpload = () => {
         titulo: formData.titulo,
         tipo: formData.tipo,
         imagen: formData.imagen,
-        creadores: creadoresProcesados,
+        creadores: creadoresParaGuardar,
         nombresBusqueda: nombresBusqueda,
         tags: finalTags,
         descargas: descargas.filter(d => d.url !== ''),
         creado: new Date(formData.creado).toISOString() 
       };
 
-      // 5. DECISIÓN: CREAR O ACTUALIZAR
       if (isEditing) {
         await updateContent(editId, payload);
         alert("¡Contenido actualizado correctamente!");
-        navigate('/admin'); // Redirigir al panel tras editar
+        navigate('/admin');
       } else {
         await createContent(payload);
         alert("¡Contenido creado con éxito!");
-        // Resetear solo si estamos creando
         setFormData({
             titulo: '', tipo: 'mod', imagen: '', creadores: '', tags: '', 
             creado: new Date().toISOString().split('T')[0] 
@@ -185,7 +181,6 @@ const AdminUpload = () => {
     }
   };
 
-  // Si estamos cargando los datos para editar, mostramos un loader simple
   if (fetching) return <div className="p-10 text-center">Cargando datos...</div>;
 
   return (
@@ -337,13 +332,13 @@ const AdminUpload = () => {
                     <div className="flex-[2]">
                       <label className="text-xs text-gray-500 mb-1 block">URL</label>
                       <div className="relative">
-                         <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
-                         <input 
-                          type="url" placeholder="https://..."
-                          value={item.url}
-                          onChange={(e) => handleDownloadChange(index, 'url', e.target.value)}
-                          className="w-full pl-8 pr-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none focus:border-primary-500 dark:text-white text-sm"
-                        />
+                          <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                          <input 
+                            type="url" placeholder="https://..."
+                            value={item.url}
+                            onChange={(e) => handleDownloadChange(index, 'url', e.target.value)}
+                            className="w-full pl-8 pr-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none focus:border-primary-500 dark:text-white text-sm"
+                          />
                       </div>
                     </div>
                     {descargas.length > 1 && (
@@ -391,7 +386,12 @@ const AdminUpload = () => {
               imagen={formData.imagen || "/default.jpg"} 
               titulo={formData.titulo || "Título del Contenido"}
               descargas={descargas}
-              creadores={getPreviewCreators().length > 0 ? getPreviewCreators() : [{nombre: "Creador", imagen: "https://via.placeholder.com/50"}]}
+              // 2. MODIFICACIÓN: Pasamos null si no hay creadores
+              creadores={
+                  getPreviewCreators().length > 0 
+                  ? getPreviewCreators() 
+                  : [{nombre: "Creador", imagen: null}] 
+              }
               tags={getPreviewTags()}
               isPreview={true}
             />

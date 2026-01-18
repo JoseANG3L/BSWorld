@@ -3,8 +3,8 @@ import { useParams } from 'react-router-dom';
 import { getContentByCreator, getUserByUsername } from '../services/api';
 import Card from '../components/Card';
 import { 
-  Calendar, Shield, UserX, Loader2, 
-  Grid, Boxes, Map, Gamepad2, Package, Wrench, User, Filter, CheckCircle, ChevronDown
+  Calendar, Shield, UserX, Loader2,
+  Grid, Boxes, Map, Gamepad2, Package, Wrench, User, Search, CheckCircle, ChevronDown
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import AvatarRenderer from '../components/AvatarRenderer'; // Asegúrate de importar esto si lo creaste
@@ -84,12 +84,15 @@ const PublicProfile = () => {
   // Avatar y Banner
   const displayAvatar = profile?.avatar; 
   const hasCustomBanner = !!profile?.banner;
+  const banner = profile?.banner;
   const joinDate = profile?.createdAt 
     ? new Date(profile.createdAt).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }) 
     : 'N/A';
 
+  const isBannerUrl = banner && (banner.startsWith('http') || banner.startsWith('data:image'));
+
   return (
-    <div className="animate-fade-in-up pb-10">
+    <div className="animate-fade-in-up" style={{ animationDuration: '200ms' }}>
       
       {/* ==================================================
           SECCIÓN 1: PERFIL EXTENDIDO (ARRIBA)
@@ -97,9 +100,9 @@ const PublicProfile = () => {
       <div className="relative mb-8">
          
          {/* Fondo del Header */}
-         <div 
+         {/* <div 
            className={clsx(
-             "h-48 md:h-64 relative overflow-hidden bg-gray-900",
+             "h-32 md:h-64 relative overflow-hidden bg-gray-900 rounded-3xl",
              !hasCustomBanner && "bg-gradient-to-r from-primary-900 via-purple-900 to-indigo-900"
            )}
          >
@@ -109,15 +112,44 @@ const PublicProfile = () => {
                     className="absolute inset-0 bg-cover bg-center"
                     style={{ background: profile.banner?.startsWith('http') ? `url(${profile.banner})` : profile.banner }}
                   ></div>
-                  <div className="absolute inset-0 bg-black/30"></div>
                 </>
              ) : (
                 <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
              )}
-         </div>
+         </div> */}
+
+         {/* --- BANNER SUPERIOR DINÁMICO --- */}
+          <div className="h-32 md:h-64 w-full relative overflow-hidden transition-opacity opacity-90 group-hover:opacity-100 rounded-3xl">
+            {banner ? (
+                // CASO 1: TIENE BANNER PERSONALIZADO
+                isBannerUrl ? (
+                    <img 
+                      src={banner} 
+                      alt="Banner" 
+                      loading="lazy"
+                      referrerPolicy="no-referrer"
+                      crossOrigin="anonymous"
+                      className="w-full h-full object-cover"
+                    />
+                ) : (
+                    <div 
+                      className="w-full h-full" 
+                      style={{ background: banner }}
+                    ></div>
+                )
+            ) : (
+                // CASO 2: NO TIENE BANNER (USAR DEFAULT POR ROL)
+                <div className={clsx(
+                    "w-full h-full",
+                    role === 'admin' 
+                      ? "bg-gradient-to-r from-yellow-500 to-orange-600" 
+                      : "bg-gradient-to-r from-primary-600 to-purple-600"
+                )}></div>
+            )}
+          </div>
 
          {/* Info del Usuario */}
-         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+         <div className="max-w-7xl mx-auto">
              <div className="relative -mt-16 md:-mt-20 flex flex-col items-center text-center">
                  
                  {/* Avatar */}
@@ -137,9 +169,9 @@ const PublicProfile = () => {
                  <div className="mt-4">
                      <h1 className="text-3xl md:text-4xl font-black text-gray-900 dark:text-white flex items-center justify-center gap-2">
                         {profile?.displayName || username}
-                        {profile && <CheckCircle size={20} className="text-blue-500 fill-blue-500/10" />}
+                        {/* {profile && <CheckCircle size={20} className="text-blue-500 fill-blue-500/10" />} */}
                      </h1>
-                     <p className="text-gray-500 dark:text-gray-400 font-medium">@{username}</p>
+                     {/* <p className="text-gray-500 dark:text-gray-400 font-medium">@{username}</p> */}
                      
                      {/* Stats */}
                      <div className="flex items-center justify-center gap-6 mt-4 text-sm text-gray-600 dark:text-gray-300">
@@ -147,11 +179,11 @@ const PublicProfile = () => {
                              <span className="font-bold text-lg">{content.length}</span>
                              <span className="text-xs uppercase text-gray-400">Posts</span>
                          </div>
-                         <div className="w-px h-8 bg-gray-200 dark:bg-gray-700"></div>
+                         {/* <div className="w-px h-8 bg-gray-200 dark:bg-gray-700"></div>
                          <div className="flex flex-col items-center">
                              <span className="font-bold text-lg">{content.length * 15}</span>
                              <span className="text-xs uppercase text-gray-400">Puntos</span>
-                         </div>
+                         </div> */}
                          <div className="w-px h-8 bg-gray-200 dark:bg-gray-700"></div>
                          <div className="flex flex-col items-center">
                             <span className="font-bold text-lg"><Calendar size={18} className="mb-0.5 inline"/></span>
@@ -166,7 +198,7 @@ const PublicProfile = () => {
       {/* ==================================================
           SECCIÓN 2: MENÚ DE NAVEGACIÓN
          ================================================== */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
+      <div className="max-w-7xl mx-auto mb-4 md:mb-6">
         
         {/* OPCIÓN A: MENU SELECT (SOLO MÓVIL) */}
         <div className="block md:hidden">
@@ -175,7 +207,7 @@ const PublicProfile = () => {
                 <select
                     value={activeTab}
                     onChange={(e) => setActiveTab(e.target.value)}
-                    className="w-full appearance-none bg-white dark:bg-[#1e1e1e] border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white py-3 pl-4 pr-10 rounded-xl shadow-sm font-medium focus:ring-2 focus:ring-primary-500 focus:outline-none transition-all"
+                    className="w-full appearance-none bg-white dark:bg-[#1e1e1e] border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white py-3 pl-4 pr-10 rounded-xl shadow-sm font-medium focus:ring-2 focus:ring-primary-500 focus:outline-none transition-all"
                 >
                     {tabsConfig.map((tab) => (
                         <option key={tab.id} value={tab.id}>
@@ -188,7 +220,7 @@ const PublicProfile = () => {
 
         {/* OPCIÓN B: TABS DE BOTONES (SOLO ESCRITORIO) */}
         <div className="hidden md:flex justify-center">
-            <div className="flex items-center gap-2 overflow-x-auto pb-2 px-2 scrollbar-hide max-w-full">
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 px-1 scrollbar-hide max-w-full">
                 {tabsConfig.map((tab) => (
                     <TabButton 
                         key={tab.id}
@@ -207,32 +239,19 @@ const PublicProfile = () => {
       {/* ==================================================
           SECCIÓN 3: GRID DE CONTENIDO
          ================================================== */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {filteredContent.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredContent.map((item) => (
-               <Card key={item.id} {...item} />
-            ))}
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-20 bg-gray-50 dark:bg-gray-900/50 rounded-3xl border border-dashed border-gray-300 dark:border-gray-700">
-             <div className="p-4 bg-white dark:bg-gray-800 rounded-full mb-3 shadow-sm">
-               <Filter size={32} className="text-gray-400" />
-             </div>
-             <p className="text-gray-500 dark:text-gray-400 font-medium text-lg">
-               No hay contenido en esta categoría.
-             </p>
-             {activeTab !== 'todos' && (
-               <button 
-                 onClick={() => setActiveTab('todos')}
-                 className="mt-2 text-primary-600 font-bold hover:underline"
-               >
-                 Ver todas las publicaciones
-               </button>
-             )}
-          </div>
-        )}
-      </div>
+      {filteredContent.length > 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
+          {filteredContent.map((item) => (
+              <Card key={item.id} {...item} />
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center py-20 text-gray-400 dark:text-gray-600">
+          <Search size={48} className="mb-4 opacity-20" />
+          <p className="text-lg font-medium">No se encontraron resultados</p>
+          <p className="text-sm">Intenta con otro término de búsqueda.</p>
+        </div>
+      )}
     </div>
   );
 };
@@ -242,10 +261,10 @@ const TabButton = ({ active, onClick, icon: Icon, label, count }) => (
   <button
     onClick={onClick}
     className={clsx(
-      "flex items-center gap-2 px-4 py-2.5 rounded-full font-bold text-sm transition-all whitespace-nowrap border select-none",
+      "flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm transition-all whitespace-nowrap border select-none",
       active 
-        ? "bg-gray-900 text-white dark:bg-white dark:text-black border-transparent shadow-lg transform scale-105" 
-        : "bg-white dark:bg-[#1e1e1e] text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800"
+        ? "bg-primary-600 text-white dark:text-black border-primary-600 shadow-sm transform" 
+        : "bg-white dark:bg-[#1e1e1e] text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
     )}
   >
     <Icon size={16} />

@@ -1,17 +1,34 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom'; // <--- 1. IMPORTAR useNavigate
 import { Search, Sun, Moon, User, Menu, LogOut, ShieldCheck, UserPlus, LogIn, Settings } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useAuth } from '../context/AuthContext';
-import AvatarRenderer from './AvatarRenderer'; // <--- 1. IMPORTAR COMPONENTE
+import AvatarRenderer from './AvatarRenderer';
 
 const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
   const { user, logout } = useAuth();
+  const navigate = useNavigate(); // <--- 2. HOOK DE NAVEGACIÓN
 
   const [isFocused, setIsFocused] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const profileRef = useRef(null);
+
+  // --- LÓGICA DE BÚSQUEDA ---
+  const handleSearch = (e) => {
+    if (e.key === 'Enter') {
+      const term = e.target.value.trim();
+      if (term) {
+        // Redirigir a la página de resultados
+        navigate(`/buscar?q=${encodeURIComponent(term)}`);
+        
+        // Cerrar el teclado en móvil y quitar foco
+        e.target.blur();
+        setIsFocused(false);
+        // Opcional: Limpiar el input si quieres (e.target.value = '')
+      }
+    }
+  };
 
   // Cerrar el menú al hacer clic fuera
   useEffect(() => {
@@ -38,22 +55,23 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
       </div>
 
       {/* SEARCH BAR */}
-      <div className={twMerge(clsx("relative transition-all duration-300 ease-out", isFocused ? "flex-[2] absolute left-0 right-16 z-50 md:relative md:inset-auto md:max-w-2xl" : "hidden md:block flex-1 max-w-md"))}>
+      <div className={twMerge(clsx("relative transition-all duration-300 ease-out", isFocused ? "flex-[2] absolute ml-2 md:ml-0 left-0 right-16 z-50 md:relative md:inset-auto md:max-w-2xl" : "hidden md:block flex-1 max-w-md"))}>
         <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
           <Search size={18} className={clsx("transition-colors duration-300", isFocused ? "text-primary-600 dark:text-primary-400" : "text-gray-400")} />
         </div>
         <input
           type="text"
-          placeholder="Buscar..."
+          placeholder="Buscar mapas, mods..."
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
+          onKeyDown={handleSearch} // <--- 3. ACTIVAR BÚSQUEDA
           className={clsx("w-full py-2.5 pl-11 pr-4 rounded-full text-sm font-medium transition-all duration-300 outline-none border shadow-sm", "bg-white dark:bg-[#1e1e1e] border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-200 placeholder-gray-400", "focus:border-primary-600 dark:focus:border-primary-500 focus:ring-0")}
         />
       </div>
 
       {!isFocused && (
         <button className="md:hidden p-2 ml-auto" onClick={() => setIsFocused(true)}>
-          <Search size={20} className="text-gray-600" />
+          <Search size={20} className="text-gray-600 dark:text-gray-400" />
         </button>
       )}
 
@@ -75,7 +93,6 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
             {user ? (
               // CONECTADO: Avatar con Renderer
               <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary-600 to-primary-900 p-[2px] shadow-md transition-transform duration-200 hover:scale-105">
-                {/* 2. CONTENEDOR CIRCULAR + AVATAR RENDERER */}
                 <div className="w-full h-full rounded-full overflow-hidden bg-white dark:bg-gray-800">
                     <AvatarRenderer 
                         avatar={user.avatar || user.photoURL} 
@@ -96,27 +113,23 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
           {isProfileOpen && (
             <div className="absolute right-0 mt-3 w-56 bg-white dark:bg-[#1e1e1e] rounded-xl shadow-xl border border-gray-300 dark:border-gray-700 py-2 z-50 animate-fade-in-up origin-top-right overflow-hidden" style={{ animationDuration: '200ms' }}>
               {user ? (
-                // OPCIONES USUARIO LOGUEADO
                 <>
                   <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800 mb-1">
                     <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{user.displayName || user.username}</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
                   </div>
-                  {/* OPCIÓN 1: PERFIL PÚBLICO */}
                   <Link
                     to={`/u/${user.username || user.displayName}`}
                     className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
-                    onClick={() => setIsUserMenuOpen(false)}
+                    onClick={() => setIsProfileOpen(false)}
                   >
                     <User size={16} />
                     <span>Mi Perfil</span>
                   </Link>
-
-                  {/* OPCIÓN 2: CONFIGURACIÓN */}
                   <Link
                     to="/configuracion" 
                     className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
-                    onClick={() => setIsUserMenuOpen(false)}
+                    onClick={() => setIsProfileOpen(false)}
                   >
                     <Settings size={16} />
                     <span>Configuración</span>
@@ -133,7 +146,6 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
                   </button>
                 </>
               ) : (
-                // OPCIONES VISITANTE
                 <>
                   <div className="px-4 py-2 mb-1">
                     <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Cuenta</p>

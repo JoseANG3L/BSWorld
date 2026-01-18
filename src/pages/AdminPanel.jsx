@@ -2,15 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   LayoutDashboard, Plus, Search, Trash2, Edit, 
-  FileBox, Users, Eye, Filter, Loader2 
+  FileBox, Users, Download, Filter, Loader2, Eye 
 } from 'lucide-react';
-
-// 1. LIMPIAR IMPORTS DE FIREBASE (Quitamos deleteDoc y doc)
-// Mantenemos collection y getDocs porque tu useEffect todavía los usa (podríamos mover eso también luego)
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../firebase/config';
-
-// 2. IMPORTAR LA NUEVA FUNCIÓN
 import { deleteContent } from '../services/api';
 
 const AdminPanel = () => {
@@ -30,11 +25,16 @@ const AdminPanel = () => {
         const usersRef = collection(db, "users");
         const usersSnap = await getDocs(usersRef);
 
+        const totalDownloads = contentData.reduce((acc, item) => {
+            const itemDownloads = item.descargas?.reduce((subAcc, version) => subAcc + (version.count || 0), 0) || 0;
+            return acc + itemDownloads;
+        }, 0);
+
         setContent(contentData);
         setStats({
           total: contentData.length,
           users: usersSnap.size,
-          views: contentData.reduce((acc, curr) => acc + (curr.vistas || 0), 0)
+          views: totalDownloads
         });
 
       } catch (error) {
@@ -47,25 +47,18 @@ const AdminPanel = () => {
     fetchData();
   }, []);
 
-  // --- 3. LÓGICA DE ELIMINAR ACTUALIZADA ---
   const handleDelete = async (id) => {
     if (window.confirm("¿Estás seguro de eliminar este contenido? Esta acción no se puede deshacer.")) {
       try {
-        // Usamos la función de la API
         await deleteContent(id);
-        
-        // Actualizar estado local (UI)
         setContent(prev => prev.filter(item => item.id !== id));
         setStats(prev => ({ ...prev, total: prev.total - 1 }));
-        
       } catch (error) {
-        // El error ya se imprime en la API, pero mostramos alerta al usuario
         alert("Error al eliminar el contenido.");
       }
     }
   };
 
-  // --- FILTRADO ---
   const filteredContent = content.filter(item => {
     const matchesSearch = item.titulo.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filterType === 'all' || item.tipo === filterType;
@@ -79,7 +72,7 @@ const AdminPanel = () => {
   );
 
   return (
-    <div className="max-w-7xl mx-auto pb-10 px-4 md:px-0 animate-fade-in-up">
+    <div className="animate-fade-in-up" style={{ animationDuration: '200ms' }}>
       
       {/* HEADER */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
@@ -102,7 +95,7 @@ const AdminPanel = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <StatCard icon={FileBox} label="Contenido Total" value={stats.total} color="bg-blue-500" />
         <StatCard icon={Users} label="Usuarios Registrados" value={stats.users} color="bg-purple-500" />
-        <StatCard icon={Eye} label="Vistas Globales" value="N/A" color="bg-green-500" />
+        <StatCard icon={Download} label="Descargas Totales" value={stats.views} color="bg-green-500" />
       </div>
 
       {/* TABLA */}
@@ -138,9 +131,11 @@ const AdminPanel = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
+              {/* CORRECCIÓN AQUÍ: Eliminados espacios y comentarios dentro del tr */}
               <tr className="bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider">
                 <th className="p-4 font-semibold">Contenido</th>
                 <th className="p-4 font-semibold">Tipo</th>
+                <th className="p-4 font-semibold text-center">Descargas</th>
                 <th className="p-4 font-semibold">Creadores</th>
                 <th className="p-4 font-semibold">Fecha</th>
                 <th className="p-4 font-semibold text-right">Acciones</th>
@@ -148,56 +143,63 @@ const AdminPanel = () => {
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
               {filteredContent.length > 0 ? (
-                filteredContent.map((item) => (
-                  <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group">
-                    <td className="p-4 flex items-center gap-3">
-                      <img 
-                        src={item.imagen} 
-                        alt=""
-                        loading="lazy"
-                        referrerPolicy="no-referrer" crossOrigin="anonymous"
-                        className="w-10 h-10 rounded-lg object-cover bg-gray-200"
-                      />
-                      <span className="font-medium text-gray-900 dark:text-white truncate max-w-[150px] md:max-w-xs" title={item.titulo}>
-                        {item.titulo}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      <span className="px-2 py-1 rounded-md text-xs font-bold uppercase bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
-                        {item.tipo}
-                      </span>
-                    </td>
-                    <td className="p-4 text-sm text-gray-500 dark:text-gray-400">
-                      {Array.isArray(item.creadores) 
-                        ? item.creadores.map(c => c.nombre).join(', ') 
-                        : 'Desconocido'}
-                    </td>
-                    <td className="p-4 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                      {new Date(item.creado).toLocaleDateString()}
-                    </td>
-                    <td className="p-4 text-right">
-                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Link 
-                            to={`/admin-upload?edit=${item.id}`}
-                            className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors" 
-                            title="Editar"
+                filteredContent.map((item) => {
+                    const itemTotalDownloads = item.descargas?.reduce((acc, curr) => acc + (curr.count || 0), 0) || 0;
+                    
+                    return (
+                      <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group">
+                        <td className="p-4 flex items-center gap-3">
+                          <img 
+                            src={item.imagen} 
+                            alt=""
+                            loading="lazy"
+                            referrerPolicy="no-referrer" crossOrigin="anonymous"
+                            className="w-10 h-10 rounded-lg object-cover bg-gray-200"
+                          />
+                          <span className="font-medium text-gray-900 dark:text-white truncate max-w-[150px] md:max-w-xs" title={item.titulo}>
+                            {item.titulo}
+                          </span>
+                        </td>
+                        <td className="p-4">
+                          <span className="px-2 py-1 rounded-md text-xs font-bold uppercase bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
+                            {item.tipo}
+                          </span>
+                        </td>
+                        <td className="p-4 text-center font-bold text-gray-700 dark:text-gray-300">
+                            {itemTotalDownloads}
+                        </td>
+                        <td className="p-4 text-sm text-gray-500 dark:text-gray-400">
+                          {Array.isArray(item.creadores) 
+                            ? item.creadores.map(c => c.nombre).join(', ') 
+                            : 'Desconocido'}
+                        </td>
+                        <td className="p-4 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                          {new Date(item.creado).toLocaleDateString()}
+                        </td>
+                        <td className="p-4 text-right">
+                          <div className="flex items-center justify-end gap-2 transition-opacity">
+                            <Link 
+                                to={`/admin-upload?edit=${item.id}`}
+                                className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors" 
+                                title="Editar"
+                                >
+                                <Edit size={18} />
+                            </Link>
+                            <button 
+                              onClick={() => handleDelete(item.id)}
+                              className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors" 
+                              title="Eliminar"
                             >
-                            <Edit size={18} />
-                        </Link>
-                        <button 
-                          onClick={() => handleDelete(item.id)}
-                          className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors" 
-                          title="Eliminar"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                              <Trash2 size={18} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                })
               ) : (
                 <tr>
-                  <td colSpan="5" className="p-8 text-center text-gray-400 italic">
+                  <td colSpan="6" className="p-8 text-center text-gray-400 italic">
                     No se encontraron resultados.
                   </td>
                 </tr>

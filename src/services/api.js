@@ -8,7 +8,8 @@ import {
   addDoc, 
   query, 
   where, 
-  orderBy 
+  orderBy,
+  getCountFromServer
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
 
@@ -167,5 +168,86 @@ export const getUserByUsername = async (username) => {
   } catch (error) {
     console.error("Error buscando usuario:", error);
     return null;
+  }
+};
+
+// NUEVA FUNCIÓN: Traer todo el contenido (ideal para Destacados)
+export const getAllContent = async () => {
+  try {
+    const contentRef = collection(db, "content");
+    // Opcional: Ordenar por fecha de creación descendente para ver lo nuevo primero
+    const q = query(contentRef, orderBy("creado", "desc")); 
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (error) {
+    console.error("Error obteniendo todo el contenido:", error);
+    return [];
+  }
+};
+
+export const registerDownload = async (contentId, downloadUrl) => {
+  try {
+    const docRef = doc(db, "content", contentId);
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      
+      // Buscamos la descarga específica por su URL y aumentamos su contador
+      // (Firestore no deja actualizar un índice específico de un array fácilmente, 
+      //  así que leemos, modificamos y guardamos todo el array).
+      const updatedDescargas = data.descargas.map(item => {
+        if (item.url === downloadUrl) {
+          return { ...item, count: (item.count || 0) + 1 };
+        }
+        return item;
+      });
+
+      await updateDoc(docRef, {
+        descargas: updatedDescargas
+      });
+      
+      return true;
+    }
+  } catch (error) {
+    console.error("Error registrando descarga:", error);
+    return false;
+  }
+};
+
+export const getGlobalStats = async () => {
+  try {
+    // 1. Contar Usuarios (Rápido y barato usando count aggregation)
+    const usersColl = collection(db, "users");
+    const usersSnapshot = await getCountFromServer(usersColl);
+    const totalUsers = usersSnapshot.data().count;
+
+    // 2. Contar Contenido y Sumar Descargas
+    // (Aquí sí leemos los docs de contenido, pero solo los necesarios)
+    const contentColl = collection(db, "content");
+    const contentSnapshot = await getDocs(contentColl);
+    
+    let totalContent = 0;
+    let totalDownloads = 0;
+
+    contentSnapshot.forEach(doc => {
+      totalContent++;
+      const data = doc.data();
+      // Sumamos las descargas si existen
+      if (data.descargas && Array.isArray(data.descargas)) {
+        const descargasItem = data.descargas.reduce((acc, curr) => acc + (curr.count || 0), 0);
+        totalDownloads += descargasItem;
+      }
+    });
+
+    return {
+      users: totalUsers,
+      downloads: totalDownloads,
+      mods: totalContent
+    };
+
+  } catch (error) {
+    console.error("Error obteniendo estadísticas:", error);
+    return { users: 0, downloads: 0, mods: 0 };
   }
 };

@@ -27,6 +27,8 @@ import Configuracion from './pages/Configuracion';
 import Comunidad from './pages/Comunidad';
 import PublicProfile from './pages/PublicProfile';
 import Resultados from './pages/Resultados'; // <--- IMPORTANTE: Importar Resultados
+import Destacados from './pages/Destacados';
+import DetalleContenido from './pages/DetalleContenido';
 
 function App() {
   // Lógica del Tema Oscuro (Persistencia)
@@ -75,6 +77,8 @@ function App() {
             {/* --- OTROS --- */}
             <Route path="acerca-de" element={<AcercaDe />} />
             <Route path="contacto" element={<Contacto />} />
+            <Route path="destacados" element={<Destacados />} />
+            <Route path="/view/:id" element={<DetalleContenido />} />
 
             {/* --- RUTAS PROTEGIDAS --- */}
             

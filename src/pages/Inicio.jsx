@@ -1,5 +1,6 @@
 import React from 'react';
-import { Map, Gamepad2, Wrench, Boxes, Package, ArrowRight, Star, User } from 'lucide-react';
+import { NavLink } from 'react-router-dom';
+import { Map, Gamepad2, Wrench, Boxes, Package, Crown, Trophy, User } from 'lucide-react';
 import FeatureCard from '../components/FeatureCard.jsx';
 
 const Inicio = () => {
@@ -14,17 +15,18 @@ const Inicio = () => {
         </h1>
         
         <p className="text-primary-100 text-md md:text-lg mb-4 md:mb-8 leading-relaxed">
-          Explora mapas increíbles, mods esenciales y paquetes de texturas únicos. Tu próxima aventura comienza aquí.
+          Explora nuevos personajes, mapas increíbles, mods esenciales y paquetes únicos. Tu próxima aventura comienza aquí.
         </p>
 
         <div className="flex flex-wrap gap-2 md:gap-4">
-          <button className="px-5 py-2 md:px-6 md:py-3 rounded-xl bg-white text-primary-900 font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200 flex items-center gap-2">
-            <Star size={18} className="text-yellow-500 fill-yellow-500" />
+          <NavLink to="/destacados" className="px-5 py-2 md:px-6 md:py-3 rounded-xl bg-white text-primary-900 font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200 flex items-center gap-2">
+            <Trophy size={18} className="text-primary-900 " />
             Destacados
-          </button>
-          <button className="px-5 py-2 md:px-6 md:py-3 rounded-xl bg-primary-800 backdrop-blur-sm border border-primary-400 text-white/90 font-semibold hover:bg-primary-700 transition-all duration-200">
-            Novedades
-          </button>
+          </NavLink>
+          <NavLink to="/comunidad" className="px-5 py-2 md:px-6 md:py-3 rounded-xl bg-primary-800 backdrop-blur-sm border border-primary-400 text-white/90 font-semibold hover:bg-primary-700 transition-all duration-200 flex items-center gap-2">
+            <Crown size={18} className="text-white" />
+            Comunidad
+          </NavLink>
         </div>
       </div>
 
