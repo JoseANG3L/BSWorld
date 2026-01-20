@@ -7,7 +7,7 @@ import { registerDownload } from '../services/api';
 
 const COOLDOWN_TIME = 3600000; 
 
-const Card = ({ id, imagen, titulo, descargas = [], creadores = [], tags, isPreview = false }) => {
+const Card = ({ id, imagen, titulo, descargas = [], creadores = [], tags, uploader, isPreview = false }) => {
   const [isOpenDownload, setIsOpenDownload] = useState(false);
   const downloadRef = useRef(null);
   const [isOpenCreators, setIsOpenCreators] = useState(false);
@@ -62,11 +62,11 @@ const Card = ({ id, imagen, titulo, descargas = [], creadores = [], tags, isPrev
   return (
     <div className="group flex flex-col bg-white dark:bg-[#1e1e1e] border border-gray-300 dark:border-gray-700 rounded-2xl shadow-lg transition-all duration-300 z-0 relative hover:shadow-xl hover:border-gray-400 dark:hover:border-gray-600">
       
-      {/* 1. LINK EN LA IMAGEN (Abre detalles) */}
-      {/* Usamos !isPreview para desactivar el link en el panel de admin */}
+      {/* 1. LINK EN LA IMAGEN */}
       <Link 
         to={(!isPreview && id) ? `/view/${id}` : "#"} 
         className={clsx("relative w-full aspect-video overflow-hidden bg-gray-100 dark:bg-gray-800 rounded-t-2xl block cursor-pointer", isPreview && "cursor-default")}
+        onClick={(e) => isPreview && e.preventDefault()}
       >
         <img 
           src={imagen || 'https://via.placeholder.com/640x360'} 
@@ -77,7 +77,6 @@ const Card = ({ id, imagen, titulo, descargas = [], creadores = [], tags, isPrev
           onError={(e) => { e.target.src = '/default.jpg'; }}
         />
         
-        {/* Badge Total */}
         <div className={clsx(
             "absolute top-2 right-2 px-2 py-1 backdrop-blur-md rounded-lg border border-white/10 flex items-center gap-1.5 text-xs font-bold shadow-sm z-10 transition-colors duration-300",
             isSpamming ? "bg-red-600 text-white" : "bg-black/60 text-white"
@@ -89,19 +88,20 @@ const Card = ({ id, imagen, titulo, descargas = [], creadores = [], tags, isPrev
         <div className="absolute inset-0 bg-primary-900/0 group-hover:bg-primary-900/10 transition-colors duration-300" />
       </Link>
 
-      <div className="flex flex-col flex-1 px-3 pt-3 pb-4">
+      <div className="flex flex-col flex-1 px-3 pt-3 pb-3">
         
-        {/* 2. LINK EN EL TÍTULO (Abre detalles) */}
+        {/* 2. TÍTULO */}
         <Link 
             to={(!isPreview && id) ? `/view/${id}` : "#"} 
             className={clsx("block mb-2", !isPreview && "hover:text-primary-600 dark:hover:text-primary-400 transition-colors")}
+            onClick={(e) => isPreview && e.preventDefault()}
         >
             <h3 className="text-md font-bold text-gray-900 dark:text-white line-clamp-1" title={titulo}>
             {titulo}
             </h3>
         </Link>
 
-        {/* BOTÓN DESCARGA (Funcionalidad normal) */}
+        {/* 3. BOTÓN DESCARGA */}
         <div className="relative mb-2" ref={downloadRef}>
           <button 
             onClick={() => setIsOpenDownload(!isOpenDownload)}
@@ -149,7 +149,7 @@ const Card = ({ id, imagen, titulo, descargas = [], creadores = [], tags, isPrev
           )}
         </div>
 
-        {/* CREADORES Y TAGS (Igual que antes) */}
+        {/* 4. CREADORES (Autores Originales) */}
         <div className="relative mb-2.5" ref={creatorsRef}>
           <button onClick={() => setIsOpenCreators(!isOpenCreators)} className="flex items-center gap-2 w-full px-2 py-1 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-left group/creator">
             <div className="relative shrink-0">
@@ -178,7 +178,8 @@ const Card = ({ id, imagen, titulo, descargas = [], creadores = [], tags, isPrev
           )}
         </div>
 
-        <div className="mt-auto flex flex-wrap gap-2">
+        {/* 5. TAGS */}
+        <div className="flex flex-wrap gap-2 mb-3">
           {tags && tags.map((tag, index) => (
             <div key={index} className="flex items-center gap-1 px-2 py-1 rounded-md bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700">
               <Tag size={10} className="text-gray-400" />
@@ -186,6 +187,31 @@ const Card = ({ id, imagen, titulo, descargas = [], creadores = [], tags, isPrev
             </div>
           ))}
         </div>
+
+        {/* 6. APORTE DE (Usando uploader.imagen) */}
+        {uploader && uploader.nombre && (
+            <div className="mt-auto pt-3 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wide">
+                    Aporte
+                </span>
+                <Link 
+                    to={`/u/${uploader.nombre}`}
+                    onClick={(e) => isPreview && e.preventDefault()}
+                    className="flex items-center gap-1.5 group/uploader"
+                >
+                    <div className="w-4 h-4 rounded-full overflow-hidden border border-gray-200 dark:border-gray-600">
+                        {/* AQUÍ ESTÁ LA CLAVE: Pasamos uploader.imagen al Renderer */}
+                        <AvatarRenderer 
+                            avatar={uploader.imagen} 
+                            name={uploader.nombre} 
+                        />
+                    </div>
+                    <span className="text-xs font-bold text-gray-600 dark:text-gray-300 group-hover/uploader:text-primary-600 transition-colors max-w-[90px] truncate">
+                        {uploader.nombre}
+                    </span>
+                </Link>
+            </div>
+        )}
 
       </div>
     </div>

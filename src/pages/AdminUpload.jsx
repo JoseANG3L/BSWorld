@@ -26,6 +26,7 @@ const AdminUpload = () => {
     imagen: '',
     creadores: '', 
     tags: '',
+    uploader: { nombre: user?.displayName || user?.username || '', imagen: null },
     creado: new Date().toISOString().split('T')[0] 
   });
 
@@ -156,6 +157,7 @@ const AdminUpload = () => {
         nombresBusqueda: nombresBusqueda,
         tags: finalTags,
         descargas: descargas.filter(d => d.url !== ''),
+        uploader: formData.uploader,
         creado: new Date(formData.creado).toISOString() 
       };
 
@@ -393,6 +395,7 @@ const AdminUpload = () => {
                   : [{nombre: "Creador", imagen: null}] 
               }
               tags={getPreviewTags()}
+              uploader={formData.uploader}
               isPreview={true}
             />
 

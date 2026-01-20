@@ -5,30 +5,71 @@ import {
   deleteDoc,
   collection, 
   getDocs, 
-  addDoc, 
+  setDoc, // Cambiamos addDoc por setDoc para manejar IDs manuales si queremos, o mantenemos addDoc
+  addDoc,
   query, 
   where, 
   orderBy,
   getCountFromServer
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
+import { v4 as uuidv4 } from 'uuid'; // Necesitas instalar: npm install uuid
 
 // ---------------------------------------------------------
-// 1. OBTENER CONTENIDO POR TIPO (Para páginas de categorías)
+// 1. OBTENER CONTENIDO POR TIPO (PÚBLICO)
 // ---------------------------------------------------------
 export const getContentByType = async (tipo) => {
   try {
     const colRef = collection(db, "content");
-    const q = query(colRef, where("tipo", "==", tipo));
+    // MODIFICADO: Agregamos el filtro de status "active"
+    const q = query(
+      colRef, 
+      where("tipo", "==", tipo), 
+      where("status", "==", "active"), 
+      orderBy("creado", "desc") // Ordenamos por fecha
+    );
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   } catch (error) {
     console.error(`Error obteniendo contenido tipo ${tipo}:`, error);
+    // Si falla por falta de índice compuesto en Firebase, avisa en consola
     throw error;
   }
 };
 
-// A. OBTENER UN DOCUMENTO POR ID (Para rellenar el form al editar)
+// ---------------------------------------------------------
+// 2. OBTENER TODO EL CONTENIDO PÚBLICO (Para Destacados/Home)
+// ---------------------------------------------------------
+export const getPublicContent = async () => {
+  try {
+    const contentRef = collection(db, "content");
+    // MODIFICADO: Solo traemos lo que está aprobado
+    const q = query(contentRef, where("status", "==", "active"), orderBy("creado", "desc")); 
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (error) {
+    console.error("Error obteniendo contenido público:", error);
+    return [];
+  }
+};
+
+// ---------------------------------------------------------
+// 3. OBTENER TODO (Para ADMIN PANEL - Ve pendientes y activos)
+// ---------------------------------------------------------
+export const getAdminContent = async () => {
+  try {
+    const contentRef = collection(db, "content");
+    // Traemos TODO sin filtrar por status, ordenado por fecha
+    const q = query(contentRef, orderBy("creado", "desc"));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (error) {
+    console.error("Error obteniendo contenido admin:", error);
+    return [];
+  }
+};
+
+// A. OBTENER UN DOCUMENTO POR ID
 export const getContentById = async (id) => {
   try {
     const docRef = doc(db, "content", id);
@@ -49,7 +90,7 @@ export const updateContent = async (id, data) => {
     const docRef = doc(db, "content", id);
     await updateDoc(docRef, {
       ...data,
-      actualizado: new Date().toISOString() // Actualizamos la fecha de modificación
+      actualizado: new Date().toISOString()
     });
   } catch (error) {
     console.error("Error actualizando:", error);
@@ -57,38 +98,56 @@ export const updateContent = async (id, data) => {
   }
 };
 
+// C. ELIMINAR DOCUMENTO
 export const deleteContent = async (id) => {
   try {
     const docRef = doc(db, "content", id);
     await deleteDoc(docRef);
-    return true; // Retornamos true para saber que salió bien
+    return true;
   } catch (error) {
     console.error("Error eliminando contenido:", error);
     throw error;
   }
 };
 
+// D. APROBAR CONTENIDO (NUEVA)
+export const approveContent = async (id) => {
+  try {
+    const docRef = doc(db, "content", id);
+    await updateDoc(docRef, { status: 'active' });
+    return true;
+  } catch (error) {
+    console.error("Error aprobando contenido:", error);
+    return false;
+  }
+};
+
 // ---------------------------------------------------------
-// 2. BUSCADOR GLOBAL (Para el Header y Resultados)
+// 4. BUSCADOR GLOBAL (Filtrado)
 // ---------------------------------------------------------
 export const searchGlobalContent = async (searchTerm) => {
   try {
     const colRef = collection(db, "content");
+    // Nota: Traemos todo y filtramos en cliente. 
+    // Idealmente usarías Algolia/MeiliSearch para apps grandes.
     const snapshot = await getDocs(colRef);
-    const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    
+    // MODIFICADO: Filtramos primero que sea "active"
+    const data = snapshot.docs
+      .map(doc => ({ id: doc.id, ...doc.data() }))
+      .filter(item => item.status === 'active'); // <--- Solo buscar en activos
     
     const term = searchTerm.toLowerCase();
 
     return data.filter(item => {
-      // Coincidencia en el Título
       const titleMatch = item.titulo?.toLowerCase().includes(term);
-      
-      // Coincidencia en los Creadores (Busca dentro del array nombresBusqueda)
       const creatorMatch = item.nombresBusqueda?.some(nombre => 
         nombre.toLowerCase().includes(term)
       );
+      // También buscamos en tags
+      const tagMatch = item.tags?.some(tag => tag.toLowerCase().includes(term));
       
-      return titleMatch || creatorMatch;
+      return titleMatch || creatorMatch || tagMatch;
     });
   } catch (error) {
     console.error("Error en búsqueda:", error);
@@ -97,23 +156,32 @@ export const searchGlobalContent = async (searchTerm) => {
 };
 
 // ---------------------------------------------------------
-// 3. CREAR CONTENIDO (Para AdminUpload)
+// 5. CREAR CONTENIDO (Lógica Dual: Usuario vs Admin)
 // ---------------------------------------------------------
-export const createContent = async (data) => {
+export const createContent = async (data, isUserSubmission = false) => {
   try {
-    const colRef = collection(db, "content");
+    // Si usas uuid para generar IDs manuales (recomendado para consistencia)
+    const newId = uuidv4();
+    const docRef = doc(db, "content", newId);
     
     const fechaCreacion = data.creado 
       ? new Date(data.creado).toISOString() 
       : new Date().toISOString();
 
-    const docRef = await addDoc(colRef, {
+    const payload = {
       ...data,
+      id: newId, // Guardamos el ID dentro del documento también
       creado: fechaCreacion,
-      actualizado: new Date().toISOString()
-    });
-    
-    return docRef.id;
+      actualizado: new Date().toISOString(),
+      // MODIFICADO: Si es usuario normal, forzamos "pending"
+      status: isUserSubmission ? 'pending' : (data.status || 'active'),
+      vistas: 0 // Inicializamos vistas/descargas internas
+    };
+
+    // Usamos setDoc con ID manual
+    await setDoc(docRef, payload);
+    return newId;
+
   } catch (error) {
     console.error("Error creando contenido:", error);
     throw error;
@@ -121,13 +189,12 @@ export const createContent = async (data) => {
 };
 
 // ---------------------------------------------------------
-// 4. OBTENER TODOS LOS USUARIOS (Para Directorio Creadores)
+// 6. USUARIOS Y CREADORES
 // ---------------------------------------------------------
 export const getAllUsers = async () => {
   try {
     const usersRef = collection(db, "users");
     const q = query(usersRef, orderBy("createdAt", "desc")); 
-    
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() }));
   } catch (error) {
@@ -136,15 +203,15 @@ export const getAllUsers = async () => {
   }
 };
 
-// ---------------------------------------------------------
-// 5. OBTENER CONTENIDO DE UN CREADOR (¡ESTA FALTABA!)
-// ---------------------------------------------------------
 export const getContentByCreator = async (creatorName) => {
   try {
     const colRef = collection(db, "content");
-    // Buscamos donde el array 'nombresBusqueda' contenga el nombre exacto
-    const q = query(colRef, where("nombresBusqueda", "array-contains", creatorName));
-    
+    // MODIFICADO: Solo mostrar contenido activo en el perfil público
+    const q = query(
+        colRef, 
+        where("nombresBusqueda", "array-contains", creatorName),
+        where("status", "==", "active") 
+    );
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   } catch (error) {
@@ -153,9 +220,6 @@ export const getContentByCreator = async (creatorName) => {
   }
 };
 
-// ---------------------------------------------------------
-// 6. OBTENER DATOS DE UN USUARIO (¡ESTA TAMBIÉN FALTABA!)
-// ---------------------------------------------------------
 export const getUserByUsername = async (username) => {
   try {
     const usersRef = collection(db, "users");
@@ -163,7 +227,6 @@ export const getUserByUsername = async (username) => {
     const snapshot = await getDocs(q);
     
     if (snapshot.empty) return null;
-    // Retornamos el primer usuario que coincida
     return snapshot.docs[0].data();
   } catch (error) {
     console.error("Error buscando usuario:", error);
@@ -171,20 +234,9 @@ export const getUserByUsername = async (username) => {
   }
 };
 
-// NUEVA FUNCIÓN: Traer todo el contenido (ideal para Destacados)
-export const getAllContent = async () => {
-  try {
-    const contentRef = collection(db, "content");
-    // Opcional: Ordenar por fecha de creación descendente para ver lo nuevo primero
-    const q = query(contentRef, orderBy("creado", "desc")); 
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-  } catch (error) {
-    console.error("Error obteniendo todo el contenido:", error);
-    return [];
-  }
-};
-
+// ---------------------------------------------------------
+// 7. DESCARGAS Y ESTADÍSTICAS
+// ---------------------------------------------------------
 export const registerDownload = async (contentId, downloadUrl) => {
   try {
     const docRef = doc(db, "content", contentId);
@@ -193,9 +245,6 @@ export const registerDownload = async (contentId, downloadUrl) => {
     if (docSnap.exists()) {
       const data = docSnap.data();
       
-      // Buscamos la descarga específica por su URL y aumentamos su contador
-      // (Firestore no deja actualizar un índice específico de un array fácilmente, 
-      //  así que leemos, modificamos y guardamos todo el array).
       const updatedDescargas = data.descargas.map(item => {
         if (item.url === downloadUrl) {
           return { ...item, count: (item.count || 0) + 1 };
@@ -206,7 +255,6 @@ export const registerDownload = async (contentId, downloadUrl) => {
       await updateDoc(docRef, {
         descargas: updatedDescargas
       });
-      
       return true;
     }
   } catch (error) {
@@ -217,13 +265,10 @@ export const registerDownload = async (contentId, downloadUrl) => {
 
 export const getGlobalStats = async () => {
   try {
-    // 1. Contar Usuarios (Rápido y barato usando count aggregation)
     const usersColl = collection(db, "users");
     const usersSnapshot = await getCountFromServer(usersColl);
     const totalUsers = usersSnapshot.data().count;
 
-    // 2. Contar Contenido y Sumar Descargas
-    // (Aquí sí leemos los docs de contenido, pero solo los necesarios)
     const contentColl = collection(db, "content");
     const contentSnapshot = await getDocs(contentColl);
     
@@ -231,12 +276,14 @@ export const getGlobalStats = async () => {
     let totalDownloads = 0;
 
     contentSnapshot.forEach(doc => {
-      totalContent++;
       const data = doc.data();
-      // Sumamos las descargas si existen
-      if (data.descargas && Array.isArray(data.descargas)) {
-        const descargasItem = data.descargas.reduce((acc, curr) => acc + (curr.count || 0), 0);
-        totalDownloads += descargasItem;
+      // Solo contamos estadísticas de contenido activo para no inflar números
+      if (data.status === 'active') {
+          totalContent++;
+          if (data.descargas && Array.isArray(data.descargas)) {
+            const descargasItem = data.descargas.reduce((acc, curr) => acc + (curr.count || 0), 0);
+            totalDownloads += descargasItem;
+          }
       }
     });
 
@@ -251,3 +298,7 @@ export const getGlobalStats = async () => {
     return { users: 0, downloads: 0, mods: 0 };
   }
 };
+
+// Función antigua para mantener compatibilidad si algo la usa
+// (Redirige a getPublicContent)
+export const getAllContent = getPublicContent;
