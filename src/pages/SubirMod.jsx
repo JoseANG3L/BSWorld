@@ -9,7 +9,7 @@ import { createContent, getContentById, updateContent } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import Card from '../components/Card';
 
-const AdminUpload = () => {
+const SubirMod = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -212,7 +212,7 @@ const AdminUpload = () => {
         <div className="lg:col-span-2 flex flex-col gap-6">
           <form onSubmit={handleSubmit} className="flex flex-col gap-6">
             
-            <div className="bg-white dark:bg-[#1e1e1e] p-6 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
+            <div className="bg-white dark:bg-[#1e1e1e] p-6 rounded-2xl border border-gray-300 dark:border-gray-700 shadow-sm">
               <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-4 border-b border-gray-100 dark:border-gray-700 pb-2">
                 Información General
               </h3>
@@ -227,7 +227,7 @@ const AdminUpload = () => {
                       type="text" name="titulo" required
                       value={formData.titulo} onChange={handleChange}
                       placeholder="Ej: SkyBlock Ultimate"
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white"
                     />
                   </div>
                 </div>
@@ -238,7 +238,7 @@ const AdminUpload = () => {
                   <select 
                     name="tipo" 
                     value={formData.tipo} onChange={handleChange}
-                    className="w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white"
+                    className="w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white"
                   >
                     <option value="mapa">Mapa</option>
                     <option value="minijuego">Minijuego</option>
@@ -257,7 +257,7 @@ const AdminUpload = () => {
                     <input 
                       type="date" name="creado" required
                       value={formData.creado} onChange={handleChange}
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white appearance-none"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white appearance-none"
                     />
                   </div>
                 </div>
@@ -271,7 +271,7 @@ const AdminUpload = () => {
                       type="url" name="imagen" required
                       value={formData.imagen} onChange={handleChange}
                       placeholder="https://imgur.com/..."
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white"
                     />
                   </div>
                 </div>
@@ -285,7 +285,7 @@ const AdminUpload = () => {
                       type="text" name="creadores"
                       value={formData.creadores} onChange={handleChange}
                       placeholder="Ej: Mojang, TuUsuario"
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white"
                     />
                   </div>
                   <p className="text-xs text-gray-400 mt-1">Si pones tu nombre de usuario, se usará tu avatar.</p>
@@ -300,7 +300,7 @@ const AdminUpload = () => {
                       type="text" name="tags"
                       value={formData.tags} onChange={handleChange}
                       placeholder="Ej: Aventura, PvP"
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white"
                     />
                   </div>
                 </div>
@@ -308,8 +308,8 @@ const AdminUpload = () => {
             </div>
 
             {/* SECCIÓN 2: DESCARGAS */}
-            <div className="bg-white dark:bg-[#1e1e1e] p-6 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
-              <div className="flex justify-between items-center mb-4 border-b border-gray-100 dark:border-gray-700 pb-2">
+            <div className="bg-white dark:bg-[#1e1e1e] p-6 rounded-2xl border border-gray-300 dark:border-gray-700 shadow-sm">
+              <div className="flex justify-between items-center mb-4 border-b border-gray-300 dark:border-gray-700 pb-2">
                 <h3 className="text-lg font-bold text-gray-800 dark:text-white">Enlaces de Descarga</h3>
                 <button 
                   type="button" onClick={addDownloadField}
@@ -328,7 +328,7 @@ const AdminUpload = () => {
                         type="text" placeholder="Ej: Mediafire"
                         value={item.label}
                         onChange={(e) => handleDownloadChange(index, 'label', e.target.value)}
-                        className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none focus:border-primary-500 dark:text-white text-sm"
+                        className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:border-primary-500 dark:text-white text-sm"
                       />
                     </div>
                     <div className="flex-[2]">
@@ -339,7 +339,7 @@ const AdminUpload = () => {
                             type="url" placeholder="https://..."
                             value={item.url}
                             onChange={(e) => handleDownloadChange(index, 'url', e.target.value)}
-                            className="w-full pl-8 pr-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none focus:border-primary-500 dark:text-white text-sm"
+                            className="w-full pl-8 pr-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:border-primary-500 dark:text-white text-sm"
                           />
                       </div>
                     </div>
@@ -402,8 +402,8 @@ const AdminUpload = () => {
             <div className={clsx(
                 "p-4 border rounded-xl text-xs",
                 isEditing 
-                  ? "bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-900/30 text-blue-800 dark:text-blue-200" 
-                  : "bg-yellow-50 dark:bg-yellow-900/10 border-yellow-200 dark:border-yellow-900/30 text-yellow-800 dark:text-yellow-200"
+                  ? "bg-blue-50 dark:bg-blue-900/10 border-blue-300 dark:border-blue-700/30 text-blue-800 dark:text-blue-200" 
+                  : "bg-yellow-50 dark:bg-yellow-900/10 border-yellow-300 dark:border-yellow-700/30 text-yellow-800 dark:text-yellow-200"
             )}>
               <p>
                 <strong>{isEditing ? "Modo Edición" : "Nota"}:</strong> 
@@ -419,4 +419,4 @@ const AdminUpload = () => {
   );
 };
 
-export default AdminUpload;
+export default SubirMod;

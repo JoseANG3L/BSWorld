@@ -240,7 +240,7 @@ const PublicProfile = () => {
           SECCIÓN 3: GRID DE CONTENIDO
          ================================================== */}
       {filteredContent.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 md:gap-4">
           {filteredContent.map((item) => (
               <Card key={item.id} {...item} />
           ))}
@@ -263,7 +263,7 @@ const TabButton = ({ active, onClick, icon: Icon, label, count }) => (
     className={clsx(
       "flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm transition-all whitespace-nowrap border select-none",
       active 
-        ? "bg-primary-600 text-white dark:text-black border-primary-600 shadow-sm transform" 
+        ? "bg-primary-600 text-white border-primary-600 shadow-sm transform" 
         : "bg-white dark:bg-[#1e1e1e] text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
     )}
   >
@@ -272,7 +272,7 @@ const TabButton = ({ active, onClick, icon: Icon, label, count }) => (
     {count > 0 && (
       <span className={clsx(
         "ml-1 text-[10px] px-1.5 py-0.5 rounded-md",
-        active ? "bg-white/20 text-white dark:bg-black/10 dark:text-black" : "bg-gray-100 dark:bg-gray-700 text-gray-500"
+        active ? "bg-white/20 text-white dark:bg-black/10" : "bg-gray-100 dark:bg-gray-700 text-gray-500"
       )}>
         {count}
       </span>

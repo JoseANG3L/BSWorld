@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom'; // <--- 1. IMPORTAR useNavigate
-import { Search, Sun, Moon, User, Menu, LogOut, ShieldCheck, UserPlus, LogIn, Settings } from 'lucide-react';
+import { Search, Sun, Moon, User, Menu, LogOut, ShieldCheck, UserPlus, LogIn, Settings, Upload } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useAuth } from '../context/AuthContext';
@@ -79,6 +79,12 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
 
       {/* ACCIONES */}
       <div className="flex items-center gap-3 ml-auto md:ml-0">
+
+        {/* SUBIR MOD */}
+        <Link to="/subir-mod" className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-semibold transition-colors duration-200 shadow-md">
+          <Upload size={16} className="inline-block mr-2" strokeWidth={3} />
+          Subir Mod
+        </Link>
 
         {/* THEME TOGGLE */}
         <button onClick={toggleTheme} className={clsx("p-2.5 rounded-full bg-white dark:bg-[#252525] border border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400 transition-all duration-200 shadow-md", "hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400")}>
