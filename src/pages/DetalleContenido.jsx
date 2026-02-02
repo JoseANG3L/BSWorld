@@ -121,7 +121,7 @@ const DetalleContenido = () => {
   return (
     <div className="animate-fade-in-up" style={{ animationDuration: '200ms' }}>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      <div className="max-w-7xl mx-auto relative z-10">
         
         {/* BOTÓN VOLVER */}
         <button onClick={() => navigate(-1)} className="mb-6 flex items-center gap-2 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors font-medium">
@@ -150,12 +150,12 @@ const DetalleContenido = () => {
             {/* Stats Rápidos */}
             <div className="flex gap-6 text-gray-500 dark:text-gray-400">
                 <div className="text-right">
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatNumber(totalDownloads)}</p>
+                    <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">{formatNumber(totalDownloads)}</p>
                     <p className="text-xs uppercase font-bold tracking-wider">Descargas</p>
                 </div>
                 <div className="w-px bg-gray-300 dark:bg-gray-700"></div>
                 <div className="text-right">
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatNumber(item.vistas || 0)}</p>
+                    <p className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">{formatNumber(item.vistas || 0)}</p>
                     <p className="text-xs uppercase font-bold tracking-wider">Vistas</p>
                 </div>
             </div>
@@ -226,7 +226,7 @@ const DetalleContenido = () => {
 
                     {/* --- TIRA DE MINIATURAS --- */}
                     {galleryItems.length > 1 && (
-                        <div className="flex gap-1 scrollbar-hide snap-x">
+                        <div className="flex gap-1 overflow-auto scrollbar-hide snap-x">
                             {galleryItems.map((media, index) => {
                                 const isYt = getYouTubeId(media);
                                 const isVid = isVideo(media);

@@ -42,7 +42,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
   }, []);
 
   return (
-    <header className="flex items-center gap-4 sticky top-0 z-40 px-3 py-2 md:p-0 bg-white dark:bg-[#1e1e1e] md:bg-light-bg md:dark:bg-dark-bg/80 backdrop-blur-sm transition-colors duration-300">
+    <header className="flex items-center gap-3 sticky top-0 z-40 px-3 py-2 md:p-0 bg-white dark:bg-[#1e1e1e] md:bg-light-bg md:dark:bg-dark-bg/80 backdrop-blur-sm transition-colors duration-300">
 
       {/* MENU MOVIL */}
       <div className={clsx("flex items-center gap-3 md:hidden", isFocused && "hidden")}>
@@ -81,9 +81,9 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
       <div className="flex items-center gap-3 ml-auto md:ml-0">
 
         {/* SUBIR MOD */}
-        <Link to="/subir-mod" className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-semibold transition-colors duration-200 shadow-md">
-          <Upload size={16} className="inline-block mr-2" strokeWidth={3} />
-          Subir Mod
+        <Link to="/subir-mod" className="px-3 md:px-4 py-2.5 flex w-10 h-10 md:w-auto md:h-auto bg-primary-600 hover:bg-primary-700 text-white rounded-full md:rounded-lg text-sm font-semibold transition-colors duration-200 shadow-md">
+          <Upload size={16} className="inline-block mr-0 md:mr-2" strokeWidth={3} />
+          <span className="hidden md:block">Subir Mod</span>
         </Link>
 
         {/* THEME TOGGLE */}
