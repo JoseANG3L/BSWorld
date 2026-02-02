@@ -3,12 +3,27 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   Download, Calendar, Tag, Share2, ArrowLeft,
   CheckCircle, ShieldCheck, MessageCircle, Facebook, Twitter, Eye,
-  Image as ImageIcon, Layers, User
+  Image as ImageIcon, Layers, User, ChevronLeft, ChevronRight, PlayCircle
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { getContentById, registerDownload } from '../services/api';
 import AvatarRenderer from '../components/AvatarRenderer';
 import { useAuth } from '../context/AuthContext';
+
+// --- HELPER 1: DETECTAR YOUTUBE ---
+const getYouTubeId = (url) => {
+    if (!url) return null;
+    // Soporta formatos: youtube.com/watch?v=ID, youtu.be/ID, youtube.com/embed/ID
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+};
+
+// --- HELPER 2: DETECTAR VIDEO MP4 LOCAL ---
+const isVideo = (url) => {
+    if (!url) return false;
+    return url.match(/\.(mp4|webm|ogg|mov)$/i);
+};
 
 const DetalleContenido = () => {
   const { id } = useParams();
@@ -18,6 +33,8 @@ const DetalleContenido = () => {
   const [item, setItem] = useState(null);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(null);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [selectedIndex, setSelectedIndex] = useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -28,6 +45,7 @@ const DetalleContenido = () => {
           return;
         }
         setItem(data);
+        setSelectedImage(data.imagen);
       } catch (error) {
         console.error("Error cargando detalle:", error);
       } finally {
@@ -36,6 +54,24 @@ const DetalleContenido = () => {
     };
     fetchData();
   }, [id, navigate]);
+
+  const galleryItems = item ? [
+      item.imagen,
+      ...(item.galeria || []) 
+  ].filter(Boolean) : [];
+
+  const currentMedia = galleryItems[selectedIndex];
+
+  const youtubeId = getYouTubeId(currentMedia);
+
+  // --- NAVEGACIÓN GALERÍA ---
+  const handlePrev = () => {
+      setSelectedIndex((prev) => (prev === 0 ? galleryItems.length - 1 : prev - 1));
+  };
+
+  const handleNext = () => {
+      setSelectedIndex((prev) => (prev === galleryItems.length - 1 ? 0 : prev + 1));
+  };
 
   const handleDownload = async (url) => {
     if (!item) return;
@@ -84,17 +120,8 @@ const DetalleContenido = () => {
 
   return (
     <div className="animate-fade-in-up" style={{ animationDuration: '200ms' }}>
-      
-      {/* 1. FONDO AMBIENTAL (Blur gigante detrás) */}
-      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-[500px] bg-gradient-to-b from-gray-200/50 to-transparent dark:from-gray-900/50 opacity-50 blur-3xl"
-               style={{ backgroundColor: 'transparent' }}>
-               {/* Usamos la imagen del mod super difuminada como ambiente */}
-               <img src={item.imagen} className="w-full h-full object-cover opacity-20 blur-[100px]" alt="" />
-          </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 pt-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         
         {/* BOTÓN VOLVER */}
         <button onClick={() => navigate(-1)} className="mb-6 flex items-center gap-2 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors font-medium">
@@ -102,7 +129,7 @@ const DetalleContenido = () => {
         </button>
 
         {/* 2. ENCABEZADO (Título y Meta) */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 md:gap-4 mb-6">
             <div>
                 <div className="flex flex-wrap items-center gap-3 mb-3">
                     <span className="px-3 py-1 rounded-lg text-xs font-bold uppercase bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 border border-primary-200 dark:border-primary-800 tracking-wider">
@@ -115,7 +142,7 @@ const DetalleContenido = () => {
                         <Calendar size={14} /> {new Date(item.creado).toLocaleDateString()}
                     </span>
                 </div>
-                <h1 className="text-4xl md:text-6xl font-black text-gray-900 dark:text-white leading-tight tracking-tight">
+                <h1 className="text-2xl md:text-5xl font-black text-white leading-tight tracking-tight">
                     {item.titulo}
                 </h1>
             </div>
@@ -135,39 +162,126 @@ const DetalleContenido = () => {
         </div>
 
         {/* 3. LAYOUT GRID PRINCIPAL */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 md:gap-5">
             
             {/* --- COLUMNA IZQUIERDA (Contenido Visual y Texto) - 8/12 --- */}
-            <div className="lg:col-span-8 flex flex-col gap-8">
-                
-                {/* GALERÍA PRINCIPAL */}
-                <div className="rounded-3xl overflow-hidden shadow-2xl bg-black border-4 border-white dark:border-[#1e1e1e] relative group aspect-video">
-                    <img src={item.imagen} alt={item.titulo} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60"></div>
-                    <div className="absolute bottom-6 left-6 text-white">
-                        <p className="text-sm font-medium opacity-80 flex items-center gap-2">
-                            <ImageIcon size={16} /> Captura Principal
-                        </p>
+            <div className="lg:col-span-8 flex flex-col gap-3 md:gap-5">
+            
+                {/* --- VISOR DE GALERÍA (IMAGEN/VIDEO + BOTONES) --- */}
+                <div>
+                    <div className="rounded-2xl overflow-hidden relative group aspect-video mb-2">
+                        
+                        {/* 1. CASO YOUTUBE (Iframe nocookie) */}
+                        {youtubeId ? (
+                            <iframe
+                                key={youtubeId}
+                                src={`https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=0&rel=0`}
+                                title="YouTube video player"
+                                className="w-full h-full"
+                                frameBorder="0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                            ></iframe>
+                        ) : isVideo(currentMedia) ? (
+                            /* 2. CASO VIDEO MP4 */
+                            <video 
+                                src={currentMedia} 
+                                className="w-full h-full object-contain bg-black" 
+                                controls 
+                                muted 
+                                loop 
+                                key={currentMedia} 
+                            />
+                        ) : (
+                            /* 3. CASO IMAGEN */
+                            <img 
+                                src={currentMedia} 
+                                alt={item.titulo} 
+                                className="w-full h-full object-cover transition-transform duration-700" 
+                                key={currentMedia}
+                            />
+                        )}
+
+                        {/* --- BOTONES DE NAVEGACIÓN (Solo si hay más de 1 item) --- */}
+                        {galleryItems.length > 1 && (
+                            <>
+                                {/* Botón Izquierda */}
+                                <button 
+                                    onClick={handlePrev}
+                                    className="absolute top-1/2 left-4 -translate-y-1/2 p-3 rounded-full bg-black/50 text-white hover:bg-black/70 hover:scale-110 transition-all opacity-0 group-hover:opacity-100 backdrop-blur-sm border border-white/10 z-10"
+                                >
+                                    <ChevronLeft size={24} />
+                                </button>
+
+                                {/* Botón Derecha */}
+                                <button 
+                                    onClick={handleNext}
+                                    className="absolute top-1/2 right-4 -translate-y-1/2 p-3 rounded-full bg-black/50 text-white hover:bg-black/70 hover:scale-110 transition-all opacity-0 group-hover:opacity-100 backdrop-blur-sm border border-white/10 z-10"
+                                >
+                                    <ChevronRight size={24} />
+                                </button>
+                            </>
+                        )}
                     </div>
+
+                    {/* --- TIRA DE MINIATURAS --- */}
+                    {galleryItems.length > 1 && (
+                        <div className="flex gap-1 scrollbar-hide snap-x">
+                            {galleryItems.map((media, index) => {
+                                const isYt = getYouTubeId(media);
+                                const isVid = isVideo(media);
+                                const thumbSrc = isYt 
+                                    ? `https://img.youtube.com/vi/${isYt}/mqdefault.jpg` // Miniatura automática de YT
+                                    : media;
+
+                                return (
+                                    <button 
+                                        key={index}
+                                        onClick={() => setSelectedIndex(index)}
+                                        className={clsx(
+                                            "relative h-20 w-34 shrink-0 rounded-lg overflow-hidden border-2 transition-all cursor-pointer snap-start group/thumb",
+                                            selectedIndex === index
+                                                ? "border-primary-500" 
+                                                : "border-transparent"
+                                        )}
+                                    >
+                                        {/* Icono Overlay para Video/YT */}
+                                        {(isYt || isVid) && (
+                                            <div className="absolute inset-0 flex items-center justify-center z-10">
+                                                <PlayCircle size={38} className="text-white drop-shadow-md" />
+                                            </div>
+                                        )}
+
+                                        <img 
+                                            src={thumbSrc} 
+                                            alt={`Vista ${index}`} 
+                                            className="w-full h-full object-cover" 
+                                        />
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    )}
                 </div>
 
-                {/* DESCRIPCIÓN */}
-                <div className="bg-white dark:bg-[#1e1e1e] p-8 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm">
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-3 pb-4 border-b border-gray-100 dark:border-gray-800">
-                        <Layers size={20} className="text-primary-600" /> Descripción del Contenido
+                {/* DESCRIPCIÓN (Igual que antes) */}
+                <div className="bg-white dark:bg-[#1e1e1e] p-3 md:p-4 rounded-2xl border border-gray-300 dark:border-gray-700 shadow-sm">
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-3 pb-4 border-b border-gray-300 dark:border-gray-700">
+                        <Layers size={20} className="text-primary-600" /> Descripción
                     </h3>
                     <div className="prose dark:prose-invert max-w-none text-gray-600 dark:text-gray-300 leading-relaxed text-base">
                         {item.descripcion || "El creador no ha proporcionado una descripción detallada, pero basándonos en las etiquetas y el título, ¡parece una aventura épica! Descárgalo y compruébalo tú mismo."}
                     </div>
                     
                     {/* TAGS */}
-                    <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-800">
+                    <div className="mt-6 pt-4 border-t border-gray-300 dark:border-gray-700">
                         <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Etiquetas</h4>
                         <div className="flex flex-wrap gap-2">
-                            {item.tags?.map((tag, i) => (
-                                <span key={i} className="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-lg text-sm font-semibold border border-gray-200 dark:border-gray-700">
-                                    #{tag}
-                                </span>
+                            {item.tags?.map((tag, index) => (
+                                <div key={index} className="flex items-center gap-1 px-2 py-1 rounded-full bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700">
+                                    <Tag size={10} className="text-gray-400" />
+                                    <span className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-400">{tag}</span>
+                                </div>
                             ))}
                         </div>
                     </div>
@@ -179,7 +293,7 @@ const DetalleContenido = () => {
             <div className="lg:col-span-4 space-y-6">
                 
                 {/* 1. TARJETA DE DESCARGA (Sticky) */}
-                <div className="bg-white dark:bg-[#1e1e1e] p-5 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-xl shadow-primary-900/5 lg:sticky lg:top-24">
+                <div className="bg-white dark:bg-[#1e1e1e] p-5 rounded-2xl border border-gray-300 dark:border-gray-700 shadow-xl shadow-primary-900/5">
                     <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Descargar Archivos</h3>
                     
                     <div className="flex flex-col gap-3">
@@ -216,7 +330,7 @@ const DetalleContenido = () => {
                 </div>
 
                 {/* 2. CREADORES Y APORTE */}
-                <div className="bg-white dark:bg-[#1e1e1e] p-5 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-md">
+                <div className="bg-white dark:bg-[#1e1e1e] p-5 rounded-2xl border border-gray-300 dark:border-gray-700 shadow-md">
                     
                     {/* Creadores */}
                     <div className="mb-6">
