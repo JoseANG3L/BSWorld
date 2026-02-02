@@ -231,7 +231,7 @@ const AcercaDe = () => {
       {/* FOOTER PEQUEÑO */}
       <div className="text-center pt-8 border-t border-gray-100 dark:border-gray-800 mt-4">
         <p className="text-gray-400 text-sm">
-            © {new Date().getFullYear()} BSWorld. <br className="md:hidden"/> Hecho con <span className="text-red-500">❤</span> y cubos.
+            © {new Date().getFullYear()} BSWorld - Un mundo lleno de mods. <br className="md:hidden"/> Hecho con <span className="text-red-500">❤</span> y bombas.
         </p>
       </div>
 

@@ -200,7 +200,7 @@ const TabButton = ({ active, onClick, icon: Icon, label, count }) => (
     {count > 0 && (
       <span className={clsx(
         "ml-1 text-[10px] px-1.5 py-0.5 rounded-md",
-        active ? "bg-white/20 text-white dark:bg-black/10" : "bg-gray-100 dark:bg-gray-700 text-gray-500"
+        active ? "bg-white/20 text-white dark:bg-black/10" : "bg-gray-100 dark:bg-gray-700 text-gray-400"
       )}>
         {count}
       </span>

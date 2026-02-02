@@ -130,7 +130,7 @@ const Card = ({ id, imagen, titulo, descargas = [], creadores = [], tags, upload
                     <a 
                         key={index} href={option.url} target="_blank" rel="noopener noreferrer"
                         onClick={() => handleDownloadClick(option.url)}
-                        className="flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-700 dark:hover:text-primary-300 transition-colors border-b border-gray-50 dark:border-gray-800 last:border-0 group/item cursor-pointer"
+                        className="flex items-center justify-between px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-700 dark:hover:text-primary-300 transition-colors border-b border-gray-50 dark:border-gray-800 last:border-0 group/item cursor-pointer"
                     >
                       <div className="flex flex-col">
                           <span className="truncate font-bold">{option.label}</span>
@@ -151,7 +151,7 @@ const Card = ({ id, imagen, titulo, descargas = [], creadores = [], tags, upload
 
         {/* 4. CREADORES (Autores Originales) */}
         <div className="relative mb-2.5" ref={creatorsRef}>
-          <button onClick={() => setIsOpenCreators(!isOpenCreators)} className="flex items-center gap-2 w-full px-2 py-1 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-left group/creator">
+          <button onClick={() => setIsOpenCreators(!isOpenCreators)} className="flex items-center gap-2 w-full px-2 py-1 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors text-left group/creator">
             <div className="relative shrink-0">
                 <div className="w-6 h-6 rounded-full border border-gray-300 dark:border-gray-700 overflow-hidden bg-gray-200 dark:bg-gray-800">
                     <AvatarRenderer avatar={primerCreador.imagen} name={primerCreador.nombre} />
@@ -181,7 +181,7 @@ const Card = ({ id, imagen, titulo, descargas = [], creadores = [], tags, upload
         {/* 5. TAGS */}
         <div className="flex flex-wrap gap-2 mb-3">
           {tags && tags.map((tag, index) => (
-            <div key={index} className="flex items-center gap-1 px-2 py-1 rounded-md bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700">
+            <div key={index} className="flex items-center gap-1 px-2 py-1 rounded-full bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700">
               <Tag size={10} className="text-gray-400" />
               <span className="text-[10px] font-bold uppercase tracking-wider text-gray-600 dark:text-gray-400">{tag}</span>
             </div>
@@ -190,7 +190,7 @@ const Card = ({ id, imagen, titulo, descargas = [], creadores = [], tags, upload
 
         {/* 6. APORTE DE (Usando uploader.imagen) */}
         {uploader && uploader.nombre && (
-            <div className="mt-auto pt-3 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between">
+            <div className="mt-auto pt-3 border-t border-gray-300 dark:border-gray-700 flex items-center justify-between">
                 <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wide">
                     Aporte
                 </span>
