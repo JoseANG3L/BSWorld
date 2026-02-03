@@ -60,7 +60,7 @@ const Card = ({ id, imagen, titulo, descargas = [], creadores = [], tags, upload
 
   // --- RENDER ---
   return (
-    <div className="group flex flex-col bg-white dark:bg-[#1e1e1e] border border-gray-300 dark:border-gray-700 rounded-2xl shadow-lg transition-all duration-300 z-0 relative hover:shadow-xl hover:border-gray-400 dark:hover:border-gray-600">
+    <div className="group flex flex-col bg-white dark:bg-[#1e1e1e] border border-gray-300 dark:border-gray-700 rounded-2xl shadow-lg transition-all duration-300 z-0 relative">
       
       {/* 1. LINK EN LA IMAGEN */}
       <Link 
@@ -134,15 +134,15 @@ const Card = ({ id, imagen, titulo, descargas = [], creadores = [], tags, upload
                     >
                       <div className="flex flex-col">
                           <span className="truncate font-bold">{option.label}</span>
-                          <span className="text-[10px] text-gray-400 group-hover/item:text-primary-500 transition-colors flex items-center gap-1">
+                          <span className="text-[10px] text-gray-500 dark:text-gray-400 group-hover/item:text-primary-500 dark:group-hover/item:text-primary-300 transition-colors flex items-center gap-1">
                              <Download size={10} /> {formatNumber(option.count || 0)} descargas
                           </span>
                       </div>
-                      <Download size={16} className="text-gray-400 group-hover/item:text-primary-600 transition-colors" />
+                      <Download size={16} className="text-gray-500 dark:text-gray-400 group-hover/item:text-primary-500 dark:group-hover/item:text-primary-300 transition-colors" />
                     </a>
                   ))
                 ) : (
-                  <span className="block px-4 py-3 text-sm text-gray-500 text-center italic">Sin descargas</span>
+                  <span className="block px-4 py-3 text-sm text-gray-500 dark:text-gray-400 text-center italic">Sin descargas</span>
                 )}
               </div>
             </div>
@@ -182,7 +182,7 @@ const Card = ({ id, imagen, titulo, descargas = [], creadores = [], tags, upload
         <div className="flex flex-wrap gap-2 mb-3">
           {tags && tags.map((tag, index) => (
             <div key={index} className="flex items-center gap-1 px-2 py-1 rounded-full bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700">
-              <Tag size={10} className="text-gray-400" />
+              <Tag size={10} className="text-gray-600 dark:text-gray-400" />
               <span className="text-[10px] font-bold uppercase tracking-wider text-gray-600 dark:text-gray-400">{tag}</span>
             </div>
           ))}
@@ -191,7 +191,7 @@ const Card = ({ id, imagen, titulo, descargas = [], creadores = [], tags, upload
         {/* 6. APORTE DE (Usando uploader.imagen) */}
         {uploader && uploader.nombre && (
             <div className="mt-auto pt-3 border-t border-gray-300 dark:border-gray-700 flex items-center justify-between">
-                <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wide">
+                <span className="text-[10px] text-gray-600 dark:text-gray-400 font-medium uppercase tracking-wide">
                     Aporte
                 </span>
                 <Link 
@@ -206,7 +206,7 @@ const Card = ({ id, imagen, titulo, descargas = [], creadores = [], tags, upload
                             name={uploader.nombre} 
                         />
                     </div>
-                    <span className="text-xs font-bold text-gray-600 dark:text-gray-300 group-hover/uploader:text-primary-600 transition-colors max-w-[90px] truncate">
+                    <span className="text-xs font-bold text-gray-600 dark:text-gray-400 group-hover/uploader:text-primary-600 transition-colors max-w-[90px] truncate">
                         {uploader.nombre}
                     </span>
                 </Link>

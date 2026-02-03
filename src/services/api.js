@@ -7,6 +7,7 @@ import {
   getDocs, 
   setDoc, // Cambiamos addDoc por setDoc para manejar IDs manuales si queremos, o mantenemos addDoc
   addDoc,
+  increment,
   query, 
   where, 
   orderBy,
@@ -296,6 +297,18 @@ export const getGlobalStats = async () => {
   } catch (error) {
     console.error("Error obteniendo estadísticas:", error);
     return { users: 0, downloads: 0, mods: 0 };
+  }
+};
+
+export const registerView = async (contentId) => {
+  try {
+    const docRef = doc(db, "content", contentId);
+    // 'increment(1)' es una operación atómica de Firebase, es segura y rápida
+    await updateDoc(docRef, {
+      vistas: increment(1)
+    });
+  } catch (error) {
+    console.error("Error registrando vista:", error);
   }
 };
 

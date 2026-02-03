@@ -81,7 +81,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
       <div className="flex items-center gap-3 ml-auto md:ml-0">
 
         {/* SUBIR MOD */}
-        <Link to="/subir-mod" className="px-3 md:px-4 py-2.5 flex w-10 h-10 md:w-auto md:h-auto bg-primary-600 hover:bg-primary-700 text-white rounded-full md:rounded-lg text-sm font-semibold transition-colors duration-200 shadow-md">
+        <Link to="/subir-mod" className="px-3 md:px-4 py-2.5 flex w-10 h-10 md:w-auto md:h-auto bg-primary-600 hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-800 text-white rounded-full md:rounded-lg text-sm font-semibold transition-colors duration-200 shadow-md">
           <Upload size={16} className="inline-block mr-0 md:mr-2" strokeWidth={3} />
           <span className="hidden md:block">Subir Mod</span>
         </Link>
