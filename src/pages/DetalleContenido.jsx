@@ -143,7 +143,7 @@ const DetalleContenido = () => {
 
     if (loading) return (
         <div className="h-full flex items-center justify-center min-h-[50vh]">
-        <Loader2 className="animate-spin text-primary-600" size={48} />
+            <Loader2 className="animate-spin text-primary-600" size={48} />
         </div>
     );
     if (!item) return null;
@@ -294,9 +294,45 @@ const DetalleContenido = () => {
                     {/* --- COLUMNA DERECHA (Sidebar Sticky) - 4/12 --- */}
                     <div className="lg:col-span-4 space-y-4 md:space-y-5">
 
-                        {/* 1. TARJETA DE DESCARGA */}
+                        {/* 1. CREADORES Y APORTE */}
                         <div className="bg-white dark:bg-[#1e1e1e] p-3 md:p-4 rounded-2xl border border-gray-300 dark:border-gray-700 shadow-md">
-                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 md:mb-6 flex items-center gap-2 ps-0.5">
+
+                            {/* Creadores */}
+                            <div className="mb-6">
+                                <h4 className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2 ps-0.5">
+                                    <Users size={16} className="text-primary-600 dark:text-primary-300" /> Créditos
+                                </h4>
+                                <div className="space-y-3">
+                                    {item.creadores?.map((creador, i) => (
+                                        <Link to={`/u/${creador.nombre}`} key={i} className="flex items-center gap-3 group">
+                                            <div className="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-700 overflow-hidden bg-gray-100">
+                                                <AvatarRenderer avatar={creador.imagen} name={creador.nombre} />
+                                            </div>
+                                            <p className="text-sm font-bold text-gray-900 dark:text-white group-hover:text-primary-600 transition-colors">{creador.nombre}</p>
+                                        </Link>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Uploader (Si existe) */}
+                            {item.uploader && (
+                                <div className="pt-5 border-t border-gray-300 dark:border-gray-700">
+                                    <h4 className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2 ps-0.5">
+                                        <User size={16} className="text-primary-600 dark:text-primary-300" /> Aportado por
+                                    </h4>
+                                    <Link to={`/u/${item.uploader.nombre}`} className="flex items-center gap-3 group">
+                                        <div className="w-8 h-8 rounded-full border border-gray-200 dark:border-gray-700 overflow-hidden bg-gray-100">
+                                            <AvatarRenderer avatar={item.uploader.imagen} name={item.uploader.nombre} />
+                                        </div>
+                                        <p className="text-sm font-bold text-gray-900 dark:text-white group-hover:text-primary-600 transition-colors">{item.uploader.nombre}</p>
+                                    </Link>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* 2. TARJETA DE DESCARGA */}
+                        <div className="bg-white dark:bg-[#1e1e1e] p-3 md:p-4 rounded-2xl border border-gray-300 dark:border-gray-700 shadow-md">
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 md:mb-5 flex items-center gap-2 ps-0.5">
                                 <Download size={20} className="text-primary-600 dark:text-primary-300" /> Descargar Archivos
                             </h3>
 
@@ -341,43 +377,6 @@ const DetalleContenido = () => {
                                 </div>
                             </div>
                         </div>
-
-                        {/* 2. CREADORES Y APORTE */}
-                        <div className="bg-white dark:bg-[#1e1e1e] p-3 md:p-4 rounded-2xl border border-gray-300 dark:border-gray-700 shadow-md">
-
-                            {/* Creadores */}
-                            <div className="mb-6">
-                                <h4 className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2 ps-0.5">
-                                    <Users size={16} className="text-primary-600 dark:text-primary-300" /> Créditos
-                                </h4>
-                                <div className="space-y-3">
-                                    {item.creadores?.map((creador, i) => (
-                                        <Link to={`/u/${creador.nombre}`} key={i} className="flex items-center gap-3 group">
-                                            <div className="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-700 overflow-hidden bg-gray-100">
-                                                <AvatarRenderer avatar={creador.imagen} name={creador.nombre} />
-                                            </div>
-                                            <p className="text-sm font-bold text-gray-900 dark:text-white group-hover:text-primary-600 transition-colors">{creador.nombre}</p>
-                                        </Link>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Uploader (Si existe) */}
-                            {item.uploader && (
-                                <div className="pt-5 border-t border-gray-300 dark:border-gray-700">
-                                    <h4 className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2 ps-0.5">
-                                        <User size={16} className="text-primary-600 dark:text-primary-300" /> Aportado por
-                                    </h4>
-                                    <Link to={`/u/${item.uploader.nombre}`} className="flex items-center gap-3 group">
-                                        <div className="w-8 h-8 rounded-full border border-gray-200 dark:border-gray-700 overflow-hidden bg-gray-100">
-                                            <AvatarRenderer avatar={item.uploader.imagen} name={item.uploader.nombre} />
-                                        </div>
-                                        <p className="text-sm font-bold text-gray-900 dark:text-white group-hover:text-primary-600 transition-colors">{item.uploader.nombre}</p>
-                                    </Link>
-                                </div>
-                            )}
-                        </div>
-
                     </div>
                 </div>
             </div>

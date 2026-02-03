@@ -22,12 +22,21 @@ const SubirMod = () => {
 
   const [formData, setFormData] = useState({
     titulo: '',
-    tipo: 'mod',
+    descripcion: '',
+    tipo: '',
     imagen: '',
-    creadores: '', 
-    tags: '',
-    uploader: { uid: user?.uid || '', nombre: user?.displayName || user?.username || '', imagen: user?.avatar || user?.photoURL || '' },
-    creado: new Date().toISOString().split('T')[0] 
+    galeria: [],
+    creadores: [],
+    descargas: [],
+    tags: [],
+    nombresBusqueda: [],
+    uploader: { 
+      uid: user?.uid || '', 
+      nombre: user?.displayName || user?.username || '', 
+      imagen: user?.avatar || user?.photoURL || '' 
+    },
+    creado: new Date().toISOString().split('T')[0],
+    status: ''
   });
 
   const [descargas, setDescargas] = useState([
@@ -119,10 +128,10 @@ const SubirMod = () => {
       }
 
       // Si es otro creador, usar Dicebear
-      return {
-        nombre: nombreLimpio,
-        imagen: `https://api.dicebear.com/7.x/avataaars/svg?seed=${nombreLimpio}`
-      };
+      // return {
+      //   nombre: nombreLimpio,
+      //   imagen: `https://api.dicebear.com/7.x/avataaars/svg?seed=${nombreLimpio}`
+      // };
     }).filter(Boolean);
   };
 
@@ -148,6 +157,7 @@ const SubirMod = () => {
       const nombresBusqueda = creadoresProcesados.map(c => c.nombre);
       const userTags = formData.tags.split(',').map(s => s.trim()).filter(s => s);
       const finalTags = [formData.tipo, ...userTags];
+      const esEnvioDeUsuario = user.role !== 'admin';
 
       const payload = {
         titulo: formData.titulo,
@@ -166,7 +176,7 @@ const SubirMod = () => {
         alert("¡Contenido actualizado correctamente!");
         navigate('/admin');
       } else {
-        await createContent(payload);
+        await createContent(payload, esEnvioDeUsuario);
         alert("¡Contenido creado con éxito!");
         setFormData({
             titulo: '', tipo: 'mod', imagen: '', creadores: '', tags: '', 
@@ -183,10 +193,10 @@ const SubirMod = () => {
     }
   };
 
-  if (fetching) return <div className="p-10 text-center">Cargando datos...</div>;
+  if (fetching) return <div className="h-full flex items-center justify-center min-h-[50vh]"><Loader2 className="animate-spin text-primary-600" size={48} /></div>;
 
   return (
-    <div className="max-w-7xl mx-auto pb-10 animate-fade-in-up px-4 md:px-0">
+    <div className="max-w-7xl mx-auto animate-fade-in-up">
       
       {/* HEADER */}
       <div className="flex items-center gap-3 mb-8">

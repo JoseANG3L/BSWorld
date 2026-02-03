@@ -176,7 +176,8 @@ export const createContent = async (data, isUserSubmission = false) => {
       actualizado: new Date().toISOString(),
       // MODIFICADO: Si es usuario normal, forzamos "pending"
       status: isUserSubmission ? 'pending' : (data.status || 'active'),
-      vistas: 0 // Inicializamos vistas/descargas internas
+      vistas: 0, // Inicializamos vistas/descargas internas
+      descargas: data.descargas || []
     };
 
     // Usamos setDoc con ID manual
