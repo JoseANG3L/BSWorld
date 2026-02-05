@@ -48,6 +48,7 @@ export const AuthProvider = ({ children }) => {
     await setDoc(doc(db, "users", firebaseUser.uid), {
         uid: firebaseUser.uid,
         username: username,
+        username_lower: username.toLowerCase(),
         email: email,
         avatar: finalAvatar,
         role: "user",

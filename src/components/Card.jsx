@@ -3,11 +3,11 @@ import { Link } from 'react-router-dom';
 import { Download, Tag, ChevronDown, AlertCircle } from 'lucide-react';
 import { clsx } from 'clsx';
 import AvatarRenderer from './AvatarRenderer';
-import { registerDownload } from '../services/api'; 
+import { registerDownload, getUserPublicProfile } from '../services/api'; 
 
 const COOLDOWN_TIME = 3600000; 
 
-const Card = ({ id, imagen, titulo, descargas = [], creadores = [], tags, uploader, isPreview = false }) => {
+const Card = ({ id, imagen, titulo, descargas = [], creditos = [], tags = [], aporte, isPreview = false }) => {
   const [isOpenDownload, setIsOpenDownload] = useState(false);
   const downloadRef = useRef(null);
   const [isOpenCreators, setIsOpenCreators] = useState(false);
@@ -51,7 +51,7 @@ const Card = ({ id, imagen, titulo, descargas = [], creadores = [], tags, upload
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const listaCreadores = (Array.isArray(creadores) ? creadores : [creadores]).map(creador => {
+  const listaCreadores = (Array.isArray(creditos) ? creditos : [creditos]).map(creador => {
     if (typeof creador === 'object' && creador !== null) return creador;
     return { nombre: creador, imagen: null };
   });
@@ -188,26 +188,26 @@ const Card = ({ id, imagen, titulo, descargas = [], creadores = [], tags, upload
           ))}
         </div>
 
-        {/* 6. APORTE DE (Usando uploader.imagen) */}
-        {uploader && uploader.nombre && (
+        {/* 6. APORTE DE (Usando aporte.imagen) */}
+        {aporte && aporte.nombre && (
             <div className="mt-auto pt-3 border-t border-gray-300 dark:border-gray-700 flex items-center justify-between">
                 <span className="text-[10px] text-gray-600 dark:text-gray-400 font-medium uppercase tracking-wide">
                     Aporte
                 </span>
                 <Link 
-                    to={`/u/${uploader.nombre}`}
+                    to={`/u/${aporte.nombre}`}
                     onClick={(e) => isPreview && e.preventDefault()}
-                    className="flex items-center gap-1.5 group/uploader"
+                    className="flex items-center gap-1.5 group/aporte"
                 >
                     <div className="w-4 h-4 rounded-full overflow-hidden border border-gray-200 dark:border-gray-600">
-                        {/* AQUÍ ESTÁ LA CLAVE: Pasamos uploader.imagen al Renderer */}
+                        {/* AQUÍ ESTÁ LA CLAVE: Pasamos aporte.imagen al Renderer */}
                         <AvatarRenderer 
-                            avatar={uploader.imagen} 
-                            name={uploader.nombre} 
+                            avatar={aporte.imagen} 
+                            name={aporte.nombre} 
                         />
                     </div>
-                    <span className="text-xs font-bold text-gray-600 dark:text-gray-400 group-hover/uploader:text-primary-600 transition-colors max-w-[90px] truncate">
-                        {uploader.nombre}
+                    <span className="text-xs font-bold text-gray-600 dark:text-gray-400 group-hover/aporte:text-primary-600 transition-colors max-w-[90px] truncate">
+                        {aporte.nombre}
                     </span>
                 </Link>
             </div>

@@ -11,10 +11,15 @@ import {
   query, 
   where, 
   orderBy,
+  startAt,
+  endAt,
+  limit,
   getCountFromServer
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { v4 as uuidv4 } from 'uuid'; // Necesitas instalar: npm install uuid
+
+const userCache = {};
 
 // ---------------------------------------------------------
 // 1. OBTENER CONTENIDO POR TIPO (PÚBLICO)
@@ -310,6 +315,72 @@ export const registerView = async (contentId) => {
     });
   } catch (error) {
     console.error("Error registrando vista:", error);
+  }
+};
+
+export const getUserPublicProfile = async (uid) => {
+  if (!uid) return null;
+  
+  // Si ya lo pedimos hace un momento, devolver el de memoria (Ahorra lecturas)
+  if (userCache[uid]) return userCache[uid];
+
+  try {
+    const userDoc = await getDoc(doc(db, "users", uid));
+    if (userDoc.exists()) {
+      const data = userDoc.data();
+      const profile = {
+        uid: uid,
+        nombre: data.displayName || data.username || "Usuario",
+        imagen: data.photoURL || data.avatar || null
+      };
+      userCache[uid] = profile; // Guardar en caché
+      return profile;
+    }
+  } catch (error) {
+    console.error("Error fetching user:", error);
+  }
+  return null;
+};
+
+// --- BUSCAR USUARIOS (Usando username_lower) ---
+export const searchUsers = async (searchTerm) => {
+  // 1. Validación básica
+  if (!searchTerm || searchTerm.length < 2) return [];
+  
+  try {
+    const usersRef = collection(db, "users");
+    
+    // 2. NORMALIZACIÓN CRÍTICA
+    // Convertimos lo que el usuario escribe a minúsculas para que coincida con la BD.
+    // Ej: Usuario escribe "Veg", buscamos "veg"
+    const term = searchTerm.toLowerCase(); 
+
+    // 3. QUERY ACTUALIZADA
+    const q = query(
+      usersRef, 
+      orderBy('username_lower'), // <--- AQUÍ ESTÁ EL CAMBIO IMPORTANTE
+      startAt(term), 
+      endAt(term + '\uf8ff'),
+      limit(5)
+    );
+
+    const querySnapshot = await getDocs(q);
+    
+    // 4. Mapeo de resultados
+    return querySnapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        uid: doc.id,
+        // OJO: Mostramos 'username' (original con mayúsculas) o 'displayName' para que se vea bonito.
+        // No mostramos 'username_lower' al usuario final.
+        nombre: data.displayName || data.username || "Usuario",
+        imagen: data.avatar || data.photoURL || null
+      };
+    });
+
+  } catch (error) {
+    console.error("Error buscando usuarios:", error);
+    return []; 
   }
 };
 

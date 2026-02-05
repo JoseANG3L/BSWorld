@@ -138,6 +138,7 @@ const Configuracion = () => {
       const userRef = doc(db, "users", user.uid);
       await updateDoc(userRef, {
         username: formData.username,
+        username_lower: formData.username.toLowerCase(),
         avatar: formData.avatar,
         banner: formData.banner
       });
