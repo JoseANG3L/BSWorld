@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { clsx } from 'clsx';
 import { 
-  User, Ghost, Gamepad2, Sparkles, Anchor, Coffee, Rocket, Crown, Zap, Heart, Star, 
-  Music, Smile, Sword, Skull, Flame, Code, Terminal, Cpu, Globe, Headphones, 
-  Cat, Dog, Sun, Moon, Cloud, Umbrella
+  Bomb, HardHat, Heart, Fan, BicepsFlexed, ChefHat, Anchor, CandyCane, Snowflake, Skull, Panda,
+  IceCreamCone, Gamepad2, Bot, Glasses, WandSparkles, Sparkles, Rabbit, Bone, User, Ghost,
+  Coffee, Rocket, Crown, Zap, Star, Music, Smile, Sword, Flame, Code, Terminal, Cpu, Globe,
+  Headphones, PawPrint, Cat, Dog, Sun, Moon, Cloud, Umbrella
 } from 'lucide-react';
 
 // 1. Mapa de iconos disponibles (Sincronizado con Configuracion.jsx)
-const ICON_MAP = {
-  User, Ghost, Gamepad2, Sparkles, Anchor, Coffee, Rocket, Crown, Zap, Heart, Star, 
-  Music, Smile, Sword, Skull, Flame, Code, Terminal, Cpu, Globe, Headphones, 
-  Cat, Dog, Sun, Moon, Cloud, Umbrella
+export const ICON_MAP = {
+  Bomb, HardHat, Heart, Fan, BicepsFlexed, ChefHat, Anchor, CandyCane, Snowflake, Skull, Panda,
+  IceCreamCone, Gamepad2, Bot, Glasses, WandSparkles, Sparkles, Rabbit, Bone, User, Ghost,
+  Coffee, Rocket, Crown, Zap, Star, Music, Smile, Sword, Flame, Code, Terminal, Cpu, Globe,
+  Headphones, PawPrint, Cat, Dog, Sun, Moon, Cloud, Umbrella
 };
 
 const AvatarRenderer = ({ avatar, name, className }) => {

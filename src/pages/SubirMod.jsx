@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { 
-  Save, Plus, Trash2, Image as ImageIcon, 
+  Save, Plus, Trash2, Image as ImageIcon, Lock, ArrowLeft, LogIn,
   Link as LinkIcon, Users, Tag, Type, Layers, Calendar, Eye, PenTool, X, Search, Loader2 
 } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -26,7 +26,7 @@ const SubirMod = () => {
     descripcion: '',
     tipo: 'mod',
     imagen: '',
-    uploader: { 
+    aporte: { 
       uid: user?.uid || '', 
       nombre: user?.displayName || user?.username || '', 
       imagen: user?.avatar || user?.photoURL || '' 
@@ -80,7 +80,7 @@ const SubirMod = () => {
             descripcion: data.descripcion || '',
             tipo: data.tipo || 'mod',
             imagen: data.imagen || '',
-            uploader: data.uploader || formData.uploader,
+            aporte: data.aporte || formData.aporte,
             creado: fechaInput
           });
 
@@ -238,7 +238,7 @@ const SubirMod = () => {
         nombresBusqueda: nombresBusqueda,
         tags: finalTags, // <--- Aquí va el array limpio
         descargas: descargas.filter(d => d.url !== ''),
-        uploader: formData.uploader,
+        aporte: formData.aporte,
         creado: new Date(formData.creado).toISOString() 
       };
 
@@ -265,7 +265,45 @@ const SubirMod = () => {
   };
 
   if (fetching) return <div className="h-full flex items-center justify-center min-h-[50vh]"><Loader2 className="animate-spin text-primary-600" size={48} /></div>;
+  // --- PROTECCIÓN DE RUTA ---
+  // Si está intentando editar Y ya terminó de cargar la auth Y no hay usuario:
+  if (!fetching && !user) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[70vh] text-center p-4 animate-fade-in-up">
+        
+        {/* Icono de Candado con fondo */}
+        <div className="bg-red-50 dark:bg-red-900/20 p-6 rounded-full mb-6 shadow-lg shadow-red-500/10 border border-red-100 dark:border-red-900/30">
+          <Lock size={48} className="text-red-500 dark:text-red-400" />
+        </div>
 
+        {/* Títulos */}
+        <h2 className="text-3xl font-black text-gray-900 dark:text-white mb-3 tracking-tight">
+          Acceso Restringido
+        </h2>
+        <p className="text-gray-500 dark:text-gray-400 max-w-md mb-8 text-lg">
+          Para crear o editar este contenido necesitas verificar tu identidad. Por favor, inicia sesión con tu cuenta de administrador o creador.
+        </p>
+
+        {/* Botones de Acción */}
+        <div className="flex flex-col sm:flex-row gap-4 w-full max-w-sm">
+          <button 
+            onClick={() => navigate(-1)}
+            className="flex-1 px-6 py-3.5 rounded-xl font-bold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all flex items-center justify-center gap-2"
+          >
+            <ArrowLeft size={20} /> Volver
+          </button>
+          
+          <button 
+            onClick={() => navigate('/login', { state: { from: `/subir?edit=${editId}` } })}
+            className="flex-1 px-6 py-3.5 rounded-xl font-bold text-white bg-primary-600 hover:bg-primary-700 shadow-lg shadow-primary-600/20 transition-all flex items-center justify-center gap-2"
+          >
+            <LogIn size={20} /> Iniciar Sesión
+          </button>
+        </div>
+
+      </div>
+    );
+  }
   return (
     <div className="max-w-7xl mx-auto animate-fade-in-up">
       
@@ -331,13 +369,13 @@ const SubirMod = () => {
                   <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Imagen Principal (Portada)</label>
                   <div className="relative">
                     <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                    <input type="url" name="imagen" required value={formData.imagen} onChange={handleChange} placeholder="https://imgur.com/..." className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white" />
+                    <input type="url" name="imagen" value={formData.imagen} onChange={handleChange} placeholder="https://imgur.com/..." className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white" />
                   </div>
                 </div>
 
                 {/* Creditos */}
                 <div className="md:col-span-2 relative">
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Creditos</label>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Créditos</label>
                   <div className="p-2 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 focus-within:ring-2 focus-within:ring-primary-500 transition-all flex flex-wrap gap-2 min-h-[50px]">
                     {selectedCreators.map((creator, idx) => (
                       <div key={idx} className="flex items-center gap-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-700 pl-1 pr-2 py-1 rounded-full shadow-sm animate-fade-in-up">
@@ -462,7 +500,7 @@ const SubirMod = () => {
         <div className="lg:col-span-1">
           <div className="sticky top-24 flex flex-col gap-4">
             <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400"><Eye size={18} /><h3 className="font-bold text-sm uppercase tracking-wider">Vista Previa</h3></div>
-            <Card imagen={formData.imagen || "/default.jpg"} titulo={formData.titulo || "Título del Contenido"} descargas={descargas} creditos={selectedCreators.length > 0 ? selectedCreators : [{nombre: "Creador", imagen: null}]} tags={getPreviewTags()} uploader={formData.uploader} isPreview={true} />
+            <Card imagen={formData.imagen || "/default.jpg"} titulo={formData.titulo || "Título del Contenido"} descargas={descargas} creditos={selectedCreators.length > 0 ? selectedCreators : [{nombre: "Créditos", imagen: null}]} tags={getPreviewTags()} aporte={formData.aporte} isPreview={true} />
             
             {galeriaUrls.some(u => u.length > 10) && (
                 <div className="bg-white dark:bg-[#1e1e1e] p-3 rounded-xl border border-gray-300 dark:border-gray-700 shadow-sm">

@@ -12,13 +12,10 @@ import {
   Cat, Dog, Sun, Moon, Cloud, Umbrella
 } from 'lucide-react';
 import { clsx } from 'clsx';
+import { ICON_MAP } from '../components/AvatarRenderer';
 
 // --- CONSTANTES ---
-const AVATAR_ICONS_MAP = {
-  User, Ghost, Gamepad2, Sparkles, Anchor, Coffee, Rocket, Crown, Zap, Heart, Star, 
-  Music, Smile, Sword, Skull, Flame, Code, Terminal, Cpu, Globe, Headphones, 
-  Cat, Dog, Sun, Moon, Cloud, Umbrella
-};
+const AVATAR_ICONS_MAP = ICON_MAP;
 const AVATAR_ICON_NAMES = Object.keys(AVATAR_ICONS_MAP);
 
 const AVATAR_COLORS = [
@@ -173,7 +170,7 @@ const Configuracion = () => {
             COLUMNA IZQUIERDA: TARJETA DE VISTA PREVIA
            ========================================================= */}
         <div className="md:col-span-1">
-          <div className="bg-white dark:bg-[#1e1e1e] rounded-2xl border border-gray-300 dark:border-gray-700 shadow-sm overflow-hidden sticky top-24">
+          <div className="bg-white dark:bg-[#1e1e1e] rounded-2xl border border-gray-300 dark:border-gray-700 shadow-sm overflow-hidden">
             
             {/* VISTA PREVIA BANNER */}
             <div className="h-32 w-full bg-gray-200 dark:bg-gray-800 relative transition-all duration-300">
@@ -277,7 +274,7 @@ const Configuracion = () => {
                         <div className="space-y-4">
                             <div>
                                 <p className="text-xs font-bold text-gray-500 uppercase mb-2">1. Elige Icono</p>
-                                <div className="grid grid-cols-6 sm:grid-cols-8 gap-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                                <div className="grid grid-cols-6 sm:grid-cols-8 lg:grid-cols-12 gap-2 pr-2 custom-scrollbar">
                                     {AVATAR_ICON_NAMES.map((name) => {
                                         const Icon = AVATAR_ICONS_MAP[name];
                                         return (
@@ -288,7 +285,7 @@ const Configuracion = () => {
                                                 className={clsx(
                                                     "aspect-square rounded-xl flex items-center justify-center transition-all border-2 bg-white dark:bg-gray-800", 
                                                     selectedIcon === name 
-                                                        ? "border-primary-500 text-primary-600 bg-primary-50 dark:bg-primary-900/20 scale-105 shadow-sm" 
+                                                        ? "border-primary-500 text-primary-600 bg-primary-50 dark:bg-primary-900/20 shadow-sm" 
                                                         : "border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
                                                 )}
                                             >
