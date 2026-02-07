@@ -1,18 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { 
-  Save, Plus, Trash2, Image as ImageIcon, Lock, ArrowLeft, LogIn,
-  Link as LinkIcon, Users, Tag, Type, Layers, Calendar, Eye, PenTool, X, Search, Loader2 
+  Save, Plus, Trash2, Image as ImageIcon, Lock, ArrowLeft, LogIn, UserX,
+  Link as LinkIcon, Users, Tag, Type, Layers, Calendar, Eye, PenTool, X, Search, Loader2,
+  Globe, // Nuevo icono para redes sociales
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { createContent, getContentById, updateContent, searchUsers } from '../services/api'; 
 import { useAuth } from '../context/AuthContext';
 import Card from '../components/Card';
+import SimpleEditor from '../components/SimpleEditor';
 
 const SubirMod = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const searchRef = useRef(null);
   
   const editId = searchParams.get('edit'); 
   const isEditing = !!editId;
@@ -37,6 +40,8 @@ const SubirMod = () => {
   // ESTADOS ESPECÍFICOS (Arrays)
   const [descargas, setDescargas] = useState([{ label: 'Descarga Principal', url: '' }]);
   const [galeriaUrls, setGaleriaUrls] = useState(['']); 
+  // NUEVO ESTADO: REDES SOCIALES
+  const [redes, setSocialLinks] = useState([{ label: '', url: '' }]); // Ejemplo: { label: 'Discord', url: '...' }
   
   // ESTADO PARA TAGS (NUEVO)
   const [tagsList, setTagsList] = useState([]);
@@ -63,6 +68,11 @@ const SubirMod = () => {
 
           if (data.galeria && Array.isArray(data.galeria)) {
               setGaleriaUrls(data.galeria.length > 0 ? data.galeria : ['']);
+          }
+
+          // Cargar Redes Sociales
+          if (data.redes && Array.isArray(data.redes) && data.redes.length > 0) {
+              setSocialLinks(data.redes);
           }
 
           // CARGAR TAGS (Si existen, filtramos el tipo para no duplicarlo)
@@ -101,6 +111,22 @@ const SubirMod = () => {
     loadDataForEdit();
   }, [editId, isEditing, navigate]);
 
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      // Si el buscador está abierto y el clic fue fuera del contenedor referenciado
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleDescriptionChange = (newValue) => {
+    setFormData({ ...formData, descripcion: newValue });
+  };
+
   // --- MANEJADORES GENERALES ---
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -138,6 +164,22 @@ const SubirMod = () => {
   const removeGaleriaField = (index) => {
       const newGaleria = galeriaUrls.filter((_, i) => i !== index);
       setGaleriaUrls(newGaleria);
+  };
+
+  // --- MANEJADORES DE REDES SOCIALES ---
+  const handleSocialChange = (index, field, value) => {
+    const newLinks = [...redes];
+    newLinks[index][field] = value;
+    setSocialLinks(newLinks);
+  };
+
+  const addSocialField = () => {
+    setSocialLinks([...redes, { label: '', url: '' }]);
+  };
+
+  const removeSocialField = (index) => {
+    const newLinks = redes.filter((_, i) => i !== index);
+    setSocialLinks(newLinks);
   };
 
   // --- MANEJADORES DE DESCARGAS ---
@@ -216,7 +258,6 @@ const SubirMod = () => {
     try {
       const creditosParaGuardar = selectedCreators.map(c => ({
           nombre: c.nombre,
-          imagen: c.imagen || null,
           uid: c.uid || null
       }));
 
@@ -227,6 +268,7 @@ const SubirMod = () => {
       
       const esEnvioDeUsuario = user.role !== 'admin';
       const finalGaleria = galeriaUrls.filter(url => url.trim() !== '');
+      const finalRedes = redes.filter(link => link.url.trim() !== ''); // Filtramos vacíos
 
       const payload = {
         titulo: formData.titulo,
@@ -234,6 +276,7 @@ const SubirMod = () => {
         tipo: formData.tipo,
         imagen: formData.imagen,
         galeria: finalGaleria,
+        redes: finalRedes, // Guardamos redes sociales
         creditos: creditosParaGuardar,
         nombresBusqueda: nombresBusqueda,
         tags: finalTags, // <--- Aquí va el array limpio
@@ -252,6 +295,7 @@ const SubirMod = () => {
         setFormData({ ...formData, titulo: '', descripcion: '', imagen: '' });
         setDescargas([{ label: 'Descarga Principal', url: '' }]);
         setGaleriaUrls(['']);
+        setSocialLinks([{ label: '', url: '' }]); // Resetear redes
         setSelectedCreators([]);
         setTagsList([]); // Limpiamos tags
       }
@@ -267,7 +311,7 @@ const SubirMod = () => {
   if (fetching) return <div className="h-full flex items-center justify-center min-h-[50vh]"><Loader2 className="animate-spin text-primary-600" size={48} /></div>;
   // --- PROTECCIÓN DE RUTA ---
   // Si está intentando editar Y ya terminó de cargar la auth Y no hay usuario:
-  if (!fetching && !user) {
+  if (isEditing && !fetching && !user) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[70vh] text-center p-4 animate-fade-in-up">
         
@@ -281,7 +325,7 @@ const SubirMod = () => {
           Acceso Restringido
         </h2>
         <p className="text-gray-500 dark:text-gray-400 max-w-md mb-8 text-lg">
-          Para crear o editar este contenido necesitas verificar tu identidad. Por favor, inicia sesión con tu cuenta de administrador o creador.
+          Para editar este contenido necesitas verificar tu identidad. Por favor, inicia sesión con tu cuenta de administrador o creador.
         </p>
 
         {/* Botones de Acción */}
@@ -323,10 +367,12 @@ const SubirMod = () => {
         <div className="lg:col-span-2 flex flex-col gap-6">
           <form onSubmit={handleSubmit} className="flex flex-col gap-6">
             
+            {/* SECCIÓN 1: INFO GENERAL */}
             <div className="bg-white dark:bg-[#1e1e1e] p-6 rounded-2xl border border-gray-300 dark:border-gray-700 shadow-sm">
               <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-4 border-b border-gray-100 dark:border-gray-700 pb-2">Información General</h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {/* ... (Campos anteriores: Título, Descripción, Tipo, Fecha, Imagen, Créditos, Tags) ... */}
                 {/* Título */}
                 <div className="md:col-span-2">
                   <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Título</label>
@@ -337,13 +383,23 @@ const SubirMod = () => {
                 </div>
 
                 {/* Descripción */}
+                {/* <div className="md:col-span-2">
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Descripción</label>
+                  <textarea name="descripcion" required value={formData.descripcion} onChange={handleChange} placeholder="Descripción detallada..." rows={6} className="w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white resize-y" />
+                </div> */}
+                {/* Descripción con Editor Simple */}
                 <div className="md:col-span-2">
                   <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Descripción</label>
-                  <textarea name="descripcion" required value={formData.descripcion} onChange={handleChange} placeholder="Descripción detallada..." rows={3} className="w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white resize-y" />
+
+                  <SimpleEditor 
+                    value={formData.descripcion} 
+                    onChange={handleDescriptionChange} 
+                    placeholder="Describe tu mod aquí. Usa los botones para listas y negritas."
+                  />
                 </div>
 
                 {/* Tipo */}
-                <div>
+                <div className="md:col-span-2">
                   <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Tipo</label>
                   <select name="tipo" value={formData.tipo} onChange={handleChange} className="w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white">
                     <option value="mapa">Mapa</option>
@@ -355,30 +411,21 @@ const SubirMod = () => {
                   </select>
                 </div>
 
-                {/* Fecha */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Publicado el</label>
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                    <input type="date" name="creado" required value={formData.creado} onChange={handleChange} className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white appearance-none" />
-                  </div>
-                </div>
-
                 {/* Imagen */}
                 <div className="md:col-span-2">
                   <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Imagen Principal (Portada)</label>
                   <div className="relative">
                     <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                    <input type="url" name="imagen" value={formData.imagen} onChange={handleChange} placeholder="https://imgur.com/..." className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white" />
+                    <input type="url" name="imagen" required value={formData.imagen} onChange={handleChange} placeholder="https://imgur.com/..." className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white" />
                   </div>
                 </div>
 
                 {/* Creditos */}
-                <div className="md:col-span-2 relative">
+                <div className="md:col-span-2 relative" ref={searchRef}>
                   <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Créditos</label>
                   <div className="p-2 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 focus-within:ring-2 focus-within:ring-primary-500 transition-all flex flex-wrap gap-2 min-h-[50px]">
                     {selectedCreators.map((creator, idx) => (
-                      <div key={idx} className="flex items-center gap-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-700 pl-1 pr-2 py-1 rounded-full shadow-sm animate-fade-in-up">
+                      <div key={idx} className="flex items-center gap-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 pl-1 pr-2 py-1 rounded-full shadow-sm animate-fade-in-up">
                         <div className="w-6 h-6 rounded-full overflow-hidden bg-gray-200">
                            {creator.imagen ? <img src={creator.imagen} alt={creator.nombre} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center bg-primary-100 text-primary-600 text-xs font-bold">{creator.nombre.charAt(0).toUpperCase()}</div>}
                         </div>
@@ -391,25 +438,56 @@ const SubirMod = () => {
                        {isSearching && <div className="absolute right-2 top-1/2 -translate-y-1/2"><Loader2 className="animate-spin text-gray-400" size={14} /></div>}
                     </div>
                   </div>
-                  {showSuggestions && userSuggestions.length > 0 && (
-                    <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#252525] rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden">
-                      <ul>
-                        {userSuggestions.map((user) => (
-                          <li key={user.uid}>
-                            <button type="button" onClick={() => addUserCreator(user)} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors text-left">
-                              <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 border border-gray-300 dark:border-gray-600">
-                                 {user.imagen ? <img src={user.imagen} alt={user.nombre} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center bg-gray-300 text-gray-600 font-bold">{user.nombre.charAt(0)}</div>}
-                              </div>
-                              <p className="text-sm font-bold text-gray-800 dark:text-white">{user.nombre}</p>
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
+                  {/* LÓGICA DE DROPDOWN MEJORADA */}
+                  {showSuggestions && creatorInput.length > 1 && (
+                    <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#252525] rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden animate-fade-in-up">
+                      
+                      {/* CASO A: HAY RESULTADOS */}
+                      {userSuggestions.length > 0 ? (
+                        <ul>
+                          {userSuggestions.map((user) => (
+                            <li key={user.uid}>
+                              <button 
+                                type="button" 
+                                onClick={() => addUserCreator(user)} 
+                                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors text-left"
+                              >
+                                <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 border border-gray-300 dark:border-gray-600 shrink-0">
+                                    {user.imagen ? (
+                                      <img src={user.imagen} alt={user.nombre} className="w-full h-full object-cover" />
+                                    ) : (
+                                      <div className="w-full h-full flex items-center justify-center bg-gray-300 text-gray-600 font-bold">
+                                        {user.nombre.charAt(0)}
+                                      </div>
+                                    )}
+                                </div>
+                                <div>
+                                  <p className="text-sm font-bold text-gray-800 dark:text-white">{user.nombre}</p>
+                                  <p className="text-[10px] text-gray-400">Usuario registrado</p>
+                                </div>
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        /* CASO B: NO HAY RESULTADOS (Y NO ESTÁ CARGANDO) */
+                        !isSearching && (
+                          <div className="px-3 py-4 text-center flex flex-col items-center justify-center text-gray-500 dark:text-gray-400">
+                            <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-full mb-2">
+                              <UserX size={20} />
+                            </div>
+                            <p className="text-sm font-medium">No encontramos a "{creatorInput}"</p>
+                            <p className="text-xs mt-1 text-primary-600 dark:text-primary-400 font-bold bg-primary-50 dark:bg-primary-900/20 px-2 py-1 rounded-md">
+                              Presiona Enter para agregarlo como texto
+                            </p>
+                          </div>
+                        )
+                      )}
                     </div>
                   )}
                 </div>
 
-                {/* --- TAGS (MODIFICADO CON ENTER) --- */}
+                {/* Tags */}
                 <div className="md:col-span-2">
                   <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Etiquetas (Tags)</label>
                   
@@ -464,7 +542,33 @@ const SubirMod = () => {
                 </div>
             </div>
 
-            {/* SECCIÓN 3: DESCARGAS */}
+            {/* SECCIÓN 3: CONOCE MÁS / REDES SOCIALES (NUEVA) */}
+            <div className="bg-white dark:bg-[#1e1e1e] p-6 rounded-2xl border border-gray-300 dark:border-gray-700 shadow-sm">
+                <div className="flex justify-between items-center mb-4 border-b border-gray-300 dark:border-gray-700 pb-2">
+                    <h3 className="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2"><Globe size={20} className="text-blue-500" /> Redes Sociales</h3>
+                    <button type="button" onClick={addSocialField} className="flex items-center gap-1 text-sm font-bold text-primary-600 dark:text-primary-400 hover:text-primary-700 transition-colors"><Plus size={16} /> Agregar Link</button>
+                </div>
+                <div className="flex flex-col gap-3">
+                    {redes.map((item, index) => (
+                        <div key={index} className="flex gap-3 items-end animate-fade-in-up">
+                            <div className="flex-1">
+                                <label className="text-xs text-gray-500 mb-1 block">Plataforma/Texto</label>
+                                <input type="text" placeholder="Ej: Discord, Mi Web" value={item.label} onChange={(e) => handleSocialChange(index, 'label', e.target.value)} className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:border-primary-500 dark:text-white text-sm" />
+                            </div>
+                            <div className="flex-[2]">
+                                <label className="text-xs text-gray-500 mb-1 block">URL</label>
+                                <div className="relative">
+                                    <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                                    <input type="url" placeholder="https://..." value={item.url} onChange={(e) => handleSocialChange(index, 'url', e.target.value)} className="w-full pl-8 pr-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:border-primary-500 dark:text-white text-sm" />
+                                </div>
+                            </div>
+                            {redes.length > 1 && <button type="button" onClick={() => removeSocialField(index)} className="p-2 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-lg hover:bg-red-100 transition-colors mb-[1px]"><Trash2 size={18} /></button>}
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* SECCIÓN 4: DESCARGAS */}
             <div className="bg-white dark:bg-[#1e1e1e] p-6 rounded-2xl border border-gray-300 dark:border-gray-700 shadow-sm">
               <div className="flex justify-between items-center mb-4 border-b border-gray-300 dark:border-gray-700 pb-2">
                 <h3 className="text-lg font-bold text-gray-800 dark:text-white">Enlaces de Descarga</h3>
@@ -496,7 +600,7 @@ const SubirMod = () => {
           </form>
         </div>
 
-        {/* --- PREVIEW STICKY --- */}
+        {/* --- PREVIEW --- */}
         <div className="lg:col-span-1">
           <div className="sticky top-24 flex flex-col gap-4">
             <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400"><Eye size={18} /><h3 className="font-bold text-sm uppercase tracking-wider">Vista Previa</h3></div>

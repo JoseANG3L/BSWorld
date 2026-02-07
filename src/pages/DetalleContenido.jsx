@@ -1,15 +1,78 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
-    Download, Calendar, Tag, User, Users, ArrowLeft,
-    CheckCircle, ShieldCheck, MessageCircle, Facebook, Twitter, Eye,
+    Download, Calendar, Tag, User, Users, ArrowLeft, Globe,
+    Share2, ShieldCheck, MessageCircle, Facebook, Twitter, Eye,
     Image as ImageIcon, Layers, Loader2, ChevronLeft, ChevronRight, PlayCircle,
     Link as LinkIcon, Mail, Send, Check
 } from 'lucide-react';
 import { clsx } from 'clsx';
-import { getContentById, registerDownload, registerView } from '../services/api';
+import ReactMarkdown from 'react-markdown';
+import { getContentById, registerDownload, registerView, getUserPublicProfile } from '../services/api';
 import AvatarRenderer from '../components/AvatarRenderer';
 import { useAuth } from '../context/AuthContext';
+
+// --- COMPONENTE REUTILIZABLE: FILA DE USUARIO INTELIGENTE ---
+const SmartUserRow = ({ user, role = "creator" }) => {
+    const [profile, setProfile] = useState(user);
+
+    useEffect(() => {
+        // Si tiene UID, buscamos datos frescos (foto nueva)
+        if (user.uid) {
+            const fetchFreshProfile = async () => {
+                try {
+                    const freshData = await getUserPublicProfile(user.uid);
+                    if (freshData) {
+                        setProfile(prev => ({
+                            ...prev,
+                            nombre: freshData.nombre,
+                            imagen: freshData.imagen
+                        }));
+                    }
+                } catch (error) {
+                    console.error("Error fetching user profile", error);
+                }
+            };
+            fetchFreshProfile();
+        }
+    }, [user.uid]);
+
+    const esUsuarioRegistrado = !!user.uid;
+    
+    // Texto del subtítulo según el rol
+    let roleText = "Autor Externo";
+    if (esUsuarioRegistrado) {
+        roleText = role === "uploader" ? "Usuario Verificado" : "Creador Verificado";
+    }
+
+    return (
+        <Link 
+            to={`/u/${profile.nombre}`} 
+            className="flex items-center gap-3 group p-2 -mx-2 rounded-xl hover:bg-gray-50 dark:hover:bg-white/5 transition-all"
+        >
+            {/* Avatar */}
+            <div className="w-10 h-10 shrink-0 rounded-full border border-gray-200 dark:border-gray-700 overflow-hidden bg-gray-100 relative">
+                <AvatarRenderer avatar={profile.imagen} name={profile.nombre} />
+            </div>
+
+            {/* Info */}
+            <div className="flex flex-col">
+                <div className="flex items-center gap-1.5">
+                    <p className="text-sm font-bold text-gray-900 dark:text-white group-hover:text-primary-600 transition-colors line-clamp-1">
+                        {profile.nombre}
+                    </p>
+                    {esUsuarioRegistrado && (
+                        <ShieldCheck size={12} className="text-blue-500" title="Verificado" />
+                    )}
+                </div>
+                
+                <p className="text-[10px] text-gray-500 dark:text-gray-400 font-medium">
+                    {roleText}
+                </p>
+            </div>
+        </Link>
+    );
+};
 
 // --- HELPER 1: DETECTAR YOUTUBE ---
 const getYouTubeId = (url) => {
@@ -24,6 +87,54 @@ const getYouTubeId = (url) => {
 const isVideo = (url) => {
     if (!url) return false;
     return url.match(/\.(mp4|webm|ogg|mov)$/i);
+};
+
+// --- HELPER 3: OBTENER ESTILO DE RED SOCIAL ---
+const getSocialConfig = (url) => {
+    const lower = url ? url.toLowerCase() : '';
+    
+    if (lower.includes('discord')) return { 
+        icon: MessageCircle, // O puedes importar 'Disc' de lucide-react
+        color: "bg-[#5865F2] hover:bg-[#4752c4] text-white",
+        label: "Discord"
+    };
+    if (lower.includes('twitter') || lower.includes('x.com')) return { 
+        icon: Twitter, 
+        color: "bg-[#1DA1F2] hover:bg-[#0c85d0] text-white", 
+        label: "Twitter" 
+    };
+    if (lower.includes('youtube') || lower.includes('youtu.be')) return { 
+        icon: Youtube, 
+        color: "bg-[#FF0000] hover:bg-[#cc0000] text-white", 
+        label: "YouTube" 
+    };
+    if (lower.includes('facebook')) return { 
+        icon: Facebook, 
+        color: "bg-[#1877F2] hover:bg-[#0c5dc7] text-white", 
+        label: "Facebook" 
+    };
+    if (lower.includes('whatsapp')) return { 
+        icon: MessageCircle, 
+        color: "bg-[#25D366] hover:bg-[#128C7E] text-white", 
+        label: "WhatsApp" 
+    };
+    if (lower.includes('telegram') || lower.includes('t.me')) return { 
+        icon: Send, 
+        color: "bg-[#0088cc] hover:bg-[#007dbb] text-white", 
+        label: "Telegram" 
+    };
+    if (lower.includes('instagram')) return { 
+        icon: ImageIcon, 
+        color: "bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500 text-white hover:opacity-90", 
+        label: "Instagram" 
+    };
+    
+    // Default (Web o desconocido)
+    return { 
+        icon: Globe, 
+        color: "bg-gray-700 hover:bg-gray-900 text-white dark:bg-gray-600 dark:hover:bg-gray-500", 
+        label: "Web" 
+    };
 };
 
 const DetalleContenido = () => {
@@ -264,13 +375,27 @@ const DetalleContenido = () => {
                             )}
                         </div>
 
-                        {/* DESCRIPCIÓN (Igual que antes) */}
+                        {/* DESCRIPCIÓN CON MARKDOWN */}
                         <div className="bg-white dark:bg-[#1e1e1e] p-3 md:p-4 rounded-2xl border border-gray-300 dark:border-gray-700 shadow-md">
                             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 md:mb-6 flex items-center gap-2 ps-0.5 pb-4 border-b border-gray-300 dark:border-gray-700">
                                 <Layers size={20} className="text-primary-600 dark:text-primary-300" /> Descripción
                             </h3>
+                            
+                            {/* AQUÍ ESTÁ EL CAMBIO: REACT MARKDOWN */}
                             <div className="prose dark:prose-invert max-w-none text-gray-600 dark:text-gray-300 leading-relaxed text-base">
-                                {item.descripcion || "El creador no ha proporcionado una descripción detallada, pero basándonos en las etiquetas y el título, ¡parece una aventura épica! Descárgalo y compruébalo tú mismo."}
+                                <ReactMarkdown
+                                    components={{
+                                        ul: ({node, ...props}) => <ul className="list-disc pl-5 my-2 space-y-1" {...props} />,
+                                        ol: ({node, ...props}) => <ol className="list-decimal pl-5 my-2 space-y-1" {...props} />,
+                                        li: ({node, ...props}) => <li className="pl-1" {...props} />,
+                                        a: ({node, ...props}) => <a className="text-primary-500 hover:underline font-bold" target="_blank" rel="noopener noreferrer" {...props} />,
+                                        h1: ({node, ...props}) => <h2 className="text-xl font-bold mt-4 mb-2" {...props} />,
+                                        h2: ({node, ...props}) => <h3 className="text-lg font-bold mt-3 mb-2" {...props} />,
+                                        strong: ({node, ...props}) => <span className="font-bold text-gray-900 dark:text-white" {...props} />
+                                    }}
+                                >
+                                    {item.descripcion || "Sin descripción."}
+                                </ReactMarkdown>
                             </div>
 
                             {/* TAGS */}
@@ -291,44 +416,8 @@ const DetalleContenido = () => {
 
                     </div>
 
-                    {/* --- COLUMNA DERECHA (Sidebar Sticky) - 4/12 --- */}
-                    <div className="lg:col-span-4 space-y-4 md:space-y-5">
-
-                        {/* 1. CREADORES Y APORTE */}
-                        <div className="bg-white dark:bg-[#1e1e1e] p-3 md:p-4 rounded-2xl border border-gray-300 dark:border-gray-700 shadow-md">
-
-                            {/* Creadores */}
-                            <div className="mb-6">
-                                <h4 className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2 ps-0.5">
-                                    <Users size={16} className="text-primary-600 dark:text-primary-300" /> Créditos
-                                </h4>
-                                <div className="space-y-3">
-                                    {item.creadores?.map((creador, i) => (
-                                        <Link to={`/u/${creador.nombre}`} key={i} className="flex items-center gap-3 group">
-                                            <div className="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-700 overflow-hidden bg-gray-100">
-                                                <AvatarRenderer avatar={creador.imagen} name={creador.nombre} />
-                                            </div>
-                                            <p className="text-sm font-bold text-gray-900 dark:text-white group-hover:text-primary-600 transition-colors">{creador.nombre}</p>
-                                        </Link>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Uploader (Si existe) */}
-                            {item.uploader && (
-                                <div className="pt-5 border-t border-gray-300 dark:border-gray-700">
-                                    <h4 className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2 ps-0.5">
-                                        <User size={16} className="text-primary-600 dark:text-primary-300" /> Aportado por
-                                    </h4>
-                                    <Link to={`/u/${item.uploader.nombre}`} className="flex items-center gap-3 group">
-                                        <div className="w-8 h-8 rounded-full border border-gray-200 dark:border-gray-700 overflow-hidden bg-gray-100">
-                                            <AvatarRenderer avatar={item.uploader.imagen} name={item.uploader.nombre} />
-                                        </div>
-                                        <p className="text-sm font-bold text-gray-900 dark:text-white group-hover:text-primary-600 transition-colors">{item.uploader.nombre}</p>
-                                    </Link>
-                                </div>
-                            )}
-                        </div>
+                    {/* --- COLUMNA DERECHA --- */}
+                    <div className="lg:col-span-4 space-y-3 md:space-y-5">
 
                         {/* 2. TARJETA DE DESCARGA */}
                         <div className="bg-white dark:bg-[#1e1e1e] p-3 md:p-4 rounded-2xl border border-gray-300 dark:border-gray-700 shadow-md">
@@ -356,27 +445,79 @@ const DetalleContenido = () => {
                                     </button>
                                 ))}
                             </div>
+                        </div>
+                        
+                        {/* 1. CREDITOS Y APORTE */}
+                        <div className="bg-white dark:bg-[#1e1e1e] p-3 md:p-4 rounded-2xl border border-gray-300 dark:border-gray-700 shadow-md">
 
-                            {/* REDES SOCIALES (Dentro de la misma tarjeta sticky) */}
-                            <div className="mt-6 pt-6 border-t border-gray-300 dark:border-gray-700">
-                                <p className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-widest mb-3 text-center">Compartir</p>
-                                <div className="flex justify-center gap-2">
-                                    <SocialButton href={socialLinks.whatsapp} icon={MessageCircle} color="text-white bg-green-600 hover:bg-green-700" />
-                                    <SocialButton href={socialLinks.telegram} icon={Send} color="text-white bg-[#0088cc] hover:bg-[#007dbb]" />
-                                    <SocialButton href={socialLinks.twitter} icon={Twitter} color="text-white bg-[#1DA1F2] hover:bg-[#0c85d0]" />
-                                    <SocialButton href={socialLinks.facebook} icon={Facebook} color="text-white bg-[#1877F2] hover:bg-[#0c5dc7]" />
-                                    <SocialButton href={socialLinks.email} icon={Mail} color="text-white bg-gray-600 hover:bg-gray-700" />
-                                    <button onClick={handleCopyLink} className={clsx(
-                                            "p-3 rounded-xl transition-all hover:scale-110 text-white",
-                                            copied ? "bg-green-600" : "bg-orange-600 hover:bg-orange-700"
-                                        )}
-                                        title="Copiar enlace al portapapeles"
-                                    >
-                                        {copied ? <Check size={18} /> : <LinkIcon size={18} />}
-                                    </button>
+                            {/* Creditos */}
+                            <div className="mb-4">
+                                <h4 className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2 ps-0.5">
+                                    <Users size={16} className="text-primary-600 dark:text-primary-300" /> Créditos
+                                </h4>
+                                <div className="space-y-3">
+                                    {item.creditos?.map((creador, i) => (
+                                        // Usamos el componente con rol 'creator'
+                                        <SmartUserRow key={i} user={creador} role="creator" />
+                                    ))}
                                 </div>
                             </div>
+
+                            {/* Aporte */}
+                            {item.aporte && (
+                                <div className="pt-5 border-t border-gray-300 dark:border-gray-700">
+                                    <h4 className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2 ps-0.5">
+                                        <User size={16} className="text-primary-600 dark:text-primary-300" /> Aportado por
+                                    </h4>
+                                    {/* Usamos el mismo componente con rol 'uploader' */}
+                                    <SmartUserRow user={item.aporte} role="uploader" />
+                                </div>
+                            )}
                         </div>
+
+                        {/* REDES SOCIALES */}
+                        {item.redes && item.redes.length > 0 && (
+                            <div className="bg-white dark:bg-[#1e1e1e] p-3 md:p-4 rounded-2xl border border-gray-300 dark:border-gray-700 shadow-md">
+                                <h4 className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2 ps-0.5">
+                                    <Globe size={16} className="text-blue-500" /> Redes y Enlaces
+                                </h4>
+                                <div className="flex flex-wrap gap-2">
+                                    {item.redes.map((link, idx) => {
+                                        // 1. Obtenemos la configuración basada en la URL
+                                        const config = getSocialConfig(link.url);
+                                        const IconComponent = config.icon;
+
+                                        return (
+                                            <SocialButton key={idx} href={link.url} icon={IconComponent} color={config.color} />
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* COMPARTIR PÁGINA */}
+                        <div className="bg-white dark:bg-[#1e1e1e] p-3 md:p-4 rounded-2xl border border-gray-300 dark:border-gray-700 shadow-md">
+                            <h4 className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2 ps-0.5">
+                                <Share2 size={16} className="text-blue-500" /> Compartir
+                            </h4>
+                            <div className="flex gap-2">
+                                <SocialButton href={socialLinks.whatsapp} icon={MessageCircle} color="text-white bg-green-600 hover:bg-green-700" />
+                                <SocialButton href={socialLinks.telegram} icon={Send} color="text-white bg-[#0088cc] hover:bg-[#007dbb]" />
+                                <SocialButton href={socialLinks.twitter} icon={Twitter} color="text-white bg-[#1DA1F2] hover:bg-[#0c85d0]" />
+                                <SocialButton href={socialLinks.facebook} icon={Facebook} color="text-white bg-[#1877F2] hover:bg-[#0c5dc7]" />
+                                <SocialButton href={socialLinks.email} icon={Mail} color="text-white bg-gray-600 hover:bg-gray-700" />
+                                <button onClick={handleCopyLink} className={clsx(
+                                        "p-3 rounded-xl transition-all hover:scale-110 text-white",
+                                        copied ? "bg-green-600" : "bg-orange-600 hover:bg-orange-700"
+                                    )}
+                                    title="Copiar enlace al portapapeles"
+                                >
+                                    {copied ? <Check size={18} /> : <LinkIcon size={18} />}
+                                </button>
+                            </div>
+                        </div>
+
+                        
                     </div>
                 </div>
             </div>
@@ -386,7 +527,7 @@ const DetalleContenido = () => {
 
 const SocialButton = ({ href, icon: Icon, color }) => (
     <a href={href} target="_blank" rel="noopener noreferrer"
-        className={clsx("p-3 rounded-xl transition-all hover:scale-110", color)}>
+        className={clsx("p-3 rounded-xl transition-all", color)}>
         <Icon size={20} />
     </a>
 );

@@ -26,7 +26,7 @@ const AvatarRenderer = ({ avatar, name, className }) => {
   // "Si no existe el avatar del usuario usar icono de user"
   if (!avatar) {
     return (
-      <div className={clsx("flex items-center justify-center w-full h-full bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-400 select-none", className)}>
+      <div className={clsx("flex items-center justify-center w-full h-full bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-400 select-none rounded-full", className)}>
         <User style={{ width: '60%', height: '60%' }} strokeWidth={1.5} />
       </div>
     );
@@ -42,7 +42,7 @@ const AvatarRenderer = ({ avatar, name, className }) => {
 
     return (
       <div 
-        className={clsx("flex items-center justify-center w-full h-full text-white select-none", className)}
+        className={clsx("flex items-center justify-center w-full h-full text-white select-none rounded-full", className)}
         style={{ backgroundColor: colorHex }}
         title={name}
       >
@@ -61,7 +61,7 @@ const AvatarRenderer = ({ avatar, name, className }) => {
     <img 
       src={imageSource} 
       alt={name || "Avatar"} 
-      className={clsx("w-full h-full object-cover select-none", className)}
+      className={clsx("w-full h-full object-cover select-none rounded-full", className)}
       loading="lazy"
       referrerPolicy="no-referrer"
       crossOrigin="anonymous"
