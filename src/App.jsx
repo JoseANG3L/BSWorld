@@ -19,6 +19,7 @@ import Minijuegos from './pages/Minijuegos';
 import Mods from './pages/Mods';
 import Modpacks from './pages/Modpacks';
 import Paquetes from './pages/Paquetes';
+import MisMods from './pages/MisMods';
 
 // Páginas de Funcionalidad y Usuario
 import AdminPanel from './pages/AdminPanel';
@@ -102,6 +103,14 @@ function App() {
             <Route path="configuracion" element={
                 <ProtectedRoute>
                   <Configuracion />
+                </ProtectedRoute>
+              } 
+            />
+
+            {/* Usuarios Logueados */}
+            <Route path="mis-mods" element={
+                <ProtectedRoute>
+                  <MisMods />
                 </ProtectedRoute>
               } 
             />

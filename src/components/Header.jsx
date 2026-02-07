@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom'; // <--- 1. IMPORTAR useNavigate
-import { Search, Sun, Moon, User, Menu, LogOut, ShieldCheck, UserPlus, LogIn, Settings, Upload } from 'lucide-react';
+import { Search, Sun, Moon, User, Menu, LogOut, ShieldCheck, UserPlus, LogIn, Settings, Upload, LayoutGrid } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useAuth } from '../context/AuthContext';
@@ -132,6 +132,16 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
                     <User size={16} />
                     <span>Mi Perfil</span>
                   </Link>
+                  {user && (
+                    <Link
+                      to="/mis-mods" 
+                      className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                      onClick={() => setIsProfileOpen(false)}
+                    >
+                      <LayoutGrid size={16} />
+                      <span>Mis Mods</span>
+                    </Link>
+                  )}
                   <Link
                     to="/configuracion" 
                     className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"

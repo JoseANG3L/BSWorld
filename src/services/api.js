@@ -90,6 +90,26 @@ export const getContentById = async (id) => {
   }
 };
 
+// --- OBTENER CONTENIDO DE UN USUARIO ESPECÍFICO ---
+export const getUserContent = async (uid) => {
+  try {
+    const q = query(
+      collection(db, "content"),
+      where("aporte.uid", "==", uid),
+      orderBy("creado", "desc") // Ordenar del más nuevo al más viejo
+    );
+    
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+  } catch (error) {
+    console.error("Error al obtener mis mods:", error);
+    return [];
+  }
+};
+
 // B. ACTUALIZAR DOCUMENTO
 export const updateContent = async (id, data) => {
   try {
