@@ -1,13 +1,29 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Bold, Italic, List, Eye, Edit3, Heading } from 'lucide-react';
+import { 
+  Bold, 
+  Italic, 
+  List, 
+  Eye, 
+  Edit3, 
+  Heading, 
+  Image as ImageIcon, 
+  Link, 
+  Quote, 
+  Table, 
+  Code, 
+  Minus,
+  HelpCircle,
+  ListOrdered,
+  Type
+} from 'lucide-react';
 
 const SimpleEditor = ({ value, onChange, placeholder }) => {
   const [isPreview, setIsPreview] = useState(false);
   const textareaRef = useRef(null);
 
   // Función para insertar formato en la posición del cursor
-  const insertFormat = (prefix, suffix = '') => {
+  const insertFormat = (prefix, suffix = '', newLine = false) => {
     const textarea = textareaRef.current;
     if (!textarea) return;
 
@@ -19,38 +35,302 @@ const SimpleEditor = ({ value, onChange, placeholder }) => {
     const selected = text.substring(start, end);
     const after = text.substring(end);
 
-    const newText = `${before}${prefix}${selected}${suffix}${after}`;
+    const lineBreak = newLine ? (before.endsWith('\n') || before === '' ? '' : '\n') : '';
+    const newText = `${before}${lineBreak}${prefix}${selected}${suffix}${after}`;
     
-    // Enviamos el cambio al padre
     onChange(newText);
 
-    // Recuperar el foco (opcional, para UX)
     setTimeout(() => {
-        textarea.focus();
-        textarea.setSelectionRange(start + prefix.length, end + prefix.length);
+      textarea.focus();
+      const newCursorPos = start + lineBreak.length + prefix.length;
+      textarea.setSelectionRange(newCursorPos, newCursorPos + selected.length);
     }, 10);
+  };
+
+  // Función para insertar múltiples líneas
+  const insertMultiLine = (lines) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = textarea.value;
+    
+    const before = text.substring(0, start);
+    const selected = text.substring(start, end);
+    const after = text.substring(end);
+
+    const lineBreak = before.endsWith('\n') || before === '' ? '' : '\n';
+    const content = Array.isArray(lines) ? lines.join('\n') : lines;
+    const newText = `${before}${lineBreak}${content}\n${after}`;
+    
+    onChange(newText);
+
+    setTimeout(() => {
+      textarea.focus();
+      const newCursorPos = start + lineBreak.length;
+      textarea.setSelectionRange(newCursorPos, newCursorPos);
+    }, 10);
+  };
+
+  // Funciones específicas para cada formato
+  const formatBold = () => insertFormat('**', '**');
+  const formatItalic = () => insertFormat('*', '*');
+  const formatBoldItalic = () => insertFormat('***', '***');
+  
+  const formatHeading = (level) => {
+    const prefix = '#'.repeat(level) + ' ';
+    insertFormat(prefix, '', true);
+  };
+
+  const formatUnorderedList = () => insertFormat('- ', '', true);
+  const formatOrderedList = () => insertFormat('1. ', '', true);
+
+  const formatLink = () => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = textarea.value.substring(start, end);
+    
+    if (selectedText) {
+      // Si hay texto seleccionado, lo usamos como texto del enlace
+      insertFormat('[', `](https://ejemplo.com "Texto descriptivo")`);
+    } else {
+      // Si no hay texto seleccionado, insertamos el formato completo
+      insertFormat('[Texto del enlace](https://ejemplo.com "Texto descriptivo")', '', true);
+    }
+  };
+
+  const formatImage = () => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = textarea.value.substring(start, end);
+    
+    if (selectedText) {
+      // Si hay texto seleccionado, lo usamos como texto alternativo
+      insertFormat('![', '](https://ejemplo.com/imagen.jpg "Título de la imagen")');
+    } else {
+      // Si no hay texto seleccionado, insertamos el formato completo
+      insertFormat('![Texto alternativo](https://ejemplo.com/imagen.jpg "Título de la imagen")', '', true);
+    }
+  };
+
+  const formatBlockquote = () => insertFormat('> ', '', true);
+
+  const formatTable = () => {
+    const tableContent = `| Encabezado 1 | Encabezado 2 | Encabezado 3 |
+|--------------|--------------|--------------|
+| Celda 1      | Celda 2      | Celda 3      |
+| Celda 4      | Celda 5      | Celda 6      |`;
+    insertMultiLine(tableContent);
+  };
+
+  const formatCodeBlock = () => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = textarea.value.substring(start, end);
+    
+    if (selectedText) {
+      // Si hay texto seleccionado, lo convertimos en bloque de código
+      insertMultiLine(['```', selectedText, '```']);
+    } else {
+      // Si no hay texto seleccionado, insertamos un bloque vacío
+      insertMultiLine(['```', '// Tu código aquí', '```']);
+    }
+  };
+
+  const formatInlineCode = () => insertFormat('`', '`');
+
+  const formatHorizontalRule = () => insertMultiLine('\n---\n');
+
+  const formatStrikethrough = () => insertFormat('~~', '~~');
+
+  // Atajos de teclado
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (!textareaRef.current) return;
+      if (e.target !== textareaRef.current) return;
+
+      // Solo activar atajos si el textarea está enfocado
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        
+        switch (e.key.toLowerCase()) {
+          case 'b':
+            formatBold();
+            break;
+          case 'i':
+            formatItalic();
+            break;
+          case 'e':
+            formatBoldItalic();
+            break;
+          case 'h':
+            formatHeading(2);
+            break;
+          case 'l':
+            formatLink();
+            break;
+          case 'k':
+            formatInlineCode();
+            break;
+          case 'j':
+            formatCodeBlock();
+            break;
+          case 'q':
+            formatBlockquote();
+            break;
+          default:
+            return;
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Función para mostrar guía rápida
+  const showQuickGuide = () => {
+    const guideContent = `# Guía rápida de Markdown
+
+## Texto básico
+**Negrita**: **texto** o __texto__
+*Cursiva*: *texto* o _texto_
+***Negrita y cursiva***: ***texto***
+~~Tachado~~: ~~texto~~
+
+## Encabezados
+# Título 1
+## Título 2
+### Título 3
+
+## Listas
+- Lista no ordenada
+* También con asterisco
++ O con signo más
+
+1. Lista ordenada
+2. Segundo elemento
+
+## Enlaces e imágenes
+[Enlace](https://ejemplo.com)
+![Imagen](https://ejemplo.com/imagen.jpg)
+
+## Código
+\`código en línea\`
+
+\`\`\`
+bloque de código
+\`\`\`
+
+## Citas
+> Esto es una cita
+
+## Tablas
+| Columna 1 | Columna 2 |
+|-----------|-----------|
+| Dato 1    | Dato 2    |
+
+## Línea horizontal
+---
+
+Usa los botones de la barra de herramientas o atajos de teclado:
+Ctrl+B: Negrita | Ctrl+I: Cursiva | Ctrl+E: Negrita+Cursiva
+Ctrl+H: Título | Ctrl+L: Enlace | Ctrl+Q: Cita`;
+    
+    alert(guideContent);
   };
 
   return (
     <div className="border border-gray-300 dark:border-gray-700 rounded-xl overflow-hidden bg-white dark:bg-[#1e1e1e] transition-all focus-within:ring-2 focus-within:ring-primary-500">
       
       {/* BARRA DE HERRAMIENTAS */}
-      <div className="flex items-center justify-between px-2 py-2 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+      <div className="flex flex-wrap items-center justify-between px-2 py-2 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         
-        <div className="flex items-center gap-1">
-          {/* Botones de formato */}
-          <button type="button" onClick={() => insertFormat('**', '**')} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Negrita">
+        {/* Primera fila: Texto básico */}
+        <div className="flex items-center gap-1 mb-1">
+          <span className="text-xs text-gray-500 dark:text-gray-400 mr-2">Texto:</span>
+          <button type="button" onClick={formatBold} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Negrita (Ctrl+B)">
             <Bold size={18} />
           </button>
-          <button type="button" onClick={() => insertFormat('*', '*')} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Cursiva">
+          <button type="button" onClick={formatItalic} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Cursiva (Ctrl+I)">
             <Italic size={18} />
           </button>
+          <button type="button" onClick={formatBoldItalic} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Negrita y Cursiva (Ctrl+E)">
+            <Type size={18} />
+          </button>
+          <button type="button" onClick={formatStrikethrough} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Texto tachado">
+            <span className="text-sm font-bold">S</span>
+          </button>
           <div className="w-px h-4 bg-gray-300 dark:bg-gray-600 mx-1"></div>
-          <button type="button" onClick={() => insertFormat('- ')} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Lista">
+          
+          {/* Encabezados */}
+          <span className="text-xs text-gray-500 dark:text-gray-400 mr-2">Títulos:</span>
+          <div className="flex gap-0.5">
+            {[1, 2, 3].map(level => (
+              <button 
+                key={level} 
+                type="button" 
+                onClick={() => formatHeading(level)}
+                className="px-2 py-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300 text-xs font-bold"
+                title={`Título H${level}`}
+              >
+                H{level}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Segunda fila: Elementos estructurales */}
+        <div className="flex items-center gap-1">
+          <span className="text-xs text-gray-500 dark:text-gray-400 mr-2">Listas:</span>
+          <button type="button" onClick={formatUnorderedList} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Lista no ordenada">
             <List size={18} />
           </button>
-          <button type="button" onClick={() => insertFormat('### ')} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Título">
-            <Heading size={18} />
+          <button type="button" onClick={formatOrderedList} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Lista ordenada">
+            <ListOrdered size={18} />
+          </button>
+          <div className="w-px h-4 bg-gray-300 dark:bg-gray-600 mx-1"></div>
+          
+          <span className="text-xs text-gray-500 dark:text-gray-400 mr-2">Medios:</span>
+          <button type="button" onClick={formatLink} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Enlace (Ctrl+L)">
+            <Link size={18} />
+          </button>
+          <button type="button" onClick={formatImage} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Imagen">
+            <ImageIcon size={18} />
+          </button>
+          <div className="w-px h-4 bg-gray-300 dark:bg-gray-600 mx-1"></div>
+          
+          <span className="text-xs text-gray-500 dark:text-gray-400 mr-2">Bloques:</span>
+          <button type="button" onClick={formatBlockquote} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Cita (Ctrl+Q)">
+            <Quote size={18} />
+          </button>
+          <button type="button" onClick={formatCodeBlock} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Bloque de código (Ctrl+J)">
+            <Code size={18} />
+          </button>
+          <button type="button" onClick={formatInlineCode} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Código en línea (Ctrl+K)">
+            <span className="text-xs font-bold">{"<>"}</span>
+          </button>
+          <div className="w-px h-4 bg-gray-300 dark:bg-gray-600 mx-1"></div>
+          
+          <span className="text-xs text-gray-500 dark:text-gray-400 mr-2">Otros:</span>
+          <button type="button" onClick={formatTable} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Tabla">
+            <Table size={18} />
+          </button>
+          <button type="button" onClick={formatHorizontalRule} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Línea horizontal">
+            <Minus size={18} />
+          </button>
+          <button type="button" onClick={showQuickGuide} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Guía rápida">
+            <HelpCircle size={18} />
           </button>
         </div>
 
@@ -58,24 +338,37 @@ const SimpleEditor = ({ value, onChange, placeholder }) => {
         <button 
           type="button" 
           onClick={() => setIsPreview(!isPreview)}
-          className={`flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-bold transition-colors ${isPreview ? 'bg-primary-100 text-primary-700' : 'text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+          className={`flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-bold transition-colors ml-2 ${isPreview ? 'bg-primary-100 text-primary-700' : 'text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
         >
           {isPreview ? <><Edit3 size={14}/> Editar</> : <><Eye size={14}/> Vista Previa</>}
         </button>
       </div>
 
       {/* ÁREA DE EDICIÓN O VISTA PREVIA */}
-      <div className="min-h-[150px] max-h-[400px] overflow-y-auto">
+      <div className="min-h-[200px] max-h-[500px] overflow-y-auto">
         {isPreview ? (
           // RENDERIZADO DE MARKDOWN
-          <div className="prose dark:prose-invert max-w-none p-3 text-sm">
+          <div className="prose dark:prose-invert max-w-none p-4 text-sm">
             <ReactMarkdown 
-                components={{
-                    ul: ({node, ...props}) => <ul className="list-disc pl-5 my-2" {...props} />,
-                    li: ({node, ...props}) => <li className="pl-1" {...props} />
-                }}
+              components={{
+                h1: ({node, ...props}) => <h1 className="text-2xl font-bold mt-4 mb-3" {...props} />,
+                h2: ({node, ...props}) => <h2 className="text-xl font-bold mt-4 mb-2" {...props} />,
+                h3: ({node, ...props}) => <h3 className="text-lg font-bold mt-3 mb-2" {...props} />,
+                ul: ({node, ...props}) => <ul className="list-disc pl-5 my-2" {...props} />,
+                ol: ({node, ...props}) => <ol className="list-decimal pl-5 my-2" {...props} />,
+                li: ({node, ...props}) => <li className="pl-1 mb-1" {...props} />,
+                blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-gray-300 dark:border-gray-600 pl-4 italic my-2" {...props} />,
+                table: ({node, ...props}) => <table className="min-w-full border-collapse border border-gray-300 dark:border-gray-600 my-3" {...props} />,
+                th: ({node, ...props}) => <th className="border border-gray-300 dark:border-gray-600 px-3 py-2 bg-gray-50 dark:bg-gray-800" {...props} />,
+                td: ({node, ...props}) => <td className="border border-gray-300 dark:border-gray-600 px-3 py-2" {...props} />,
+                code: ({node, inline, ...props}) => 
+                  inline ? 
+                    <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded text-sm" {...props} /> : 
+                    <code className="block bg-gray-100 dark:bg-gray-800 p-3 rounded my-2 overflow-x-auto" {...props} />,
+                hr: ({node, ...props}) => <hr className="my-4 border-gray-300 dark:border-gray-600" {...props} />,
+              }}
             >
-                {value || "*Nada para mostrar aún...*"}
+              {value || "*Nada para mostrar aún...*"}
             </ReactMarkdown>
           </div>
         ) : (
@@ -84,16 +377,27 @@ const SimpleEditor = ({ value, onChange, placeholder }) => {
             ref={textareaRef}
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            placeholder={placeholder}
-            className="w-full h-full p-3 bg-transparent outline-none text-gray-800 dark:text-gray-200 text-sm resize-y min-h-[150px]"
+            placeholder={placeholder || "Escribe tu contenido Markdown aquí... Usa los botones de arriba para formato o Ctrl+? para atajos."}
+            className="w-full h-full p-4 bg-transparent outline-none text-gray-800 dark:text-gray-200 text-sm resize-y min-h-[200px] font-mono"
           />
         )}
       </div>
       
       {!isPreview && (
-          <div className="bg-gray-50 dark:bg-gray-800 px-4 py-1 text-[10px] text-gray-400 text-right">
-              Markdown compatible
+        <div className="flex justify-between items-center bg-gray-50 dark:bg-gray-800 px-4 py-2 border-t border-gray-200 dark:border-gray-700">
+          <button 
+            type="button"
+            onClick={showQuickGuide}
+            className="text-xs text-primary-600 dark:text-primary-400 hover:underline"
+          >
+            📖 Ver guía rápida de Markdown
+          </button>
+          <div className="text-xs text-gray-400">
+            <span className="mr-4">Ctrl+B: Negrita</span>
+            <span className="mr-4">Ctrl+I: Cursiva</span>
+            <span>Ctrl+L: Enlace</span>
           </div>
+        </div>
       )}
     </div>
   );

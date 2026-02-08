@@ -25,7 +25,6 @@ const MisMods = () => {
     confirmText: 'Aceptar',
     onConfirm: null
   });
-  
   const closeModal = () => setModal({ ...modal, isOpen: false });
 
   // Cargar datos

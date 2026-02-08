@@ -36,6 +36,17 @@ const isVideo = (url) => {
 };
 
 const SubirMod = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const searchRef = useRef(null);
+  
+  const editId = searchParams.get('edit'); 
+  const isEditing = !!editId;
+
+  const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(!!editId);
+
   // --- ESTADO DEL MODAL ---
   const [modal, setModal] = useState({
     isOpen: false,
@@ -47,17 +58,6 @@ const SubirMod = () => {
     onConfirm: null
   });
   const closeModal = () => setModal({ ...modal, isOpen: false });
-
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const searchRef = useRef(null);
-  
-  const editId = searchParams.get('edit'); 
-  const isEditing = !!editId;
-
-  const [loading, setLoading] = useState(false);
-  const [fetching, setFetching] = useState(!!editId);
 
   // ESTADOS DEL FORMULARIO
   const [formData, setFormData] = useState({
@@ -154,7 +154,6 @@ const SubirMod = () => {
           // Cargar Redes Sociales
           if (data.redes && Array.isArray(data.redes) && data.redes.length > 0) {
               setSocialLinks(data.redes);
-              console.log("🔥 Redes sociales:", data.redes);
           }
 
           // CARGAR TAGS (Si existen, filtramos el tipo para no duplicarlo)
@@ -775,13 +774,16 @@ const SubirMod = () => {
         </div>
       </div>
 
-      {/* --- COMPONENTE MODAL --- */}
+      {/* 2. IMPORTANTE: Renderizar el Modal aquí al final */}
       <Modal 
-          isOpen={modal.isOpen}
-          onClose={closeModal}
-          title={modal.title}
-          message={modal.message}
-          type={modal.type}
+        isOpen={modal.isOpen}
+        onClose={closeModal}
+        onConfirm={modal.onConfirm}
+        title={modal.title}
+        message={modal.message}
+        type={modal.type}
+        showCancel={modal.showCancel}
+        confirmText={modal.confirmText}
       />
     </div>
   );

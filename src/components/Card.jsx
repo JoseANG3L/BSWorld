@@ -221,7 +221,7 @@ const Card = ({
                 e.stopPropagation();
                 navigate(`/subir-mod?edit=${id}`);
               }}
-              className="p-2 bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 rounded-xl shadow-lg hover:scale-110 transition-all border border-gray-200 dark:border-gray-700"
+              className="p-2 bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 rounded-xl shadow-lg hover:bg-gray-200 dark:hover:bg-gray-800 transition-all border border-gray-200 dark:border-gray-700"
               title="Editar Contenido"
               >
               <Edit3 size={18} />
@@ -235,7 +235,7 @@ const Card = ({
                     // Llamamos a la función que pasó el padre (MisMods)
                     if (handleDelete) handleDelete(id, titulo);
                 }}
-                className="p-2 bg-white dark:bg-gray-800 text-red-500 rounded-xl shadow-lg hover:scale-110 transition-all border border-gray-200 dark:border-gray-700"
+                className="p-2 bg-white dark:bg-gray-800 text-red-500 rounded-xl shadow-lg hover:bg-gray-200 dark:hover:bg-gray-800 transition-all border border-gray-200 dark:border-gray-700"
                 disabled={isDeleting}
                 title="Eliminar"
             >
