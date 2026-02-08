@@ -19,7 +19,11 @@ import {
 import { db } from '../firebase/config';
 import { v4 as uuidv4 } from 'uuid'; // Necesitas instalar: npm install uuid
 
-const userCache = {};
+// --- SISTEMA DE CACHÉ GLOBAL ---
+// userCache: Guarda perfiles completos usando el UID como llave.
+// usernameMap: Un mapa simple que conecta "Username" -> "UID".
+const userCache = {}; 
+const usernameMap = {};
 
 // ---------------------------------------------------------
 // 1. OBTENER CONTENIDO POR TIPO (PÚBLICO)
@@ -247,20 +251,6 @@ export const getContentByCreator = async (creatorName) => {
   }
 };
 
-export const getUserByUsername = async (username) => {
-  try {
-    const usersRef = collection(db, "users");
-    const q = query(usersRef, where("username", "==", username));
-    const snapshot = await getDocs(q);
-    
-    if (snapshot.empty) return null;
-    return snapshot.docs[0].data();
-  } catch (error) {
-    console.error("Error buscando usuario:", error);
-    return null;
-  }
-};
-
 // ---------------------------------------------------------
 // 7. DESCARGAS Y ESTADÍSTICAS
 // ---------------------------------------------------------
@@ -338,26 +328,87 @@ export const registerView = async (contentId) => {
   }
 };
 
+// 1. BUSCAR POR UID (Rápido y Directo)
 export const getUserPublicProfile = async (uid) => {
   if (!uid) return null;
   
-  // Si ya lo pedimos hace un momento, devolver el de memoria (Ahorra lecturas)
+  // A. Revisar memoria
   if (userCache[uid]) return userCache[uid];
 
   try {
+    // B. Leer de Firestore (Lectura directa)
     const userDoc = await getDoc(doc(db, "users", uid));
+    
     if (userDoc.exists()) {
       const data = userDoc.data();
       const profile = {
         uid: uid,
         nombre: data.displayName || data.username || "Usuario",
-        imagen: data.photoURL || data.avatar || null
+        imagen: data.photoURL || data.avatar || null,
+        banner: data.banner || null,
+        role: data.role || 'user',
+        createdAt: data.createdAt || null
       };
-      userCache[uid] = profile; // Guardar en caché
+      
+      // C. Guardar en caché
+      userCache[uid] = profile;
+      
+      // D. También guardamos la referencia inversa por si luego buscamos por nombre
+      if (data.username) {
+          usernameMap[data.username.toLowerCase()] = uid;
+      }
+      
       return profile;
     }
   } catch (error) {
-    console.error("Error fetching user:", error);
+    console.error("Error fetching user by UID:", error);
+  }
+  return null;
+};
+
+// 2. BUSCAR POR USERNAME (Búsqueda)
+export const getUserByUsername = async (username) => {
+  if (!username) return null;
+  const lowerUser = username.toLowerCase();
+
+  // A. Revisar si ya sabemos el UID de este usuario
+  if (usernameMap[lowerUser]) {
+      // ¡Magia! Si ya tenemos el UID, usamos la función rápida
+      return getUserPublicProfile(usernameMap[lowerUser]);
+  }
+
+  try {
+    // B. Hacer la Query a Firestore
+    const q = query(
+      collection(db, "users"), 
+      where("username_lower", "==", lowerUser), // Usamos el campo en minúsculas para asegurar match
+      limit(1)
+    );
+    
+    const querySnapshot = await getDocs(q);
+
+    if (!querySnapshot.empty) {
+      const userDoc = querySnapshot.docs[0];
+      const data = userDoc.data();
+      const uid = userDoc.id;
+
+      const profile = {
+        uid: uid,
+        nombre: data.displayName || data.username || "Usuario",
+        imagen: data.photoURL || data.avatar || null,
+        banner: data.banner || null,
+        role: data.role || 'user',
+        createdAt: data.createdAt || null
+      };
+
+      // C. Guardar en ambas cachés (Aquí está el truco de optimización)
+      userCache[uid] = profile;           // Guardamos los datos
+      usernameMap[lowerUser] = uid;       // Guardamos el mapa Nombre -> UID
+
+      return profile;
+    }
+  } catch (error) {
+    console.error("Error fetching user by Username:", error);
   }
   return null;
 };

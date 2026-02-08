@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Download, Tag, ChevronDown, AlertCircle, Eye, User, ShieldCheck } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Download, Tag, ChevronDown, AlertCircle, Eye, User, ShieldCheck, Edit3, Trash2 } from 'lucide-react';
 import { clsx } from 'clsx';
 import AvatarRenderer from './AvatarRenderer';
 // Importamos la función para obtener datos frescos
@@ -42,7 +42,7 @@ const SmartUserDisplay = ({ initialUser, type = 'list' , extraCount = 0 }) => {
   // Renderizado A: Formato Lista (Dropdown de Créditos)
   if (type === 'list') {
     return (
-      <Link to={`/u/${userData.nombre}`} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors group">
+      <Link to={`/u/${userData.nombre}`} className="flex items-center gap-3 p-2 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors group">
         <div className="w-6 h-6 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-800 shrink-0 border border-gray-300 dark:border-gray-600 relative">
             <AvatarRenderer avatar={userData.imagen} name={userData.nombre} />
         </div>
@@ -125,15 +125,20 @@ const Card = ({
   tags = [], 
   aporte,        
   vistas = 0, 
-  isPreview = false 
+  isPreview = false,
+  isEditable = false,
+  handleDelete,
+  isDeleting = false
 }) => {
   const [isOpenDownload, setIsOpenDownload] = useState(false);
   const downloadRef = useRef(null);
   const [isOpenCredits, setIsOpenCredits] = useState(false);
   const creditosRef = useRef(null);
+  const navigate = useNavigate();
 
   const [localDescargas, setLocalDescargas] = useState(descargas);
   const [isSpamming, setIsSpamming] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
 
   const calculatedTotal = localDescargas.reduce((acc, curr) => acc + (curr.count || 0), 0);
   
@@ -203,6 +208,43 @@ const Card = ({
             {formatNumber(vistas)}
         </div>
         <div className="absolute inset-0 bg-primary-900/0 group-hover:bg-primary-900/10 transition-colors duration-300" />
+
+        {/* --- CAPA DE ACCIONES (OVERLAY) --- */}
+        {/* Esta capa aparece encima de la card */}
+        {isEditable && (
+          <div className="absolute bottom-3 right-3 flex flex-col gap-2 z-20">
+          
+            {/* Botón Editar */}
+            <button
+              onClick={(e) => {
+                e.preventDefault(); 
+                e.stopPropagation();
+                navigate(`/subir-mod?edit=${id}`);
+              }}
+              className="p-2 bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 rounded-xl shadow-lg hover:scale-110 transition-all border border-gray-200 dark:border-gray-700"
+              title="Editar Contenido"
+              >
+              <Edit3 size={18} />
+            </button>
+
+            {/* Botón Eliminar */}
+            <button 
+                onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    // Llamamos a la función que pasó el padre (MisMods)
+                    if (handleDelete) handleDelete(id, titulo);
+                }}
+                className="p-2 bg-white dark:bg-gray-800 text-red-500 rounded-xl shadow-lg hover:scale-110 transition-all border border-gray-200 dark:border-gray-700"
+                disabled={isDeleting}
+                title="Eliminar"
+            >
+                {isDeleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+            </button>
+
+          </div>
+        )}
+
       </Link>
 
       <div className="flex flex-col flex-1 px-3 pt-3 pb-3">
@@ -213,7 +255,7 @@ const Card = ({
             className={clsx("block mb-2", !isPreview && "hover:text-primary-600 dark:hover:text-primary-400 transition-colors")}
             onClick={(e) => isPreview && e.preventDefault()}
         >
-            <h3 className="text-md font-bold text-gray-900 dark:text-white line-clamp-1" title={titulo}>{titulo}</h3>
+            <h3 className="text-md font-bold text-gray-900 dark:text-white line-clamp-1 hover:text-primary-600 dark:hover:text-primary-600 transition-colors" title={titulo}>{titulo}</h3>
         </Link>
 
         {/* 3. DESCARGAS */}
@@ -264,7 +306,7 @@ const Card = ({
           </button>
           
           {isOpenCredits && (
-            <div className="absolute bottom-full left-0 right-0 mb-2 bg-white dark:bg-[#252525] border border-gray-300 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden animate-fade-in-up origin-bottom p-1" style={{ animationDuration: '200ms' }}>
+            <div className="absolute bottom-full left-0 right-0 mb-2 bg-white dark:bg-[#252525] border border-gray-300 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden animate-fade-in-up origin-bottom py-1" style={{ animationDuration: '200ms' }}>
               <div className="max-h-48 overflow-y-auto">
                 {listaCreditos.map((creador, index) => (
                   // Usamos el sub-componente en modo list para el dropdown

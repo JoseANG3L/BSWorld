@@ -3,15 +3,51 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { 
   Save, Plus, Trash2, Image as ImageIcon, Lock, ArrowLeft, LogIn, UserX,
   Link as LinkIcon, Users, Tag, Type, Layers, Calendar, Eye, PenTool, X, Search, Loader2,
-  Globe, // Nuevo icono para redes sociales
+  Globe, PlayCircle
 } from 'lucide-react';
 import { clsx } from 'clsx';
-import { createContent, getContentById, updateContent, searchUsers } from '../services/api'; 
+import { 
+  createContent, 
+  getContentById, 
+  updateContent, 
+  searchUsers, 
+  getUserPublicProfile,
+  getUserByUsername
+} from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import Card from '../components/Card';
 import SimpleEditor from '../components/SimpleEditor';
+import Modal from '../components/Modal';
+
+
+// --- HELPER 1: DETECTAR YOUTUBE ---
+const getYouTubeId = (url) => {
+    if (!url) return null;
+    // Soporta formatos: youtube.com/watch?v=ID, youtu.be/ID, youtube.com/embed/ID
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+};
+
+// --- HELPER 2: DETECTAR VIDEO MP4 LOCAL ---
+const isVideo = (url) => {
+    if (!url) return false;
+    return url.match(/\.(mp4|webm|ogg|mov)$/i);
+};
 
 const SubirMod = () => {
+  // --- ESTADO DEL MODAL ---
+  const [modal, setModal] = useState({
+    isOpen: false,
+    type: 'success',
+    title: '',
+    message: '',
+    showCancel: false,
+    confirmText: 'Aceptar',
+    onConfirm: null
+  });
+  const closeModal = () => setModal({ ...modal, isOpen: false });
+
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -62,8 +98,53 @@ const SubirMod = () => {
       try {
         const data = await getContentById(editId);
         if (data) {
+          // --- BLOQUE AVANZADO: Recuperación de Perfiles ---
           if (data.creditos && Array.isArray(data.creditos)) {
-             setSelectedCreators(data.creditos);
+             
+             const enrichedCreators = await Promise.all(data.creditos.map(async (creator) => {
+                let profile = null;
+
+                // CASO 1: Tiene UID (El enlace es fuerte y directo)
+                if (creator.uid) {
+                   try {
+                      profile = await getUserPublicProfile(creator.uid);
+                   } catch (err) {
+                      console.error("Error buscando por UID:", err);
+                   }
+                } 
+                
+                // CASO 2: No tiene UID, intentamos buscar por Nombre (Reparación automática)
+                else if (creator.nombre) {
+                   try {
+                      // Intentamos encontrar al usuario por su nombre actual
+                      profile = await getUserByUsername(creator.nombre);
+                      if (profile) {
+                         console.log(`¡Enlace automático! Se conectó "${creator.nombre}" con UID: ${profile.uid}`);
+                      }
+                   } catch (err) {
+                      console.error("Error buscando por Nombre:", err);
+                   }
+                }
+
+                // SI ENCONTRAMOS PERFIL (Por UID o por Nombre), lo usamos
+                if (profile) {
+                   return {
+                      nombre: profile.nombre,
+                      imagen: profile.imagen,
+                      uid: profile.uid // Ahora sí guardaremos el UID para la próxima
+                   };
+                }
+
+                // SI NO ENCONTRAMOS NADA, mantenemos los datos originales (Usuario externo)
+                return {
+                   nombre: creator.nombre || "Desconocido",
+                   imagen: creator.imagen || null,
+                   uid: null
+                };
+             }));
+
+             // Filtramos nulos y actualizamos el estado
+             setSelectedCreators(enrichedCreators.filter(c => c && c.nombre));
           }
 
           if (data.galeria && Array.isArray(data.galeria)) {
@@ -73,6 +154,7 @@ const SubirMod = () => {
           // Cargar Redes Sociales
           if (data.redes && Array.isArray(data.redes) && data.redes.length > 0) {
               setSocialLinks(data.redes);
+              console.log("🔥 Redes sociales:", data.redes);
           }
 
           // CARGAR TAGS (Si existen, filtramos el tipo para no duplicarlo)
@@ -287,22 +369,33 @@ const SubirMod = () => {
 
       if (isEditing) {
         await updateContent(editId, payload);
-        alert("¡Contenido actualizado correctamente!");
-        navigate('/admin');
+        setModal({
+          isOpen: true,
+          type: 'success',
+          title: '¡Actualización Exitosa!',
+          message: 'El contenido ha sido modificado y guardado correctamente.',
+          onConfirm: () => navigate('/mis-mods')
+        });
       } else {
         await createContent(payload, esEnvioDeUsuario);
-        alert("¡Contenido creado con éxito!");
-        setFormData({ ...formData, titulo: '', descripcion: '', imagen: '' });
-        setDescargas([{ label: 'Descarga Principal', url: '' }]);
-        setGaleriaUrls(['']);
-        setSocialLinks([{ label: '', url: '' }]); // Resetear redes
-        setSelectedCreators([]);
-        setTagsList([]); // Limpiamos tags
+        setModal({
+          isOpen: true,
+          type: 'success',
+          title: '¡Contenido Publicado!',
+          message: 'Tu aporte ha sido subido con éxito a la plataforma.',
+          onConfirm: () => navigate('/mis-mods')
+        });
       }
 
     } catch (error) {
       console.error(error);
-      alert("Error al guardar. Revisa la consola.");
+      setModal({
+        isOpen: true,
+        type: 'error',
+        title: 'Error al guardar',
+        message: 'Ocurrió un problema al intentar subir el contenido. Por favor revisa tu conexión e inténtalo de nuevo.',
+        onConfirm: null
+      });
     } finally {
       setLoading(false);
     }
@@ -416,7 +509,7 @@ const SubirMod = () => {
                   <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Imagen Principal (Portada)</label>
                   <div className="relative">
                     <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                    <input type="url" name="imagen" required value={formData.imagen} onChange={handleChange} placeholder="https://imgur.com/..." className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white" />
+                    <input type="url" name="imagen" value={formData.imagen} onChange={handleChange} placeholder="https://imgur.com/..." className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white" />
                   </div>
                 </div>
 
@@ -527,17 +620,59 @@ const SubirMod = () => {
                     <h3 className="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2"><ImageIcon size={20} className="text-purple-500" /> Galería Multimedia</h3>
                     <button type="button" onClick={addGaleriaField} className="flex items-center gap-1 text-sm font-bold text-primary-600 dark:text-primary-400 hover:text-primary-700 transition-colors"><Plus size={16} /> Agregar URL</button>
                 </div>
+                
                 <div className="flex flex-col gap-3">
-                    {galeriaUrls.map((url, index) => (
-                        <div key={index} className="flex gap-3 items-center animate-fade-in-up">
-                            <div className="flex-1 relative">
-                                <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
-                                <input type="url" placeholder="URL de imagen o video (mp4/youtube)" value={url} onChange={(e) => handleGaleriaChange(index, e.target.value)} className="w-full pl-8 pr-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:border-primary-500 dark:text-white text-sm" />
+                    {galeriaUrls.map((url, index) => {
+                        // Lógica de detección para la vista previa del input
+                        const isYt = getYouTubeId(url);
+                        const isVid = isVideo(url);
+                        const thumbSrc = isYt ? `https://img.youtube.com/vi/${isYt}/mqdefault.jpg` : url;
+
+                        return (
+                            <div key={index} className="flex gap-3 items-center animate-fade-in-up">
+                                <div className="flex-1 relative">
+                                    <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                                    <input 
+                                        type="url" 
+                                        placeholder="URL de imagen o video (mp4/youtube)" 
+                                        value={url} 
+                                        onChange={(e) => handleGaleriaChange(index, e.target.value)} 
+                                        className="w-full pl-8 pr-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:border-primary-500 dark:text-white text-sm" 
+                                    />
+                                </div>
+                                
+                                {/* Vista previa miniatura al lado del input */}
+                                {url && url.length > 10 && (
+                                    <div className="relative w-12 h-10 rounded-lg bg-gray-200 dark:bg-gray-700 overflow-hidden shrink-0 border border-gray-300 dark:border-gray-600 group">
+                                        
+                                        {/* Icono de Play si es video */}
+                                        {(isYt || isVid) && (
+                                            <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/20">
+                                                <PlayCircle size={16} className="text-white drop-shadow-md" />
+                                            </div>
+                                        )}
+
+                                        <img 
+                                            src={thumbSrc} 
+                                            alt="preview" 
+                                            className="w-full h-full object-cover" 
+                                            onError={(e) => {
+                                                // Si falla la carga, ocultamos el contenedor
+                                                e.target.style.display='none'; 
+                                                e.target.parentElement.style.display='none'; 
+                                            }} 
+                                        />
+                                    </div>
+                                )}
+
+                                {galeriaUrls.length > 1 && (
+                                    <button type="button" onClick={() => removeGaleriaField(index)} className="p-2 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-lg hover:bg-red-100 transition-colors">
+                                        <Trash2 size={18} />
+                                    </button>
+                                )}
                             </div>
-                            {url && url.length > 10 && <div className="w-10 h-10 rounded-lg bg-gray-200 overflow-hidden border border-gray-300 dark:border-gray-600 shrink-0"><img src={url} alt="preview" className="w-full h-full object-cover" onError={(e) => e.target.style.display='none'} /></div>}
-                            {galeriaUrls.length > 1 && <button type="button" onClick={() => removeGaleriaField(index)} className="p-2 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-lg hover:bg-red-100 transition-colors"><Trash2 size={18} /></button>}
-                        </div>
-                    ))}
+                        );
+                    })}
                     <p className="text-xs text-gray-400 italic mt-1">Soporta enlaces directos a imágenes, videos .mp4 y videos de YouTube.</p>
                 </div>
             </div>
@@ -609,19 +744,45 @@ const SubirMod = () => {
             {galeriaUrls.some(u => u.length > 10) && (
                 <div className="bg-white dark:bg-[#1e1e1e] p-3 rounded-xl border border-gray-300 dark:border-gray-700 shadow-sm">
                     <p className="text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Multimedia ({galeriaUrls.filter(u=>u.length>5).length})</p>
-                    <div className="flex gap-2 overflow-x-auto scrollbar-hide">
-                        {galeriaUrls.filter(u => u.length > 10).map((url, i) => (
-                            <div key={i} className="w-16 h-10 rounded-md bg-gray-200 overflow-hidden shrink-0 border border-gray-300 dark:border-gray-600 relative group">
-                                <img src={url} className="w-full h-full object-cover" onError={(e) => {e.target.style.display='none'; e.target.parentElement.classList.add('hidden')}} />
-                            </div>
-                        ))}
+                    <div className="flex gap-2 overflow-x-auto scrollbar-hide snap-x">
+                        {galeriaUrls.filter(u => u.length > 10).map((media, index) => {
+                            const isYt = getYouTubeId(media);
+                            const isVid = isVideo(media);
+                            const thumbSrc = isYt ? `https://img.youtube.com/vi/${isYt}/mqdefault.jpg` : media;
+
+                            return (
+                                <div key={index} className="relative h-16 w-28 shrink-0 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden bg-gray-100 dark:bg-gray-800 snap-start group/thumb">
+                                    {(isYt || isVid) && (
+                                        <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/20">
+                                            <PlayCircle size={24} className="text-white drop-shadow-md opacity-80" />
+                                        </div>
+                                    )}
+                                    <img 
+                                        src={thumbSrc} 
+                                        alt={`Preview ${index}`} 
+                                        className="w-full h-full object-cover" 
+                                        onError={(e) => {e.target.style.display='none';}} 
+                                    />
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             )}
+
             <div className={clsx("p-4 border rounded-xl text-xs", isEditing ? "bg-blue-50 dark:bg-blue-900/10 border-blue-300 dark:border-blue-700/30 text-blue-800 dark:text-blue-200" : "bg-yellow-50 dark:bg-yellow-900/10 border-yellow-300 dark:border-yellow-700/30 text-yellow-800 dark:text-yellow-200")}><p><strong>{isEditing ? "Modo Edición" : "Nota"}:</strong> {isEditing ? " Estás modificando un contenido existente." : " Así se verá la tarjeta."}</p></div>
           </div>
         </div>
       </div>
+
+      {/* --- COMPONENTE MODAL --- */}
+      <Modal 
+          isOpen={modal.isOpen}
+          onClose={closeModal}
+          title={modal.title}
+          message={modal.message}
+          type={modal.type}
+      />
     </div>
   );
 };
