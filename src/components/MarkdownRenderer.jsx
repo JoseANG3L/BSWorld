@@ -127,7 +127,7 @@ const MarkdownRenderer = ({ content, className = '' }) => {
                                     </span>
                                     <CopyCodeButton text={element.content} />
                                 </div>
-                                <pre className="bg-gray-50 dark:bg-gray-900 p-4 overflow-x-auto m-0 text-sm">
+                                <pre className="bg-gray-50 dark:bg-gray-900/40 p-4 overflow-x-auto m-0 text-sm">
                                     <code>{element.content}</code>
                                 </pre>
                             </div>
