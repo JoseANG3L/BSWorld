@@ -5,7 +5,7 @@ import { doc, updateDoc } from 'firebase/firestore';
 import { updateProfile } from 'firebase/auth';
 import { 
   User, Mail, Camera, Save, Calendar, Shield, Loader2, CheckCircle, AlertCircle, 
-  Image as ImageIcon, Palette, LayoutGrid, Link as LinkIcon,
+  Image as ImageIcon, Palette, LayoutGrid, Link as LinkIcon, Edit, Edit2,
   // --- ICONOS PARA EL AVATAR ---
   Ghost, Gamepad2, Sparkles, Anchor, Coffee, Rocket, Crown, Zap, Heart, Star, 
   Music, Smile, Sword, Skull, Flame, Code, Terminal, Cpu, Globe, Headphones, 
@@ -160,11 +160,16 @@ const Configuracion = () => {
   return (
     <div className="animate-fade-in-up" style={{ animationDuration: '200ms' }}>
       
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
-        <User className="text-primary-600" /> Configuración de Perfil
-      </h1>
+      <div className="flex items-center gap-3 mb-4 md:mb-8">
+        <div className={clsx("p-3 rounded-xl text-white bg-primary-600")}>
+          <User size={18} />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Configuración</h1>
+        </div>
+      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
         
         {/* =========================================================
             COLUMNA IZQUIERDA: TARJETA DE VISTA PREVIA
@@ -190,7 +195,7 @@ const Configuracion = () => {
                )}
             </div>
 
-            <div className="px-6 pb-6 text-center">
+            <div className="px-3 md:px-6 pb-4 md:pb-6 text-center">
                 
                 {/* VISTA PREVIA AVATAR (CÍRCULO PERFECTO) */}
                 <div className="relative w-28 h-28 mx-auto -mt-14 mb-3 group">
@@ -224,10 +229,10 @@ const Configuracion = () => {
             COLUMNA DERECHA: FORMULARIO
            ========================================================= */}
         <div className="md:col-span-2">
-          <div className="bg-white dark:bg-[#1e1e1e] p-6 rounded-2xl border border-gray-300 dark:border-gray-700 shadow-sm">
+          <div className="bg-white dark:bg-[#1e1e1e] p-3 md:p-5 rounded-2xl border border-gray-300 dark:border-gray-700 shadow-sm">
             
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-6 border-b border-gray-100 dark:border-gray-800 pb-2">
-              Editar Información
+            <h3 className="flex items-center gap-2 text-lg font-bold text-gray-900 dark:text-white mb-3 md:mb-5 border-b border-gray-300 dark:border-gray-700 pb-2">
+              <Edit2 size={20} className="text-primary-300" /> Editar Información
             </h3>
 
             {message.text && (
@@ -236,7 +241,7 @@ const Configuracion = () => {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="flex flex-col gap-8">
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4 md:gap-5">
               
               {/* 1. USERNAME */}
               <div>
@@ -249,9 +254,9 @@ const Configuracion = () => {
 
               {/* 2. AVATAR CONFIGURATION */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Avatar</label>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Avatar</label>
                 
-                <div className="flex gap-2 mb-4 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl w-fit">
+                <div className="flex gap-2 mb-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl w-fit">
                     <button type="button" onClick={() => setAvatarTab('url')} className={clsx("px-4 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2", avatarTab === 'url' ? "bg-white dark:bg-gray-700 shadow-sm text-primary-600 dark:text-white" : "text-gray-500 hover:text-gray-700 dark:text-gray-400")}>
                         <LinkIcon size={14} /> URL
                     </button>
@@ -274,7 +279,7 @@ const Configuracion = () => {
                         <div className="space-y-4">
                             <div>
                                 <p className="text-xs font-bold text-gray-500 uppercase mb-2">1. Elige Icono</p>
-                                <div className="grid grid-cols-6 sm:grid-cols-8 lg:grid-cols-12 gap-2 pr-2 custom-scrollbar">
+                                <div className="grid grid-cols-5 sm:grid-cols-8 lg:grid-cols-12 gap-2 pr-2 custom-scrollbar">
                                     {AVATAR_ICON_NAMES.map((name) => {
                                         const Icon = AVATAR_ICONS_MAP[name];
                                         return (
@@ -304,7 +309,7 @@ const Configuracion = () => {
                                             type="button" 
                                             onClick={() => updateAvatarDesign(selectedIcon, color)} 
                                             className={clsx(
-                                                "w-8 h-8 rounded-full border-2 transition-all hover:scale-110", 
+                                                "w-10 h-10 md:w-8 md:h-8 rounded-full border-2 transition-all hover:scale-110", 
                                                 selectedColor === color ? "border-white ring-2 ring-primary-500 shadow-md" : "border-transparent shadow-sm"
                                             )} 
                                             style={{ backgroundColor: color }} 
@@ -319,9 +324,9 @@ const Configuracion = () => {
 
               {/* 3. BANNER CONFIGURATION */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Diseño del Banner</label>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Diseño del Banner</label>
                 
-                <div className="flex gap-2 mb-4 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl w-fit">
+                <div className="flex gap-2 mb-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl w-fit">
                     <button type="button" onClick={() => setBannerTab('presets')} className={clsx("px-4 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2", bannerTab === 'presets' ? "bg-white dark:bg-gray-700 shadow-sm text-primary-600 dark:text-white" : "text-gray-500 hover:text-gray-700 dark:text-gray-400")}>
                         <LayoutGrid size={14} /> Presets
                     </button>
@@ -362,8 +367,8 @@ const Configuracion = () => {
               </div>
 
               {/* Botón Guardar */}
-              <div className="pt-4 mt-2 border-t border-gray-100 dark:border-gray-800">
-                <button type="submit" disabled={loading} className={clsx("px-8 py-3.5 rounded-xl text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary-600/20 transition-all w-full md:w-auto", loading ? "bg-gray-400 cursor-not-allowed" : "bg-primary-600 hover:bg-primary-700 hover:scale-[1.02]")}>
+              <div className="">
+                <button type="submit" disabled={loading} className={clsx("px-8 py-3.5 rounded-xl text-white font-bold flex items-center justify-center gap-2 transition-all w-full md:w-auto", loading ? "bg-gray-400 cursor-not-allowed" : "bg-primary-600 hover:bg-primary-700")}>
                   {loading ? <Loader2 className="animate-spin" /> : <Save size={20} />}
                   {loading ? "Guardando..." : "Guardar Cambios"}
                 </button>

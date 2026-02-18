@@ -89,7 +89,7 @@ const SubirMod = () => {
   const [descargas, setDescargas] = useState([    { id: Date.now(), label: '', url: '' }]);
   const [galeriaUrls, setGaleriaUrls] = useState(['']); 
   // NUEVO ESTADO: REDES SOCIALES
-  const [redes, setSocialLinks] = useState([{ label: '', url: '' }]); // Ejemplo: { label: 'Discord', url: '...' }
+  const [redes, setSocialLinks] = useState([{ label: '', url: '' }]);
   
   // ESTADO PARA TAGS (NUEVO)
   const [tagsList, setTagsList] = useState([]);
@@ -690,7 +690,7 @@ const SubirMod = () => {
             {/* SECCIÓN 2: GALERÍA */}
             <div className="bg-white dark:bg-[#1e1e1e] p-3 md:p-5 rounded-2xl border border-gray-300 dark:border-gray-700 shadow-sm">
                 <div className="flex justify-between items-center mb-4 border-b border-gray-300 dark:border-gray-700 pb-2">
-                    <h3 className="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2"><ImageIcon size={20} className="text-primary-300" /> Galería Multimedia</h3>
+                    <h3 className="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2"><ImageIcon size={20} className="text-primary-300" /> Galería</h3>
                     <button type="button" onClick={addGaleriaField} className="flex items-center gap-1 text-sm font-bold text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-500 transition-colors">
                       <Plus size={16} /> Agregar Imagen
                     </button>
@@ -704,7 +704,7 @@ const SubirMod = () => {
                         const thumbSrc = isYt ? `https://img.youtube.com/vi/${isYt}/mqdefault.jpg` : url;
 
                         return (
-                            <div key={index} className="flex gap-3 items-center animate-fade-in-up">
+                            <div key={index} className="flex flex-wrap flex-column md:flex-row gap-2 md:gap-3 items-center animate-fade-in-up">
                                 <div className="flex-1 relative">
                                     <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
                                     <input 
@@ -712,7 +712,7 @@ const SubirMod = () => {
                                         placeholder="URL de imagen o video (mp4/youtube)" 
                                         value={url} 
                                         onChange={(e) => handleGaleriaChange(index, e.target.value)} 
-                                        className="w-full pl-8 pr-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:border-primary-500 dark:text-white text-sm" 
+                                        className="w-full pl-8 pr-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:border-primary-500 focus:ring-2 dark:focus:ring-primary-500 dark:text-white text-sm" 
                                     />
                                 </div>
                                 
@@ -741,7 +741,7 @@ const SubirMod = () => {
                                 )}
 
                                 {galeriaUrls.length > 1 && (
-                                    <button type="button" onClick={() => removeGaleriaField(index)} className="p-2 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-lg hover:bg-red-100 transition-colors">
+                                    <button type="button" onClick={() => removeGaleriaField(index)} className="p-2 w-full md:w-auto flex justify-center bg-red-50 dark:bg-red-900/30 text-red-500 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 border border-red-800 transition-colors">
                                         <Trash2 size={18} />
                                     </button>
                                 )}
@@ -765,16 +765,16 @@ const SubirMod = () => {
                         <div key={index} className="flex flex-wrap flex-column md:flex-row gap-2 md:gap-3 items-end animate-fade-in-up">
                             <div className="w-full md:flex-1">
                                 <label className="text-xs text-gray-500 mb-1 block">Plataforma/Texto</label>
-                                <input type="text" placeholder="Ej: Discord, Mi Web" value={item.label} onChange={(e) => handleSocialChange(index, 'label', e.target.value)} className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:border-primary-500 dark:text-white text-sm" />
+                                <input type="text" placeholder="Ej: Discord, Mi Web" value={item.label} onChange={(e) => handleSocialChange(index, 'label', e.target.value)} className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-500 dark:text-white text-sm" />
                             </div>
                             <div className="w-full md:flex-[2]">
                                 <label className="text-xs text-gray-500 mb-1 block">URL</label>
                                 <div className="relative">
                                     <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
-                                    <input type="url" placeholder="https://..." value={item.url} onChange={(e) => handleSocialChange(index, 'url', e.target.value)} className="w-full pl-8 pr-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:border-primary-500 dark:text-white text-sm" />
+                                    <input type="url" placeholder="https://..." value={item.url} onChange={(e) => handleSocialChange(index, 'url', e.target.value)} className="w-full pl-8 pr-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-500 dark:text-white text-sm" />
                                 </div>
                             </div>
-                            {redes.length > 1 && <button type="button" onClick={() => removeSocialField(index)} className="p-2 w-full md:w-auto flex justify-center bg-red-50 dark:bg-red-900/20 text-red-500 rounded-lg hover:bg-red-100 transition-colors mb-[1px]"><Trash2 size={18} /></button>}
+                            {redes.length > 1 && <button type="button" onClick={() => removeSocialField(index)} className="p-2 w-full md:w-auto flex justify-center bg-red-50 dark:bg-red-900/30 text-red-500 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 border border-red-800 text-sm transition-colors mb-[1px]"><Trash2 size={18} /></button>}
                         </div>
                     ))}
                 </div>
@@ -811,7 +811,7 @@ const SubirMod = () => {
                                                 // Si elige un preset, lo asignamos directo.
                                                 handleDownloadChange(index, 'label', val === 'custom' ? '' : val);
                                             }}
-                                            className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:border-primary-500 dark:text-white text-sm appearance-none cursor-pointer font-medium"
+                                            className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 dark:text-white text-sm appearance-none cursor-pointer font-medium"
                                         >
                                             <option value="" hidden disabled>Seleccionar etiqueta...</option>
                                             {DOWNLOAD_LABELS.map(opt => (
@@ -833,7 +833,7 @@ const SubirMod = () => {
                                             placeholder="Escribe la etiqueta (Ej: Mediafire)" 
                                             value={item.label} 
                                             onChange={(e) => handleDownloadChange(index, 'label', e.target.value)} 
-                                            className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:border-primary-500 dark:text-white text-sm animate-fade-in" 
+                                            className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 dark:text-white text-sm animate-fade-in" 
                                             autoFocus={item.label === ''} // Enfocar automáticamente al seleccionar 'Otro'
                                         />
                                     )}
@@ -849,7 +849,7 @@ const SubirMod = () => {
                                             placeholder="https://..." 
                                             value={item.url} 
                                             onChange={(e) => handleDownloadChange(index, 'url', e.target.value)} 
-                                            className="w-full pl-8 pr-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:border-primary-500 dark:text-white text-sm" 
+                                            className="w-full pl-8 pr-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 dark:text-white text-sm" 
                                         />
                                     </div>
                                 </div>
@@ -860,7 +860,7 @@ const SubirMod = () => {
                                         <button 
                                             type="button" 
                                             onClick={() => removeDownloadField(index)} 
-                                            className="w-full md:w-auto flex justify-center p-2.5 bg-red-100 dark:bg-red-900/20 text-red-500 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/40 transition-colors"
+                                            className="w-full md:w-auto flex justify-center p-2.5 bg-red-100 dark:bg-red-900/30 text-red-500 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 border border-red-800 transition-colors"
                                             title="Quitar opción"
                                         >
                                             <Trash2 size={16} />
@@ -924,10 +924,11 @@ const SubirMod = () => {
               imagen={formData.imagen || "/default.jpg"}
               titulo={formData.titulo || "Título del Contenido"}
               descargas={descargas}
-              creditos={selectedCreators.length > 0 ? selectedCreators : [{nombre: "Créditos", imagen: null}]}
+              creditos={selectedCreators}
               tags={getPreviewTags()}
               aporte={formData.aporte}
               isPreview={true}
+              key={JSON.stringify(selectedCreators)}
             />
             
             {galeriaUrls.some(u => u.length > 10) && (

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Download, Tag, ChevronDown, AlertCircle, Eye, User, ShieldCheck, Edit3, Trash2 } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -214,14 +214,23 @@ const Card = ({
     setLocalDescargas(descargas);
   }, [descargas]);
 
-  // --- NORMALIZACIÓN DE DATOS ---
-  const listaCreditos = (Array.isArray(creditos) ? creditos : [creditos]).map(creador => {
-    if (typeof creador === 'object' && creador !== null) return creador;
-    return { nombre: creador, imagen: null, uid: null };
-  });
 
-  const primerCredito = listaCreditos[0] || { nombre: 'Desconocido', imagen: null };
-  const totalExtra = Math.max(0, listaCreditos.length - 1);
+    // ✅ Usar useMemo para calcular listaCreditos cuando creditos cambie
+  const listaCreditos = useMemo(() => {
+    return (Array.isArray(creditos) ? creditos : [creditos]).map(creador => {
+      if (typeof creador === 'object' && creador !== null) return creador;
+      return { nombre: creador, imagen: null, uid: null };
+    });
+  }, [creditos]);
+
+  // ✅ Valores derivados que también dependen de creditos
+  const primerCredito = useMemo(() => 
+    listaCreditos[0] || { nombre: 'Desconocido', imagen: null }
+  , [listaCreditos]);
+
+  const totalExtra = useMemo(() => 
+    Math.max(0, listaCreditos.length - 1)
+  , [listaCreditos]);
 
   const statusConfig = getStatusConfig(status);
 
