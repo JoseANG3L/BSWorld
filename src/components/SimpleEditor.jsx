@@ -16,7 +16,7 @@ import {
   ListOrdered,
   Type
 } from 'lucide-react';
-import MarkdownRenderer from './MarkdownRenderer'; // <-- IMPORTACIÓN NUEVA
+import MarkdownRenderer from './MarkdownRenderer';
 
 const SimpleEditor = ({ value, onChange, placeholder }) => {
   const [isPreview, setIsPreview] = useState(false);
@@ -254,91 +254,104 @@ Ctrl+H: Título | Ctrl+L: Enlace | Ctrl+Q: Cita`;
     <div className="border border-gray-300 dark:border-gray-700 rounded-xl overflow-hidden bg-white dark:bg-[#1e1e1e] transition-all focus-within:ring-2 focus-within:ring-primary-500">
       
       {/* BARRA DE HERRAMIENTAS */}
-      <div className="flex flex-wrap items-center justify-between px-2 py-2 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+      <div className="flex flex-wrap items-center justify-between px-2 py-2 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 gap-1">
         
         {/* Primera fila: Texto básico */}
-        <div className="flex items-center gap-1 mb-1">
-          <span className="text-xs text-gray-500 dark:text-gray-400 mr-2">Texto:</span>
-          <button type="button" onClick={formatBold} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Negrita (Ctrl+B)">
-            <Bold size={18} />
-          </button>
-          <button type="button" onClick={formatItalic} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Cursiva (Ctrl+I)">
-            <Italic size={18} />
-          </button>
-          <button type="button" onClick={formatBoldItalic} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Negrita y Cursiva (Ctrl+E)">
-            <Type size={18} />
-          </button>
-          <button type="button" onClick={formatStrikethrough} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Texto tachado">
-            <span className="text-sm font-bold">S</span>
-          </button>
+        <div className="flex flex-wrap items-center gap-1 mb-1">
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-gray-500 dark:text-gray-400 mr-2">Texto:</span>
+            <button type="button" onClick={formatBold} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Negrita (Ctrl+B)">
+              <Bold size={18} />
+            </button>
+            <button type="button" onClick={formatItalic} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Cursiva (Ctrl+I)">
+              <Italic size={18} />
+            </button>
+            <button type="button" onClick={formatBoldItalic} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Negrita y Cursiva (Ctrl+E)">
+              <Type size={18} />
+            </button>
+            <button type="button" onClick={formatStrikethrough} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Texto tachado">
+              <span className="text-sm font-bold">S</span>
+            </button>
+          </div>
+
           <div className="w-px h-4 bg-gray-300 dark:bg-gray-600 mx-1"></div>
           
           {/* Encabezados */}
-          <span className="text-xs text-gray-500 dark:text-gray-400 mr-2">Títulos:</span>
-          <div className="flex gap-0.5">
-            {[1, 2, 3].map(level => (
-              <button 
-                key={level} 
-                type="button" 
-                onClick={() => formatHeading(level)}
-                className="px-2 py-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300 text-xs font-bold"
-                title={`Título H${level}`}
-              >
-                H{level}
-              </button>
-            ))}
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-gray-500 dark:text-gray-400 mr-2">Títulos:</span>
+            <div className="flex gap-0.5">
+              {[1, 2, 3].map(level => (
+                <button 
+                  key={level} 
+                  type="button" 
+                  onClick={() => formatHeading(level)}
+                  className="px-2 py-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300 text-xs font-bold"
+                  title={`Título H${level}`}
+                >
+                  H{level}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
         {/* Segunda fila: Elementos estructurales */}
-        <div className="flex items-center gap-1">
-          <span className="text-xs text-gray-500 dark:text-gray-400 mr-2">Listas:</span>
-          <button type="button" onClick={formatUnorderedList} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Lista no ordenada">
-            <List size={18} />
-          </button>
-          <button type="button" onClick={formatOrderedList} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Lista ordenada">
-            <ListOrdered size={18} />
-          </button>
-          <div className="w-px h-4 bg-gray-300 dark:bg-gray-600 mx-1"></div>
+        <div className="flex flex-wrap items-center gap-1">
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-gray-500 dark:text-gray-400 mr-2">Listas:</span>
+            <button type="button" onClick={formatUnorderedList} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Lista no ordenada">
+              <List size={18} />
+            </button>
+            <button type="button" onClick={formatOrderedList} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Lista ordenada">
+              <ListOrdered size={18} />
+            </button>
+            <div className="w-px h-4 bg-gray-300 dark:bg-gray-600 mx-1"></div>
+          </div>
           
-          <span className="text-xs text-gray-500 dark:text-gray-400 mr-2">Medios:</span>
-          <button type="button" onClick={formatLink} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Enlace (Ctrl+L)">
-            <Link size={18} />
-          </button>
-          <button type="button" onClick={formatImage} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Imagen">
-            <ImageIcon size={18} />
-          </button>
-          <div className="w-px h-4 bg-gray-300 dark:bg-gray-600 mx-1"></div>
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-gray-500 dark:text-gray-400 mr-2">Medios:</span>
+            <button type="button" onClick={formatLink} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Enlace (Ctrl+L)">
+              <Link size={18} />
+            </button>
+            <button type="button" onClick={formatImage} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Imagen">
+              <ImageIcon size={18} />
+            </button>
+            <div className="w-px h-4 bg-gray-300 dark:bg-gray-600 mx-1"></div>
+          </div>
           
-          <span className="text-xs text-gray-500 dark:text-gray-400 mr-2">Bloques:</span>
-          <button type="button" onClick={formatBlockquote} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Cita (Ctrl+Q)">
-            <Quote size={18} />
-          </button>
-          <button type="button" onClick={formatCodeBlock} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Bloque de código (Ctrl+J)">
-            <Code size={18} />
-          </button>
-          <button type="button" onClick={formatInlineCode} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Código en línea (Ctrl+K)">
-            <span className="text-xs font-bold">{"<>"}</span>
-          </button>
-          <div className="w-px h-4 bg-gray-300 dark:bg-gray-600 mx-1"></div>
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-gray-500 dark:text-gray-400 mr-2">Bloques:</span>
+            <button type="button" onClick={formatBlockquote} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Cita (Ctrl+Q)">
+              <Quote size={18} />
+            </button>
+            <button type="button" onClick={formatCodeBlock} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Bloque de código (Ctrl+J)">
+              <Code size={18} />
+            </button>
+            <button type="button" onClick={formatInlineCode} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Código en línea (Ctrl+K)">
+              <span className="text-xs font-bold">{"<>"}</span>
+            </button>
+            <div className="w-px h-4 bg-gray-300 dark:bg-gray-600 mx-1"></div>
+          </div>
           
-          <span className="text-xs text-gray-500 dark:text-gray-400 mr-2">Otros:</span>
-          <button type="button" onClick={formatTable} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Tabla">
-            <Table size={18} />
-          </button>
-          <button type="button" onClick={formatHorizontalRule} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Línea horizontal">
-            <Minus size={18} />
-          </button>
-          <button type="button" onClick={showQuickGuide} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Guía rápida">
-            <HelpCircle size={18} />
-          </button>
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-gray-500 dark:text-gray-400 mr-2">Otros:</span>
+            <button type="button" onClick={formatTable} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Tabla">
+              <Table size={18} />
+            </button>
+            <button type="button" onClick={formatHorizontalRule} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Línea horizontal">
+              <Minus size={18} />
+            </button>
+            <button type="button" onClick={showQuickGuide} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Guía rápida">
+              <HelpCircle size={18} />
+            </button>
+          </div>
         </div>
 
         {/* Toggle Vista Previa */}
         <button 
           type="button" 
           onClick={() => setIsPreview(!isPreview)}
-          className={`flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-bold transition-colors ml-2 ${isPreview ? 'bg-primary-100 text-primary-700' : 'text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+          className={`flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-bold transition-colors bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600`}
         >
           {isPreview ? <><Edit3 size={14}/> Editar</> : <><Eye size={14}/> Vista Previa</>}
         </button>
@@ -348,7 +361,7 @@ Ctrl+H: Título | Ctrl+L: Enlace | Ctrl+Q: Cita`;
       <div className="min-h-[200px] max-h-[500px] overflow-y-auto">
         {isPreview ? (
           // VISTA PREVIA MEJORADA CON SafeMarkdownRenderer
-          <div className="p-4">
+          <div className="p-3 md:p-4">
             {value ? (
               <div className="text-gray-800 dark:text-gray-200 text-sm">
                 <MarkdownRenderer 
@@ -371,7 +384,7 @@ Ctrl+H: Título | Ctrl+L: Enlace | Ctrl+Q: Cita`;
             value={value}
             onChange={(e) => onChange(e.target.value)}
             placeholder={placeholder || "Escribe tu contenido Markdown aquí... Usa los botones de arriba para formato o Ctrl+? para atajos."}
-            className="w-full h-full p-4 bg-transparent outline-none text-gray-800 dark:text-gray-200 text-sm resize-y min-h-[200px] font-mono"
+            className="w-full h-full p-3 md:p-4 bg-transparent outline-none text-gray-800 dark:text-gray-200 text-sm resize-y min-h-[200px] font-mono"
           />
         )}
       </div>

@@ -115,6 +115,40 @@ const SmartUserDisplay = ({ initialUser, type = 'list' , extraCount = 0 }) => {
   return null;
 };
 
+const getStatusConfig = (status) => {
+  switch (status) {
+    case 'published':
+      return { 
+        label: 'Publicado', 
+        style: 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800' 
+      };
+    case 'pending':
+      return { 
+        label: 'En Revisión', 
+        style: 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800' 
+      };
+    case 'rejected':
+      return { 
+        label: 'Rechazado', 
+        style: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800' 
+      };
+    case 'draft':
+      return { 
+        label: 'Borrador', 
+        style: 'bg-gray-100 text-gray-600 border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700' 
+      };
+    case 'inactive':
+      return { 
+        label: 'Inactivo', 
+        style: 'bg-gray-100 text-gray-500 border-gray-200 dark:bg-gray-800 dark:text-gray-500' 
+      };
+    default:
+      return { 
+        label: 'Desconocido', 
+        style: 'bg-gray-100 text-gray-500 border-gray-200 dark:bg-gray-800 dark:text-gray-500' 
+      };
+  }
+};
 
 const Card = ({ 
   id, 
@@ -123,8 +157,9 @@ const Card = ({
   descargas = [], 
   creditos = [], 
   tags = [], 
-  aporte,        
-  vistas = 0, 
+  aporte,
+  vistas = 0,
+  status = 'Creado',
   isPreview = false,
   isEditable = false,
   handleDelete,
@@ -175,6 +210,10 @@ const Card = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    setLocalDescargas(descargas);
+  }, [descargas]);
+
   // --- NORMALIZACIÓN DE DATOS ---
   const listaCreditos = (Array.isArray(creditos) ? creditos : [creditos]).map(creador => {
     if (typeof creador === 'object' && creador !== null) return creador;
@@ -184,13 +223,22 @@ const Card = ({
   const primerCredito = listaCreditos[0] || { nombre: 'Desconocido', imagen: null };
   const totalExtra = Math.max(0, listaCreditos.length - 1);
 
+  const statusConfig = getStatusConfig(status);
+
   return (
     <div className="group flex flex-col bg-white dark:bg-[#1e1e1e] border border-gray-300 dark:border-gray-700 rounded-2xl shadow-lg transition-all duration-300 z-0 relative h-full">
       
+      {/* ESTADO: CREADO, PUBLICADO, EN PROCESO, EN REVISION, EN PENDIENTE, FINALIZADO */}
+      {isEditable &&
+        <div className={`text-xs font-bold text-center p-1 ${statusConfig.style} rounded-t-2xl`}>
+          {statusConfig.label}
+        </div>
+      }
+
       {/* 1. IMAGEN */}
       <Link 
         to={(!isPreview && id) ? `/view/${id}` : "#"} 
-        className={clsx("relative w-full aspect-video overflow-hidden bg-gray-100 dark:bg-gray-800 rounded-t-2xl block cursor-pointer", isPreview && "cursor-default")}
+        className={clsx("relative w-full aspect-video overflow-hidden bg-gray-100 dark:bg-gray-800 block cursor-pointer", isPreview && "cursor-default", !isEditable && "rounded-t-2xl")}
         onClick={(e) => isPreview && e.preventDefault()}
       >
         <img 
@@ -284,7 +332,9 @@ const Card = ({
                     <a key={index} href={option.url} target="_blank" rel="noopener noreferrer" onClick={() => handleDownloadClick(option.url)} className="flex items-center justify-between px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-700 dark:hover:text-primary-300 transition-colors border-b border-gray-50 dark:border-gray-800 last:border-0 group/item cursor-pointer">
                       <div className="flex flex-col truncate pr-2">
                           <span className="truncate font-bold">{option.label}</span>
-                          <span className="text-[10px] text-gray-500 dark:text-gray-400 group-hover/item:text-primary-500 dark:group-hover/item:text-primary-300 transition-colors flex items-center gap-1"><Download size={10} /> {formatNumber(option.count || 0)}</span>
+                          <span className="text-[10px] text-gray-500 dark:text-gray-400 group-hover/item:text-primary-500 dark:group-hover/item:text-primary-300 transition-colors flex items-center gap-1">
+                            <Download size={10} /> {formatNumber(option.count || 0)} {option.count > 1 ? 'descargas' : 'descarga'}
+                          </span>
                       </div>
                       <Download size={16} className="shrink-0 text-gray-500 dark:text-gray-400 group-hover/item:text-primary-500 dark:group-hover/item:text-primary-300 transition-colors" />
                     </a>
@@ -319,7 +369,7 @@ const Card = ({
 
         {/* 5. TAGS */}
         <div className="flex flex-wrap gap-2 mb-3">
-          {tags && tags.slice(0, 3).map((tag, index) => (
+          {tags && tags.map((tag, index) => (
             <div key={index} className="flex items-center gap-1 px-2 py-1 rounded-full bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700">
               <Tag size={10} className="text-gray-600 dark:text-gray-400" />
               <span className="text-[10px] font-bold uppercase tracking-wider text-gray-600 dark:text-gray-400">{tag}</span>

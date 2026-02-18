@@ -35,7 +35,7 @@ export const getContentByType = async (tipo) => {
     const q = query(
       colRef, 
       where("tipo", "==", tipo), 
-      where("status", "==", "active"), 
+      where("status", "==", "published"), 
       orderBy("creado", "desc") // Ordenamos por fecha
     );
     const snapshot = await getDocs(q);
@@ -54,7 +54,7 @@ export const getPublicContent = async () => {
   try {
     const contentRef = collection(db, "content");
     // MODIFICADO: Solo traemos lo que está aprobado
-    const q = query(contentRef, where("status", "==", "active"), orderBy("creado", "desc")); 
+    const q = query(contentRef, where("status", "==", "published"), orderBy("creado", "desc")); 
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   } catch (error) {
@@ -144,7 +144,7 @@ export const deleteContent = async (id) => {
 export const approveContent = async (id) => {
   try {
     const docRef = doc(db, "content", id);
-    await updateDoc(docRef, { status: 'active' });
+    await updateDoc(docRef, { status: 'published' });
     return true;
   } catch (error) {
     console.error("Error aprobando contenido:", error);
@@ -165,7 +165,7 @@ export const searchGlobalContent = async (searchTerm) => {
     // MODIFICADO: Filtramos primero que sea "active"
     const data = snapshot.docs
       .map(doc => ({ id: doc.id, ...doc.data() }))
-      .filter(item => item.status === 'active'); // <--- Solo buscar en activos
+      .filter(item => item.status === 'published'); // <--- Solo buscar en activos
     
     const term = searchTerm.toLowerCase();
 
@@ -204,7 +204,7 @@ export const createContent = async (data, isUserSubmission = false) => {
       creado: fechaCreacion,
       actualizado: new Date().toISOString(),
       // MODIFICADO: Si es usuario normal, forzamos "pending"
-      status: isUserSubmission ? 'pending' : (data.status || 'active'),
+      status: isUserSubmission ? 'pending' : (data.status || 'published'),
       vistas: 0, // Inicializamos vistas/descargas internas
       descargas: data.descargas || []
     };
@@ -241,7 +241,7 @@ export const getContentByCreator = async (creatorName) => {
     const q = query(
         colRef, 
         where("nombresBusqueda", "array-contains", creatorName),
-        where("status", "==", "active") 
+        where("status", "==", "published") 
     );
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -295,7 +295,7 @@ export const getGlobalStats = async () => {
     contentSnapshot.forEach(doc => {
       const data = doc.data();
       // Solo contamos estadísticas de contenido activo para no inflar números
-      if (data.status === 'active') {
+      if (data.status === 'published') {
           totalContent++;
           if (data.descargas && Array.isArray(data.descargas)) {
             const descargasItem = data.descargas.reduce((acc, curr) => acc + (curr.count || 0), 0);

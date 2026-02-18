@@ -3,7 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { 
   Save, Plus, Trash2, Image as ImageIcon, Lock, ArrowLeft, LogIn, UserX,
   Link as LinkIcon, Users, Tag, Type, Layers, Calendar, Eye, PenTool, X, Search, Loader2,
-  Globe, PlayCircle
+  Globe, PlayCircle, Activity, ChevronDown, FileText, Upload
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { 
@@ -35,6 +35,17 @@ const isVideo = (url) => {
     return url.match(/\.(mp4|webm|ogg|mov)$/i);
 };
 
+const DOWNLOAD_LABELS = [
+  "API 9 (1.7.44+)",
+  "API 8 (1.7.20+)",
+  "API 7 (1.7.5+)",
+  "API 6 (1.6.4+)",
+  "API 4 (1.4.150+)"
+];
+const RECOMMENDED_TAGS = [
+  "api 9", "api 8", "api 7", "api 6", "api 4",
+];
+
 const SubirMod = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -64,6 +75,7 @@ const SubirMod = () => {
     titulo: '',
     descripcion: '',
     tipo: 'mod',
+    status: 'pending',
     imagen: '',
     aporte: { 
       uid: user?.uid || '', 
@@ -74,7 +86,7 @@ const SubirMod = () => {
   });
 
   // ESTADOS ESPECÍFICOS (Arrays)
-  const [descargas, setDescargas] = useState([{ label: 'Descarga Principal', url: '' }]);
+  const [descargas, setDescargas] = useState([    { id: Date.now(), label: '', url: '' }]);
   const [galeriaUrls, setGaleriaUrls] = useState(['']); 
   // NUEVO ESTADO: REDES SOCIALES
   const [redes, setSocialLinks] = useState([{ label: '', url: '' }]); // Ejemplo: { label: 'Discord', url: '...' }
@@ -172,7 +184,8 @@ const SubirMod = () => {
             tipo: data.tipo || 'mod',
             imagen: data.imagen || '',
             aporte: data.aporte || formData.aporte,
-            creado: fechaInput
+            creado: fechaInput,
+            status: data.status || 'pending'
           });
 
           if (data.descargas && data.descargas.length > 0) {
@@ -263,6 +276,12 @@ const SubirMod = () => {
     setSocialLinks(newLinks);
   };
 
+  const addTagDirect = (tag) => {
+    if (!tagsList.includes(tag)) {
+      setTagsList([...tagsList, tag]);
+    }
+  };
+
   // --- MANEJADORES DE DESCARGAS ---
   const handleDownloadChange = (index, field, value) => {
     const newDescargas = [...descargas];
@@ -271,7 +290,7 @@ const SubirMod = () => {
   };
 
   const addDownloadField = () => {
-    setDescargas([...descargas, { label: '', url: '' }]);
+    setDescargas([...descargas, { id: Date.now(), label: '', url: '' }]);
   };
 
   const removeDownloadField = (index) => {
@@ -331,25 +350,43 @@ const SubirMod = () => {
     return [formData.tipo, ...tagsList];
   };
 
-  // --- SUBMIT ---
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  // --- GUARDAR CONTENIDO ---
+  const handleSave = async (action) => {
+    
+    if (action === 'pending' && (!formData.titulo || !formData.imagen)) {
+        setModal({ isOpen: true, type: 'error', title: 'Faltan datos', message: 'El título y la imagen principal son obligatorios para publicar.' });
+        return;
+    }
+    if (action in ['draft', 'published'] && !formData.titulo) {
+        setModal({ isOpen: true, type: 'error', title: 'Faltan datos', message: 'El título es obligatorio para guardar el borrador.' });
+        return;
+    }
+
     setLoading(true);
 
     try {
-      const creditosParaGuardar = selectedCreators.map(c => ({
-          nombre: c.nombre,
-          uid: c.uid || null
-      }));
+      // 1. Determinar Status Final
+      let finalStatus = 'pending';
+      
+      if (action === 'draft') {
+        finalStatus = 'draft';
+      } else {
+        // Si es publicar:
+        if (user.role === 'admin') {
+            // Admin puede elegir (usamos el del form si existe, o active por defecto)
+            finalStatus = formData.status === 'draft' ? 'published' : formData.status;
+        } else {
+            // Usuario normal siempre pasa a revisión
+            finalStatus = 'pending';
+        }
+      }
 
+      // 2. Construir Payload
+      const creditosParaGuardar = selectedCreators.map(c => ({ nombre: c.nombre, uid: c.uid || null }));
       const nombresBusqueda = selectedCreators.map(c => c.nombre);
-      
-      // Combinamos el TIPO + TAGS DE LA LISTA
       const finalTags = [formData.tipo, ...tagsList];
-      
-      const esEnvioDeUsuario = user.role !== 'admin';
       const finalGaleria = galeriaUrls.filter(url => url.trim() !== '');
-      const finalRedes = redes.filter(link => link.url.trim() !== ''); // Filtramos vacíos
+      const finalRedes = redes.filter(link => link.url.trim() !== '');
 
       const payload = {
         titulo: formData.titulo,
@@ -357,44 +394,36 @@ const SubirMod = () => {
         tipo: formData.tipo,
         imagen: formData.imagen,
         galeria: finalGaleria,
-        redes: finalRedes, // Guardamos redes sociales
+        redes: finalRedes,
         creditos: creditosParaGuardar,
         nombresBusqueda: nombresBusqueda,
-        tags: finalTags, // <--- Aquí va el array limpio
+        tags: finalTags,
         descargas: descargas.filter(d => d.url !== ''),
         aporte: formData.aporte,
-        creado: new Date(formData.creado).toISOString() 
+        creado: new Date(formData.creado).toISOString(),
+        status: finalStatus
       };
 
       if (isEditing) {
         await updateContent(editId, payload);
         setModal({
-          isOpen: true,
-          type: 'success',
-          title: '¡Actualización Exitosa!',
-          message: 'El contenido ha sido modificado y guardado correctamente.',
-          onConfirm: () => navigate('/mis-mods')
+            isOpen: true, type: 'success', title: '¡Actualizado!', message: `Contenido guardado correctamente como: ${finalStatus === 'draft' ? 'Borrador' : (finalStatus === 'active' ? 'Publicado' : 'Pendiente')}`,
+            onConfirm: () => navigate(user.role === 'admin' ? '/admin' : '/mis-mods')
         });
       } else {
-        await createContent(payload, esEnvioDeUsuario);
+        await createContent(payload, false); // false para respetar el status que calculamos aquí
         setModal({
-          isOpen: true,
-          type: 'success',
-          title: '¡Contenido Publicado!',
-          message: 'Tu aporte ha sido subido con éxito a la plataforma.',
-          onConfirm: () => navigate('/mis-mods')
+            isOpen: true, type: 'success', title: '¡Creado!', message: `Contenido ${finalStatus === 'draft' ? 'guardado como borrador' : 'enviado exitosamente'}.`,
+            onConfirm: () => {
+                if(action === 'draft') navigate('/mis-mods'); 
+                else navigate('/mis-mods');
+            }
         });
       }
 
     } catch (error) {
       console.error(error);
-      setModal({
-        isOpen: true,
-        type: 'error',
-        title: 'Error al guardar',
-        message: 'Ocurrió un problema al intentar subir el contenido. Por favor revisa tu conexión e inténtalo de nuevo.',
-        onConfirm: null
-      });
+      setModal({ isOpen: true, type: 'error', title: 'Error', message: 'No se pudo guardar. Verifica tu conexión.' });
     } finally {
       setLoading(false);
     }
@@ -443,8 +472,12 @@ const SubirMod = () => {
   return (
     <div className="max-w-7xl mx-auto animate-fade-in-up">
       
-      <div className="flex items-center gap-3 mb-8">
-        <div className={clsx("p-3 rounded-xl text-white shadow-lg", isEditing ? "bg-blue-600 shadow-blue-600/30" : "bg-primary-600 shadow-primary-600/30")}>
+      <button onClick={() => navigate(-1)} className="mb-4 md:mb-6 flex items-center gap-2 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors font-medium">
+        <ArrowLeft size={20} /> Volver al listado
+      </button>
+
+      <div className="flex items-center gap-3 mb-4 md:mb-8">
+        <div className={clsx("p-3 rounded-xl text-white", isEditing ? "bg-blue-600" : "bg-primary-600")}>
           {isEditing ? <PenTool size={24} /> : <Layers size={24} />}
         </div>
         <div>
@@ -453,24 +486,26 @@ const SubirMod = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 items-start">
         
         {/* --- FORMULARIO --- */}
-        <div className="lg:col-span-2 flex flex-col gap-6">
-          <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+        <div className="lg:col-span-2 flex flex-col gap-3 md:gap-5">
+          <form onSubmit={(e) => e.preventDefault()} className="flex flex-col gap-3 md:gap-5">
             
             {/* SECCIÓN 1: INFO GENERAL */}
-            <div className="bg-white dark:bg-[#1e1e1e] p-6 rounded-2xl border border-gray-300 dark:border-gray-700 shadow-sm">
-              <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-4 border-b border-gray-100 dark:border-gray-700 pb-2">Información General</h3>
+            <div className="bg-white dark:bg-[#1e1e1e] p-3 md:p-5 rounded-2xl border border-gray-300 dark:border-gray-700 shadow-sm">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 md:mb-6 flex items-center gap-2 ps-0.5 pb-3 md:pb-4 border-b border-gray-300 dark:border-gray-700">
+                <Layers size={20} className="text-primary-600 dark:text-primary-300" /> Información General
+              </h3>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
                 {/* ... (Campos anteriores: Título, Descripción, Tipo, Fecha, Imagen, Créditos, Tags) ... */}
                 {/* Título */}
                 <div className="md:col-span-2">
                   <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Título</label>
                   <div className="relative">
                     <Type className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                    <input type="text" name="titulo" required value={formData.titulo} onChange={handleChange} placeholder="Ej: SkyBlock Ultimate" className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white" />
+                    <input type="text" name="titulo" required value={formData.titulo} onChange={handleChange} placeholder="Ej: Super Mod" className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white" />
                   </div>
                 </div>
 
@@ -493,7 +528,7 @@ const SubirMod = () => {
                 {/* Tipo */}
                 <div className="md:col-span-2">
                   <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Tipo</label>
-                  <select name="tipo" value={formData.tipo} onChange={handleChange} className="w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white">
+                  <select name="tipo" value={formData.tipo} onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white">
                     <option value="mapa">Mapa</option>
                     <option value="minijuego">Minijuego</option>
                     <option value="modpack">Modpack</option>
@@ -579,12 +614,12 @@ const SubirMod = () => {
                   )}
                 </div>
 
-                {/* Tags */}
+                {/* --- SECCIÓN TAGS ACTUALIZADA --- */}
                 <div className="md:col-span-2">
                   <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Etiquetas (Tags)</label>
                   
+                  {/* Input y Tags Seleccionados */}
                   <div className="p-2 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 focus-within:ring-2 focus-within:ring-primary-500 transition-all flex flex-wrap gap-2 min-h-[50px]">
-                    {/* Renderizamos los tags agregados */}
                     {tagsList.map((tag, idx) => (
                       <div key={idx} className="flex items-center gap-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-700 px-2 py-1 rounded-full animate-fade-in-up">
                         <Tag size={12} className="text-primary-600 dark:text-primary-400" />
@@ -595,29 +630,70 @@ const SubirMod = () => {
                       </div>
                     ))}
                     
-                    {/* Input para agregar nuevos */}
                     <input 
                       type="text" 
                       value={tagInput}
                       onChange={(e) => setTagInput(e.target.value)}
-                      onKeyDown={handleTagKeyDown} // AQUÍ ES DONDE SUCEDE LA MAGIA DEL ENTER
+                      onKeyDown={handleTagKeyDown}
                       placeholder={tagsList.length === 0 ? "Ej: Aventura, PvP (Presiona Enter)" : "Agregar otro..."}
                       className="flex-1 bg-transparent outline-none text-sm dark:text-white py-1 min-w-[150px]"
                     />
                   </div>
-                  <p className="text-[10px] text-gray-400 mt-1.5 flex items-center gap-1">
-                     <Type size={10} /> Escribe una palabra y presiona <b>Enter</b> para agregarla.
-                  </p>
+
+                  {/* Instrucciones y Sugerencias */}
+                  <div className="flex flex-col gap-2 mt-2">
+                      <p className="text-[10px] text-gray-400 flex items-center gap-1">
+                        <Type size={10} /> Escribe una palabra y presiona <b>Enter</b> para agregarla.
+                      </p>
+
+                      {/* --- TAGS RECOMENDADOS --- */}
+                      <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mr-1">Sugeridos:</span>
+                          {RECOMMENDED_TAGS.map((tag) => {
+                              // Solo mostrar si no está seleccionado ya
+                              if (tagsList.includes(tag)) return null;
+                              
+                              return (
+                                  <button
+                                      key={tag}
+                                      type="button"
+                                      onClick={() => addTagDirect(tag)}
+                                      className="px-2 py-1 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-xs text-gray-600 dark:text-gray-400 hover:border-primary-500 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                                  >
+                                      {tag}
+                                  </button>
+                              );
+                          })}
+                      </div>
+                  </div>
                 </div>
+
+                {/* --- ESTADO (SOLO VISIBLE PARA ADMINS) --- */}
+                {user?.role === 'admin' && (
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                      Estado de Publicación
+                    </label>
+                    <select name="tipo" value={formData.tipo} onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white">
+                      <option value="published">Publicado</option>
+                      <option value="pending">Pendiente</option>
+                      <option value="rejected">Rechazado</option>
+                      <option value="draft">Borrador</option>
+                      <option value="inactive">Inactivo</option>
+                    </select>
+                  </div>
+                )}
 
               </div>
             </div>
 
             {/* SECCIÓN 2: GALERÍA */}
-            <div className="bg-white dark:bg-[#1e1e1e] p-6 rounded-2xl border border-gray-300 dark:border-gray-700 shadow-sm">
+            <div className="bg-white dark:bg-[#1e1e1e] p-3 md:p-5 rounded-2xl border border-gray-300 dark:border-gray-700 shadow-sm">
                 <div className="flex justify-between items-center mb-4 border-b border-gray-300 dark:border-gray-700 pb-2">
-                    <h3 className="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2"><ImageIcon size={20} className="text-purple-500" /> Galería Multimedia</h3>
-                    <button type="button" onClick={addGaleriaField} className="flex items-center gap-1 text-sm font-bold text-primary-600 dark:text-primary-400 hover:text-primary-700 transition-colors"><Plus size={16} /> Agregar URL</button>
+                    <h3 className="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2"><ImageIcon size={20} className="text-primary-300" /> Galería Multimedia</h3>
+                    <button type="button" onClick={addGaleriaField} className="flex items-center gap-1 text-sm font-bold text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-500 transition-colors">
+                      <Plus size={16} /> Agregar Imagen
+                    </button>
                 </div>
                 
                 <div className="flex flex-col gap-3">
@@ -677,60 +753,166 @@ const SubirMod = () => {
             </div>
 
             {/* SECCIÓN 3: CONOCE MÁS / REDES SOCIALES (NUEVA) */}
-            <div className="bg-white dark:bg-[#1e1e1e] p-6 rounded-2xl border border-gray-300 dark:border-gray-700 shadow-sm">
+            <div className="bg-white dark:bg-[#1e1e1e] p-3 md:p-5 rounded-2xl border border-gray-300 dark:border-gray-700 shadow-sm">
                 <div className="flex justify-between items-center mb-4 border-b border-gray-300 dark:border-gray-700 pb-2">
                     <h3 className="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2"><Globe size={20} className="text-blue-500" /> Redes Sociales</h3>
-                    <button type="button" onClick={addSocialField} className="flex items-center gap-1 text-sm font-bold text-primary-600 dark:text-primary-400 hover:text-primary-700 transition-colors"><Plus size={16} /> Agregar Link</button>
+                    <button type="button" onClick={addSocialField} className="flex items-center gap-1 text-sm font-bold text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-500 transition-colors">
+                      <Plus size={16} /> Agregar Red
+                    </button>
                 </div>
                 <div className="flex flex-col gap-3">
                     {redes.map((item, index) => (
-                        <div key={index} className="flex gap-3 items-end animate-fade-in-up">
-                            <div className="flex-1">
+                        <div key={index} className="flex flex-wrap flex-column md:flex-row gap-2 md:gap-3 items-end animate-fade-in-up">
+                            <div className="w-full md:flex-1">
                                 <label className="text-xs text-gray-500 mb-1 block">Plataforma/Texto</label>
                                 <input type="text" placeholder="Ej: Discord, Mi Web" value={item.label} onChange={(e) => handleSocialChange(index, 'label', e.target.value)} className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:border-primary-500 dark:text-white text-sm" />
                             </div>
-                            <div className="flex-[2]">
+                            <div className="w-full md:flex-[2]">
                                 <label className="text-xs text-gray-500 mb-1 block">URL</label>
                                 <div className="relative">
                                     <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
                                     <input type="url" placeholder="https://..." value={item.url} onChange={(e) => handleSocialChange(index, 'url', e.target.value)} className="w-full pl-8 pr-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:border-primary-500 dark:text-white text-sm" />
                                 </div>
                             </div>
-                            {redes.length > 1 && <button type="button" onClick={() => removeSocialField(index)} className="p-2 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-lg hover:bg-red-100 transition-colors mb-[1px]"><Trash2 size={18} /></button>}
+                            {redes.length > 1 && <button type="button" onClick={() => removeSocialField(index)} className="p-2 w-full md:w-auto flex justify-center bg-red-50 dark:bg-red-900/20 text-red-500 rounded-lg hover:bg-red-100 transition-colors mb-[1px]"><Trash2 size={18} /></button>}
                         </div>
                     ))}
                 </div>
             </div>
 
             {/* SECCIÓN 4: DESCARGAS */}
-            <div className="bg-white dark:bg-[#1e1e1e] p-6 rounded-2xl border border-gray-300 dark:border-gray-700 shadow-sm">
-              <div className="flex justify-between items-center mb-4 border-b border-gray-300 dark:border-gray-700 pb-2">
-                <h3 className="text-lg font-bold text-gray-800 dark:text-white">Enlaces de Descarga</h3>
-                <button type="button" onClick={addDownloadField} className="flex items-center gap-1 text-sm font-bold text-primary-600 dark:text-primary-400 hover:text-primary-700 transition-colors"><Plus size={16} /> Agregar Link</button>
-              </div>
-              <div className="flex flex-col gap-3">
-                {descargas.map((item, index) => (
-                  <div key={index} className="flex gap-3 items-end animate-fade-in-up">
-                    <div className="flex-1">
-                      <label className="text-xs text-gray-500 mb-1 block">Etiqueta</label>
-                      <input type="text" placeholder="Ej: Mediafire" value={item.label} onChange={(e) => handleDownloadChange(index, 'label', e.target.value)} className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:border-primary-500 dark:text-white text-sm" />
-                    </div>
-                    <div className="flex-[2]">
-                      <label className="text-xs text-gray-500 mb-1 block">URL</label>
-                      <div className="relative">
-                          <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
-                          <input type="url" placeholder="https://..." value={item.url} onChange={(e) => handleDownloadChange(index, 'url', e.target.value)} className="w-full pl-8 pr-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:border-primary-500 dark:text-white text-sm" />
-                      </div>
-                    </div>
-                    {descargas.length > 1 && <button type="button" onClick={() => removeDownloadField(index)} className="p-2 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-lg hover:bg-red-100 transition-colors mb-[1px]"><Trash2 size={18} /></button>}
-                  </div>
-                ))}
-              </div>
+            <div className="bg-white dark:bg-[#1e1e1e] p-3 md:p-5 rounded-2xl border border-gray-300 dark:border-gray-700 shadow-sm">
+                <div className="flex justify-between items-center mb-4 border-b border-gray-300 dark:border-gray-700 pb-2">
+                    <h3 className="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2"><LinkIcon size={20} className="text-primary-300" /> Descargas</h3>
+                    <button type="button" onClick={addDownloadField} className="flex items-center gap-1 text-sm font-bold text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-500 transition-colors">
+                        <Plus size={16} /> Agregar Descarga
+                    </button>
+                </div>
+                
+                <div className="flex flex-col gap-4">
+                    {descargas.map((item, index) => {
+                        // Verificamos si la etiqueta actual está en la lista de presets
+                        const isCustom = !DOWNLOAD_LABELS.includes(item.label) && item.label !== '';
+
+                        return (
+                            <div key={index} className="flex flex-wrap flex-column md:flex-row gap-2 md:gap-3 items-start animate-fade-in-up">
+                                
+                                {/* COLUMNA ETIQUETA (Select + Input) */}
+                                <div className="w-full md:flex-1 flex flex-col gap-2">
+                                    <label className="text-xs text-gray-500 font-bold ml-1">Etiqueta / Versión</label>
+                                    
+                                    {/* 1. SELECTOR */}
+                                    <div className="relative">
+                                        <select 
+                                            value={DOWNLOAD_LABELS.includes(item.label) ? item.label : 'custom'} 
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                // Si elige 'custom', limpiamos el label para que escriba. 
+                                                // Si elige un preset, lo asignamos directo.
+                                                handleDownloadChange(index, 'label', val === 'custom' ? '' : val);
+                                            }}
+                                            className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:border-primary-500 dark:text-white text-sm appearance-none cursor-pointer font-medium"
+                                        >
+                                            <option value="" hidden disabled>Seleccionar etiqueta...</option>
+                                            {DOWNLOAD_LABELS.map(opt => (
+                                                <option key={opt} value={opt}>{opt}</option>
+                                            ))}
+                                            <option value="custom">Otro / Manual...</option>
+                                        </select>
+                                        
+                                        {/* Icono flecha para el select */}
+                                        <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-gray-500">
+                                            <ChevronDown size={14} />
+                                        </div>
+                                    </div>
+
+                                    {/* 2. INPUT MANUAL (Solo si elige 'Otro') */}
+                                    {(!DOWNLOAD_LABELS.includes(item.label)) && (
+                                        <input 
+                                            type="text" 
+                                            placeholder="Escribe la etiqueta (Ej: Mediafire)" 
+                                            value={item.label} 
+                                            onChange={(e) => handleDownloadChange(index, 'label', e.target.value)} 
+                                            className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:border-primary-500 dark:text-white text-sm animate-fade-in" 
+                                            autoFocus={item.label === ''} // Enfocar automáticamente al seleccionar 'Otro'
+                                        />
+                                    )}
+                                </div>
+
+                                {/* COLUMNA URL */}
+                                <div className="w-full md:flex-[2] flex flex-col gap-2">
+                                    <label className="text-xs text-gray-500 font-bold ml-1">Enlace (URL)</label>
+                                    <div className="relative">
+                                        <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                                        <input 
+                                            type="url" 
+                                            placeholder="https://..." 
+                                            value={item.url} 
+                                            onChange={(e) => handleDownloadChange(index, 'url', e.target.value)} 
+                                            className="w-full pl-8 pr-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:border-primary-500 dark:text-white text-sm" 
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* BOTÓN ELIMINAR */}
+                                {descargas.length > 1 && (
+                                    <div className="mt-0 md:mt-6 w-full md:w-auto"> {/* Margen para alinear con los inputs */}
+                                        <button 
+                                            type="button" 
+                                            onClick={() => removeDownloadField(index)} 
+                                            className="w-full md:w-auto flex justify-center p-2.5 bg-red-100 dark:bg-red-900/20 text-red-500 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/40 transition-colors"
+                                            title="Quitar opción"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
 
-            <button type="submit" disabled={loading} className={clsx("w-full py-4 rounded-xl text-white font-bold text-lg flex items-center justify-center gap-2 shadow-xl transition-all", loading ? "bg-gray-400 cursor-not-allowed" : (isEditing ? "bg-blue-600 hover:bg-blue-700 shadow-blue-600/20 hover:scale-[1.01]" : "bg-primary-600 hover:bg-primary-700 shadow-primary-600/20 hover:scale-[1.01]"))}>
-              {loading ? (isEditing ? "Actualizando..." : "Publicando...") : (isEditing ? <><Save size={20} /> Actualizar Contenido</> : <><Save size={20} /> Guardar Contenido</>)}
-            </button>
+            {/* --- ZONA DE ACCIONES (2 BOTONES) --- */}
+            <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
+              
+              {user?.role === 'admin' ? (
+                // --- BOTONES PARA ADMIN (Solo uno principal) ---
+                <button 
+                  type="button" 
+                  onClick={() => handleSave('publish')}
+                  disabled={loading}
+                  className="w-full py-3 md:py-4 rounded-xl bg-primary-600 text-white font-bold text-lg hover:bg-primary-700 transition-all flex items-center justify-center gap-2"
+                >
+                  {loading ? <Loader2 className="animate-spin"/> : <Save size={20} />}
+                  Guardar Contenido
+                </button>
+              ) : (
+                // --- BOTONES PARA USUARIOS NORMALES ---
+                <>
+                  <button 
+                    type="button" 
+                    onClick={() => handleSave('draft')}
+                    disabled={loading}
+                    className="flex-1 py-3 md:py-4 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-bold text-lg hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-700 transition-all flex items-center justify-center gap-2"
+                  >
+                    {loading ? <Loader2 className="animate-spin"/> : <FileText size={20} />}
+                    Guardar Borrador
+                  </button>
+
+                  <button 
+                    type="button" 
+                    onClick={() => handleSave('pending')}
+                    disabled={loading}
+                    className="flex-[2] py-3 md:py-4 rounded-xl bg-primary-600 text-white font-bold text-lg hover:bg-primary-700 transition-all flex items-center justify-center gap-2"
+                  >
+                    {loading ? <Loader2 className="animate-spin"/> : <Upload size={20} />}
+                    Enviar para Revisión
+                  </button>
+                </>
+              )}
+            </div>
+
           </form>
         </div>
 
@@ -738,7 +920,15 @@ const SubirMod = () => {
         <div className="lg:col-span-1">
           <div className="sticky top-24 flex flex-col gap-4">
             <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400"><Eye size={18} /><h3 className="font-bold text-sm uppercase tracking-wider">Vista Previa</h3></div>
-            <Card imagen={formData.imagen || "/default.jpg"} titulo={formData.titulo || "Título del Contenido"} descargas={descargas} creditos={selectedCreators.length > 0 ? selectedCreators : [{nombre: "Créditos", imagen: null}]} tags={getPreviewTags()} aporte={formData.aporte} isPreview={true} />
+            <Card
+              imagen={formData.imagen || "/default.jpg"}
+              titulo={formData.titulo || "Título del Contenido"}
+              descargas={descargas}
+              creditos={selectedCreators.length > 0 ? selectedCreators : [{nombre: "Créditos", imagen: null}]}
+              tags={getPreviewTags()}
+              aporte={formData.aporte}
+              isPreview={true}
+            />
             
             {galeriaUrls.some(u => u.length > 10) && (
                 <div className="bg-white dark:bg-[#1e1e1e] p-3 rounded-xl border border-gray-300 dark:border-gray-700 shadow-sm">

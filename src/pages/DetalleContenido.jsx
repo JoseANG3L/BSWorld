@@ -376,7 +376,7 @@ const DetalleContenido = () => {
 
                         {/* DESCRIPCIÓN CON EL NUEVO SMART RENDERER */}
                         <div className="bg-white dark:bg-[#1e1e1e] p-3 pb-4 md:p-4 md:pb-5 rounded-2xl border border-gray-300 dark:border-gray-700 shadow-md">
-                            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 md:mb-6 flex items-center gap-2 ps-0.5 pb-4 border-b border-gray-300 dark:border-gray-700">
+                            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 md:mb-6 flex items-center gap-2 ps-0.5 pb-3 md:pb-4 border-b border-gray-300 dark:border-gray-700">
                                 <Layers size={20} className="text-primary-600 dark:text-primary-300" /> Descripción
                             </h3>
                             
