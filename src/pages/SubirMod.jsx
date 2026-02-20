@@ -75,7 +75,7 @@ const SubirMod = () => {
     titulo: '',
     descripcion: '',
     tipo: 'mod',
-    status: 'pending',
+    status: 'published',
     imagen: '',
     aporte: { 
       uid: user?.uid || '', 
@@ -185,7 +185,7 @@ const SubirMod = () => {
             imagen: data.imagen || '',
             aporte: data.aporte || formData.aporte,
             creado: fechaInput,
-            status: data.status || 'pending'
+            status: data.status || 'published'
           });
 
           if (data.descargas && data.descargas.length > 0) {
@@ -674,7 +674,7 @@ const SubirMod = () => {
                     <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
                       Estado de Publicación
                     </label>
-                    <select name="tipo" value={formData.tipo} onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white">
+                    <select name="status" value={formData.status} onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white">
                       <option value="published">Publicado</option>
                       <option value="pending">Pendiente</option>
                       <option value="rejected">Rechazado</option>
@@ -834,7 +834,7 @@ const SubirMod = () => {
                                             value={item.label} 
                                             onChange={(e) => handleDownloadChange(index, 'label', e.target.value)} 
                                             className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 dark:text-white text-sm animate-fade-in" 
-                                            autoFocus={item.label === ''} // Enfocar automáticamente al seleccionar 'Otro'
+                                             // Enfocar automáticamente al seleccionar 'Otro'
                                         />
                                     )}
                                 </div>

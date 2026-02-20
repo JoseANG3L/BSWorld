@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Download, Tag, ChevronDown, AlertCircle, Eye, User, ShieldCheck, Edit3, Trash2 } from 'lucide-react';
+import { Download, Tag, ChevronDown, AlertCircle, Eye, User, ShieldCheck, Edit3, Trash2, Loader2 } from 'lucide-react';
 import { clsx } from 'clsx';
 import AvatarRenderer from './AvatarRenderer';
 // Importamos la función para obtener datos frescos
@@ -276,7 +276,7 @@ const Card = ({
               onClick={(e) => {
                 e.preventDefault(); 
                 e.stopPropagation();
-                navigate(`/subir-mod?edit=${id}`);
+                navigate(`/subir?edit=${id}`);
               }}
               className="p-2 bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 rounded-xl shadow-lg hover:bg-gray-200 dark:hover:bg-gray-800 transition-all border border-gray-200 dark:border-gray-700"
               title="Editar Contenido"

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom'; // <--- 1. IMPORTAR useNavigate
-import { Search, Sun, Moon, User, Menu, LogOut, ShieldCheck, UserPlus, LogIn, Settings, Upload, LayoutGrid } from 'lucide-react';
+import { Search, Sun, Moon, User, Menu, LogOut, ShieldCheck, UserPlus, LogIn, Settings, Upload, LayoutGrid, Bell } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useAuth } from '../context/AuthContext';
@@ -81,7 +81,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
       <div className="flex items-center gap-3 ml-auto md:ml-0">
 
         {/* SUBIR MOD */}
-        <Link to="/subir-mod" className="px-3 md:px-4 py-2.5 flex w-10 h-10 md:w-auto md:h-auto bg-primary-600 hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-800 text-white rounded-full md:rounded-lg text-sm font-semibold transition-colors duration-200 shadow-md">
+        <Link to="/subir" className="px-3 md:px-4 py-2.5 flex w-10 h-10 md:w-auto md:h-auto bg-primary-600 hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-800 text-white rounded-full md:rounded-lg text-sm font-semibold transition-colors duration-200 shadow-md">
           <Upload size={16} className="inline-block mr-0 md:mr-2" strokeWidth={3} />
           <span className="hidden md:block">Subir Mod</span>
         </Link>
@@ -90,6 +90,13 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
         <button onClick={toggleTheme} className={clsx("p-2.5 rounded-full bg-white dark:bg-[#252525] border border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400 transition-all duration-200 shadow-md", "hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400")}>
           {isDarkMode ? <Moon size={18} strokeWidth={2.5} /> : <Sun size={18} strokeWidth={2.5} />}
         </button>
+
+        {/* NOTIFICACIONES */}
+        {user && (
+          <Link to="/notificaciones" className="p-2.5 rounded-full bg-white dark:bg-[#252525] border border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400 transition-all duration-200 shadow-md hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400">
+            <Bell size={18} strokeWidth={2.5} />
+          </Link>
+        )}
 
         <div className="h-6 w-px bg-gray-400 dark:bg-gray-600 mx-1 hidden sm:block"></div>
 

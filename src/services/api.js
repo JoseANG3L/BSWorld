@@ -118,12 +118,52 @@ export const getUserContent = async (uid) => {
 export const updateContent = async (id, data) => {
   try {
     const docRef = doc(db, "content", id);
+
+    // 1. OBTENER DATOS ACTUALES PARA COMPARAR EL ESTADO
+    if (data.status) {
+      const currentDoc = await getDoc(docRef);
+      if (currentDoc.exists()) {
+        const currentData = currentDoc.data();
+
+        // 2. VERIFICAR SI EL ESTADO CAMBIÓ A 'active' O 'rejected'
+        if (currentData.status !== data.status && (data.status === 'active' || data.status === 'rejected')) {
+          
+          // Extraer el UID del usuario que subió el mod
+          const uploaderUid = currentData.aporte?.uid || data.aporte?.uid;
+
+          if (uploaderUid) {
+            // 3. CREAR LA NOTIFICACIÓN AUTOMÁTICAMENTE
+            await addDoc(collection(db, 'notifications'), {
+              userId: uploaderUid,       // A quién va dirigida
+              modId: id,                 // ID del mod afectado
+              modTitle: data.titulo || currentData.titulo, // Título para la tabla
+              modImage: data.imagen || currentData.imagen, // Imagen para la miniatura
+              status: data.status,       // El nuevo estado ('active' o 'rejected')
+              creado: new Date().toISOString(), // Fecha actual
+              leida: false               // Empieza como no leída
+            });
+          }
+        }
+      }
+    }
+
     await updateDoc(docRef, {
       ...data,
       actualizado: new Date().toISOString()
     });
   } catch (error) {
     console.error("Error actualizando:", error);
+    throw error;
+  }
+};
+
+// --- ELIMINAR NOTIFICACIÓN ---
+export const deleteNotification = async (notificationId) => {
+  try {
+    await deleteDoc(doc(db, 'notifications', notificationId));
+    return true;
+  } catch (error) {
+    console.error("Error eliminando notificación:", error);
     throw error;
   }
 };
@@ -190,6 +230,8 @@ export const searchGlobalContent = async (searchTerm) => {
 // ---------------------------------------------------------
 export const createContent = async (data, isUserSubmission = false) => {
   try {
+    const finalStatus = isUserSubmission ? 'pending' : (data.status || 'active');
+
     // Si usas uuid para generar IDs manuales (recomendado para consistencia)
     const newId = uuidv4();
     const docRef = doc(db, "content", newId);
@@ -204,13 +246,30 @@ export const createContent = async (data, isUserSubmission = false) => {
       creado: fechaCreacion,
       actualizado: new Date().toISOString(),
       // MODIFICADO: Si es usuario normal, forzamos "pending"
-      status: isUserSubmission ? 'pending' : (data.status || 'published'),
+      status: finalStatus,
       vistas: 0, // Inicializamos vistas/descargas internas
       descargas: data.descargas || []
     };
 
     // Usamos setDoc con ID manual
     await setDoc(docRef, payload);
+
+    // 2. EXTRAER EL UID DEL CREADOR
+    const uploaderUid = data.aporte?.uid;
+
+    // 3. CREAR LA NOTIFICACIÓN AUTOMÁTICAMENTE AL SUBIR EL MOD
+    if (uploaderUid && (finalStatus === 'pending' || finalStatus === 'active' || finalStatus === 'published')) {
+      await addDoc(collection(db, 'notifications'), {
+        userId: uploaderUid,       // A quién va dirigida (el mismo autor)
+        modId: docRef.id,          // ID del mod recién creado
+        modTitle: data.titulo,     // Título para la tabla
+        modImage: data.imagen,     // Imagen para la miniatura
+        status: finalStatus,       // 'pending'
+        creado: new Date().toISOString(), // Fecha actual
+        leida: false               // Empieza como no leída
+      });
+    }
+
     return newId;
 
   } catch (error) {
@@ -452,6 +511,43 @@ export const searchUsers = async (searchTerm) => {
   } catch (error) {
     console.error("Error buscando usuarios:", error);
     return []; 
+  }
+};
+
+// Obtener notificaciones de un usuario
+export const getUserNotifications = async (userId) => {
+  try {
+    // Busca en la colección 'notifications' donde el campo userId sea el del usuario actual
+    const q = query(
+        collection(db, 'notifications'), 
+        where('userId', '==', userId)
+        // Opcional: puedes agregar orderBy('creado', 'desc') si tienes un índice creado en Firebase
+    );
+    const querySnapshot = await getDocs(q);
+    const notifications = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    
+    // Ordenamos localmente por fecha (más reciente primero)
+    return notifications.sort((a, b) => new Date(b.creado) - new Date(a.creado));
+  } catch (error) {
+    console.error("Error al obtener notificaciones:", error);
+    return [];
+  }
+};
+
+// Marcar notificación como leída
+export const markNotificationAsRead = async (notificationId) => {
+  try {
+    const notifRef = doc(db, 'notifications', notificationId);
+    await updateDoc(notifRef, {
+      leida: true
+    });
+    return true;
+  } catch (error) {
+    console.error("Error marcando notificación como leída:", error);
+    throw error;
   }
 };
 

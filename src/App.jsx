@@ -31,6 +31,7 @@ import Resultados from './pages/Resultados'; // <--- IMPORTANTE: Importar Result
 import Destacados from './pages/Destacados';
 import DetalleContenido from './pages/DetalleContenido';
 import SubirMod from './pages/SubirMod';
+import Notificaciones from './pages/Notificaciones';
 
 function App() {
   // Lógica del Tema Oscuro (Persistencia)
@@ -81,7 +82,7 @@ function App() {
             <Route path="contacto" element={<Contacto />} />
             <Route path="destacados" element={<Destacados />} />
             <Route path="/view/:id" element={<DetalleContenido />} />
-            <Route path="/subir-mod" element={<SubirMod />} />
+            <Route path="/subir" element={<SubirMod />} />
 
             {/* --- RUTAS PROTEGIDAS --- */}
             
@@ -111,6 +112,14 @@ function App() {
             <Route path="mis-mods" element={
                 <ProtectedRoute>
                   <MisMods />
+                </ProtectedRoute>
+              } 
+            />
+
+            {/* Usuarios Notificacion */}
+            <Route path="notificaciones" element={
+                <ProtectedRoute>
+                  <Notificaciones />
                 </ProtectedRoute>
               } 
             />
