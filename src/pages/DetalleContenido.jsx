@@ -5,7 +5,8 @@ import {
     Download, Calendar, Tag, User, Users, ArrowLeft, Globe,
     Share2, ShieldCheck, MessageCircle, Facebook, Twitter, Eye,
     Image as ImageIcon, Layers, Loader2, ChevronLeft, ChevronRight, PlayCircle,
-    Link as LinkIcon, Mail, Send, Check, Copy, Youtube, AlertCircle, Code
+    Link as LinkIcon, Mail, Send, Check, Copy, Youtube, AlertCircle, Code,
+    Info
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import ReactMarkdown from 'react-markdown';
@@ -178,7 +179,7 @@ const DetalleContenido = () => {
         ...(item.galeria || [])
     ].filter(Boolean) : [];
 
-    const currentMedia = galleryItems[selectedIndex];
+    const currentMedia = galleryItems[selectedIndex] || '/default.jpg';
     const youtubeId = getYouTubeId(currentMedia);
 
     const handleCopyLink = () => {
@@ -390,31 +391,41 @@ const DetalleContenido = () => {
                     <div className="lg:col-span-4 space-y-3 md:space-y-5">
                         {/* TARJETA DE DESCARGA */}
                         <div className="bg-white dark:bg-[#1e1e1e] p-3 md:p-4 rounded-2xl border border-gray-300 dark:border-gray-700 shadow-md">
-                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 md:mb-5 flex items-center gap-2 ps-0.5">
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2 ps-0.5">
                                 <Download size={20} className="text-primary-600 dark:text-primary-300" /> Descargar Archivos
                             </h3>
-                            <div className="flex flex-col gap-3">
-                                {item.descargas.map((d, idx) => (
-                                    <button 
-                                        key={idx} 
-                                        onClick={() => handleDownload(d.url)}
-                                        className={clsx(
-                                            "relative flex items-center justify-between px-4 py-3 rounded-xl transition-all w-full text-left group/item cursor-pointer",
-                                            "bg-primary-600 hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-800 text-white"
-                                        )}
-                                    >
-                                        <div className="flex flex-col">
-                                            <span className="truncate font-bold text-sm text-white">{d.label}</span>
-                                            <span className="text-[10px] flex items-center gap-1 font-medium text-primary-100">
-                                                <Download size={12} /> {formatNumber(d.count || 0)} descargas
-                                            </span>
-                                        </div>
-                                        <div className="p-2 rounded-lg transition-colors bg-white/20">
-                                            <Download size={20} className="text-white" />
-                                        </div>
-                                    </button>
-                                ))}
-                            </div>
+                            {item.descargas.length > 0 && (
+                                <div className="flex flex-col gap-3 mt-4 md:mt-5">
+                                    {item.descargas.map((d, idx) => (
+                                        <button 
+                                            key={idx} 
+                                            onClick={() => handleDownload(d.url)}
+                                            className={clsx(
+                                                "relative flex items-center justify-between px-4 py-3 rounded-xl transition-all w-full text-left group/item cursor-pointer",
+                                                "bg-primary-600 hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-800 text-white"
+                                            )}
+                                        >
+                                            <div className="flex flex-col">
+                                                <span className="truncate font-bold text-sm text-white">{d.label}</span>
+                                                <span className="text-[10px] flex items-center gap-1 font-medium text-primary-100">
+                                                    <Download size={12} /> {formatNumber(d.count || 0)} descargas
+                                                </span>
+                                            </div>
+                                            <div className="p-2 rounded-lg transition-colors bg-white/20">
+                                                <Download size={20} className="text-white" />
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                            {item.descargas.length === 0 && (
+                                <div className="flex flex-col gap-3 mt-2 md:mt-3">
+                                    <div className="flex items-center gap-2 text-gray-400 dark:text-gray-500 italic">
+                                        <AlertCircle size={20} />
+                                        No hay descargas disponibles.
+                                    </div>
+                                </div>
+                            )}
                         </div>
                         
                         {/* CREDITOS Y APORTE */}
