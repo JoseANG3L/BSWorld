@@ -43,16 +43,16 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
   }, []);
 
   return (
-    <header className="flex items-center gap-3 sticky top-0 z-40 px-3 py-2 md:p-0 bg-white dark:bg-[#1e1e1e] md:bg-light-bg md:dark:bg-dark-bg/80 backdrop-blur-sm transition-colors duration-300">
+    <header className="flex items-center gap-2 md:gap-3 sticky top-0 z-40 px-3 py-2 md:p-0 bg-white dark:bg-[#1e1e1e] md:bg-light-bg md:dark:bg-dark-bg/80 backdrop-blur-sm transition-colors duration-300">
 
       {/* MENU MOVIL */}
-      <div className={clsx("flex items-center gap-3 md:hidden", isFocused && "hidden")}>
+      <div className={clsx("flex items-center gap-2 md:gap-3 md:hidden", isFocused && "hidden")}>
         <button onClick={onMenuClick} className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
           <Menu size={24} className="text-primary-600 dark:text-primary-300" />
         </button>
-        <Link to="/" className="flex items-center gap-1">
+        {/* <Link to="/" className="flex items-center gap-1">
           <span className="font-bold text-lg text-gray-900 dark:text-white tracking-tight">BSWorld</span>
-        </Link>
+        </Link> */}
       </div>
 
       {/* SEARCH BAR */}
@@ -66,12 +66,12 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           onKeyDown={handleSearch} // <--- 3. ACTIVAR BÚSQUEDA
-          className={clsx("w-full py-2.5 pl-11 pr-4 rounded-full text-sm font-medium transition-all duration-300 outline-none border shadow-sm", "bg-white dark:bg-[#1e1e1e] border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-200 placeholder-gray-400", "focus:border-primary-600 dark:focus:border-primary-500 focus:ring-0")}
+          className={clsx("w-full py-2.5 pl-11 pr-4 rounded-full text-sm font-medium transition-all duration-300 outline-none border shadow-sm", "bg-white dark:bg-[#1e1e1e] border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-200 placeholder-gray-400", "focus:ring-2 focus:ring-primary-500")}
         />
       </div>
 
       {!isFocused && (
-        <button className="md:hidden p-2 ml-auto" onClick={() => setIsFocused(true)}>
+        <button className="md:hidden p-2 mr-auto" onClick={() => setIsFocused(true)}>
           <Search size={20} className="text-gray-600 dark:text-gray-400" />
         </button>
       )}
@@ -79,7 +79,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
       <div className="flex-1 hidden md:block"></div>
 
       {/* ACCIONES */}
-      <div className="flex items-center gap-3 ml-auto md:ml-0">
+      <div className="flex items-center gap-2.5 md:gap-3 ml-auto md:ml-0">
 
         {/* SUBIR MOD */}
         <Link to="/subir" className="px-3 md:px-4 py-2.5 flex w-10 h-10 md:w-auto md:h-auto bg-primary-600 hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-800 text-white rounded-full md:rounded-lg text-sm font-semibold transition-colors duration-200 shadow-md">
@@ -129,7 +129,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
             <div className="absolute right-0 mt-3 w-56 bg-white dark:bg-[#1e1e1e] rounded-xl shadow-xl border border-gray-300 dark:border-gray-700 py-2 z-50 animate-fade-in-up origin-top-right overflow-hidden" style={{ animationDuration: '200ms' }}>
               {user ? (
                 <>
-                  <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800 mb-1">
+                  <div className="px-4 pb-3 pt-1 border-b border-gray-100 dark:border-gray-800 mb-1">
                     <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{user.displayName || user.username}</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
                   </div>
