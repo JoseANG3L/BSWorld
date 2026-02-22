@@ -5,6 +5,7 @@ import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useAuth } from '../context/AuthContext';
 import AvatarRenderer from './AvatarRenderer';
+import NotificationBell from './NotificationBell';
 
 const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
   const { user, logout } = useAuth();
@@ -93,9 +94,10 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
 
         {/* NOTIFICACIONES */}
         {user && (
-          <Link to="/notificaciones" className="p-2.5 rounded-full bg-white dark:bg-[#252525] border border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400 transition-all duration-200 shadow-md hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400">
-            <Bell size={18} strokeWidth={2.5} />
-          </Link>
+          // <Link to="/notificaciones" className="p-2.5 rounded-full bg-white dark:bg-[#252525] border border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400 transition-all duration-200 shadow-md hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400">
+          //   <Bell size={18} strokeWidth={2.5} />
+          // </Link>
+          <NotificationBell userId={user.id} />
         )}
 
         <div className="h-6 w-px bg-gray-400 dark:bg-gray-600 mx-1 hidden sm:block"></div>
@@ -105,7 +107,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
           <button onClick={() => setIsProfileOpen(!isProfileOpen)} className="relative group flex items-center outline-none">
             {user ? (
               // CONECTADO: Avatar con Renderer
-              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary-600 to-primary-900 p-[2px] shadow-md transition-transform duration-200 hover:scale-105">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary-600 to-primary-900 shadow-md">
                 <div className="w-full h-full rounded-full overflow-hidden bg-white dark:bg-gray-800">
                     <AvatarRenderer 
                         avatar={user.avatar || user.photoURL} 

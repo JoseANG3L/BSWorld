@@ -138,6 +138,7 @@ export const updateContent = async (id, data) => {
               modId: id,                 // ID del mod afectado
               modTitle: data.titulo || currentData.titulo, // Título para la tabla
               modImage: data.imagen || currentData.imagen, // Imagen para la miniatura
+              modType: data.tipo || currentData.tipo,         // Tipo de contenido (mod, mapa, etc.)
               status: data.status,       // El nuevo estado ('active' o 'rejected')
               creado: new Date().toISOString(), // Fecha actual
               leida: false               // Empieza como no leída
@@ -264,6 +265,7 @@ export const createContent = async (data, isUserSubmission = false) => {
         modId: docRef.id,          // ID del mod recién creado
         modTitle: data.titulo,     // Título para la tabla
         modImage: data.imagen,     // Imagen para la miniatura
+        modType: data.tipo,         // Tipo de contenido (mod, mapa, etc.)
         status: finalStatus,       // 'pending'
         creado: new Date().toISOString(), // Fecha actual
         leida: false               // Empieza como no leída
