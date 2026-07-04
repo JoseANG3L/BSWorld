@@ -189,7 +189,7 @@ const NotificationBell = () => {
 
       {/* PANEL FLOTANTE */}
       {isOpen && (
-        <div className="absolute top-full right-0 mt-3 w-80 sm:w-96 bg-white dark:bg-[#1e1e1e] border border-gray-300 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden flex flex-col animate-fade-in-up origin-top-right" style={{ animationDuration: '200ms' }}>
+        <div className="fixed md:absolute top-full right-0 mt-1 mx-3 md:mx-0 md:mt-3 w-100 md:w-80 sm:w-96 bg-white dark:bg-[#1e1e1e] border border-gray-300 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden flex flex-col animate-fade-in-up origin-top-right" style={{ animationDuration: '200ms' }}>
 
           {/* Header del Panel */}
           <div className="flex items-center justify-between px-3 py-2.5 border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50">
