@@ -102,6 +102,8 @@ const SubirMod = () => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
 
+  const [originalStatus, setOriginalStatus] = useState(null);
+
   // --- CARGAR DATOS PARA EDICIÓN ---
   useEffect(() => {
     const loadDataForEdit = async () => {
@@ -110,6 +112,8 @@ const SubirMod = () => {
       try {
         const data = await getContentById(editId);
         if (data) {
+          setOriginalStatus(data.status);
+
           // --- BLOQUE AVANZADO: Recuperación de Perfiles ---
           if (data.creditos && Array.isArray(data.creditos)) {
              
@@ -353,31 +357,32 @@ const SubirMod = () => {
   // --- GUARDAR CONTENIDO ---
   const handleSave = async (action) => {
     
-    if (action === 'pending' && (!formData.titulo || !formData.imagen)) {
-        setModal({ isOpen: true, type: 'error', title: 'Faltan datos', message: 'El título y la imagen principal son obligatorios para publicar.' });
-        return;
-    }
-    if (action in ['draft', 'published'] && !formData.titulo) {
-        setModal({ isOpen: true, type: 'error', title: 'Faltan datos', message: 'El título es obligatorio para guardar el borrador.' });
-        return;
+    if (!formData.titulo || !formData.imagen) {
+      setModal({ isOpen: true, type: 'error', title: 'Faltan datos', message: 'El título y la imagen son obligatorios.' });
+      return;
     }
 
     setLoading(true);
 
     try {
       // 1. Determinar Status Final
-      let finalStatus = 'pending';
+      let finalStatus = formData.status;
       
-      if (action === 'draft') {
-        finalStatus = 'draft';
+      if (user.role === 'admin') {
+        // El admin mantiene el estado seleccionado en el <select>
+        finalStatus = formData.status;
       } else {
-        // Si es publicar:
-        if (user.role === 'admin') {
-            // Admin puede elegir (usamos el del form si existe, o active por defecto)
-            finalStatus = formData.status === 'draft' ? 'published' : formData.status;
+        // LÓGICA PARA USUARIO NORMAL
+        if (action === 'draft') {
+          finalStatus = 'draft';
         } else {
-            // Usuario normal siempre pasa a revisión
+          // Si estaba publicado o en revisión de cambios, y el usuario guarda de nuevo
+          if (originalStatus === 'published' || originalStatus === 'published_editing') {
+            finalStatus = 'published_editing';
+          } else {
+            // Si era un borrador, rechazado o inactivo y lo manda a publicar
             finalStatus = 'pending';
+          }
         }
       }
 
@@ -406,24 +411,22 @@ const SubirMod = () => {
 
       if (isEditing) {
         await updateContent(editId, payload);
-        setModal({
-            isOpen: true, type: 'success', title: '¡Actualizado!', message: `Contenido guardado correctamente como: ${finalStatus === 'draft' ? 'Borrador' : (finalStatus === 'active' ? 'Publicado' : 'Pendiente')}`,
-            onConfirm: () => navigate(user.role === 'admin' ? '/admin' : '/mis-mods')
-        });
       } else {
-        await createContent(payload, false); // false para respetar el status que calculamos aquí
-        setModal({
-            isOpen: true, type: 'success', title: '¡Creado!', message: `Contenido ${finalStatus === 'draft' ? 'guardado como borrador' : 'enviado exitosamente'}.`,
-            onConfirm: () => {
-                if(action === 'draft') navigate('/mis-mods'); 
-                else navigate('/mis-mods');
-            }
-        });
+        await createContent(payload, false);
       }
 
+      setModal({
+        isOpen: true,
+        type: 'success',
+        title: '¡Éxito!',
+        message: finalStatus === 'published_editing' 
+          ? 'Tus cambios han sido enviados a revisión. La versión anterior seguirá pública hasta que sean aprobados.'
+          : `Contenido guardado como ${finalStatus}.`,
+        onConfirm: () => navigate(user.role === 'admin' ? '/admin' : '/mis-mods')
+      });
+
     } catch (error) {
-      console.error(error);
-      setModal({ isOpen: true, type: 'error', title: 'Error', message: 'No se pudo guardar. Verifica tu conexión.' });
+      setModal({ isOpen: true, type: 'error', title: 'Error', message: 'No se pudo guardar el contenido.' });
     } finally {
       setLoading(false);
     }
@@ -481,8 +484,10 @@ const SubirMod = () => {
           {isEditing ? <PenTool size={24} /> : <Layers size={24} />}
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{isEditing ? "Editar Contenido" : "Panel de Carga"}</h1>
-          <p className="text-gray-500 dark:text-gray-400 text-sm">{isEditing ? `Editando ID: ${editId}` : "Comparte contenido nuevo."}</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{isEditing ? "Editar Contenido" : "Nuevo Aporte"}</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-sm">
+            Estado actual: <span className="capitalize font-bold text-primary-600">{formData.status.replace('_', ' ')}</span>
+          </p>
         </div>
       </div>
 
@@ -492,6 +497,16 @@ const SubirMod = () => {
         <div className="lg:col-span-2 flex flex-col gap-3 md:gap-5">
           <form onSubmit={(e) => e.preventDefault()} className="flex flex-col gap-3 md:gap-5">
             
+            {/* Alerta de Estado para el Usuario */}
+            {!user?.role === 'admin' && isEditing && originalStatus === 'published' && (
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-4 rounded-2xl flex gap-3">
+                <AlertCircle className="text-blue-600 shrink-0" />
+                <p className="text-sm text-blue-800 dark:text-blue-300">
+                  <b>Nota:</b> Al guardar cambios en un mod ya publicado, estos pasarán a revisión antes de hacerse públicos. La versión actual no se verá afectada.
+                </p>
+              </div>
+            )}
+
             {/* SECCIÓN 1: INFO GENERAL */}
             <div className="bg-white dark:bg-[#1e1e1e] p-3 md:p-5 rounded-2xl border border-gray-300 dark:border-gray-700 shadow-sm">
               <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 md:mb-6 flex items-center gap-2 ps-0.5 pb-3 md:pb-4 border-b border-gray-300 dark:border-gray-700">
@@ -676,7 +691,8 @@ const SubirMod = () => {
                     </label>
                     <select name="status" value={formData.status} onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white">
                       <option value="published">Publicado</option>
-                      <option value="pending">Pendiente</option>
+                      <option value="published_editing">Publicado (Revisando cambios)</option>
+                      <option value="pending">En revisión</option>
                       <option value="rejected">Rechazado</option>
                       <option value="draft">Borrador</option>
                       <option value="inactive">Inactivo</option>

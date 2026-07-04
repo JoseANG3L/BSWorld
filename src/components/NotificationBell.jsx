@@ -107,15 +107,55 @@ const NotificationBell = () => {
   // Configuración visual según estado
   const getStatusConfig = (status) => {
     switch (status) {
-      case 'active':
-      case 'published':
-        return { icon: CheckCircle, color: "text-green-500", bg: "bg-green-100 dark:bg-green-900/30", label: "Aprobado" };
-      case 'rejected':
-        return { icon: XCircle, color: "text-red-500", bg: "bg-red-100 dark:bg-red-900/30", label: "Rechazado" };
-      case 'pending':
-        return { icon: Clock, color: "text-yellow-600", bg: "bg-yellow-100 dark:bg-yellow-900/30", label: "Pendiente" };
+      case 'published': // Público y sin cambios pendientes
+        return { 
+          icon: CheckCircle, 
+          color: "text-green-500", 
+          bg: "bg-green-100 dark:bg-green-900/30", 
+          label: "Publicado" 
+        };
+      case 'published_editing': // Está al aire, pero el autor subió una versión nueva que se está revisando
+        return { 
+          icon: Clock, 
+          color: "text-blue-500", 
+          bg: "bg-blue-100 dark:bg-blue-900/30", 
+          label: "Publicado (Revisando cambios)" 
+        };
+      case 'pending': // Primera vez que se sube, aún no es público
+        return { 
+          icon: Loader2, // O Clock
+          color: "text-yellow-600", 
+          bg: "bg-yellow-100 dark:bg-yellow-900/30", 
+          label: "En revisión" 
+        };
+      case 'rejected': // Fue rechazado por moderación
+        return { 
+          icon: XCircle, 
+          color: "text-red-500", 
+          bg: "bg-red-100 dark:bg-red-900/30", 
+          label: "Rechazado" 
+        };
+      case 'draft': // En borrador
+        return { 
+          icon: Clock,
+          color: "text-red-500", 
+          bg: "bg-red-100 dark:bg-red-900/30", 
+          label: "Borrador" 
+        };
+      case 'inactive': // Deshabilitado (por el usuario o admin)
+        return { 
+          icon: EyeOff, // Necesitarás importar EyeOff de lucide-react
+          color: "text-gray-500", 
+          bg: "bg-gray-100 dark:bg-gray-800", 
+          label: "Inactivo" 
+        };
       default:
-        return { icon: Bell, color: "text-gray-500", bg: "bg-gray-100 dark:bg-gray-800", label: "Aviso" };
+        return { 
+          icon: Bell, 
+          color: "text-gray-500", 
+          bg: "bg-gray-100 dark:bg-gray-800", 
+          label: "Aviso" 
+        };
     }
   };
 
