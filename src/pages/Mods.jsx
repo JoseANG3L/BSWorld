@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Wrench, Loader2 } from 'lucide-react'; 
 import DataContainer from '../components/DataContainer';
 import Card from '../components/Card';
-import { getContentByType } from '../services/api';
+import { getPublicContent } from '../services/api';
 
 const Mods = () => {
   const [mods, setMods] = useState([]);
@@ -12,7 +12,8 @@ const Mods = () => {
     const loadData = async () => {
       try {
         // Llamamos a la función importada
-        const data = await getContentByType("mod");
+        const data = await getPublicContent();
+        // const data = await getContentByType("mod");
         setMods(data);
       } catch (error) {
         console.error("Error cargando mods:", error);
@@ -37,6 +38,9 @@ const Mods = () => {
       gradientClass="from-purple-500 to-pink-500"
       items={mods}
       searchKey="titulo"
+      enableTypeFilter={true}
+      typeKey="tipo"
+      customTypes={['mod', 'mapa', 'personaje', 'minijuego', 'modpack', 'paquete']}
       renderItem={(item) => (
         <Card key={item.id} {...item} />
       )}

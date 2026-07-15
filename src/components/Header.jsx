@@ -1,62 +1,111 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom'; // <--- 1. IMPORTAR useNavigate
-import { Search, Sun, Moon, User, Menu, LogOut, ShieldCheck, UserPlus, LogIn, Settings, Upload, LayoutGrid, Bell } from 'lucide-react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Search, Sun, Moon, User, Menu, LogOut, ShieldCheck, UserPlus, LogIn, Settings, Upload, LayoutGrid, Bell, ChevronDown, Home, Crown, Wrench, Info, Mail, Earth } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useAuth } from '../context/AuthContext';
 import AvatarRenderer from './AvatarRenderer';
 import NotificationBell from './NotificationBell';
+import SubirMod from '../pages/SubirMod';
+
+const menuItems = [
+  { to: "/", icon: Home, label: "Inicio" },
+  { to: "/comunidad", icon: Crown, label: "Comunidad" },
+  { to: "/mods", icon: Wrench, label: "Mods" },
+];
 
 const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
   const { user, logout } = useAuth();
-  const navigate = useNavigate(); // <--- 2. HOOK DE NAVEGACIÓN
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const [isFocused, setIsFocused] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isNavMenuOpen, setIsNavMenuOpen] = useState(false);
+  const [isSubirModOpen, setIsSubirModOpen] = useState(false);
   const profileRef = useRef(null);
+  const navMenuRef = useRef(null);
 
   // --- LÓGICA DE BÚSQUEDA ---
   const handleSearch = (e) => {
     if (e.key === 'Enter') {
       const term = e.target.value.trim();
       if (term) {
-        // Redirigir a la página de resultados
         navigate(`/buscar?q=${encodeURIComponent(term)}`);
-        
-        // Cerrar el teclado en móvil y quitar foco
         e.target.blur();
         setIsFocused(false);
-        // Opcional: Limpiar el input si quieres (e.target.value = '')
       }
     }
   };
 
-  // Cerrar el menú al hacer clic fuera
+  // Cerrar los menús al hacer clic fuera
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (profileRef.current && !profileRef.current.contains(event.target)) {
         setIsProfileOpen(false);
+      }
+      if (navMenuRef.current && !navMenuRef.current.contains(event.target)) {
+        setIsNavMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  return (
-    <header className="flex items-center gap-2 md:gap-3 sticky top-0 z-40 px-3 py-2 md:p-0 bg-white dark:bg-[#1e1e1e] md:bg-light-bg md:dark:bg-dark-bg/80 backdrop-blur-sm transition-colors duration-300">
+  const handleSubirModClick = () => {
+    if (user) {
+      setIsSubirModOpen(true);
+    } else {
+      navigate('/login');
+    }
+  };
 
-      {/* MENU MOVIL */}
-      <div className={clsx("flex items-center gap-2 md:gap-3 md:hidden", isFocused && "hidden")}>
-        <button onClick={onMenuClick} className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
-          <Menu size={24} className="text-primary-600 dark:text-primary-300" />
+  return (
+    <>
+    <header className="flex items-center gap-2 md:gap-4 sticky top-0 z-40 px-2 md:px-4 py-2 bg-white dark:bg-dark-bg transition-colors duration-300 border-b border-gray-200 dark:border-gray-800 shadow-sm">
+
+      {/* MENÚ HAMBURGUESA (Solo móvil) */}
+      <div className="lg:hidden relative" ref={navMenuRef}>
+        <button
+          onClick={() => setIsNavMenuOpen(!isNavMenuOpen)}
+          className="p-1.5 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+        >
+          <Menu size={18} />
         </button>
-        {/* <Link to="/" className="flex items-center gap-1">
-          <span className="font-bold text-lg text-gray-900 dark:text-white tracking-tight">BSWorld</span>
-        </Link> */}
+        {isNavMenuOpen && (
+          <div className="absolute left-0 mt-2 w-48 bg-white dark:bg-[#1e1e1e] rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 py-2 z-50 animate-fade-in-up">
+            {menuItems.map((item) => {
+              const isActive = location.pathname === item.to;
+              return (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  onClick={() => setIsNavMenuOpen(false)}
+                  className={clsx(
+                    "flex items-center gap-3 px-4 py-2.5 text-sm transition-colors",
+                    isActive
+                      ? "text-primary-600 dark:text-primary-400 font-semibold"
+                      : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-primary-600 dark:hover:text-primary-400"
+                  )}
+                >
+                  <item.icon size={16} strokeWidth={isActive ? 2.5 : 2} fill={isActive ? "currentColor" : "none"} />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      {/* SEARCH BAR */}
-      <div className={twMerge(clsx("relative transition-all duration-300 ease-out", isFocused ? "flex-[2] absolute ml-2 md:ml-0 left-0 right-16 z-50 md:relative md:inset-auto md:max-w-2xl" : "hidden md:block flex-1 max-w-md"))}>
+      {/* LOGO BSWorld (Solo texto, centrado en móvil, izquierda en desktop) */}
+      <Link to="/" className="flex items-center shrink-0 group mx-auto md:mx-0">
+        <span className="font-bold text-sm md:text-xl text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors">
+          BSWorld
+        </span>
+      </Link>
+
+      {/* SEARCH BAR (Desktop) */}
+      <div className="hidden md:block relative transition-all duration-300 ease-out flex-1 max-w-2xl">
         <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
           <Search size={18} className={clsx("transition-colors duration-300", isFocused ? "text-primary-600 dark:text-primary-400" : "text-gray-400")} />
         </div>
@@ -65,60 +114,123 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
           placeholder="Buscar mapas, mods..."
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
-          onKeyDown={handleSearch} // <--- 3. ACTIVAR BÚSQUEDA
-          className={clsx("w-full py-2.5 pl-11 pr-4 rounded-full text-sm font-medium transition-all duration-300 outline-none border shadow-sm", "bg-white dark:bg-[#1e1e1e] border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-200 placeholder-gray-400", "focus:ring-2 focus:ring-primary-500")}
+          onKeyDown={handleSearch}
+          className={clsx(
+            "w-full py-2 pl-11 pr-4 rounded-xl text-sm font-medium transition-all duration-300 outline-none border shadow-sm",
+            "bg-white dark:bg-[#1e1e1e] border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 placeholder-gray-400",
+            "focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+          )}
         />
       </div>
 
-      {!isFocused && (
-        <button className="md:hidden p-2 mr-auto" onClick={() => setIsFocused(true)}>
-          <Search size={20} className="text-gray-600 dark:text-gray-400" />
-        </button>
+      {/* ICONO BÚSQUEDA (Solo móvil, derecha) */}
+      <button className="md:hidden p-1.5 ml-auto" onClick={() => setIsFocused(true)}>
+        <Search size={18} className="text-gray-600 dark:text-gray-400" />
+      </button>
+
+      {/* SEARCH EXPANDIDO (Solo móvil cuando está enfocado) */}
+      {isFocused && (
+        <div className="absolute inset-0 left-0 right-0 top-0 bottom-0 bg-white dark:bg-[#1e1e1e] z-50 flex items-center gap-2 px-2 md:hidden">
+          <button className="p-1.5" onClick={() => setIsFocused(false)}>
+            <Search size={18} className="text-gray-600 dark:text-gray-400" />
+          </button>
+          <input
+            type="text"
+            placeholder="Buscar mapas, mods..."
+            autoFocus
+            onBlur={() => setIsFocused(false)}
+            onKeyDown={handleSearch}
+            className={clsx(
+              "flex-1 py-2 pl-4 pr-4 rounded-xl text-sm font-medium transition-all duration-300 outline-none border shadow-sm",
+              "bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 placeholder-gray-400",
+              "focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+            )}
+          />
+        </div>
       )}
 
-      <div className="flex-1 hidden md:block"></div>
+      {/* MENÚ DE NAVEGACIÓN (DESKTOP) */}
+      <div className="hidden lg:flex items-center gap-1 ml-4">
+        {menuItems.map((item) => {
+          const isActive = location.pathname === item.to;
+          return (
+            <Link
+              key={item.to}
+              to={item.to}
+              className={clsx(
+                "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 relative group",
+                isActive
+                  ? "text-primary-600 dark:text-primary-400 font-semibold"
+                  : "text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400"
+              )}
+            >
+              <div className={clsx(
+                "absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary-600 dark:bg-primary-400 rounded-full transition-opacity duration-300",
+                isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+              )}></div>
+              <item.icon size={16} strokeWidth={isActive ? 2.5 : 2} fill={isActive ? "currentColor" : "none"} />
+              <span>{item.label}</span>
+            </Link>
+          );
+        })}
+      </div>
 
-      {/* ACCIONES */}
-      <div className="flex items-center gap-2.5 md:gap-3 ml-auto md:ml-0">
+      {/* ACCIONES (Desktop) */}
+      <div className="hidden md:flex items-center gap-3 ml-auto">
 
         {/* SUBIR MOD */}
-        <Link to="/subir" className="px-3 md:px-4 py-2.5 flex w-10 h-10 md:w-auto md:h-auto bg-primary-600 hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-800 text-white rounded-full md:rounded-lg text-sm font-semibold transition-colors duration-200 shadow-md">
-          <Upload size={16} className="inline-block mr-0 md:mr-2" strokeWidth={3} />
-          <span className="hidden md:block">Subir Mod</span>
-        </Link>
+        <button 
+          onClick={handleSubirModClick}
+          className="flex px-4 py-2 bg-primary-600 hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-800 text-white rounded-lg text-sm font-semibold transition-colors shadow-sm items-center gap-2"
+        >
+          <Upload size={16} strokeWidth={3} />
+          <span>Subir</span>
+        </button>
 
         {/* THEME TOGGLE */}
-        <button onClick={toggleTheme} className={clsx("p-2.5 rounded-full bg-white dark:bg-[#252525] border border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400 transition-all duration-200 shadow-md", "hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400")}>
-          {isDarkMode ? <Moon size={18} strokeWidth={2.5} /> : <Sun size={18} strokeWidth={2.5} />}
+        <button
+          type="button"
+          onClick={toggleTheme}
+          className={clsx("w-9 h-9 flex items-center justify-center rounded-full bg-white dark:bg-[#252525] border border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400 transition-all shadow-sm", "hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400")}
+          title={isDarkMode ? "Modo Claro" : "Modo Oscuro"}
+        >
+          {isDarkMode ? <Sun size={18} strokeWidth={2.5} /> : <Moon size={18} strokeWidth={2.5} />}
         </button>
 
         {/* NOTIFICACIONES */}
         {user && (
-          // <Link to="/notificaciones" className="p-2.5 rounded-full bg-white dark:bg-[#252525] border border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400 transition-all duration-200 shadow-md hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400">
-          //   <Bell size={18} strokeWidth={2.5} />
-          // </Link>
           <NotificationBell userId={user.id} />
         )}
 
-        <div className="h-6 w-px bg-gray-400 dark:bg-gray-600 mx-1 hidden sm:block"></div>
+        <div className="h-6 w-px bg-gray-400 dark:bg-gray-600 mx-1"></div>
 
-        {/* DROPDOWN PERFIL */}
+        {/* DROPDOWN PERFIL CON USERNAME VISIBLE */}
         <div className="relative" ref={profileRef}>
-          <button onClick={() => setIsProfileOpen(!isProfileOpen)} className="relative group flex items-center outline-none">
+          <button 
+            onClick={() => setIsProfileOpen(!isProfileOpen)} 
+            className="relative group flex items-center transition-colors rounded-full"
+          >
             {user ? (
-              // CONECTADO: Avatar con Renderer
-              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary-600 to-primary-900 shadow-md">
-                <div className="w-full h-full rounded-full overflow-hidden bg-white dark:bg-gray-800">
+              // CONECTADO: Avatar + Username + Flecha
+              <div className="flex gap-2">
+                <div className="relative w-9 h-9 rounded-full bg-gradient-to-tr from-primary-600 to-primary-900 shadow-sm shrink-0">
+                  <div className="w-full h-full rounded-full overflow-hidden bg-white dark:bg-gray-800">
                     <AvatarRenderer 
-                        avatar={user.avatar || user.photoURL} 
-                        name={user.displayName || user.username} 
+                      avatar={user.avatar} 
+                      name={user.username} 
                     />
+                  </div>
                 </div>
-                <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-[#121212] rounded-full"></span>
+                <div className="flex items-center gap-1 max-w-[120px]">
+                  <span className="text-sm font-bold text-gray-700 dark:text-gray-200 truncate select-none hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+                    {user.username}
+                  </span>
+                  <ChevronDown size={14} className={clsx("text-gray-400 dark:text-gray-500 transition-transform duration-300 flex-shrink-0", isProfileOpen && "rotate-180")} />
+                </div>
               </div>
             ) : (
               // DESCONECTADO: Icono gris
-              <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 flex items-center justify-center shadow-md hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:border-primary-200 transition-all">
+              <div className="w-9 h-9 rounded-full bg-white dark:bg-[#252525] border border-gray-300 dark:border-gray-700 flex items-center justify-center shadow-sm hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400 transition-all">
                 <User size={20} className="text-gray-500 dark:text-gray-400 group-hover:text-primary-600 dark:group-hover:text-primary-400" />
               </div>
             )}
@@ -126,31 +238,29 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
 
           {/* MENÚ DESPLEGABLE */}
           {isProfileOpen && (
-            <div className="absolute right-0 mt-3 w-56 bg-white dark:bg-[#1e1e1e] rounded-xl shadow-xl border border-gray-300 dark:border-gray-700 py-2 z-50 animate-fade-in-up origin-top-right overflow-hidden" style={{ animationDuration: '200ms' }}>
+            <div className="absolute right-0 mt-3 w-56 bg-white dark:bg-[#1e1e1e] rounded-xl shadow-xl border border-gray-300 dark:border-gray-700 py-2 z-50 origin-top-right overflow-hidden">
               {user ? (
                 <>
                   <div className="px-4 pb-3 pt-1 border-b border-gray-100 dark:border-gray-800 mb-1">
-                    <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{user.displayName || user.username}</p>
+                    <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{user.username}</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
                   </div>
                   <Link
-                    to={`/u/${user.username || user.displayName}`}
+                    to={`/u/${user.username}`}
                     className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
                     onClick={() => setIsProfileOpen(false)}
                   >
                     <User size={16} />
                     <span>Mi Perfil</span>
                   </Link>
-                  {user && (
-                    <Link
-                      to="/mis-mods" 
-                      className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
-                      onClick={() => setIsProfileOpen(false)}
-                    >
-                      <LayoutGrid size={16} />
-                      <span>Mis Mods</span>
-                    </Link>
-                  )}
+                  <Link
+                    to="/mis-mods" 
+                    className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                    onClick={() => setIsProfileOpen(false)}
+                  >
+                    <LayoutGrid size={16} />
+                    <span>Mis Mods</span>
+                  </Link>
                   <Link
                     to="/configuracion" 
                     className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
@@ -175,22 +285,22 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
                   <div className="px-4 py-2 mb-1">
                     <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Cuenta</p>
                   </div>
-                  <Link
-                    to="/login"
-                    state={{ isRegistering: false }}
+                  <a
+                    href="/login"
+                    rel="noopener noreferrer"
                     onClick={() => setIsProfileOpen(false)}
                     className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-primary-600 transition-colors"
                   >
                     <LogIn size={16} /> Iniciar Sesión
-                  </Link>
-                  <Link
-                    to="/login"
-                    state={{ isRegistering: true }}
+                  </a>
+                  <a
+                    href="/login?register=true"
+                    rel="noopener noreferrer"
                     onClick={() => setIsProfileOpen(false)}
                     className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-primary-600 transition-colors"
                   >
                     <UserPlus size={16} /> Registrarse
-                  </Link>
+                  </a>
                 </>
               )}
             </div>
@@ -198,6 +308,10 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
         </div>
       </div>
     </header>
+    
+    {/* MODAL SUBIR MOD */}
+    <SubirMod isOpen={isSubirModOpen} onClose={() => setIsSubirModOpen(false)} />
+    </>
   );
 };
 

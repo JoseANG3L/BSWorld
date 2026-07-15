@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { 
-  Save, Plus, Trash2, Image as ImageIcon, Lock, ArrowLeft, LogIn, UserX,
-  Link as LinkIcon, Users, Tag, Type, Layers, Calendar, Eye, PenTool, X, Search, Loader2,
-  Globe, PlayCircle, Activity, ChevronDown, FileText, Upload
+  Save, Plus, Trash2, Image as ImageIcon, Tag, User, Link2, X, 
+  ChevronRight, ChevronLeft, Layers, PenTool, Loader2, PlayCircle, 
+  ChevronDown, FileText, Upload, Link as LinkIcon, Lock, Globe, X as CloseIcon, Eye
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { 
@@ -15,982 +15,743 @@ import {
   getUserByUsername
 } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import Card from '../components/Card';
-import SimpleEditor from '../components/SimpleEditor';
+import SimpleEditor from "../components/SimpleEditor";
 import Modal from '../components/Modal';
+import AvatarRenderer from '../components/AvatarRenderer';
+import { encryptionService, initializeEncryption } from '../services/encryption';
 
-
-// --- HELPER 1: DETECTAR YOUTUBE ---
+// --- HELPERS ---
 const getYouTubeId = (url) => {
     if (!url) return null;
-    // Soporta formatos: youtube.com/watch?v=ID, youtu.be/ID, youtube.com/embed/ID
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
     const match = url.match(regExp);
     return (match && match[2].length === 11) ? match[2] : null;
 };
 
-// --- HELPER 2: DETECTAR VIDEO MP4 LOCAL ---
 const isVideo = (url) => {
     if (!url) return false;
     return url.match(/\.(mp4|webm|ogg|mov)$/i);
 };
 
-const DOWNLOAD_LABELS = [
-  "API 9 (1.7.44+)",
-  "API 8 (1.7.20+)",
-  "API 7 (1.7.5+)",
-  "API 6 (1.6.4+)",
-  "API 4 (1.4.150+)"
-];
-const RECOMMENDED_TAGS = [
-  "api 9", "api 8", "api 7", "api 6", "api 4",
-];
+const DOWNLOAD_LABELS = ["API 9 (1.7.44+)", "API 8 (1.7.20+)", "API 7 (1.7.5+)", "API 6 (1.6.4+)", "API 4 (1.4.150+)"];
+const RECOMMENDED_TAGS = ["api 9", "api 8", "api 7", "api 6", "api 4", "pvp", "texturas", "utilidad"];
+const PREDEFINED_NETWORKS = ["YouTube", "Twitter/X", "Discord", "Sitio Web"];
 
-const SubirMod = () => {
+const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const searchRef = useRef(null);
   
-  const editId = searchParams.get('edit'); 
+  const editId = propEditId || searchParams.get('edit'); 
   const isEditing = !!editId;
 
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(!!editId);
+  const [currentTab, setCurrentTab] = useState(0);
+  const [encryptionKey, setEncryptionKey] = useState(null);
+  const [isEncryptionReady, setIsEncryptionReady] = useState(false);
 
-  // --- ESTADO DEL MODAL ---
-  const [modal, setModal] = useState({
-    isOpen: false,
-    type: 'success',
-    title: '',
-    message: '',
-    showCancel: false,
-    confirmText: 'Aceptar',
-    onConfirm: null
+  // --- CONTROL DE ERRORES VISUALES EN ROJO ---
+  const [errors, setErrors] = useState({
+    titulo: false,
+    imagen: false,
+    creadores: false
   });
-  const closeModal = () => setModal({ ...modal, isOpen: false });
 
-  // ESTADOS DEL FORMULARIO
+  // --- MODAL ---
+  const [modal, setModal] = useState({
+    isOpen: false, type: 'success', title: '', message: '', showCancel: false, confirmText: 'Aceptar', cancelText: 'Cancelar', onConfirm: null, onCancel: null
+  });
+  const closeModal = () => setModal(prev => ({ ...prev, isOpen: false }));
+
+  // FORMULARIO CENTRALIZADO
   const [formData, setFormData] = useState({
     titulo: '',
     descripcion: '',
     tipo: 'mod',
-    status: 'published',
     imagen: '',
-    aporte: { 
-      uid: user?.uid || '', 
-      nombre: user?.displayName || user?.username || '', 
-      imagen: user?.avatar || user?.photoURL || '' 
-    },
+    status: 'published',
+    visibilidad: 'public', 
     creado: new Date().toISOString().split('T')[0],
+    aporte: user?.id || user?.uid || '', 
+    tags: [],
+    galeria: [], 
+    descargas: [{ nombre: '', url: '' }]
   });
 
-  // ESTADOS ESPECÍFICOS (Arrays)
-  const [descargas, setDescargas] = useState([    { id: Date.now(), label: '', url: '' }]);
-  const [galeriaUrls, setGaleriaUrls] = useState(['']); 
-  // NUEVO ESTADO: REDES SOCIALES
-  const [redes, setSocialLinks] = useState([{ label: '', url: '' }]);
-  
-  // ESTADO PARA TAGS (NUEVO)
-  const [tagsList, setTagsList] = useState([]);
+  const [initialFormData, setInitialFormData] = useState(null);
+  const [hasChanges, setHasChanges] = useState(false);
   const [tagInput, setTagInput] = useState('');
-
-  // ESTADOS CREDITOS
-  const [selectedCreators, setSelectedCreators] = useState([]);
   const [creatorInput, setCreatorInput] = useState('');
+  const [selectedCreators, setSelectedCreators] = useState([]);
   const [userSuggestions, setUserSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
-
   const [originalStatus, setOriginalStatus] = useState(null);
 
-  // --- CARGAR DATOS PARA EDICIÓN ---
+  const tabs = [
+    { id: 'basico', label: 'Básico', icon: User },
+    { id: 'imagenes', label: 'Imágenes', icon: ImageIcon },
+    { id: 'descargas_tags', label: 'Descargas y Tags', icon: Tag },
+    { id: 'visibilidad_seccion', label: 'Visibilidad', icon: Eye },
+  ];
+
+  const getProgress = () => {
+    let score = 0;
+    let total = 6;
+    if (formData.titulo) score++;
+    if (formData.descripcion) score++;
+    if (formData.imagen) score++;
+    if (formData.tags.length > 0) score++;
+    if (formData.descargas.some(d => d.url)) score++;
+    if (selectedCreators.length > 0) score++;
+    return Math.round((score / total) * 100);
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+    const initEncryption = async () => {
+      try {
+        const key = await initializeEncryption();
+        if (isMounted) {
+          setEncryptionKey(key);
+          setIsEncryptionReady(true);
+        }
+      } catch (error) { console.error('Error inicializando encriptación:', error); }
+    };
+    initEncryption();
+    return () => { isMounted = false; };
+  }, []);
+
   useEffect(() => {
     const loadDataForEdit = async () => {
       if (!isEditing) return;
-
       try {
         const data = await getContentById(editId);
         if (data) {
           setOriginalStatus(data.status);
-
-          // --- BLOQUE AVANZADO: Recuperación de Perfiles ---
-          if (data.creditos && Array.isArray(data.creditos)) {
-             
-             const enrichedCreators = await Promise.all(data.creditos.map(async (creator) => {
+          
+          if (data.creadores && Array.isArray(data.creadores)) {
+             const enrichedCreators = await Promise.all(data.creadores.map(async (creator) => {
                 let profile = null;
-
-                // CASO 1: Tiene UID (El enlace es fuerte y directo)
-                if (creator.uid) {
-                   try {
-                      profile = await getUserPublicProfile(creator.uid);
-                   } catch (err) {
-                      console.error("Error buscando por UID:", err);
-                   }
-                } 
-                
-                // CASO 2: No tiene UID, intentamos buscar por Nombre (Reparación automática)
-                else if (creator.nombre) {
-                   try {
-                      // Intentamos encontrar al usuario por su nombre actual
-                      profile = await getUserByUsername(creator.nombre);
-                      if (profile) {
-                         console.log(`¡Enlace automático! Se conectó "${creator.nombre}" con UID: ${profile.uid}`);
-                      }
-                   } catch (err) {
-                      console.error("Error buscando por Nombre:", err);
-                   }
-                }
-
-                // SI ENCONTRAMOS PERFIL (Por UID o por Nombre), lo usamos
-                if (profile) {
-                   return {
-                      nombre: profile.nombre,
-                      imagen: profile.imagen,
-                      uid: profile.uid // Ahora sí guardaremos el UID para la próxima
-                   };
-                }
-
-                // SI NO ENCONTRAMOS NADA, mantenemos los datos originales (Usuario externo)
-                return {
-                   nombre: creator.nombre || "Desconocido",
-                   imagen: creator.imagen || null,
-                   uid: null
-                };
+                if (creator.uid) { try { profile = await getUserPublicProfile(creator.uid); } catch (err) { } } 
+                else if (creator.nombre) { try { profile = await getUserByUsername(creator.nombre); } catch (err) { } }
+                return profile ? { nombre: profile.nombre, imagen: profile.imagen, uid: profile.uid } : { nombre: creator.nombre || "Desconocido", imagen: creator.imagen || null, uid: null };
              }));
-
-             // Filtramos nulos y actualizamos el estado
              setSelectedCreators(enrichedCreators.filter(c => c && c.nombre));
           }
 
-          if (data.galeria && Array.isArray(data.galeria)) {
-              setGaleriaUrls(data.galeria.length > 0 ? data.galeria : ['']);
-          }
+          const cleanAporteId = data.aporte && typeof data.aporte === 'object' ? data.aporte.uid || data.aporte.id : data.aporte;
 
-          // Cargar Redes Sociales
-          if (data.redes && Array.isArray(data.redes) && data.redes.length > 0) {
-              setSocialLinks(data.redes);
-          }
-
-          // CARGAR TAGS (Si existen, filtramos el tipo para no duplicarlo)
-          if (data.tags && Array.isArray(data.tags)) {
-             const cleanTags = data.tags.filter(t => t !== data.tipo);
-             setTagsList(cleanTags);
-          }
-
-          const fechaInput = data.creado 
-            ? new Date(data.creado).toISOString().split('T')[0] 
-            : new Date().toISOString().split('T')[0];
-
-          setFormData({
+          const newFormData = {
             titulo: data.titulo || '',
             descripcion: data.descripcion || '',
             tipo: data.tipo || 'mod',
             imagen: data.imagen || '',
-            aporte: data.aporte || formData.aporte,
-            creado: fechaInput,
-            status: data.status || 'published'
-          });
-
-          if (data.descargas && data.descargas.length > 0) {
-            setDescargas(data.descargas);
-          }
-        } else {
-          alert("No se encontró el contenido a editar");
-          navigate('/admin'); 
-        }
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setFetching(false);
-      }
+            aporte: cleanAporteId || user?.id || user?.uid || '', 
+            creado: data.creado ? new Date(data.creado).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+            status: data.status || 'published',
+            visibilidad: data.visibilidad || 'public', 
+            tags: data.tags ? data.tags.filter(t => t !== data.tipo) : [],
+            galeria: data.galeria && Array.isArray(data.galeria) ? data.galeria : [], 
+            descargas: data.descargas && data.descargas.length > 0 ? data.descargas.map(d => ({ nombre: d.label || '', url: d.url || '' })) : [{ nombre: '', url: '' }],
+          };
+          
+          setFormData(newFormData);
+          setInitialFormData(JSON.parse(JSON.stringify(newFormData)));
+        } else { alert("No se encontró el contenido"); navigate('/admin'); }
+      } catch (error) { console.error(error); } finally { setFetching(false); }
     };
-
     loadDataForEdit();
-  }, [editId, isEditing, navigate]);
+  }, [editId, isEditing, navigate, user?.id]);
 
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      // Si el buscador está abierto y el clic fue fuera del contenedor referenciado
-      if (searchRef.current && !searchRef.current.contains(event.target)) {
-        setShowSuggestions(false);
-      }
-    };
+    if (!initialFormData) {
+      const hasData = formData.titulo || formData.descripcion || formData.imagen || formData.tags.length > 0 || formData.galeria.length > 0 || formData.descargas.some(d => d.url) || selectedCreators.length > 0;
+      setHasChanges(hasData);
+    } else {
+      const formDataChanged = JSON.stringify(formData) !== JSON.stringify(initialFormData);
+      setHasChanges(formDataChanged);
+    }
+  }, [formData, selectedCreators, initialFormData]);
 
+  // Limpiar estados de error individuales dinámicamente cuando el usuario escribe
+  useEffect(() => {
+    if (formData.titulo) setErrors(prev => ({ ...prev, titulo: false }));
+  }, [formData.titulo]);
+
+  useEffect(() => {
+    if (formData.imagen) setErrors(prev => ({ ...prev, imagen: false }));
+  }, [formData.imagen]);
+
+  useEffect(() => {
+    if (selectedCreators.length > 0) setErrors(prev => ({ ...prev, creadores: false }));
+  }, [selectedCreators]);
+
+  const handleClose = () => {
+    if (hasChanges) {
+      setModal({
+        isOpen: true,
+        type: 'warning',
+        title: 'Cambios sin guardar',
+        message: 'Tienes modificaciones en el formulario. ¿Qué deseas hacer antes de salir?',
+        showCancel: true,
+        confirmText: 'Guardar borrador',
+        neutralText: 'Cerrar sin guardar',
+        cancelText: 'Volver al editor',
+        onConfirm: () => {
+          closeModal();
+          handleSubmitForm('draft');
+        },
+        onNeutral: () => {
+          closeModal();
+          if (onClose) onClose();
+        },
+        onCancel: () => {
+          closeModal();
+        }
+      });
+    } else {
+      if (onClose) onClose();
+    }
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event) => { if (searchRef.current && !searchRef.current.contains(event.target)) setShowSuggestions(false); };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleDescriptionChange = (newValue) => {
-    setFormData({ ...formData, descripcion: newValue });
-  };
-
-  // --- MANEJADORES GENERALES ---
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  // --- MANEJADORES DE TAGS (NUEVO) ---
-  const handleTagKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      const newTag = tagInput.trim();
-      // Validar que no esté vacío y no esté duplicado
-      if (newTag && !tagsList.includes(newTag)) {
-        setTagsList([...tagsList, newTag]);
+  const handleDescriptionChange = (htmlContent) => setFormData(prev => ({ ...prev, descripcion: htmlContent }));
+
+  const handleAddTag = () => {
+    const cleanTag = tagInput.trim().toLowerCase();
+    if (cleanTag && !formData.tags.includes(cleanTag) && formData.tags.length < 10) {
+        setFormData(prev => ({ ...prev, tags: [...prev.tags, cleanTag] }));
         setTagInput('');
-      }
-    }
+    } else if (formData.tags.length >= 10) { setTagInput(''); }
   };
+  const handleRemoveTag = (tagToRemove) => setFormData(prev => ({ ...prev, tags: prev.tags.filter(tag => tag !== tagToRemove) }));
+  const addTagDirect = (tag) => { if (!formData.tags.includes(tag.toLowerCase()) && formData.tags.length < 10) { setFormData(prev => ({ ...prev, tags: [...prev.tags, tag.toLowerCase()] })); } };
 
-  const removeTag = (index) => {
-    const newTags = tagsList.filter((_, i) => i !== index);
-    setTagsList(newTags);
+  const handleAddGalleryImage = () => setFormData(prev => ({ ...prev, galeria: [...prev.galeria, ''] }));
+  const handleGalleryImageChange = (index, value) => {
+    const newGaleria = [...formData.galeria];
+    newGaleria[index] = value;
+    setFormData(prev => ({ ...prev, galeria: newGaleria }));
   };
+  const handleRemoveGalleryImage = (index) => setFormData(prev => ({ ...prev, galeria: prev.galeria.filter((_, i) => i !== index) }));
 
-  // --- MANEJADORES DE GALERÍA ---
-  const handleGaleriaChange = (index, value) => {
-      const newGaleria = [...galeriaUrls];
-      newGaleria[index] = value;
-      setGaleriaUrls(newGaleria);
-  };
-
-  const addGaleriaField = () => {
-      setGaleriaUrls([...galeriaUrls, '']);
-  };
-
-  const removeGaleriaField = (index) => {
-      const newGaleria = galeriaUrls.filter((_, i) => i !== index);
-      setGaleriaUrls(newGaleria);
-  };
-
-  // --- MANEJADORES DE REDES SOCIALES ---
-  const handleSocialChange = (index, field, value) => {
-    const newLinks = [...redes];
-    newLinks[index][field] = value;
-    setSocialLinks(newLinks);
-  };
-
-  const addSocialField = () => {
-    setSocialLinks([...redes, { label: '', url: '' }]);
-  };
-
-  const removeSocialField = (index) => {
-    const newLinks = redes.filter((_, i) => i !== index);
-    setSocialLinks(newLinks);
-  };
-
-  const addTagDirect = (tag) => {
-    if (!tagsList.includes(tag)) {
-      setTagsList([...tagsList, tag]);
-    }
-  };
-
-  // --- MANEJADORES DE DESCARGAS ---
+  const handleAddDownload = () => setFormData(prev => ({ ...prev, descargas: [...prev.descargas, { nombre: '', url: '' }] }));
   const handleDownloadChange = (index, field, value) => {
-    const newDescargas = [...descargas];
+    const newDescargas = [...formData.descargas];
     newDescargas[index][field] = value;
-    setDescargas(newDescargas);
+    setFormData(prev => ({ ...prev, descargas: newDescargas }));
   };
+  const handleRemoveDownload = (index) => setFormData(prev => ({ ...prev, descargas: prev.descargas.filter((_, i) => i !== index) }));
 
-  const addDownloadField = () => {
-    setDescargas([...descargas, { id: Date.now(), label: '', url: '' }]);
-  };
-
-  const removeDownloadField = (index) => {
-    const newDescargas = descargas.filter((_, i) => i !== index);
-    setDescargas(newDescargas);
-  };
-
-  // --- LÓGICA DE BÚSQUEDA DE CREDITOS ---
   useEffect(() => {
-    if (creatorInput.length < 2) {
-      setUserSuggestions([]);
-      setShowSuggestions(false);
-      return;
-    }
+    if (creatorInput.length < 2) { setUserSuggestions([]); setShowSuggestions(false); return; }
     const timerId = setTimeout(async () => {
       setIsSearching(true);
       try {
         const results = await searchUsers(creatorInput);
-        const filtered = results.filter(u => !selectedCreators.some(sel => sel.uid === u.uid));
-        setUserSuggestions(filtered);
+        setUserSuggestions(results.filter(u => !selectedCreators.some(sel => sel.uid === u.uid)));
         setShowSuggestions(true);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setIsSearching(false);
-      }
+      } catch (err) { console.error(err); } finally { setIsSearching(false); }
     }, 500);
     return () => clearTimeout(timerId);
   }, [creatorInput, selectedCreators]);
 
   const handleCreatorSearch = (e) => setCreatorInput(e.target.value);
-
-  const addUserCreator = (user) => {
-    setSelectedCreators([...selectedCreators, user]);
-    setCreatorInput('');
-    setShowSuggestions(false);
-  };
-
+  const addUserCreator = (user) => { setSelectedCreators([...selectedCreators, user]); setCreatorInput(''); setShowSuggestions(false); };
   const addTextCreator = (e) => {
     if (e.key === 'Enter' && creatorInput.trim()) {
       e.preventDefault();
       setSelectedCreators([...selectedCreators, { nombre: creatorInput.trim(), imagen: null, uid: null }]);
-      setCreatorInput('');
-      setShowSuggestions(false);
+      setCreatorInput(''); setShowSuggestions(false);
+    }
+    if (e.key === 'Backspace' && !creatorInput && selectedCreators.length > 0) {
+      e.preventDefault();
+      const lastCreator = selectedCreators[selectedCreators.length - 1];
+      setCreatorInput(lastCreator.nombre);
+      removeCreator(selectedCreators.length - 1);
     }
   };
+  const removeCreator = (index) => { const newCreators = [...selectedCreators]; newCreators.splice(index, 1); setSelectedCreators(newCreators); };
 
-  const removeCreator = (index) => {
-    const newCreators = [...selectedCreators];
-    newCreators.splice(index, 1);
-    setSelectedCreators(newCreators);
-  };
+  const handleNextTab = () => { if (currentTab < tabs.length - 1) setCurrentTab(currentTab + 1); };
+  const handlePrevTab = () => { if (currentTab > 0) setCurrentTab(currentTab - 1); };
 
-  // --- PREPARAR PREVIEW ---
-  const getPreviewTags = () => {
-    // Unimos el tipo seleccionado con los tags de la lista
-    return [formData.tipo, ...tagsList];
-  };
+  const handleSubmitForm = async (action) => {
+    // Evaluar estado de errores obligatorios
+    const hasTituloError = !formData.titulo.trim();
+    const hasImagenError = !formData.imagen.trim();
+    const hasCreadoresError = selectedCreators.length === 0;
 
-  // --- GUARDAR CONTENIDO ---
-  const handleSave = async (action) => {
+    if (hasTituloError || hasImagenError || hasCreadoresError) {
+      setErrors({
+        titulo: hasTituloError,
+        imagen: hasImagenError,
+        creadores: hasCreadoresError
+      });
+
+      // Redirigir de forma automática al Tab correspondiente para mostrar la advertencia visual
+      if (hasTituloError || hasCreadoresError) {
+        setCurrentTab(0);
+      } else if (hasImagenError) {
+        setCurrentTab(1);
+      }
+
+      setModal({ 
+        isOpen: true, 
+        type: 'error', 
+        title: 'Faltan datos obligatorios', 
+        message: 'Por favor, rellena todos los campos marcados en rojo antes de guardar el mod.' 
+      });
+      return;
+    }
     
-    if (!formData.titulo || !formData.imagen) {
-      setModal({ isOpen: true, type: 'error', title: 'Faltan datos', message: 'El título y la imagen son obligatorios.' });
+    if (!isEncryptionReady || !encryptionKey) {
+      setModal({ isOpen: true, type: 'error', title: 'Seguridad', message: 'El sistema de encriptación se está inicializando. Reintente en un segundo.' });
       return;
     }
 
     setLoading(true);
-
     try {
-      // 1. Determinar Status Final
       let finalStatus = formData.status;
-      
-      if (user.role === 'admin') {
-        // El admin mantiene el estado seleccionado en el <select>
-        finalStatus = formData.status;
-      } else {
-        // LÓGICA PARA USUARIO NORMAL
-        if (action === 'draft') {
-          finalStatus = 'draft';
-        } else {
-          // Si estaba publicado o en revisión de cambios, y el usuario guarda de nuevo
-          if (originalStatus === 'published' || originalStatus === 'published_editing') {
-            finalStatus = 'published_editing';
-          } else {
-            // Si era un borrador, rechazado o inactivo y lo manda a publicar
-            finalStatus = 'pending';
-          }
-        }
+      if (user.role !== 'admin') {
+        if (action === 'draft') finalStatus = 'draft';
+        else finalStatus = (originalStatus === 'published' || originalStatus === 'published_editing') ? 'published_editing' : 'pending';
       }
 
-      // 2. Construir Payload
-      const creditosParaGuardar = selectedCreators.map(c => ({ nombre: c.nombre, uid: c.uid || null }));
-      const nombresBusqueda = selectedCreators.map(c => c.nombre);
-      const finalTags = [formData.tipo, ...tagsList];
-      const finalGaleria = galeriaUrls.filter(url => url.trim() !== '');
-      const finalRedes = redes.filter(link => link.url.trim() !== '');
+      const finalRedes = dynamicNetworks.filter(r => r.url.trim() !== '' && r.label.trim() !== '').map(r => ({ label: r.label.toUpperCase(), url: r.url.trim() }));
+
+      let processedDescargas = formData.descargas.filter(d => d.url !== '');
+      processedDescargas = await Promise.all(
+        processedDescargas.map(async (d) => {
+          try {
+            const encryptedUrl = await encryptionService.encryptUrl(d.url, encryptionKey);
+            return { label: d.nombre, url: encryptedUrl, encrypted: true };
+          } catch (error) { return { label: d.nombre, url: d.url, encrypted: false }; }
+        })
+      );
 
       const payload = {
         titulo: formData.titulo,
         descripcion: formData.descripcion,
         tipo: formData.tipo,
         imagen: formData.imagen,
-        galeria: finalGaleria,
-        redes: finalRedes,
-        creditos: creditosParaGuardar,
-        nombresBusqueda: nombresBusqueda,
-        tags: finalTags,
-        descargas: descargas.filter(d => d.url !== ''),
-        aporte: formData.aporte,
+        galeria: formData.galeria.filter(url => url.trim() !== ''),
+        redes: [], 
+        creadores: selectedCreators.map(c => ({ nombre: c.nombre, uid: c.uid || null })),
+        tags: [formData.tipo, ...formData.tags],
+        descargas: processedDescargas,
+        aporte: formData.aporte, 
         creado: new Date(formData.creado).toISOString(),
-        status: finalStatus
+        status: finalStatus,
+        visibilidad: formData.visibilidad, 
+        encrypted: true
       };
 
-      if (isEditing) {
-        await updateContent(editId, payload);
-      } else {
-        await createContent(payload, false);
-      }
+      if (isEditing) await updateContent(editId, payload);
+      else await createContent(payload, false);
 
       setModal({
-        isOpen: true,
-        type: 'success',
-        title: '¡Éxito!',
-        message: finalStatus === 'published_editing' 
-          ? 'Tus cambios han sido enviados a revisión. La versión anterior seguirá pública hasta que sean aprobados.'
-          : `Contenido guardado como ${finalStatus}.`,
+        isOpen: true, type: 'success', title: '¡Éxito!',
+        message: finalStatus === 'published_editing' ? 'Cambios enviados a revisión. La versión anterior seguirá pública.' : `Contenido guardado exitosamente.`,
         onConfirm: () => navigate(user.role === 'admin' ? '/admin' : '/mis-mods')
       });
-
-    } catch (error) {
-      setModal({ isOpen: true, type: 'error', title: 'Error', message: 'No se pudo guardar el contenido.' });
-    } finally {
-      setLoading(false);
-    }
+    } catch (error) { console.error(error); setModal({ isOpen: true, type: 'error', title: 'Error', message: 'No se pudo guardar el mod.' }); } finally { setLoading(false); }
   };
 
-  if (fetching) return <div className="h-full flex items-center justify-center min-h-[50vh]"><Loader2 className="animate-spin text-primary-600" size={48} /></div>;
-  // --- PROTECCIÓN DE RUTA ---
-  // Si está intentando editar Y ya terminó de cargar la auth Y no hay usuario:
-  if (isEditing && !fetching && !user) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[70vh] text-center p-4 animate-fade-in-up">
-        
-        {/* Icono de Candado con fondo */}
-        <div className="bg-red-50 dark:bg-red-900/20 p-6 rounded-full mb-6 shadow-lg shadow-red-500/10 border border-red-100 dark:border-red-900/30">
-          <Lock size={48} className="text-red-500 dark:text-red-400" />
-        </div>
+  if (!isOpen) return null;
 
-        {/* Títulos */}
-        <h2 className="text-3xl font-black text-gray-900 dark:text-white mb-3 tracking-tight">
-          Acceso Restringido
-        </h2>
-        <p className="text-gray-500 dark:text-gray-400 max-w-md mb-8 text-lg">
-          Para editar este contenido necesitas verificar tu identidad. Por favor, inicia sesión con tu cuenta de administrador o creador.
-        </p>
+  if (fetching) return <div className="fixed inset-0 bg-white dark:bg-[#1e1e1e] flex items-center justify-center z-[100]"><Loader2 className="animate-spin text-primary-600" size={48} /></div>;
 
-        {/* Botones de Acción */}
-        <div className="flex flex-col sm:flex-row gap-4 w-full max-w-sm">
-          <button 
-            onClick={() => navigate(-1)}
-            className="flex-1 px-6 py-3.5 rounded-xl font-bold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all flex items-center justify-center gap-2"
-          >
-            <ArrowLeft size={20} /> Volver
-          </button>
-          
-          <button 
-            onClick={() => navigate('/login', { state: { from: `/subir?edit=${editId}` } })}
-            className="flex-1 px-6 py-3.5 rounded-xl font-bold text-white bg-primary-600 hover:bg-primary-700 shadow-lg shadow-primary-600/20 transition-all flex items-center justify-center gap-2"
-          >
-            <LogIn size={20} /> Iniciar Sesión
-          </button>
-        </div>
-
-      </div>
-    );
-  }
   return (
-    <div className="max-w-7xl mx-auto animate-fade-in-up">
+    <div className="fixed inset-0 bg-gray-100 dark:bg-[#0d0d0d] flex flex-col z-[100] animate-fade-in">
       
-      <button onClick={() => navigate(-1)} className="mb-4 md:mb-6 flex items-center gap-2 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors font-medium">
-        <ArrowLeft size={20} /> Volver al listado
-      </button>
-
-      <div className="flex items-center gap-3 mb-4 md:mb-8">
-        <div className={clsx("p-3 rounded-xl text-white", isEditing ? "bg-blue-600" : "bg-primary-600")}>
-          {isEditing ? <PenTool size={24} /> : <Layers size={24} />}
+      {/* HEADER FIJO */}
+      <div className="flex-shrink-0 bg-white dark:bg-[#1e1e1e] border-b border-gray-300 dark:border-gray-800 px-4 pt-4">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-3">
+            <div className={clsx("w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-lg shrink-0", isEditing ? "bg-blue-600" : "bg-primary-600")}>
+              {isEditing ? <PenTool size={18} /> : <Layers size={18} />}
+            </div>
+            <h1 className="text-xl md:text-2xl font-black text-gray-800 dark:text-white tracking-tight">{isEditing ? "Editar Contenido" : "Subir Mod"}</h1>
+          </div>
+          <div className="flex items-center gap-4 shrink-0">
+            <span className="text-2xl font-black bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">{getProgress()}%</span>
+            <button type="button" onClick={handleClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors">
+              <CloseIcon size={20} className="text-gray-500 dark:text-gray-400" />
+            </button>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{isEditing ? "Editar Contenido" : "Nuevo Aporte"}</h1>
-          <p className="text-gray-500 dark:text-gray-400 text-sm">
-            Estado actual: <span className="capitalize font-bold text-primary-600">{formData.status.replace('_', ' ')}</span>
-          </p>
+        
+        {/* TABS FIJOS */}
+        <div className="flex border-b border-gray-300 dark:border-gray-800 bg-white/50 dark:bg-gray-900/40 overflow-x-auto scrollbar-none snap-x">
+          {tabs.map((tab, index) => (
+            <button key={tab.id} type="button" onClick={() => setCurrentTab(index)} className={clsx("flex-1 min-w-[140px] sm:min-w-0 flex flex-col sm:flex-row items-center justify-center gap-1.5 py-4 px-2 snap-start transition-all relative outline-none text-xs font-bold", currentTab === index ? "text-primary-600 dark:text-primary-400 bg-white dark:bg-[#1e1e1e]" : "text-gray-400 dark:text-gray-500 hover:text-gray-500")}>
+              {currentTab === index && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-600" />}
+              <tab.icon size={14} className="shrink-0" />
+              <span className={clsx("text-[10px] sm:text-xs tracking-tight whitespace-nowrap", 
+                index === 0 && (errors.titulo || errors.creadores) && "text-red-500 font-extrabold",
+                index === 1 && errors.imagen && "text-red-500 font-extrabold"
+              )}>{tab.label}</span>
+            </button>
+          ))}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 items-start">
-        
-        {/* --- FORMULARIO --- */}
-        <div className="lg:col-span-2 flex flex-col gap-3 md:gap-5">
-          <form onSubmit={(e) => e.preventDefault()} className="flex flex-col gap-3 md:gap-5">
-            
-            {/* Alerta de Estado para el Usuario */}
-            {!user?.role === 'admin' && isEditing && originalStatus === 'published' && (
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-4 rounded-2xl flex gap-3">
-                <AlertCircle className="text-blue-600 shrink-0" />
-                <p className="text-sm text-blue-800 dark:text-blue-300">
-                  <b>Nota:</b> Al guardar cambios en un mod ya publicado, estos pasarán a revisión antes de hacerse públicos. La versión actual no se verá afectada.
-                </p>
-              </div>
-            )}
-
-            {/* SECCIÓN 1: INFO GENERAL */}
-            <div className="bg-white dark:bg-[#1e1e1e] p-3 md:p-5 rounded-2xl border border-gray-300 dark:border-gray-700 shadow-sm">
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 md:mb-6 flex items-center gap-2 ps-0.5 pb-3 md:pb-4 border-b border-gray-300 dark:border-gray-700">
-                <Layers size={20} className="text-primary-600 dark:text-primary-300" /> Información General
-              </h3>
+      {/* CONTENIDO CENTRAL */}
+      <div className="flex-1 overflow-y-auto p-4 md:p-6">
+        <div className="max-w-4xl mx-auto">
+          <form onSubmit={(e) => e.preventDefault()}>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
-                {/* ... (Campos anteriores: Título, Descripción, Tipo, Fecha, Imagen, Créditos, Tags) ... */}
-                {/* Título */}
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Título</label>
-                  <div className="relative">
-                    <Type className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                    <input type="text" name="titulo" required value={formData.titulo} onChange={handleChange} placeholder="Ej: Super Mod" className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white" />
-                  </div>
-                </div>
-
-                {/* Descripción */}
-                {/* <div className="md:col-span-2">
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Descripción</label>
-                  <textarea name="descripcion" required value={formData.descripcion} onChange={handleChange} placeholder="Descripción detallada..." rows={6} className="w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white resize-y" />
-                </div> */}
-                {/* Descripción con Editor Simple */}
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Descripción</label>
-
-                  <SimpleEditor 
-                    value={formData.descripcion} 
-                    onChange={handleDescriptionChange} 
-                    placeholder="Describe tu mod aquí. Usa los botones para listas y negritas."
-                  />
-                </div>
-
-                {/* Tipo */}
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Tipo</label>
-                  <select name="tipo" value={formData.tipo} onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white">
-                    <option value="mapa">Mapa</option>
-                    <option value="minijuego">Minijuego</option>
-                    <option value="modpack">Modpack</option>
-                    <option value="mod">Mod</option>
-                    <option value="paquete">Paquete</option>
-                    <option value="personaje">Personaje</option>
-                  </select>
-                </div>
-
-                {/* Imagen */}
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Imagen Principal (Portada)</label>
-                  <div className="relative">
-                    <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                    <input type="url" name="imagen" value={formData.imagen} onChange={handleChange} placeholder="https://imgur.com/..." className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white" />
-                  </div>
-                </div>
-
-                {/* Creditos */}
-                <div className="md:col-span-2 relative" ref={searchRef}>
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Créditos</label>
-                  <div className="p-2 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 focus-within:ring-2 focus-within:ring-primary-500 transition-all flex flex-wrap gap-2 min-h-[50px]">
-                    {selectedCreators.map((creator, idx) => (
-                      <div key={idx} className="flex items-center gap-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 pl-1 pr-2 py-1 rounded-full shadow-sm animate-fade-in-up">
-                        <div className="w-6 h-6 rounded-full overflow-hidden bg-gray-200">
-                           {creator.imagen ? <img src={creator.imagen} alt={creator.nombre} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center bg-primary-100 text-primary-600 text-xs font-bold">{creator.nombre.charAt(0).toUpperCase()}</div>}
-                        </div>
-                        <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{creator.nombre}</span>
-                        <button type="button" onClick={() => removeCreator(idx)} className="text-gray-400 hover:text-red-500 transition-colors"><X size={14} /></button>
+              {/* TAB 1: INFORMACIÓN BÁSICA + CRÉDITOS */}
+              {currentTab === 0 && (
+                <div className="space-y-4 animate-fade-in bg-white dark:bg-[#1e1e1e] rounded-2xl shadow-md border border-gray-300 dark:border-gray-700/80 p-4 sm:p-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label htmlFor="titulo" className={clsx("block text-xs font-bold uppercase tracking-wide", errors.titulo ? "text-red-500 dark:text-red-400" : "text-gray-500 dark:text-gray-400")}>Nombre *</label>
+                      <input id="titulo" type="text" name="titulo" value={formData.titulo} onChange={handleChange} required className={clsx("w-full px-3 py-2 h-9 text-xs md:text-sm bg-white dark:bg-gray-800/60 border rounded-xl outline-none transition-all shadow-sm", errors.titulo ? "border-red-500 focus:ring-1 focus:ring-red-500 focus:border-red-500" : "border-gray-300 dark:border-gray-700 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 dark:text-white")} placeholder="Ej: Super Mod Pack" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label htmlFor="tipo" className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Tipo</label>
+                      <div className="relative">
+                        <select id="tipo" name="tipo" value={formData.tipo} onChange={handleChange} className="w-full pl-3 pr-8 py-1.5 h-9 text-xs md:text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none dark:text-white cursor-pointer appearance-none capitalize shadow-sm">
+                          {['mod', 'mapa', 'personaje', 'minijuego', 'modpack', 'paquete'].map(t => <option key={t} value={t}>{t}</option>)}
+                        </select>
+                        <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                       </div>
-                    ))}
-                    <div className="relative flex-1 min-w-[120px]">
-                       <input type="text" value={creatorInput} onChange={handleCreatorSearch} onKeyDown={addTextCreator} placeholder={selectedCreators.length === 0 ? "Buscar usuario..." : "Agregar otro..."} className="w-full h-full bg-transparent outline-none text-sm dark:text-white py-1" />
-                       {isSearching && <div className="absolute right-2 top-1/2 -translate-y-1/2"><Loader2 className="animate-spin text-gray-400" size={14} /></div>}
                     </div>
                   </div>
-                  {/* LÓGICA DE DROPDOWN MEJORADA */}
-                  {showSuggestions && creatorInput.length > 1 && (
-                    <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#252525] rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden animate-fade-in-up">
-                      
-                      {/* CASO A: HAY RESULTADOS */}
-                      {userSuggestions.length > 0 ? (
-                        <ul>
-                          {userSuggestions.map((user) => (
-                            <li key={user.uid}>
-                              <button 
-                                type="button" 
-                                onClick={() => addUserCreator(user)} 
-                                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors text-left"
-                              >
-                                <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 border border-gray-300 dark:border-gray-600 shrink-0">
-                                    {user.imagen ? (
-                                      <img src={user.imagen} alt={user.nombre} className="w-full h-full object-cover" />
-                                    ) : (
-                                      <div className="w-full h-full flex items-center justify-center bg-gray-300 text-gray-600 font-bold">
-                                        {user.nombre.charAt(0)}
-                                      </div>
-                                    )}
-                                </div>
-                                <div>
-                                  <p className="text-sm font-bold text-gray-800 dark:text-white">{user.nombre}</p>
-                                  <p className="text-[10px] text-gray-400">Usuario registrado</p>
-                                </div>
-                              </button>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        /* CASO B: NO HAY RESULTADOS (Y NO ESTÁ CARGANDO) */
-                        !isSearching && (
-                          <div className="px-3 py-4 text-center flex flex-col items-center justify-center text-gray-500 dark:text-gray-400">
-                            <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-full mb-2">
-                              <UserX size={20} />
-                            </div>
-                            <p className="text-sm font-medium">No encontramos a "{creatorInput}"</p>
-                            <p className="text-xs mt-1 text-primary-600 dark:text-primary-400 font-bold bg-primary-50 dark:bg-primary-900/20 px-2 py-1 rounded-md">
-                              Presiona Enter para agregarlo como texto
-                            </p>
+
+                  <div className="relative" ref={searchRef}>
+                    <label className={clsx("block text-xs font-bold uppercase tracking-wide mb-1.5 flex items-center gap-1", errors.creadores ? "text-red-500 dark:text-red-400" : "text-gray-500 dark:text-gray-400")}>Creadores / Créditos *</label>
+                    <div className={clsx("py-1 px-1.5 rounded-xl border flex flex-wrap gap-1.5 shadow-sm items-center transition-all duration-200", errors.creadores ? "bg-red-50/20 dark:bg-red-950/10 border-red-500 focus-within:ring-1 focus-within:ring-red-500 focus-within:border-red-500" : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 focus-within:ring-1 focus-within:ring-primary-500 focus-within:border-primary-500")}>
+                      {selectedCreators.map((creator, idx) => (
+                        <div key={idx} className="flex items-center gap-1.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-700 pl-1 pr-1.5 py-1 rounded-full shadow-sm max-w-full">
+                          <div className="w-5 h-5 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-800 flex items-center justify-center shrink-0 border dark:border-gray-600">
+                            <AvatarRenderer avatar={creator.imagen} name={creator.nombre} />
                           </div>
-                        )
+                          <span className="text-[12px] font-bold text-gray-700 dark:text-gray-200 truncate max-w-[100px]">{creator.nombre}</span>
+                          <button type="button" onClick={() => removeCreator(idx)} className="text-gray-400 hover:text-red-500 p-0.5 shrink-0 transition-colors"><X size={10} /></button>
+                        </div>
+                      ))}
+                      <input type="text" value={creatorInput} onChange={handleCreatorSearch} onKeyDown={addTextCreator} placeholder="Buscar creador de la comunidad..." className="flex-1 bg-transparent outline-none text-sm dark:text-white min-w-[120px] p-1" />
+                    </div>
+
+                    {showSuggestions && creatorInput.length > 1 && (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-[#252525] rounded-xl shadow-xl border border-gray-300 dark:border-gray-700 z-50 overflow-hidden max-h-40 overflow-y-auto">
+                        {userSuggestions.length > 0 ? (
+                          <ul className="divide-y divide-gray-100 dark:divide-gray-800">
+                            {userSuggestions.map((u) => (
+                              <li key={u.uid}>
+                                <button type="button" onClick={() => addUserCreator(u)} className="w-full flex items-center gap-3 px-3 py-2 hover:bg-primary-50 dark:hover:bg-primary-900/10 text-left transition-colors">
+                                  <div className="w-6 h-6 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-800 flex items-center justify-center shrink-0 border dark:border-gray-700">
+                                    <AvatarRenderer avatar={u.imagen} name={u.nombre} />
+                                  </div>
+                                  <span className="text-xs font-bold text-gray-800 dark:text-gray-200 truncate">{u.nombre}</span>
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (!isSearching && <div className="p-2.5 text-center text-[11px] text-gray-400 italic">Presiona <b>Enter</b> para agregarlo como creador externo.</div>)}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Descripción</label>
+                    <SimpleEditor value={formData.descripcion} onChange={handleDescriptionChange} />
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 2: IMÁGENES Y GALERÍA */}
+              {currentTab === 1 && (
+                <div className="space-y-4 animate-fade-in bg-white dark:bg-[#1e1e1e] rounded-2xl shadow-md border border-gray-300 dark:border-gray-700/80 p-4 sm:p-5">
+                  <div className="space-y-1.5">
+                    <label htmlFor="imagen" className={clsx("block text-xs font-bold uppercase tracking-wide", errors.imagen ? "text-red-500 dark:text-red-400" : "text-gray-500 dark:text-gray-400")}>Imagen Principal *</label>
+                    <div className="flex flex-col md:flex-row gap-3 items-start">
+                      <div className="relative flex-1 w-full">
+                        <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                        <input id="imagen" type="url" name="imagen" value={formData.imagen} onChange={handleChange} className={clsx("w-full pl-9 pr-4 py-2 h-9 text-xs bg-white dark:bg-gray-800/60 border rounded-xl outline-none font-medium shadow-sm transition-all", errors.imagen ? "border-red-500 focus:ring-1 focus:ring-red-500 focus:border-red-500" : "border-gray-300 dark:border-gray-700 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 dark:text-white")} placeholder="https://i.imgur.com/imagen.png" />
+                      </div>
+                      {formData.imagen && formData.imagen.length > 10 && (
+                        <div className="w-full md:w-36 shrink-0 rounded-xl border border-gray-300 dark:border-gray-800 aspect-video overflow-hidden bg-white dark:bg-gray-900/20 shadow-md animate-fade-in">
+                          <img src={formData.imagen} className="w-full h-full object-cover" alt="Vista previa" onError={(e) => { e.target.style.display = 'none'; }} />
+                        </div>
                       )}
                     </div>
-                  )}
-                </div>
-
-                {/* --- SECCIÓN TAGS ACTUALIZADA --- */}
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Etiquetas (Tags)</label>
-                  
-                  {/* Input y Tags Seleccionados */}
-                  <div className="p-2 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 focus-within:ring-2 focus-within:ring-primary-500 transition-all flex flex-wrap gap-2 min-h-[50px]">
-                    {tagsList.map((tag, idx) => (
-                      <div key={idx} className="flex items-center gap-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-700 px-2 py-1 rounded-full animate-fade-in-up">
-                        <Tag size={12} className="text-primary-600 dark:text-primary-400" />
-                        <span className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200">{tag}</span>
-                        <button type="button" onClick={() => removeTag(idx)} className="text-gray-400 hover:text-red-500 transition-colors ml-1">
-                          <X size={14} />
-                        </button>
-                      </div>
-                    ))}
-                    
-                    <input 
-                      type="text" 
-                      value={tagInput}
-                      onChange={(e) => setTagInput(e.target.value)}
-                      onKeyDown={handleTagKeyDown}
-                      placeholder={tagsList.length === 0 ? "Ej: Aventura, PvP (Presiona Enter)" : "Agregar otro..."}
-                      className="flex-1 bg-transparent outline-none text-sm dark:text-white py-1 min-w-[150px]"
-                    />
                   </div>
 
-                  {/* Instrucciones y Sugerencias */}
-                  <div className="flex flex-col gap-2 mt-2">
-                      <p className="text-[10px] text-gray-400 flex items-center gap-1">
-                        <Type size={10} /> Escribe una palabra y presiona <b>Enter</b> para agregarla.
-                      </p>
-
-                      {/* --- TAGS RECOMENDADOS --- */}
-                      <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mr-1">Sugeridos:</span>
-                          {RECOMMENDED_TAGS.map((tag) => {
-                              // Solo mostrar si no está seleccionado ya
-                              if (tagsList.includes(tag)) return null;
-                              
-                              return (
-                                  <button
-                                      key={tag}
-                                      type="button"
-                                      onClick={() => addTagDirect(tag)}
-                                      className="px-2 py-1 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-xs text-gray-600 dark:text-gray-400 hover:border-primary-500 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
-                                  >
-                                      {tag}
-                                  </button>
-                              );
-                          })}
-                      </div>
-                  </div>
-                </div>
-
-                {/* --- ESTADO (SOLO VISIBLE PARA ADMINS) --- */}
-                {user?.role === 'admin' && (
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                      Estado de Publicación
-                    </label>
-                    <select name="status" value={formData.status} onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white">
-                      <option value="published">Publicado</option>
-                      <option value="published_editing">Publicado (Revisando cambios)</option>
-                      <option value="pending">En revisión</option>
-                      <option value="rejected">Rechazado</option>
-                      <option value="draft">Borrador</option>
-                      <option value="inactive">Inactivo</option>
-                    </select>
-                  </div>
-                )}
-
-              </div>
-            </div>
-
-            {/* SECCIÓN 2: GALERÍA */}
-            <div className="bg-white dark:bg-[#1e1e1e] p-3 md:p-5 rounded-2xl border border-gray-300 dark:border-gray-700 shadow-sm">
-                <div className="flex justify-between items-center mb-4 border-b border-gray-300 dark:border-gray-700 pb-2">
-                    <h3 className="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2"><ImageIcon size={20} className="text-primary-300" /> Galería</h3>
-                    <button type="button" onClick={addGaleriaField} className="flex items-center gap-1 text-sm font-bold text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-500 transition-colors">
-                      <Plus size={16} /> Agregar Imagen
-                    </button>
-                </div>
-                
-                <div className="flex flex-col gap-3">
-                    {galeriaUrls.map((url, index) => {
-                        // Lógica de detección para la vista previa del input
+                  <div className="space-y-3 pt-3 w-full border-t border-gray-300 dark:border-gray-800/60">
+                    <div className="flex items-center justify-between pb-1">
+                      <span className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Galería</span>
+                      <button type="button" onClick={handleAddGalleryImage} className="flex items-center gap-1 px-2.5 py-1 bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 border border-primary-200/40 dark:border-primary-800/60 rounded-xl text-xs font-bold transition-colors"><Plus size={12} /> Añadir</button>
+                    </div>
+                    <div className="grid grid-cols-1 gap-2.5 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
+                      {formData.galeria.map((url, index) => {
                         const isYt = getYouTubeId(url);
                         const isVid = isVideo(url);
-                        const thumbSrc = isYt ? `https://img.youtube.com/vi/${isYt}/mqdefault.jpg` : url;
-
                         return (
-                            <div key={index} className="flex flex-wrap flex-column md:flex-row gap-2 md:gap-3 items-center animate-fade-in-up">
-                                <div className="flex-1 relative">
-                                    <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
-                                    <input 
-                                        type="url" 
-                                        placeholder="URL de imagen o video (mp4/youtube)" 
-                                        value={url} 
-                                        onChange={(e) => handleGaleriaChange(index, e.target.value)} 
-                                        className="w-full pl-8 pr-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:border-primary-500 focus:ring-2 dark:focus:ring-primary-500 dark:text-white text-sm" 
-                                    />
-                                </div>
-                                
-                                {/* Vista previa miniatura al lado del input */}
-                                {url && url.length > 10 && (
-                                    <div className="relative w-12 h-10 rounded-lg bg-gray-200 dark:bg-gray-700 overflow-hidden shrink-0 border border-gray-300 dark:border-gray-600 group">
-                                        
-                                        {/* Icono de Play si es video */}
-                                        {(isYt || isVid) && (
-                                            <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/20">
-                                                <PlayCircle size={16} className="text-white drop-shadow-md" />
-                                            </div>
-                                        )}
-
-                                        <img 
-                                            src={thumbSrc} 
-                                            alt="preview" 
-                                            className="w-full h-full object-cover" 
-                                            onError={(e) => {
-                                                // Si falla la carga, ocultamos el contenedor
-                                                e.target.style.display='none'; 
-                                                e.target.parentElement.style.display='none'; 
-                                            }} 
-                                        />
-                                    </div>
-                                )}
-
-                                {galeriaUrls.length > 1 && (
-                                    <button type="button" onClick={() => removeGaleriaField(index)} className="p-2 w-full md:w-auto flex justify-center bg-red-50 dark:bg-red-900/30 text-red-500 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 border border-red-800 transition-colors">
-                                        <Trash2 size={18} />
-                                    </button>
-                                )}
+                          <div key={index} className="flex flex-col sm:flex-row gap-2 bg-white/50 dark:bg-gray-900/20 p-2.5 rounded-xl border border-gray-300 dark:border-gray-800 relative shadow-sm">
+                            <div className="flex-1 relative self-center">
+                              <input aria-label="URL de galería" type="url" value={url} onChange={(e) => handleGalleryImageChange(index, e.target.value)} className="w-full px-3 py-1.5 h-9 text-xs bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl outline-none dark:text-white focus:ring-1 focus:ring-primary-500 focus:border-primary-500" placeholder="URL de imagen o video (mp4/YouTube)" />
                             </div>
+                            {url && url.length > 10 && (
+                              <div className="relative w-full sm:w-20 h-12 rounded-lg bg-gray-100 dark:bg-gray-800 overflow-hidden shrink-0 border border-gray-300 dark:border-gray-700 shadow-inner flex items-center justify-center">
+                                {(isYt || isVid) && <div className="absolute inset-0 flex items-center justify-center bg-black/20 z-10"><PlayCircle size={14} className="text-white" /></div>}
+                                <img src={isYt ? `https://img.youtube.com/vi/${isYt}/mqdefault.jpg` : url} alt="" className="w-full h-full object-cover" onError={(e) => { e.target.src = "https://placehold.co/100x60?text=Error"; }} />
+                              </div>
+                            )}
+                            <button type="button" onClick={() => handleRemoveGalleryImage(index)} className="p-2 text-gray-400 hover:text-red-500 transition-colors self-center"><Trash2 size={14} /></button>
+                          </div>
                         );
-                    })}
-                    <p className="text-xs text-gray-400 italic mt-1">Soporta enlaces directos a imágenes, videos .mp4 y videos de YouTube.</p>
+                      })}
+                    </div>
+                    {formData.galeria.length === 0 && (<div className="text-center py-6 border border-dashed border-gray-300 dark:border-gray-800 rounded-xl text-gray-400 dark:text-gray-500 text-xs italic">No has añadido imágenes adicionales todavía.</div>)}
+                  </div>
                 </div>
-            </div>
-
-            {/* SECCIÓN 3: CONOCE MÁS / REDES SOCIALES (NUEVA) */}
-            <div className="bg-white dark:bg-[#1e1e1e] p-3 md:p-5 rounded-2xl border border-gray-300 dark:border-gray-700 shadow-sm">
-                <div className="flex justify-between items-center mb-4 border-b border-gray-300 dark:border-gray-700 pb-2">
-                    <h3 className="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2"><Globe size={20} className="text-blue-500" /> Redes Sociales</h3>
-                    <button type="button" onClick={addSocialField} className="flex items-center gap-1 text-sm font-bold text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-500 transition-colors">
-                      <Plus size={16} /> Agregar Red
-                    </button>
-                </div>
-                <div className="flex flex-col gap-3">
-                    {redes.map((item, index) => (
-                        <div key={index} className="flex flex-wrap flex-column md:flex-row gap-2 md:gap-3 items-end animate-fade-in-up">
-                            <div className="w-full md:flex-1">
-                                <label className="text-xs text-gray-500 mb-1 block">Plataforma/Texto</label>
-                                <input type="text" placeholder="Ej: Discord, Mi Web" value={item.label} onChange={(e) => handleSocialChange(index, 'label', e.target.value)} className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-500 dark:text-white text-sm" />
-                            </div>
-                            <div className="w-full md:flex-[2]">
-                                <label className="text-xs text-gray-500 mb-1 block">URL</label>
-                                <div className="relative">
-                                    <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
-                                    <input type="url" placeholder="https://..." value={item.url} onChange={(e) => handleSocialChange(index, 'url', e.target.value)} className="w-full pl-8 pr-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-500 dark:text-white text-sm" />
-                                </div>
-                            </div>
-                            {redes.length > 1 && <button type="button" onClick={() => removeSocialField(index)} className="p-2 w-full md:w-auto flex justify-center bg-red-50 dark:bg-red-900/30 text-red-500 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 border border-red-800 text-sm transition-colors mb-[1px]"><Trash2 size={18} /></button>}
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            {/* SECCIÓN 4: DESCARGAS */}
-            <div className="bg-white dark:bg-[#1e1e1e] p-3 md:p-5 rounded-2xl border border-gray-300 dark:border-gray-700 shadow-sm">
-                <div className="flex justify-between items-center mb-4 border-b border-gray-300 dark:border-gray-700 pb-2">
-                    <h3 className="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2"><LinkIcon size={20} className="text-primary-300" /> Descargas</h3>
-                    <button type="button" onClick={addDownloadField} className="flex items-center gap-1 text-sm font-bold text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-500 transition-colors">
-                        <Plus size={16} /> Agregar Descarga
-                    </button>
-                </div>
-                
-                <div className="flex flex-col gap-4">
-                    {descargas.map((item, index) => {
-                        // Verificamos si la etiqueta actual está en la lista de presets
-                        const isCustom = !DOWNLOAD_LABELS.includes(item.label) && item.label !== '';
-
-                        return (
-                            <div key={index} className="flex flex-wrap flex-column md:flex-row gap-2 md:gap-3 items-start animate-fade-in-up">
-                                
-                                {/* COLUMNA ETIQUETA (Select + Input) */}
-                                <div className="w-full md:flex-1 flex flex-col gap-2">
-                                    <label className="text-xs text-gray-500 font-bold ml-1">Etiqueta / Versión</label>
-                                    
-                                    {/* 1. SELECTOR */}
-                                    <div className="relative">
-                                        <select 
-                                            value={DOWNLOAD_LABELS.includes(item.label) ? item.label : 'custom'} 
-                                            onChange={(e) => {
-                                                const val = e.target.value;
-                                                // Si elige 'custom', limpiamos el label para que escriba. 
-                                                // Si elige un preset, lo asignamos directo.
-                                                handleDownloadChange(index, 'label', val === 'custom' ? '' : val);
-                                            }}
-                                            className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 dark:text-white text-sm appearance-none cursor-pointer font-medium"
-                                        >
-                                            <option value="" hidden disabled>Seleccionar etiqueta...</option>
-                                            {DOWNLOAD_LABELS.map(opt => (
-                                                <option key={opt} value={opt}>{opt}</option>
-                                            ))}
-                                            <option value="custom">Otro / Manual...</option>
-                                        </select>
-                                        
-                                        {/* Icono flecha para el select */}
-                                        <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-gray-500">
-                                            <ChevronDown size={14} />
-                                        </div>
-                                    </div>
-
-                                    {/* 2. INPUT MANUAL (Solo si elige 'Otro') */}
-                                    {(!DOWNLOAD_LABELS.includes(item.label)) && (
-                                        <input 
-                                            type="text" 
-                                            placeholder="Escribe la etiqueta (Ej: Mediafire)" 
-                                            value={item.label} 
-                                            onChange={(e) => handleDownloadChange(index, 'label', e.target.value)} 
-                                            className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 dark:text-white text-sm animate-fade-in" 
-                                             // Enfocar automáticamente al seleccionar 'Otro'
-                                        />
-                                    )}
-                                </div>
-
-                                {/* COLUMNA URL */}
-                                <div className="w-full md:flex-[2] flex flex-col gap-2">
-                                    <label className="text-xs text-gray-500 font-bold ml-1">Enlace (URL)</label>
-                                    <div className="relative">
-                                        <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
-                                        <input 
-                                            type="url" 
-                                            placeholder="https://..." 
-                                            value={item.url} 
-                                            onChange={(e) => handleDownloadChange(index, 'url', e.target.value)} 
-                                            className="w-full pl-8 pr-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 dark:text-white text-sm" 
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* BOTÓN ELIMINAR */}
-                                {descargas.length > 1 && (
-                                    <div className="mt-0 md:mt-6 w-full md:w-auto"> {/* Margen para alinear con los inputs */}
-                                        <button 
-                                            type="button" 
-                                            onClick={() => removeDownloadField(index)} 
-                                            className="w-full md:w-auto flex justify-center p-2.5 bg-red-100 dark:bg-red-900/30 text-red-500 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 border border-red-800 transition-colors"
-                                            title="Quitar opción"
-                                        >
-                                            <Trash2 size={16} />
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
-
-            {/* --- ZONA DE ACCIONES (2 BOTONES) --- */}
-            <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
-              
-              {user?.role === 'admin' ? (
-                // --- BOTONES PARA ADMIN (Solo uno principal) ---
-                <button 
-                  type="button" 
-                  onClick={() => handleSave('publish')}
-                  disabled={loading}
-                  className="w-full py-3 md:py-4 rounded-xl bg-primary-600 text-white font-bold text-lg hover:bg-primary-700 transition-all flex items-center justify-center gap-2"
-                >
-                  {loading ? <Loader2 className="animate-spin"/> : <Save size={20} />}
-                  Guardar Contenido
-                </button>
-              ) : (
-                // --- BOTONES PARA USUARIOS NORMALES ---
-                <>
-                  <button 
-                    type="button" 
-                    onClick={() => handleSave('draft')}
-                    disabled={loading}
-                    className="flex-1 py-3 md:py-4 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-bold text-lg hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-700 transition-all flex items-center justify-center gap-2"
-                  >
-                    {loading ? <Loader2 className="animate-spin"/> : <FileText size={20} />}
-                    Guardar Borrador
-                  </button>
-
-                  <button 
-                    type="button" 
-                    onClick={() => handleSave('pending')}
-                    disabled={loading}
-                    className="flex-[2] py-3 md:py-4 rounded-xl bg-primary-600 text-white font-bold text-lg hover:bg-primary-700 transition-all flex items-center justify-center gap-2"
-                  >
-                    {loading ? <Loader2 className="animate-spin"/> : <Upload size={20} />}
-                    Enviar para Revisión
-                  </button>
-                </>
               )}
-            </div>
+
+              {/* TAB 3: DESCARGAS Y TAGS */}
+              {currentTab === 2 && (
+                <div className="space-y-4 animate-fade-in bg-white dark:bg-[#1e1e1e] rounded-2xl shadow-md border border-gray-300 dark:border-gray-700/80 p-4 sm:p-5">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between pb-1">
+                      <span className="block text-xs font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wide flex items-center gap-1">
+                        Descargas
+                      </span>
+                      <button type="button" onClick={handleAddDownload} className="flex items-center gap-1 px-2.5 py-1 bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 border border-primary-200/40 dark:border-primary-800/60 rounded-xl text-xs font-bold transition-colors"><Plus size={12} /> Añadir</button>
+                    </div>
+
+                    <div className="space-y-2.5 max-h-[220px] overflow-y-auto pr-1 custom-scrollbar">
+                      {formData.descargas.map((download, index) => (
+                        <div key={index} className="flex flex-col sm:flex-row gap-2 bg-white/50 dark:bg-gray-900/20 p-2.5 rounded-xl border border-gray-300 dark:border-gray-800 relative shadow-sm">
+                          <div className="relative w-full sm:w-44 shrink-0">
+                            <select value={DOWNLOAD_LABELS.includes(download.nombre) ? download.nombre : 'custom'} onChange={(e) => handleDownloadChange(index, 'nombre', e.target.value === 'custom' ? '' : e.target.value)} className="w-full pl-3 pr-8 py-1.5 h-9 text-xs rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 font-bold cursor-pointer appearance-none dark:text-white outline-none shadow-sm focus:ring-1 focus:ring-primary-500 focus:border-primary-500">
+                              {DOWNLOAD_LABELS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                              <option value="custom">Otro</option>
+                            </select>
+                            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={12} />
+                          </div>
+                          
+                          {!DOWNLOAD_LABELS.includes(download.nombre) && (
+                            <input aria-label="Nombre del servidor" type="text" value={download.nombre} onChange={(e) => handleDownloadChange(index, 'nombre', e.target.value)} placeholder="Ej: Mediafire" className="w-full sm:flex-1 px-3 h-9 text-xs bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500" />
+                          )}
+                          
+                          <div className="flex-1 relative">
+                            <input aria-label="URL de descarga" type="url" value={download.url} onChange={(e) => handleDownloadChange(index, 'url', e.target.value)} placeholder="https://..." required className="w-full px-3 h-9 text-xs bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg outline-none dark:text-white shadow-sm focus:ring-1 focus:ring-primary-500 focus:border-primary-500" />
+                          </div>
+                          
+                          {formData.descargas.length > 1 && (
+                            <button type="button" onClick={() => handleRemoveDownload(index)} className="p-2 text-gray-400 hover:text-red-500 transition-colors self-center"><Trash2 size={14} /></button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 pt-4 w-full border-t border-gray-300 dark:border-gray-800/60">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="block text-xs font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wide flex items-center gap-1.5">
+                        Etiquetas
+                      </span>
+                      <span className={clsx("text-[10px] font-bold px-2 py-0.5 rounded-md", formData.tags.length >= 10 ? "bg-red-100 text-red-600" : "bg-gray-100 text-gray-500 dark:bg-gray-800")}>
+                        {formData.tags.length} / 10
+                      </span>
+                    </div>
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">#</span>
+                        <input aria-label="Escribe una etiqueta" type="text" value={tagInput} onChange={(e) => setTagInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())} disabled={formData.tags.length >= 10} className="w-full pl-7 pr-3 py-1.5 h-9 text-xs bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all disabled:opacity-50 shadow-sm" placeholder="skins, pvp... (Enter)" />
+                      </div>
+                      <button type="button" onClick={handleAddTag} disabled={formData.tags.length >= 10 || !tagInput.trim()} className="px-3 h-9 bg-primary-600 hover:bg-primary-700 text-white rounded-xl shadow-sm flex items-center justify-center shrink-0"><Plus size={14} /></button>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 min-h-[36px] p-2 bg-white dark:bg-[#252525] border border-gray-300 dark:border-gray-800 rounded-xl shadow-inner">
+                      {formData.tags.length > 0 ? formData.tags.map((tag, index) => (
+                        <span key={index} className="inline-flex items-center gap-1.5 pl-2 pr-1 py-0.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-700 rounded-lg text-[11px] font-bold shadow-sm">
+                          <span className="text-primary-500 font-black">#</span>{tag}
+                          <button type="button" onClick={() => handleRemoveTag(tag)} className="p-0.5 rounded-md hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"><X size={11} strokeWidth={2.5} /></button>
+                        </span>
+                      )) : <span className="text-[10px] text-gray-400 italic px-1 self-center">Ninguna etiqueta añadida...</span>}
+                    </div>
+                    {formData.tags.length < 10 && (
+                      <div className="mt-3 flex flex-wrap gap-1.5">
+                        {RECOMMENDED_TAGS.map(tag => !formData.tags.includes(tag) && (
+                          <button key={tag} type="button" onClick={() => addTagDirect(tag)} className="px-2 py-0.5 rounded-md border border-dashed text-[10px] font-bold text-gray-400 dark:text-gray-500 hover:text-primary-600 hover:border-primary-400 bg-white dark:bg-gray-800 dark:border-gray-700 transition-colors">+ {tag}</button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 4: SECCIÓN DE VISIBILIDAD INTERACTIVA POR TARJETAS CON CHECK DE SELECCIÓN */}
+              {currentTab === 3 && (
+                <div className="animate-fade-in bg-white dark:bg-[#1e1e1e] rounded-2xl shadow-md border border-gray-300 dark:border-gray-700/80 p-4 sm:p-5 space-y-4">
+                  <div className="flex items-center gap-2 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">
+                    Ajustes de Publicación
+                  </div>
+                  
+                  <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                    Selecciona directamente una de las siguientes opciones para configurar el alcance y la privacidad de tu mod en la plataforma:
+                  </p>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+                    
+                    {/* Tarjeta Opción: Público */}
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, visibilidad: 'public' }))}
+                      className={clsx(
+                        "p-3 rounded-xl border text-left transition-all duration-200 flex flex-col gap-2 outline-none focus:ring-1 focus:ring-primary-500",
+                        formData.visibilidad === 'public' 
+                          ? "bg-blue-50/70 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900/50 text-blue-800 dark:text-blue-300 ring-1 ring-blue-400/30 shadow-sm" 
+                          : "bg-white dark:bg-[#181818] border-gray-300 dark:border-gray-800 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-700"
+                      )}
+                    >
+                      <div className="flex items-center justify-between w-full font-bold text-xs">
+                        <div className="flex items-center gap-2">
+                          <Globe size={14} className={formData.visibilidad === 'public' ? "text-blue-500" : "text-gray-400"} /> 
+                          Público
+                        </div>
+                        {/* Círculo indicador de selección */}
+                        <div className={clsx(
+                          "w-4 h-4 rounded-full border flex items-center justify-center transition-all shrink-0",
+                          formData.visibilidad === 'public' ? "border-blue-500 bg-white dark:bg-gray-900" : "border-gray-300 dark:border-gray-600"
+                        )}>
+                          {formData.visibilidad === 'public' && <div className="w-2 h-2 rounded-full bg-blue-500 animate-scale-up" />}
+                        </div>
+                      </div>
+                      <p className="text-[11px] leading-relaxed opacity-90">
+                        Cualquier usuario de la plataforma podrá buscar, ver los detalles y descargar el archivo directamente desde el catálogo general.
+                      </p>
+                    </button>
+
+                    {/* Tarjeta Opción: Privado */}
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, visibilidad: 'private' }))}
+                      className={clsx(
+                        "p-3 rounded-xl border text-left transition-all duration-200 flex flex-col gap-2 outline-none focus:ring-1 focus:ring-primary-500",
+                        formData.visibilidad === 'private' 
+                          ? "bg-red-50/70 dark:bg-red-950/20 border-red-200 dark:border-red-900/50 text-red-800 dark:text-red-300 ring-1 ring-red-400/30 shadow-sm" 
+                          : "bg-white dark:bg-[#181818] border-gray-300 dark:border-gray-800 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-700"
+                      )}
+                    >
+                      <div className="flex items-center justify-between w-full font-bold text-xs">
+                        <div className="flex items-center gap-2">
+                          <Lock size={14} className={formData.visibilidad === 'private' ? "text-red-500" : "text-gray-400"} /> 
+                          Privado
+                        </div>
+                        {/* Círculo indicador de selección */}
+                        <div className={clsx(
+                          "w-4 h-4 rounded-full border flex items-center justify-center transition-all shrink-0",
+                          formData.visibilidad === 'private' ? "border-red-500 bg-white dark:bg-gray-900" : "border-gray-300 dark:border-gray-600"
+                        )}>
+                          {formData.visibilidad === 'private' && <div className="w-2 h-2 rounded-full bg-red-500 animate-scale-up" />}
+                        </div>
+                      </div>
+                      <p className="text-[11px] leading-relaxed opacity-90">
+                        Solo tú podrás visualizar este aporte desde tu panel de control de mods. Nadie más en la comunidad tendrá acceso al contenido ni a las descargas.
+                      </p>
+                    </button>
+
+                    {/* Tarjeta Opción: No Listado */}
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, visibilidad: 'unlisted' }))}
+                      className={clsx(
+                        "p-3 rounded-xl border text-left transition-all duration-200 flex flex-col gap-2 outline-none focus:ring-1 focus:ring-primary-500",
+                        formData.visibilidad === 'unlisted' 
+                          ? "bg-amber-50/70 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900/50 text-amber-800 dark:text-amber-300 ring-1 ring-amber-400/30 shadow-sm" 
+                          : "bg-white dark:bg-[#181818] border-gray-300 dark:border-gray-800 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-700"
+                      )}
+                    >
+                      <div className="flex items-center justify-between w-full font-bold text-xs">
+                        <div className="flex items-center gap-2">
+                          <LinkIcon size={14} className={formData.visibilidad === 'unlisted' ? "text-amber-500" : "text-gray-400"} /> 
+                          No listado
+                        </div>
+                        {/* Círculo indicador de selección */}
+                        <div className={clsx(
+                          "w-4 h-4 rounded-full border flex items-center justify-center transition-all shrink-0",
+                          formData.visibilidad === 'unlisted' ? "border-amber-500 bg-white dark:bg-gray-900" : "border-gray-300 dark:border-gray-600"
+                        )}>
+                          {formData.visibilidad === 'unlisted' && <div className="w-2 h-2 rounded-full bg-amber-500 animate-scale-up" />}
+                        </div>
+                      </div>
+                      <p className="text-[11px] leading-relaxed opacity-90">
+                        El mod no aparecerá indexado en el buscador global. Solamente los usuarios a quienes les compartas la URL directa podrán verlo y descargarlo.
+                      </p>
+                    </button>
+
+                  </div>
+                </div>
+              )}
 
           </form>
         </div>
+      </div>
 
-        {/* --- PREVIEW --- */}
-        <div className="lg:col-span-1">
-          <div className="sticky top-24 flex flex-col gap-4">
-            <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400"><Eye size={18} /><h3 className="font-bold text-sm uppercase tracking-wider">Vista Previa</h3></div>
-            <Card
-              imagen={formData.imagen || "/default.jpg"}
-              titulo={formData.titulo || "Título del Contenido"}
-              descargas={descargas}
-              creditos={selectedCreators}
-              tags={getPreviewTags()}
-              aporte={formData.aporte}
-              isPreview={true}
-              key={JSON.stringify(selectedCreators)}
-            />
-            
-            {galeriaUrls.some(u => u.length > 10) && (
-                <div className="bg-white dark:bg-[#1e1e1e] p-3 rounded-xl border border-gray-300 dark:border-gray-700 shadow-sm">
-                    <p className="text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Multimedia ({galeriaUrls.filter(u=>u.length>5).length})</p>
-                    <div className="flex gap-2 overflow-x-auto scrollbar-hide snap-x">
-                        {galeriaUrls.filter(u => u.length > 10).map((media, index) => {
-                            const isYt = getYouTubeId(media);
-                            const isVid = isVideo(media);
-                            const thumbSrc = isYt ? `https://img.youtube.com/vi/${isYt}/mqdefault.jpg` : media;
-
-                            return (
-                                <div key={index} className="relative h-16 w-28 shrink-0 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden bg-gray-100 dark:bg-gray-800 snap-start group/thumb">
-                                    {(isYt || isVid) && (
-                                        <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/20">
-                                            <PlayCircle size={24} className="text-white drop-shadow-md opacity-80" />
-                                        </div>
-                                    )}
-                                    <img 
-                                        src={thumbSrc} 
-                                        alt={`Preview ${index}`} 
-                                        className="w-full h-full object-cover" 
-                                        onError={(e) => {e.target.style.display='none';}} 
-                                    />
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
+      {/* FOOTER FIJO CON BOTONES */}
+      <div className="flex-shrink-0 bg-white dark:bg-[#1e1e1e] border-t border-gray-300 dark:border-gray-800 px-4 py-3">
+        <div className="max-w-4xl mx-auto flex gap-2 justify-between items-center">
+          <button type="button" onClick={handlePrevTab} disabled={currentTab === 0} className={clsx("w-24 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-white rounded-xl text-xs font-bold flex items-center justify-center gap-0.5 shadow-sm disabled:opacity-30 disabled:cursor-not-allowed")}>
+            <ChevronLeft size={14} /> Atrás
+          </button>
+          
+          <div className="flex gap-2">
+            {currentTab < tabs.length - 1 ? (
+              <button type="button" onClick={handleNextTab} className="w-24 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-0.5 shadow-sm">
+                Siguiente <ChevronRight size={14} />
+              </button>
+            ) : (
+              <>
+                {user?.role === 'admin' ? (
+                  <button type="button" onClick={() => handleSubmitForm('publish')} disabled={loading || !isEncryptionReady} className="w-24 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1 shadow-sm disabled:opacity-50">
+                    {loading ? <Loader2 className="animate-spin" size={14} /> : <Save size={14} />} Guardar
+                  </button>
+                ) : (
+                  <>
+                    <button type="button" onClick={() => handleSubmitForm('draft')} disabled={loading || !isEncryptionReady} className="w-24 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-bold text-xs rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700/50 transition-all flex items-center justify-center gap-1 shadow-sm disabled:opacity-50">
+                      <FileText size={14} /> Borrador
+                    </button>
+                    <button type="button" onClick={() => handleSubmitForm('pending')} disabled={loading || !isEncryptionReady} className="w-24 py-2 bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1 shadow-sm disabled:opacity-50">
+                      {loading ? <Loader2 className="animate-spin" size={14} /> : <Upload size={14} />} Publicar
+                    </button>
+                  </>
+                )}
+              </>
             )}
-
-            <div className={clsx("p-4 border rounded-xl text-xs", isEditing ? "bg-blue-50 dark:bg-blue-900/10 border-blue-300 dark:border-blue-700/30 text-blue-800 dark:text-blue-200" : "bg-yellow-50 dark:bg-yellow-900/10 border-yellow-300 dark:border-yellow-700/30 text-yellow-800 dark:text-yellow-200")}><p><strong>{isEditing ? "Modo Edición" : "Nota"}:</strong> {isEditing ? " Estás modificando un contenido existente." : " Así se verá la tarjeta."}</p></div>
           </div>
         </div>
       </div>
 
-      {/* 2. IMPORTANTE: Renderizar el Modal aquí al final */}
       <Modal 
-        isOpen={modal.isOpen}
-        onClose={closeModal}
-        onConfirm={modal.onConfirm}
-        title={modal.title}
-        message={modal.message}
-        type={modal.type}
-        showCancel={modal.showCancel}
-        confirmText={modal.confirmText}
+        isOpen={modal.isOpen} 
+        onClose={closeModal} 
+        onConfirm={modal.onConfirm} 
+        onCancel={modal.onCancel} 
+        onNeutral={modal.onNeutral} 
+        title={modal.title} 
+        message={modal.message} 
+        type={modal.type} 
+        showCancel={modal.showCancel} 
+        confirmText={modal.confirmText} 
+        cancelText={modal.cancelText} 
+        neutralText={modal.neutralText} 
       />
     </div>
   );

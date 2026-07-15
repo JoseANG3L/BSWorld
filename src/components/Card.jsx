@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Download, Tag, ChevronDown, AlertCircle, Eye, User, ShieldCheck, Edit3, Trash2, Loader2 } from 'lucide-react';
+import { Download, Tag, ChevronDown, AlertCircle, Eye, User, ShieldCheck, Edit3, Trash2, Loader2, ExternalLink } from 'lucide-react';
 import { clsx } from 'clsx';
 import AvatarRenderer from './AvatarRenderer';
+import LikeButton from './LikeButton';
 // Importamos la función para obtener datos frescos
 import { registerDownload, getUserPublicProfile } from '../services/api'; 
 
@@ -97,7 +98,7 @@ const SmartUserDisplay = ({ initialUser, type = 'list' , extraCount = 0 }) => {
             </div>
             {/* Contenedor Flex para Nombre + Badge */}
             <div className="flex items-center gap-1.5 min-w-0">
-               <span className="text-sm font-bold text-gray-700 dark:text-gray-200 truncate group-hover/creator:text-primary-600 transition-colors">
+               <span className="text-sm font-bold text-gray-700 dark:text-gray-200 truncate group-hover/creator:text-primary-600 dark:group-hover/creator:text-primary-400 transition-colors">
                    {userData.nombre}
                </span>
                
@@ -155,10 +156,11 @@ const Card = ({
   imagen, 
   titulo, 
   descargas = [], 
-  creditos = [], 
+  creadores = [], 
   tags = [], 
   aporte,
   vistas = 0,
+  likes_count = 0,
   status = 'Creado',
   isPreview = false,
   isEditable = false,
@@ -217,11 +219,11 @@ const Card = ({
 
     // ✅ Usar useMemo para calcular listaCreditos cuando creditos cambie
   const listaCreditos = useMemo(() => {
-    return (Array.isArray(creditos) ? creditos : [creditos]).map(creador => {
+    return (Array.isArray(creadores) ? creadores : [creadores]).map(creador => {
       if (typeof creador === 'object' && creador !== null) return creador;
       return { nombre: creador, imagen: null, uid: null };
     });
-  }, [creditos]);
+  }, [creadores]);
 
   // ✅ Valores derivados que también dependen de creditos
   const primerCredito = useMemo(() => 
@@ -264,6 +266,13 @@ const Card = ({
             {isSpamming ? <AlertCircle size={12}/> : <Eye size={12} className="text-primary-400" />}
             {formatNumber(vistas)}
         </div>
+
+        {/* Botón de Likes */}
+        {!isPreview && id && (
+          <div className="absolute top-2 left-2 z-10">
+            <LikeButton contentId={id} initialLikes={likes_count} size="sm" />
+          </div>
+        )}
         <div className="absolute inset-0 bg-primary-900/0 group-hover:bg-primary-900/10 transition-colors duration-300" />
 
         {/* --- CAPA DE ACCIONES (OVERLAY) --- */}
@@ -312,7 +321,7 @@ const Card = ({
             className={clsx("block mb-2", !isPreview && "hover:text-primary-600 dark:hover:text-primary-400 transition-colors")}
             onClick={(e) => isPreview && e.preventDefault()}
         >
-            <h3 className="text-md font-bold text-gray-900 dark:text-white line-clamp-1 hover:text-primary-600 dark:hover:text-primary-600 transition-colors" title={titulo}>{titulo}</h3>
+            <h3 className="text-md font-bold text-gray-900 dark:text-white line-clamp-1 hover:text-primary-600 dark:hover:text-primary-400 transition-colors" title={titulo}>{titulo}</h3>
         </Link>
 
         {/* 3. DESCARGAS */}
@@ -356,32 +365,46 @@ const Card = ({
 
         {/* 4. CRÉDITOS (Con Búsqueda Inteligente) */}
         <div className="relative mb-2.5" ref={creditosRef}>
-          <button onClick={() => setIsOpenCredits(!isOpenCredits)} className="flex items-center gap-2 w-full px-2 py-1 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors text-left group/creator">
-            
-            {/* Usamos el sub-componente en modo header para el primero */}
-            <SmartUserDisplay initialUser={primerCredito} type="header" extraCount={totalExtra} />
-            
-            <ChevronDown size={14} className={clsx("ml-auto text-gray-400 transition-transform", isOpenCredits && "rotate-180")} />
-          </button>
-          
-          {isOpenCredits && (
-            <div className="absolute bottom-full left-0 right-0 mb-2 bg-white dark:bg-[#252525] border border-gray-300 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden animate-fade-in-up origin-bottom py-1" style={{ animationDuration: '200ms' }}>
-              <div className="max-h-48 overflow-y-auto">
-                {listaCreditos.map((creador, index) => (
-                  // Usamos el sub-componente en modo list para el dropdown
-                  <SmartUserDisplay key={index} initialUser={creador} type="list" />
-                ))}
-              </div>
-            </div>
+          {listaCreditos.length === 1 ? (
+            // Solo 1 creador: clickable directo al perfil
+            <Link 
+              to={`/u/${primerCredito.nombre}`} 
+              className="flex items-center gap-2 w-full px-2 py-1 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors text-left group/creator"
+            >
+              <SmartUserDisplay initialUser={primerCredito} type="header" extraCount={0} />
+              <ExternalLink size={14} className="ml-auto text-gray-400 group-hover/creator:text-primary-600 transition-colors" />
+            </Link>
+          ) : (
+            // Múltiples creadores: dropdown menu
+            <>
+              <button onClick={() => setIsOpenCredits(!isOpenCredits)} className="flex items-center gap-2 w-full px-2 py-1 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors text-left group/creator">
+                
+                {/* Usamos el sub-componente en modo header para el primero */}
+                <SmartUserDisplay initialUser={primerCredito} type="header" extraCount={totalExtra} />
+                
+                <ChevronDown size={14} className={clsx("ml-auto text-gray-400 transition-transform", isOpenCredits && "rotate-180")} />
+              </button>
+              
+              {isOpenCredits && (
+                <div className="absolute bottom-full left-0 right-0 mb-2 bg-white dark:bg-[#252525] border border-gray-300 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden animate-fade-in-up origin-bottom py-1" style={{ animationDuration: '200ms' }}>
+                  <div className="max-h-48 overflow-y-auto">
+                    {listaCreditos.map((creador, index) => (
+                      // Usamos el sub-componente en modo list para el dropdown
+                      <SmartUserDisplay key={index} initialUser={creador} type="list" />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
 
         {/* 5. TAGS */}
-        <div className="flex flex-wrap gap-2 mb-3">
+        <div className="flex flex-wrap gap-1 mb-3">
           {tags && tags.map((tag, index) => (
-            <div key={index} className="flex items-center gap-1 px-2 py-1 rounded-full bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700">
-              <Tag size={10} className="text-gray-600 dark:text-gray-400" />
-              <span className="text-[10px] font-bold uppercase tracking-wider text-gray-600 dark:text-gray-400">{tag}</span>
+            <div key={index} className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700">
+              {/* <Tag size={10} className="text-gray-600 dark:text-gray-400" /> */}
+              <span className="text-[9px] font-bold uppercase tracking-wider text-gray-600 dark:text-gray-400">{tag}</span>
             </div>
           ))}
         </div>

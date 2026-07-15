@@ -1,551 +1,235 @@
-import { 
-  doc, 
-  getDoc, 
-  updateDoc, 
-  deleteDoc,
-  collection, 
-  getDocs, 
-  setDoc, // Cambiamos addDoc por setDoc para manejar IDs manuales si queremos, o mantenemos addDoc
-  addDoc,
-  increment,
-  query, 
-  where, 
-  orderBy,
-  startAt,
-  endAt,
-  limit,
-  getCountFromServer
-} from 'firebase/firestore';
-import { db } from '../firebase/config';
-import { v4 as uuidv4 } from 'uuid'; // Necesitas instalar: npm install uuid
+import { supabase } from './supabaseClient';
+import { v4 as uuidv4 } from 'uuid';
 
-// --- SISTEMA DE CACHÉ GLOBAL ---
-// userCache: Guarda perfiles completos usando el UID como llave.
-// usernameMap: Un mapa simple que conecta "Username" -> "UID".
+// --- SISTEMA DE CACHÉ ---
 const userCache = {}; 
 const usernameMap = {};
 
 // ---------------------------------------------------------
-// 1. OBTENER CONTENIDO POR TIPO (PÚBLICO)
+// 1-3. CONTENIDO (Obtención)
 // ---------------------------------------------------------
 export const getContentByType = async (tipo) => {
-  try {
-    const colRef = collection(db, "content");
-    // MODIFICADO: Agregamos el filtro de status "active"
-    const q = query(
-      colRef, 
-      where("tipo", "==", tipo), 
-      where("status", "==", "published"), 
-      orderBy("creado", "desc") // Ordenamos por fecha
-    );
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-  } catch (error) {
-    console.error(`Error obteniendo contenido tipo ${tipo}:`, error);
-    // Si falla por falta de índice compuesto en Firebase, avisa en consola
-    throw error;
-  }
+  const { data, error } = await supabase
+    .from('content')
+    .select('*')
+    .eq('tipo', tipo)
+    .eq('status', 'published')
+    .order('creado', { ascending: false });
+  if (error) throw error;
+  return data;
 };
 
-// ---------------------------------------------------------
-// 2. OBTENER TODO EL CONTENIDO PÚBLICO (Para Destacados/Home)
-// ---------------------------------------------------------
 export const getPublicContent = async () => {
-  try {
-    const contentRef = collection(db, "content");
-    // MODIFICADO: Solo traemos lo que está aprobado
-    const q = query(contentRef, where("status", "==", "published"), orderBy("creado", "desc")); 
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-  } catch (error) {
-    console.error("Error obteniendo contenido público:", error);
-    return [];
-  }
+  const { data, error } = await supabase
+    .from('content')
+    .select('*')
+    .eq('status', 'published')
+    .order('creado', { ascending: false });
+  return error ? [] : data;
 };
 
-// ---------------------------------------------------------
-// 3. OBTENER TODO (Para ADMIN PANEL - Ve pendientes y activos)
-// ---------------------------------------------------------
 export const getAdminContent = async () => {
-  try {
-    const contentRef = collection(db, "content");
-    // Traemos TODO sin filtrar por status, ordenado por fecha
-    const q = query(contentRef, orderBy("creado", "desc"));
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-  } catch (error) {
-    console.error("Error obteniendo contenido admin:", error);
-    return [];
-  }
+  const { data, error } = await supabase
+    .from('content')
+    .select('*')
+    .order('creado', { ascending: false });
+  return error ? [] : data;
 };
 
-// A. OBTENER UN DOCUMENTO POR ID
 export const getContentById = async (id) => {
-  try {
-    const docRef = doc(db, "content", id);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      return { id: docSnap.id, ...docSnap.data() };
-    }
-    return null;
-  } catch (error) {
-    console.error("Error obteniendo documento:", error);
-    return null;
-  }
+  const { data, error } = await supabase.from('content').select('*').eq('id', id).single();
+  return error ? null : data;
 };
 
-// --- OBTENER CONTENIDO DE UN USUARIO ESPECÍFICO ---
 export const getUserContent = async (uid) => {
-  try {
-    const q = query(
-      collection(db, "content"),
-      where("aporte.uid", "==", uid),
-      orderBy("creado", "desc") // Ordenar del más nuevo al más viejo
-    );
-    
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-  } catch (error) {
-    console.error("Error al obtener mis mods:", error);
-    return [];
-  }
+  // Nota: Si 'aporte' es JSONB, usamos el operador ->> para acceder al campo 'uid'
+  const { data, error } = await supabase
+    .from('content')
+    .select('*')
+    .eq('aporte', uid)
+    .order('creado', { ascending: false });
+  return error ? [] : data;
 };
 
-// B. ACTUALIZAR DOCUMENTO
+// ---------------------------------------------------------
+// 4. GESTIÓN DE CONTENIDO (UPDATE/DELETE/CREATE)
+// ---------------------------------------------------------
 export const updateContent = async (id, data) => {
-  try {
-    const docRef = doc(db, "content", id);
-
-    // 1. OBTENER DATOS ACTUALES PARA COMPARAR EL ESTADO
-    if (data.status) {
-      const currentDoc = await getDoc(docRef);
-      if (currentDoc.exists()) {
-        const currentData = currentDoc.data();
-
-        // 2. VERIFICAR SI EL ESTADO CAMBIÓ A 'active' O 'rejected'
-        if (currentData.status !== data.status && (data.status === 'active' || data.status === 'rejected')) {
-          
-          // Extraer el UID del usuario que subió el mod
-          const uploaderUid = currentData.aporte?.uid || data.aporte?.uid;
-
-          if (uploaderUid) {
-            // 3. CREAR LA NOTIFICACIÓN AUTOMÁTICAMENTE
-            await addDoc(collection(db, 'notifications'), {
-              userId: uploaderUid,       // A quién va dirigida
-              modId: id,                 // ID del mod afectado
-              modTitle: data.titulo || currentData.titulo, // Título para la tabla
-              modImage: data.imagen || currentData.imagen, // Imagen para la miniatura
-              modType: data.tipo || currentData.tipo,         // Tipo de contenido (mod, mapa, etc.)
-              status: data.status,       // El nuevo estado ('active' o 'rejected')
-              creado: new Date().toISOString(), // Fecha actual
-              leida: false               // Empieza como no leída
-            });
-          }
-        }
-      }
+  const { data: currentData } = await supabase
+    .from('content')
+    .select('status, aporte, titulo, tipo, imagen')
+    .eq('id', id)
+    .single();
+  
+  if (data.status && currentData?.status !== data.status && (data.status === 'published' || data.status === 'rejected')) {
+    const uploaderUid = currentData.aporte?.uid;
+    if (uploaderUid) {
+      await supabase.from('notifications').insert({
+        userId: uploaderUid,
+        modId: id,
+        modTitle: data.titulo || currentData.titulo,
+        modImage: data.imagen || currentData.imagen,
+        modType: data.tipo || currentData.tipo,
+        status: data.status,
+        creado: new Date().toISOString(),
+        leida: false
+      });
     }
-
-    await updateDoc(docRef, {
-      ...data,
-      actualizado: new Date().toISOString()
-    });
-  } catch (error) {
-    console.error("Error actualizando:", error);
-    throw error;
   }
+
+  const { error } = await supabase
+    .from('content')
+    .update({ ...data, actualizado: new Date().toISOString() })
+    .eq('id', id);
+  if (error) throw error;
 };
 
-// --- ELIMINAR NOTIFICACIÓN ---
-export const deleteNotification = async (notificationId) => {
-  try {
-    await deleteDoc(doc(db, 'notifications', notificationId));
-    return true;
-  } catch (error) {
-    console.error("Error eliminando notificación:", error);
-    throw error;
-  }
-};
-
-// C. ELIMINAR DOCUMENTO
 export const deleteContent = async (id) => {
-  try {
-    const docRef = doc(db, "content", id);
-    await deleteDoc(docRef);
-    return true;
-  } catch (error) {
-    console.error("Error eliminando contenido:", error);
-    throw error;
-  }
+  const { error } = await supabase.from('content').delete().eq('id', id);
+  if (error) throw error;
+  return true;
 };
 
-// D. APROBAR CONTENIDO (NUEVA)
-export const approveContent = async (id) => {
-  try {
-    const docRef = doc(db, "content", id);
-    await updateDoc(docRef, { status: 'published' });
-    return true;
-  } catch (error) {
-    console.error("Error aprobando contenido:", error);
-    return false;
-  }
-};
-
-// ---------------------------------------------------------
-// 4. BUSCADOR GLOBAL (Filtrado)
-// ---------------------------------------------------------
-export const searchGlobalContent = async (searchTerm) => {
-  try {
-    const colRef = collection(db, "content");
-    // Nota: Traemos todo y filtramos en cliente. 
-    // Idealmente usarías Algolia/MeiliSearch para apps grandes.
-    const snapshot = await getDocs(colRef);
-    
-    // MODIFICADO: Filtramos primero que sea "active"
-    const data = snapshot.docs
-      .map(doc => ({ id: doc.id, ...doc.data() }))
-      .filter(item => item.status === 'published'); // <--- Solo buscar en activos
-    
-    const term = searchTerm.toLowerCase();
-
-    return data.filter(item => {
-      const titleMatch = item.titulo?.toLowerCase().includes(term);
-      const creatorMatch = item.nombresBusqueda?.some(nombre => 
-        nombre.toLowerCase().includes(term)
-      );
-      // También buscamos en tags
-      const tagMatch = item.tags?.some(tag => tag.toLowerCase().includes(term));
-      
-      return titleMatch || creatorMatch || tagMatch;
-    });
-  } catch (error) {
-    console.error("Error en búsqueda:", error);
-    return [];
-  }
-};
-
-// ---------------------------------------------------------
-// 5. CREAR CONTENIDO (Lógica Dual: Usuario vs Admin)
-// ---------------------------------------------------------
 export const createContent = async (data, isUserSubmission = false) => {
-  try {
-    const finalStatus = isUserSubmission ? 'pending' : (data.status || 'active');
+  const finalStatus = isUserSubmission ? 'pending' : (data.status || 'published');
+  const newId = uuidv4();
 
-    // Si usas uuid para generar IDs manuales (recomendado para consistencia)
-    const newId = uuidv4();
-    const docRef = doc(db, "content", newId);
-    
-    const fechaCreacion = data.creado 
-      ? new Date(data.creado).toISOString() 
-      : new Date().toISOString();
-
-    const payload = {
-      ...data,
-      id: newId, // Guardamos el ID dentro del documento también
-      creado: fechaCreacion,
-      actualizado: new Date().toISOString(),
-      // MODIFICADO: Si es usuario normal, forzamos "pending"
-      status: finalStatus,
-      vistas: 0, // Inicializamos vistas/descargas internas
-      descargas: data.descargas || []
-    };
-
-    // Usamos setDoc con ID manual
-    await setDoc(docRef, payload);
-
-    // 2. EXTRAER EL UID DEL CREADOR
-    const uploaderUid = data.aporte?.uid;
-
-    // 3. CREAR LA NOTIFICACIÓN AUTOMÁTICAMENTE AL SUBIR EL MOD
-    if (uploaderUid && (finalStatus === 'pending' || finalStatus === 'active' || finalStatus === 'published')) {
-      await addDoc(collection(db, 'notifications'), {
-        userId: uploaderUid,       // A quién va dirigida (el mismo autor)
-        modId: docRef.id,          // ID del mod recién creado
-        modTitle: data.titulo,     // Título para la tabla
-        modImage: data.imagen,     // Imagen para la miniatura
-        modType: data.tipo,         // Tipo de contenido (mod, mapa, etc.)
-        status: finalStatus,       // 'pending'
-        creado: new Date().toISOString(), // Fecha actual
-        leida: false               // Empieza como no leída
-      });
-    }
-
-    return newId;
-
-  } catch (error) {
-    console.error("Error creando contenido:", error);
-    throw error;
-  }
+  const payload = { ...data, id: newId, creado: data.creado || new Date().toISOString(), status: finalStatus, vistas: 0 };
+  const { error } = await supabase.from('content').insert(payload);
+  if (error) throw error;
+  return newId;
 };
 
 // ---------------------------------------------------------
-// 6. USUARIOS Y CREADORES
+// 5. ESTADÍSTICAS (Vistas y Descargas)
 // ---------------------------------------------------------
-export const getAllUsers = async () => {
-  try {
-    const usersRef = collection(db, "users");
-    const q = query(usersRef, orderBy("createdAt", "desc")); 
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() }));
-  } catch (error) {
-    console.error("Error obteniendo usuarios:", error);
-    return [];
-  }
+export const registerView = async (contentId) => {
+  // En Supabase, para incrementar, es mejor usar una función RPC o un update simple
+  // Aquí obtenemos el valor actual e incrementamos
+  const { data } = await supabase.from('content').select('vistas').eq('id', contentId).single();
+  await supabase.from('content').update({ vistas: (data?.vistas || 0) + 1 }).eq('id', contentId);
 };
 
-export const getContentByCreator = async (creatorName) => {
-  try {
-    const colRef = collection(db, "content");
-    // MODIFICADO: Solo mostrar contenido activo en el perfil público
-    const q = query(
-        colRef, 
-        where("nombresBusqueda", "array-contains", creatorName),
-        where("status", "==", "published") 
-    );
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-  } catch (error) {
-    console.error("Error buscando por creador:", error);
-    return [];
-  }
-};
-
-// ---------------------------------------------------------
-// 7. DESCARGAS Y ESTADÍSTICAS
-// ---------------------------------------------------------
 export const registerDownload = async (contentId, downloadUrl) => {
-  try {
-    const docRef = doc(db, "content", contentId);
-    const docSnap = await getDoc(docRef);
-
-    if (docSnap.exists()) {
-      const data = docSnap.data();
-      
-      const updatedDescargas = data.descargas.map(item => {
-        if (item.url === downloadUrl) {
-          return { ...item, count: (item.count || 0) + 1 };
-        }
-        return item;
-      });
-
-      await updateDoc(docRef, {
-        descargas: updatedDescargas
-      });
-      return true;
-    }
-  } catch (error) {
-    console.error("Error registrando descarga:", error);
-    return false;
+  const { data } = await supabase.from('content').select('descargas').eq('id', contentId).single();
+  if (data?.descargas) {
+    const updated = data.descargas.map(d => d.url === downloadUrl ? { ...d, count: (d.count || 0) + 1 } : d);
+    await supabase.from('content').update({ descargas: updated }).eq('id', contentId);
   }
 };
 
 export const getGlobalStats = async () => {
-  try {
-    const usersColl = collection(db, "users");
-    const usersSnapshot = await getCountFromServer(usersColl);
-    const totalUsers = usersSnapshot.data().count;
-
-    const contentColl = collection(db, "content");
-    const contentSnapshot = await getDocs(contentColl);
-    
-    let totalContent = 0;
-    let totalDownloads = 0;
-
-    contentSnapshot.forEach(doc => {
-      const data = doc.data();
-      // Solo contamos estadísticas de contenido activo para no inflar números
-      if (data.status === 'published') {
-          totalContent++;
-          if (data.descargas && Array.isArray(data.descargas)) {
-            const descargasItem = data.descargas.reduce((acc, curr) => acc + (curr.count || 0), 0);
-            totalDownloads += descargasItem;
-          }
-      }
-    });
-
-    return {
-      users: totalUsers,
-      downloads: totalDownloads,
-      mods: totalContent
-    };
-
-  } catch (error) {
-    console.error("Error obteniendo estadísticas:", error);
-    return { users: 0, downloads: 0, mods: 0 };
-  }
+  const { count: usersCount } = await supabase.from('users').select('*', { count: 'exact', head: true });
+  const { data: content } = await supabase.from('content').select('descargas, status').eq('status', 'published');
+  
+  let totalDownloads = 0;
+  content.forEach(c => {
+    if(c.descargas) totalDownloads += c.descargas.reduce((acc, curr) => acc + (curr.count || 0), 0);
+  });
+  return { users: usersCount || 0, downloads: totalDownloads, mods: content.length };
 };
 
-export const registerView = async (contentId) => {
-  try {
-    const docRef = doc(db, "content", contentId);
-    // 'increment(1)' es una operación atómica de Firebase, es segura y rápida
-    await updateDoc(docRef, {
-      vistas: increment(1)
-    });
-  } catch (error) {
-    console.error("Error registrando vista:", error);
-  }
-};
-
-// 1. BUSCAR POR UID (Rápido y Directo)
+// ---------------------------------------------------------
+// 6. USUARIOS Y CACHÉ
+// ---------------------------------------------------------
 export const getUserPublicProfile = async (uid) => {
   if (!uid) return null;
-  
-  // A. Revisar memoria
   if (userCache[uid]) return userCache[uid];
 
-  try {
-    // B. Leer de Firestore (Lectura directa)
-    const userDoc = await getDoc(doc(db, "users", uid));
-    
-    if (userDoc.exists()) {
-      const data = userDoc.data();
-      const profile = {
-        uid: uid,
-        nombre: data.displayName || data.username || "Usuario",
-        imagen: data.photoURL || data.avatar || null,
-        banner: data.banner || null,
-        role: data.role || 'user',
-        createdAt: data.createdAt || null
-      };
-      
-      // C. Guardar en caché
-      userCache[uid] = profile;
-      
-      // D. También guardamos la referencia inversa por si luego buscamos por nombre
-      if (data.username) {
-          usernameMap[data.username.toLowerCase()] = uid;
-      }
-      
-      return profile;
-    }
-  } catch (error) {
-    console.error("Error fetching user by UID:", error);
+  const { data, error } = await supabase.from('users').select('*').eq('id', uid).single();
+  if (data && !error) {
+    const profile = { uid: data.id, nombre: data.username, imagen: data.avatar || null };
+    userCache[uid] = profile;
+    return profile;
   }
   return null;
 };
 
-// 2. BUSCAR POR USERNAME (Búsqueda)
 export const getUserByUsername = async (username) => {
-  if (!username) return null;
   const lowerUser = username.toLowerCase();
+  if (usernameMap[lowerUser]) return getUserPublicProfile(usernameMap[lowerUser]);
 
-  // A. Revisar si ya sabemos el UID de este usuario
-  if (usernameMap[lowerUser]) {
-      // ¡Magia! Si ya tenemos el UID, usamos la función rápida
-      return getUserPublicProfile(usernameMap[lowerUser]);
-  }
+  const { data, error } = await supabase.
+    from('users')
+    .select('*')
+    .ilike('username', username)
+    .maybeSingle();
 
-  try {
-    // B. Hacer la Query a Firestore
-    const q = query(
-      collection(db, "users"), 
-      where("username_lower", "==", lowerUser), // Usamos el campo en minúsculas para asegurar match
-      limit(1)
-    );
-    
-    const querySnapshot = await getDocs(q);
-
-    if (!querySnapshot.empty) {
-      const userDoc = querySnapshot.docs[0];
-      const data = userDoc.data();
-      const uid = userDoc.id;
-
-      const profile = {
-        uid: uid,
-        nombre: data.displayName || data.username || "Usuario",
-        imagen: data.photoURL || data.avatar || null,
-        banner: data.banner || null,
-        role: data.role || 'user',
-        createdAt: data.createdAt || null
-      };
-
-      // C. Guardar en ambas cachés (Aquí está el truco de optimización)
-      userCache[uid] = profile;           // Guardamos los datos
-      usernameMap[lowerUser] = uid;       // Guardamos el mapa Nombre -> UID
-
-      return profile;
-    }
-  } catch (error) {
-    console.error("Error fetching user by Username:", error);
+  if (data && !error) {
+    const profile = { uid: data.id, nombre: data.username, imagen: data.avatar || null };
+    userCache[data.id] = profile;
+    usernameMap[lowerUser] = data.id;
+    return profile;
   }
   return null;
 };
 
-// --- BUSCAR USUARIOS (Usando username_lower) ---
-export const searchUsers = async (searchTerm) => {
-  // 1. Validación básica
-  if (!searchTerm || searchTerm.length < 2) return [];
-  
-  try {
-    const usersRef = collection(db, "users");
-    
-    // 2. NORMALIZACIÓN CRÍTICA
-    // Convertimos lo que el usuario escribe a minúsculas para que coincida con la BD.
-    // Ej: Usuario escribe "Veg", buscamos "veg"
-    const term = searchTerm.toLowerCase(); 
-
-    // 3. QUERY ACTUALIZADA
-    const q = query(
-      usersRef, 
-      orderBy('username_lower'), // <--- AQUÍ ESTÁ EL CAMBIO IMPORTANTE
-      startAt(term), 
-      endAt(term + '\uf8ff'),
-      limit(5)
-    );
-
-    const querySnapshot = await getDocs(q);
-    
-    // 4. Mapeo de resultados
-    return querySnapshot.docs.map(doc => {
-      const data = doc.data();
-      return {
-        uid: doc.id,
-        // OJO: Mostramos 'username' (original con mayúsculas) o 'displayName' para que se vea bonito.
-        // No mostramos 'username_lower' al usuario final.
-        nombre: data.displayName || data.username || "Usuario",
-        imagen: data.avatar || data.photoURL || null
-      };
-    });
-
-  } catch (error) {
-    console.error("Error buscando usuarios:", error);
-    return []; 
-  }
+export const getAllUsers = async () => {
+  const { data, error } = await supabase.from('users').select('*').order('createdat', { ascending: false });
+  return error ? [] : data;
 };
 
-// Obtener notificaciones de un usuario
+// 1. BUSCAR USUARIOS (Para el autocompletado en el formulario)
+export const searchUsers = async (searchTerm) => {
+  if (!searchTerm || searchTerm.length < 2) return [];
+  const term = searchTerm.toLowerCase();
+
+  // Buscamos usuarios cuyo nombre_lower contenga el término
+  const { data, error } = await supabase
+    .from('users')
+    .select('id, username, avatar')
+    .ilike('username', `%${term}%`)
+    .limit(5);
+
+  if (error) return [];
+  
+  return data.map(u => ({
+    uid: u.id,
+    nombre: u.username,
+    imagen: u.avatar
+  }));
+};
+
+// 2. BUSCADOR GLOBAL (Para que SubirMod o el Header tengan funcionalidad de búsqueda)
+export const searchGlobalContent = async (searchTerm) => {
+  const term = searchTerm.toLowerCase();
+  
+  const { data, error } = await supabase
+    .from('content')
+    .select('*')
+    .eq('status', 'published')
+    .or(`titulo.ilike.%${term}%,tags.cs.{${term}}`);
+
+  if (error) return [];
+  return data;
+};
+
+// --- NOTIFICACIONES ---
 export const getUserNotifications = async (userId) => {
   try {
-    // Busca en la colección 'notifications' donde el campo userId sea el del usuario actual
-    const q = query(
-        collection(db, 'notifications'), 
-        where('userId', '==', userId)
-        // Opcional: puedes agregar orderBy('creado', 'desc') si tienes un índice creado en Firebase
-    );
-    const querySnapshot = await getDocs(q);
-    const notifications = querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-    
-    // Ordenamos localmente por fecha (más reciente primero)
-    return notifications.sort((a, b) => new Date(b.creado) - new Date(a.creado));
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('userId', userId)
+      .eq('leida', false)
+      .order('creado', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
   } catch (error) {
     console.error("Error al obtener notificaciones:", error);
     return [];
   }
 };
 
-// Marcar notificación como leída
 export const markNotificationAsRead = async (notificationId) => {
   try {
-    const notifRef = doc(db, 'notifications', notificationId);
-    await updateDoc(notifRef, {
-      leida: true
-    });
+    const { error } = await supabase
+      .from('notifications')
+      .update({ leida: true })
+      .eq('id', notificationId);
+      
+    if (error) throw error;
     return true;
   } catch (error) {
     console.error("Error marcando notificación como leída:", error);
@@ -553,6 +237,354 @@ export const markNotificationAsRead = async (notificationId) => {
   }
 };
 
-// Función antigua para mantener compatibilidad si algo la usa
-// (Redirige a getPublicContent)
+// BUSCAR CONTENIDO POR CREADOR (Buscando dentro del array JSONB 'creadores')
+export const getContentByCreator = async (creatorName) => {
+  try {
+    // En Supabase, usamos el operador @> para buscar elementos en un array JSONB
+    const { data, error } = await supabase
+      .from('content')
+      .select('*')
+      .contains('creadores', JSON.stringify([{ nombre: creatorName }]))
+      .eq('status', 'published');
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error("Error buscando por creador:", error);
+    return [];
+  }
+};
+
+// --- ALIAS PARA COMPATIBILIDAD ---
 export const getAllContent = getPublicContent;
+
+// --- ELIMINAR NOTIFICACIÓN ---
+export const deleteNotification = async (notificationId) => {
+  try {
+    const { error } = await supabase
+      .from('notifications')
+      .delete()
+      .eq('id', notificationId);
+      
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error("Error eliminando notificación:", error);
+    throw error;
+  }
+};
+
+// --- SISTEMA DE FOLLOWS (SEGUIDORES/SIGUIENDO) ---
+export const followUser = async (followerId, followingId) => {
+  try {
+    const { error } = await supabase
+      .from('follows')
+      .insert({
+        follower_id: followerId,
+        following_id: followingId,
+        created_at: new Date().toISOString()
+      });
+    
+    if (error) throw error;
+    
+    // Actualizar contadores
+    await supabase.rpc('increment_followers', { user_id: followingId });
+    await supabase.rpc('increment_following', { user_id: followerId });
+    
+    return true;
+  } catch (error) {
+    console.error("Error siguiendo usuario:", error);
+    throw error;
+  }
+};
+
+export const unfollowUser = async (followerId, followingId) => {
+  try {
+    const { error } = await supabase
+      .from('follows')
+      .delete()
+      .eq('follower_id', followerId)
+      .eq('following_id', followingId);
+    
+    if (error) throw error;
+    
+    // Actualizar contadores
+    await supabase.rpc('decrement_followers', { user_id: followingId });
+    await supabase.rpc('decrement_following', { user_id: followerId });
+    
+    return true;
+  } catch (error) {
+    console.error("Error dejando de seguir usuario:", error);
+    throw error;
+  }
+};
+
+export const isFollowing = async (followerId, followingId) => {
+  try {
+    const { data, error } = await supabase
+      .from('follows')
+      .select('*')
+      .eq('follower_id', followerId)
+      .eq('following_id', followingId)
+      .maybeSingle();
+    
+    if (error) throw error;
+    return !!data;
+  } catch (error) {
+    console.error("Error verificando follow:", error);
+    return false;
+  }
+};
+
+export const getFollowers = async (userId) => {
+  try {
+    const { data, error } = await supabase
+      .from('follows')
+      .select('follower_id, users!follows_follower_id_fkey(username, avatar)')
+      .eq('following_id', userId);
+    
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error("Error obteniendo seguidores:", error);
+    return [];
+  }
+};
+
+export const getFollowing = async (userId) => {
+  try {
+    const { data, error } = await supabase
+      .from('follows')
+      .select('following_id, users!follows_following_id_fkey(username, avatar)')
+      .eq('follower_id', userId);
+    
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error("Error obteniendo siguiendo:", error);
+    return [];
+  }
+};
+
+// --- SISTEMA DE LIKES PARA MODS ---
+export const toggleLike = async (userId, contentId) => {
+  try {
+    // Verificar si ya existe el like
+    const { data: existingLike } = await supabase
+      .from('likes')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('content_id', contentId)
+      .maybeSingle();
+    
+    if (existingLike) {
+      // Si existe, eliminar (unlike)
+      const { error } = await supabase
+        .from('likes')
+        .delete()
+        .eq('user_id', userId)
+        .eq('content_id', contentId);
+      
+      if (error) throw error;
+      
+      // Decrementar contador de likes del mod
+      await supabase.rpc('decrement_content_likes', { content_id: contentId });
+      
+      // Decrementar total_likes del creador
+      const { data: content } = await supabase
+        .from('content')
+        .select('aporte')
+        .eq('id', contentId)
+        .single();
+      
+      if (content?.aporte?.uid) {
+        await supabase.rpc('decrement_user_likes', { user_id: content.aporte.uid });
+      }
+      
+      return false; // Unlike
+    } else {
+      // Si no existe, crear (like)
+      const { error } = await supabase
+        .from('likes')
+        .insert({
+          user_id: userId,
+          content_id: contentId,
+          created_at: new Date().toISOString()
+        });
+      
+      if (error) throw error;
+      
+      // Incrementar contador de likes del mod
+      await supabase.rpc('increment_content_likes', { content_id: contentId });
+      
+      // Incrementar total_likes del creador
+      const { data: content } = await supabase
+        .from('content')
+        .select('aporte')
+        .eq('id', contentId)
+        .single();
+      
+      if (content?.aporte?.uid) {
+        await supabase.rpc('increment_user_likes', { user_id: content.aporte.uid });
+      }
+      
+      return true; // Like
+    }
+  } catch (error) {
+    console.error("Error toggling like:", error);
+    throw error;
+  }
+};
+
+export const getContentLikes = async (contentId) => {
+  try {
+    const { data, error } = await supabase
+      .from('likes')
+      .select('*')
+      .eq('content_id', contentId);
+    
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error("Error obteniendo likes del contenido:", error);
+    return [];
+  }
+};
+
+export const getUserLikedContent = async (userId) => {
+  try {
+    const { data, error } = await supabase
+      .from('likes')
+      .select('content_id, content(*)')
+      .eq('user_id', userId);
+    
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error("Error obteniendo contenido liked:", error);
+    return [];
+  }
+};
+
+export const isLikedByUser = async (userId, contentId) => {
+  try {
+    const { data, error } = await supabase
+      .from('likes')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('content_id', contentId)
+      .maybeSingle();
+    
+    if (error) throw error;
+    return !!data;
+  } catch (error) {
+    console.error("Error verificando like:", error);
+    return false;
+  }
+};
+
+// --- SISTEMA DE COMENTARIOS PARA MODS ---
+export const getCommentsByContent = async (contentId) => {
+  try {
+    const { data, error } = await supabase
+      .from('comments')
+      .select('*, users(username, avatar)')
+      .eq('content_id', contentId)
+      .is('parent_id', null)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error("Error obteniendo comentarios:", error);
+    return [];
+  }
+};
+
+export const getRepliesByComment = async (commentId) => {
+  try {
+    const { data, error } = await supabase
+      .from('comments')
+      .select('*, users(username, avatar)')
+      .eq('parent_id', commentId)
+      .order('created_at', { ascending: true });
+    
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error("Error obteniendo respuestas:", error);
+    return [];
+  }
+};
+
+export const createComment = async (userId, contentId, text, parentId = null) => {
+  try {
+    const { data, error } = await supabase
+      .from('comments')
+      .insert({
+        user_id: userId,
+        content_id: contentId,
+        parent_id: parentId,
+        text: text
+      })
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error("Error creando comentario:", error);
+    throw error;
+  }
+};
+
+export const updateComment = async (commentId, text) => {
+  try {
+    const { data, error } = await supabase
+      .from('comments')
+      .update({ 
+        text: text,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', commentId)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error("Error actualizando comentario:", error);
+    throw error;
+  }
+};
+
+export const deleteComment = async (commentId) => {
+  try {
+    const { error } = await supabase
+      .from('comments')
+      .delete()
+      .eq('id', commentId);
+    
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error("Error eliminando comentario:", error);
+    throw error;
+  }
+};
+
+export const getUserComments = async (userId) => {
+  try {
+    const { data, error } = await supabase
+      .from('comments')
+      .select('*, content(titulo, tipo, imagen)')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error("Error obteniendo comentarios del usuario:", error);
+    return [];
+  }
+};

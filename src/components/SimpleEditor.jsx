@@ -3,8 +3,8 @@ import {
   Bold, 
   Italic, 
   List, 
-  Eye, 
   Edit3, 
+  Eye, 
   Heading, 
   Image as ImageIcon, 
   Link, 
@@ -12,7 +12,6 @@ import {
   Table, 
   Code, 
   Minus,
-  HelpCircle,
   ListOrdered,
   Type
 } from 'lucide-react';
@@ -73,6 +72,52 @@ const SimpleEditor = ({ value, onChange, placeholder }) => {
     }, 10);
   };
 
+  // --- CORRECCIÓN EN EL PEGADO INTELIGENTE ---
+  const handlePaste = (e) => {
+    const pasteText = e.clipboardData.getData('text/plain').trim();
+    
+    // Si es un enlace válido, aplicamos el formato inteligente de Markdown
+    if (/^https?:\/\/[^\s]+$/i.test(pasteText)) {
+      e.preventDefault(); // Detener el pegado plano del enlace
+      
+      const textarea = textareaRef.current;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const selectedText = textarea.value.substring(start, end);
+
+      const isImageUrl = /\.(jpeg|jpg|gif|png|webp|svg)$/i.test(pasteText);
+
+      if (isImageUrl) {
+        const altText = selectedText || "Imagen";
+        insertFormat(`![${altText}](`, `)`);
+      } else {
+        const linkText = selectedText || "Enlace";
+        insertFormat(`[${linkText}](`, `)`);
+      }
+
+      setTimeout(() => {
+        const currentText = textareaRef.current.value;
+        const indexToReplace = isImageUrl 
+          ? currentText.indexOf(`![${selectedText || "Imagen"}](`, start) 
+          : currentText.indexOf(`[${selectedText || "Enlace"}](`, start);
+        
+        if (indexToReplace !== -1) {
+          const insertPos = indexToReplace + (isImageUrl ? selectedText || "Imagen" : selectedText || "Enlace").length + (isImageUrl ? 4 : 3);
+          const finalBefore = currentText.substring(0, insertPos);
+          const finalAfter = currentText.substring(insertPos);
+          onChange(`${finalBefore}${pasteText}${finalAfter}`);
+          
+          setTimeout(() => {
+            textarea.focus();
+            const endPos = insertPos + pasteText.length + 1;
+            textarea.setSelectionRange(endPos, endPos);
+          }, 10);
+        }
+      }, 15);
+    }
+    // SI NO ES UN ENLACE, NO HACEMOS NADA. El navegador continuará pegando el texto plano de forma nativa.
+  };
+
   // Funciones específicas para cada formato
   const formatBold = () => insertFormat('**', '**');
   const formatItalic = () => insertFormat('*', '*');
@@ -89,34 +134,26 @@ const SimpleEditor = ({ value, onChange, placeholder }) => {
   const formatLink = () => {
     const textarea = textareaRef.current;
     if (!textarea) return;
-
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
     const selectedText = textarea.value.substring(start, end);
-    
     if (selectedText) {
-      // Si hay texto seleccionado, lo usamos como texto del enlace
-      insertFormat('[', `](https://ejemplo.com "Texto descriptivo")`);
+      insertFormat('[', `](https://ejemplo.com)`);
     } else {
-      // Si no hay texto seleccionado, insertamos el formato completo
-      insertFormat('[Texto del enlace](https://ejemplo.com "Texto descriptivo")', '', true);
+      insertFormat('[Texto del enlace](https://ejemplo.com)', '', true);
     }
   };
 
   const formatImage = () => {
     const textarea = textareaRef.current;
     if (!textarea) return;
-
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
     const selectedText = textarea.value.substring(start, end);
-    
     if (selectedText) {
-      // Si hay texto seleccionado, lo usamos como texto alternativo
-      insertFormat('![', '](https://ejemplo.com/imagen.jpg "Título de la imagen")');
+      insertFormat('![', '](https://ejemplo.com/imagen.jpg)');
     } else {
-      // Si no hay texto seleccionado, insertamos el formato completo
-      insertFormat('![Texto alternativo](https://ejemplo.com/imagen.jpg "Título de la imagen")', '', true);
+      insertFormat('![Texto alternativo](https://ejemplo.com/imagen.jpg)', '', true);
     }
   };
 
@@ -133,120 +170,58 @@ const SimpleEditor = ({ value, onChange, placeholder }) => {
   const formatCodeBlock = () => {
     const textarea = textareaRef.current;
     if (!textarea) return;
-
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
     const selectedText = textarea.value.substring(start, end);
-    
     if (selectedText) {
-      // Si hay texto seleccionado, lo convertimos en bloque de código
       insertMultiLine(['```python', selectedText, '```']);
     } else {
-      // Si no hay texto seleccionado, insertamos un bloque vacío
       insertMultiLine(['```python', '// Tu código aquí', '```']);
     }
   };
 
   const formatInlineCode = () => insertFormat('`', '`');
-
   const formatHorizontalRule = () => insertMultiLine('\n---\n');
-
   const formatStrikethrough = () => insertFormat('~~', '~~');
 
-  // Atajos de teclado
+  // --- CORRECCIÓN EN LOS ATAJOS DE TECLADO ---
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (!textareaRef.current) return;
-      if (e.target !== textareaRef.current) return;
-
-      // Solo activar atajos si el textarea está enfocado
+      if (!textareaRef.current || e.target !== textareaRef.current) return;
+      
       if (e.ctrlKey || e.metaKey) {
-        e.preventDefault();
-        
+        // CORRECCIÓN: El preventDefault() ahora se llama individualmente dentro de cada caso personalizado,
+        // permitiendo que Ctrl+C, Ctrl+V, Ctrl+X y Ctrl+A funcionen de manera nativa sin interferencias.
         switch (e.key.toLowerCase()) {
-          case 'b':
-            formatBold();
-            break;
-          case 'i':
-            formatItalic();
-            break;
-          case 'e':
-            formatBoldItalic();
-            break;
-          case 'h':
-            formatHeading(2);
-            break;
-          case 'l':
-            formatLink();
-            break;
-          case 'k':
-            formatInlineCode();
-            break;
-          case 'j':
-            formatCodeBlock();
-            break;
-          case 'q':
-            formatBlockquote();
-            break;
-          default:
-            return;
+          case 'b': e.preventDefault(); formatBold(); break;
+          case 'i': e.preventDefault(); formatItalic(); break;
+          case 'e': e.preventDefault(); formatBoldItalic(); break;
+          case 'h': e.preventDefault(); formatHeading(2); break;
+          case 'l': e.preventDefault(); formatLink(); break;
+          case 'k': e.preventDefault(); formatInlineCode(); break;
+          case 'j': e.preventDefault(); formatCodeBlock(); break;
+          case 'q': e.preventDefault(); formatBlockquote(); break;
+          default: return;
         }
       }
     };
-
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Función para mostrar guía rápida
   const showQuickGuide = () => {
     const guideContent = `# Guía rápida de Markdown
 
 ## Texto básico
-**Negrita**: **texto** o __texto__
-*Cursiva*: *texto* o _texto_
-***Negrita y cursiva***: ***texto***
+**Negrita**: **texto**
+*Cursiva*: *texto*
 ~~Tachado~~: ~~texto~~
-
-## Encabezados
-# Título 1
-## Título 2
-### Título 3
-
-## Listas
-- Lista no ordenada
-* También con asterisco
-+ O con signo más
-
-1. Lista ordenada
-2. Segundo elemento
 
 ## Enlaces e imágenes
 [Enlace](https://ejemplo.com)
 ![Imagen](https://ejemplo.com/imagen.jpg)
 
-## Código
-\`código en línea\`
-
-\`\`\`
-bloque de código
-\`\`\`
-
-## Citas
-> Esto es una cita
-
-## Tablas
-| Columna 1 | Columna 2 |
-|-----------|-----------|
-| Dato 1    | Dato 2    |
-
-## Línea horizontal
----
-
-Usa los botones de la barra de herramientas o atajos de teclado:
-Ctrl+B: Negrita | Ctrl+I: Cursiva | Ctrl+E: Negrita+Cursiva
-Ctrl+H: Título | Ctrl+L: Enlace | Ctrl+Q: Cita`;
-    
+*Tip*: ¡Puedes copiar un enlace de internet, seleccionar un texto en el editor y presionar pegar (Ctrl+V) para enlazarlo automáticamente!`;
     alert(guideContent);
   };
 
@@ -254,12 +229,9 @@ Ctrl+H: Título | Ctrl+L: Enlace | Ctrl+Q: Cita`;
     <div className="border border-gray-300 dark:border-gray-700 rounded-xl overflow-hidden bg-white dark:bg-[#1e1e1e] transition-all focus-within:ring-2 focus-within:ring-primary-500">
       
       {/* BARRA DE HERRAMIENTAS */}
-      <div className="flex flex-wrap items-center justify-between px-2 py-2 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 gap-1">
-        
-        {/* Primera fila: Texto básico */}
+      <div className="flex flex-wrap items-center justify-between px-2 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 gap-1">
         <div className="flex flex-wrap items-center gap-1 mb-1">
           <div className="flex items-center gap-1">
-            <span className="text-xs text-gray-500 dark:text-gray-400 mr-2">Texto:</span>
             <button type="button" onClick={formatBold} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Negrita (Ctrl+B)">
               <Bold size={18} />
             </button>
@@ -276,51 +248,39 @@ Ctrl+H: Título | Ctrl+L: Enlace | Ctrl+Q: Cita`;
 
           <div className="w-px h-4 bg-gray-300 dark:bg-gray-600 mx-1"></div>
           
-          {/* Encabezados */}
-          <div className="flex items-center gap-1">
-            <span className="text-xs text-gray-500 dark:text-gray-400 mr-2">Títulos:</span>
-            <div className="flex gap-0.5">
-              {[1, 2, 3].map(level => (
-                <button 
-                  key={level} 
-                  type="button" 
-                  onClick={() => formatHeading(level)}
-                  className="px-2 py-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300 text-xs font-bold"
-                  title={`Título H${level}`}
-                >
-                  H{level}
-                </button>
-              ))}
-            </div>
+          <div className="flex gap-0.5">
+            {[1, 2, 3].map(level => (
+              <button key={level} type="button" onClick={() => formatHeading(level)} className="px-2 py-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300 text-xs font-bold" title={`Título H${level}`}>
+                H{level}
+              </button>
+            ))}
           </div>
-        </div>
+          
+          <div className="w-px h-4 bg-gray-300 dark:bg-gray-600 mx-1"></div>
 
-        {/* Segunda fila: Elementos estructurales */}
-        <div className="flex flex-wrap items-center gap-1">
           <div className="flex items-center gap-1">
-            <span className="text-xs text-gray-500 dark:text-gray-400 mr-2">Listas:</span>
             <button type="button" onClick={formatUnorderedList} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Lista no ordenada">
               <List size={18} />
             </button>
             <button type="button" onClick={formatOrderedList} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Lista ordenada">
               <ListOrdered size={18} />
             </button>
-            <div className="w-px h-4 bg-gray-300 dark:bg-gray-600 mx-1"></div>
           </div>
           
+          <div className="w-px h-4 bg-gray-300 dark:bg-gray-600 mx-1"></div>
+
           <div className="flex items-center gap-1">
-            <span className="text-xs text-gray-500 dark:text-gray-400 mr-2">Medios:</span>
             <button type="button" onClick={formatLink} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Enlace (Ctrl+L)">
               <Link size={18} />
             </button>
             <button type="button" onClick={formatImage} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Imagen">
               <ImageIcon size={18} />
             </button>
-            <div className="w-px h-4 bg-gray-300 dark:bg-gray-600 mx-1"></div>
           </div>
           
+          <div className="w-px h-4 bg-gray-300 dark:bg-gray-600 mx-1"></div>
+
           <div className="flex items-center gap-1">
-            <span className="text-xs text-gray-500 dark:text-gray-400 mr-2">Bloques:</span>
             <button type="button" onClick={formatBlockquote} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Cita (Ctrl+Q)">
               <Quote size={18} />
             </button>
@@ -330,29 +290,21 @@ Ctrl+H: Título | Ctrl+L: Enlace | Ctrl+Q: Cita`;
             <button type="button" onClick={formatInlineCode} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Código en línea (Ctrl+K)">
               <span className="text-xs font-bold">{"<>"}</span>
             </button>
-            <div className="w-px h-4 bg-gray-300 dark:bg-gray-600 mx-1"></div>
           </div>
           
+          <div className="w-px h-4 bg-gray-300 dark:bg-gray-600 mx-1"></div>
+
           <div className="flex items-center gap-1">
-            <span className="text-xs text-gray-500 dark:text-gray-400 mr-2">Otros:</span>
             <button type="button" onClick={formatTable} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Tabla">
               <Table size={18} />
             </button>
             <button type="button" onClick={formatHorizontalRule} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Línea horizontal">
               <Minus size={18} />
             </button>
-            <button type="button" onClick={showQuickGuide} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Guía rápida">
-              <HelpCircle size={18} />
-            </button>
           </div>
         </div>
 
-        {/* Toggle Vista Previa */}
-        <button 
-          type="button" 
-          onClick={() => setIsPreview(!isPreview)}
-          className={`flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-bold transition-colors bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600`}
-        >
+        <button type="button" onClick={() => setIsPreview(!isPreview)} className="flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-bold transition-colors bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600">
           {isPreview ? <><Edit3 size={14}/> Editar</> : <><Eye size={14}/> Vista Previa</>}
         </button>
       </div>
@@ -360,51 +312,29 @@ Ctrl+H: Título | Ctrl+L: Enlace | Ctrl+Q: Cita`;
       {/* ÁREA DE EDICIÓN O VISTA PREVIA */}
       <div className="min-h-[200px] max-h-[500px] overflow-y-auto">
         {isPreview ? (
-          // VISTA PREVIA MEJORADA CON SafeMarkdownRenderer
           <div className="p-3 md:p-4">
             {value ? (
               <div className="text-gray-800 dark:text-gray-200 text-sm">
-                <MarkdownRenderer 
-                  content={value} 
-                  className="preview-mode" 
-                />
+                <MarkdownRenderer content={value} className="preview-mode" />
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-gray-400 dark:text-gray-500 italic p-8">
                 <Eye size={32} className="mb-2" />
                 <p>Nada para mostrar aún...</p>
-                <p className="text-xs mt-2">Escribe algo en el editor para ver la vista previa</p>
               </div>
             )}
           </div>
         ) : (
-          // TEXTAREA NORMAL
           <textarea
             ref={textareaRef}
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            placeholder={placeholder || "Escribe tu contenido Markdown aquí... Usa los botones de arriba para formato o Ctrl+? para atajos."}
+            onPaste={handlePaste}
+            placeholder={placeholder || "Describe tu mod aquí..."}
             className="w-full h-full p-3 md:p-4 bg-transparent outline-none text-gray-800 dark:text-gray-200 text-sm resize-y min-h-[200px] font-mono"
           />
         )}
       </div>
-      
-      {!isPreview && (
-        <div className="flex justify-between items-center bg-gray-50 dark:bg-gray-800 px-4 py-2 border-t border-gray-200 dark:border-gray-700">
-          <button 
-            type="button"
-            onClick={showQuickGuide}
-            className="text-xs text-primary-600 dark:text-primary-400 hover:underline"
-          >
-            📖 Ver guía rápida de Markdown
-          </button>
-          <div className="text-xs text-gray-400">
-            <span className="mr-4">Ctrl+B: Negrita</span>
-            <span className="mr-4">Ctrl+I: Cursiva</span>
-            <span>Ctrl+L: Enlace</span>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

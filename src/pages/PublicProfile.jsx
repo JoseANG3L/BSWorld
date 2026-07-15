@@ -98,8 +98,8 @@ const PublicProfile = () => {
   const displayAvatar = profile?.imagen || profile?.avatar; 
   const hasCustomBanner = !!profile?.banner;
   const banner = profile?.banner;
-  const joinDate = profile?.createdAt 
-    ? new Date(profile.createdAt).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }) 
+  const joinDate = profile?.createdat 
+    ? new Date(profile.createdat).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }) 
     : 'N/A';
 
   const isBannerUrl = banner && (banner.startsWith('http') || banner.startsWith('data:image'));
@@ -125,7 +125,7 @@ const PublicProfile = () => {
              <div className="relative -mt-16 md:-mt-20 flex flex-col items-center text-center">
                  <div className="relative group">
                     <div className="w-32 h-32 md:w-40 md:h-40 rounded-full border-[6px] border-white dark:border-[#121212] bg-white dark:bg-[#1e1e1e] shadow-xl overflow-hidden">
-                        <AvatarRenderer avatar={displayAvatar} name={profile?.displayName || username} /> 
+                        <AvatarRenderer avatar={displayAvatar} name={username} /> 
                     </div>
                     {profile?.role === 'admin' && (
                         <div className="absolute bottom-2 right-2 bg-yellow-400 text-yellow-900 p-1.5 rounded-full border-4 border-white dark:border-[#121212]" title="Admin">
@@ -136,7 +136,7 @@ const PublicProfile = () => {
 
                  <div className="mt-4">
                      <h1 className="text-3xl md:text-4xl font-black text-gray-900 dark:text-white flex items-center justify-center gap-2">
-                        {profile?.displayName || username}
+                        {username}
                      </h1>
                      <div className="flex items-center justify-center gap-6 mt-4 text-sm text-gray-600 dark:text-gray-300">
                          <div className="flex flex-col items-center">

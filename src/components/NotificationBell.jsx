@@ -171,14 +171,12 @@ const NotificationBell = () => {
           if (!isOpen && unreadNotifs.length === 0) fetchUnread(); // Refrescar al abrir si está vacío
         }}
         className={clsx(
-          "p-2.5 border shadow-md rounded-full transition-all relative text-sm",
-          isOpen
-            ? "bg-blue-50 border-blue-200 text-blue-600 dark:bg-blue-900/40 dark:border-blue-800 dark:text-blue-400"
-            : "bg-white dark:bg-[#252525] border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400"
+          "w-9 h-9 flex items-center justify-center border shadow-sm rounded-full transition-all text-sm",
+          "bg-white dark:bg-[#252525] border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400"
         )}
         title="Notificaciones"
       >
-        <Bell size={20} />
+        <Bell size={18} strokeWidth={2.5} />
         {/* Badge numérico si hay > 0 */}
         {unreadNotifs.length > 0 && (
           <span className="absolute -top-1.5 -right-1.5 flex h-[20px] min-w-[20px] items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white border-2 border-white dark:border-[#121212] px-1">

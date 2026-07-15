@@ -39,7 +39,7 @@ const Comunidad = () => {
   // Filtro en tiempo real
   useEffect(() => {
     const results = users.filter(user => 
-      (user.username || user.displayName || '').toLowerCase().includes(searchTerm.toLowerCase())
+      (user.username || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
     setFilteredUsers(results);
   }, [searchTerm, users]);
@@ -61,11 +61,11 @@ const Comunidad = () => {
         // En el renderItem de DataContainer:
         <CreatorCard 
           key={user.id}
-          username={user.username || user.displayName}
-          avatar={user.avatar || user.photoURL}
+          username={user.username}
+          avatar={user.avatar}
           banner={user.banner} // <--- ASEGÚRATE DE AGREGAR ESTA LÍNEA
           role={user.role}
-          createdAt={user.createdAt}
+          createdat={user.createdat}
         />
       )}
     />

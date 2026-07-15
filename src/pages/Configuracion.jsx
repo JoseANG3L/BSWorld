@@ -1,15 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { db, auth } from '../firebase/config';
-import { doc, updateDoc } from 'firebase/firestore';
-import { updateProfile } from 'firebase/auth';
+import { supabase } from '../services/supabaseClient'; // 1. Importación corregida
 import { 
-  User, Mail, Camera, Save, Calendar, Shield, Loader2, CheckCircle, AlertCircle, 
-  Image as ImageIcon, Palette, LayoutGrid, Link as LinkIcon, Edit, Edit2,
-  // --- ICONOS PARA EL AVATAR ---
-  Ghost, Gamepad2, Sparkles, Anchor, Coffee, Rocket, Crown, Zap, Heart, Star, 
-  Music, Smile, Sword, Skull, Flame, Code, Terminal, Cpu, Globe, Headphones, 
-  Cat, Dog, Sun, Moon, Cloud, Umbrella
+  User, Camera, Save, Calendar, Shield, Loader2, CheckCircle, AlertCircle, 
+  Image as ImageIcon, Palette, LayoutGrid, Link as LinkIcon, Edit2 
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { ICON_MAP } from '../components/AvatarRenderer';
@@ -57,8 +51,8 @@ const Configuracion = () => {
   useEffect(() => {
     if (user) {
       setFormData({
-        username: user.displayName || user.username || '',
-        avatar: user.photoURL || user.avatar || '',
+        username: user.username || '',
+        avatar: user.avatar || '',
         banner: user.banner || '',
       });
       
@@ -93,7 +87,6 @@ const Configuracion = () => {
   const renderPreviewAvatar = () => {
     const avatarSrc = formData.avatar;
     
-    // 1. Si es diseño
     if (avatarSrc && avatarSrc.startsWith('design|')) {
         const parts = avatarSrc.split('|');
         const iconName = parts[1];
@@ -107,7 +100,6 @@ const Configuracion = () => {
         );
     }
     
-    // 2. Si es imagen
     return (
         <img 
             src={avatarSrc || "https://via.placeholder.com/150"} 
@@ -127,18 +119,23 @@ const Configuracion = () => {
     try {
       if (!user) throw new Error("No hay sesión activa");
 
-      await updateProfile(auth.currentUser, {
-        displayName: formData.username,
-        photoURL: formData.avatar
+      // 1. Actualizar Auth de Supabase
+      const { error: authError } = await supabase.auth.updateUser({
+        data: { displayName: formData.username, photoURL: formData.avatar }
       });
+      if (authError) throw authError;
 
-      const userRef = doc(db, "users", user.uid);
-      await updateDoc(userRef, {
-        username: formData.username,
-        username_lower: formData.username.toLowerCase(),
-        avatar: formData.avatar,
-        banner: formData.banner
-      });
+      // 2. Actualizar Tabla 'users' de Supabase
+      const { error: dbError } = await supabase
+        .from("users")
+        .update({
+          username: formData.username,
+          avatar: formData.avatar,
+          banner: formData.banner
+        })
+        .eq('id', user.uid);
+      
+      if (dbError) throw dbError;
 
       setMessage({ type: 'success', text: '¡Perfil actualizado correctamente!' });
       setTimeout(() => window.location.reload(), 1500);
@@ -151,8 +148,8 @@ const Configuracion = () => {
     }
   };
 
-  const joinDate = user?.createdAt 
-    ? new Date(user.createdAt).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })
+  const joinDate = user?.createdat 
+    ? new Date(user.createdat).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })
     : 'Desconocida';
 
   const isBannerUrl = formData.banner && (formData.banner.startsWith('http') || formData.banner.startsWith('data:image'));

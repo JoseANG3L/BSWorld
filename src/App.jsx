@@ -27,10 +27,11 @@ import AdminUpload from './pages/AdminUpload';
 import Configuracion from './pages/Configuracion';
 import Comunidad from './pages/Comunidad';
 import PublicProfile from './pages/PublicProfile';
-import Resultados from './pages/Resultados'; // <--- IMPORTANTE: Importar Resultados
+import Resultados from './pages/Resultados'; 
 import Destacados from './pages/Destacados';
 import DetalleContenido from './pages/DetalleContenido';
 import SubirMod from './pages/SubirMod';
+import SubirModPage from './pages/SubirModPage';
 import Notificaciones from './pages/Notificaciones';
 
 function App() {
@@ -56,11 +57,15 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
+          {/* 👇 RUTAS INDEPENDIENTES: Fuera del Layout principal */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/subir" element={<SubirModPage />} />
+
+          {/* 💻 RUTAS ENVUELTAS EN EL LAYOUT (Llevan Sidebar y Header) */}
           <Route path="/" element={<Layout toggleTheme={toggleTheme} isDarkMode={isDarkMode} />}>
             
             {/* --- RUTAS PRINCIPALES --- */}
             <Route index element={<Inicio />} />
-            <Route path="login" element={<Login />} />
             
             {/* --- CATEGORÍAS --- */}
             <Route path="personajes" element={<Personajes />} />
@@ -71,7 +76,7 @@ function App() {
             <Route path="paquetes" element={<Paquetes />} />
 
             {/* --- BUSCADOR --- */}
-            <Route path="buscar" element={<Resultados />} /> {/* <--- ESTA FALTABA */}
+            <Route path="buscar" element={<Resultados />} /> 
 
             {/* --- COMUNIDAD --- */}
             <Route path="comunidad" element={<Comunidad />} />
@@ -82,41 +87,32 @@ function App() {
             <Route path="contacto" element={<Contacto />} />
             <Route path="destacados" element={<Destacados />} />
             <Route path="/view/:id" element={<DetalleContenido />} />
-            <Route path="/subir" element={<SubirMod />} />
 
             {/* --- RUTAS PROTEGIDAS --- */}
-            
             <Route path="admin" element={
                 <ProtectedRoute requireAdmin={true}>
                   <AdminPanel />
                 </ProtectedRoute>
               } 
             />
-            {/* Solo Admins */}
             <Route path="admin-upload" element={
                 <ProtectedRoute requireAdmin={true}>
                   <AdminUpload />
                 </ProtectedRoute>
               } 
             />
-            
-            {/* Usuarios Logueados */}
             <Route path="configuracion" element={
                 <ProtectedRoute>
                   <Configuracion />
                 </ProtectedRoute>
               } 
             />
-
-            {/* Usuarios Logueados */}
             <Route path="mis-mods" element={
                 <ProtectedRoute>
                   <MisMods />
                 </ProtectedRoute>
               } 
             />
-
-            {/* Usuarios Notificacion */}
             <Route path="notificaciones" element={
                 <ProtectedRoute>
                   <Notificaciones />

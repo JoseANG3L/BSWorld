@@ -6,7 +6,7 @@ import {
     Share2, ShieldCheck, MessageCircle, Facebook, Twitter, Eye,
     Image as ImageIcon, Layers, Loader2, ChevronLeft, ChevronRight, PlayCircle,
     Link as LinkIcon, Mail, Send, Check, Copy, Youtube, AlertCircle, Code,
-    Info
+    Info, Lock, Unlock
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import ReactMarkdown from 'react-markdown';
@@ -16,6 +16,8 @@ import { getContentById, registerDownload, registerView, getUserPublicProfile } 
 import AvatarRenderer from '../components/AvatarRenderer';
 import { useAuth } from '../context/AuthContext';
 import MarkdownRenderer from '../components/MarkdownRenderer';
+import CommentSection from '../components/CommentSection';
+import { encryptionService, initializeEncryption } from '../services/encryption';
 
 // --- COMPONENTE REUTILIZABLE: FILA DE USUARIO INTELIGENTE ---
 const SmartUserRow = ({ user, role = "creator" }) => {
@@ -145,6 +147,9 @@ const DetalleContenido = () => {
     const [downloading, setDownloading] = useState(null);
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [copied, setCopied] = useState(false);
+    const [encryptionKey, setEncryptionKey] = useState(null);
+    const [decrypting, setDecrypting] = useState(false);
+    const [descriptionExpanded, setDescriptionExpanded] = useState(false);
     const viewRegistered = useRef(false);
 
     useEffect(() => {
@@ -156,6 +161,16 @@ const DetalleContenido = () => {
                     return;
                 }
                 setItem(data);
+
+                // Inicializar encriptación si el contenido está encriptado
+                if (data.encrypted) {
+                    try {
+                        const key = await initializeEncryption();
+                        setEncryptionKey(key);
+                    } catch (error) {
+                        console.error('Error inicializando encriptación:', error);
+                    }
+                }
 
                 const viewKey = `viewed_${id}`;
                 const hasViewedSession = sessionStorage.getItem(viewKey);
@@ -196,29 +211,55 @@ const DetalleContenido = () => {
         setSelectedIndex((prev) => (prev === galleryItems.length - 1 ? 0 : prev + 1));
     };
 
-    const handleDownload = async (url) => {
+    const handleDownload = async (download) => {
         if (!item) return;
+        
+        const url = download.url;
+        const isEncrypted = download.encrypted || item.encrypted;
+        
         setDownloading(url);
-        setTimeout(() => setDownloading(null), 2000);
+        setDecrypting(isEncrypted);
+        
+        try {
+            let finalUrl = url;
+            
+            // Desencriptar URL si está encriptado
+            if (isEncrypted && encryptionKey) {
+                try {
+                    finalUrl = await encryptionService.decryptUrl(url, encryptionKey);
+                } catch (decryptError) {
+                    console.error('Error desencriptando URL:', decryptError);
+                    // Si falla la desencriptación, usar la URL original
+                    finalUrl = url;
+                }
+            }
 
-        const COOLDOWN_TIME = 60000;
-        const storageKey = `download_limit_${id}_${url}`;
-        const lastDownloadTime = localStorage.getItem(storageKey);
-        const now = Date.now();
+            const COOLDOWN_TIME = 60000;
+            const storageKey = `download_limit_${id}_${url}`;
+            const lastDownloadTime = localStorage.getItem(storageKey);
+            const now = Date.now();
 
-        window.open(url, '_blank');
+            window.open(finalUrl, '_blank');
 
-        if (lastDownloadTime && (now - parseInt(lastDownloadTime)) < COOLDOWN_TIME) return;
+            if (lastDownloadTime && (now - parseInt(lastDownloadTime)) < COOLDOWN_TIME) return;
 
-        localStorage.setItem(storageKey, now.toString());
-        await registerDownload(id, url);
+            localStorage.setItem(storageKey, now.toString());
+            await registerDownload(id, url);
 
-        setItem(prev => ({
-            ...prev,
-            descargas: prev.descargas.map(d =>
-                d.url === url ? { ...d, count: (d.count || 0) + 1 } : d
-            )
-        }));
+            setItem(prev => ({
+                ...prev,
+                descargas: prev.descargas.map(d =>
+                    d.url === url ? { ...d, count: (d.count || 0) + 1 } : d
+                )
+            }));
+        } catch (error) {
+            console.error('Error en descarga:', error);
+        } finally {
+            setTimeout(() => {
+                setDownloading(null);
+                setDecrypting(false);
+            }, 2000);
+        }
     };
 
     const shareUrl = window.location.href;
@@ -248,63 +289,22 @@ const DetalleContenido = () => {
     if (!item) return null;
 
     return (
-        <div className="animate-fade-in-up" style={{ animationDuration: '200ms' }}>
-            <div className="max-w-7xl mx-auto relative z-10">
-                {/* BOTÓN VOLVER */}
-                <button onClick={() => navigate(-1)} className="mb-4 md:mb-6 flex items-center gap-2 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors font-medium">
-                    <ArrowLeft size={20} /> Volver al listado
-                </button>
-
-                {/* ENCABEZADO */}
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 md:gap-4 mb-4 md:mb-6">
-                    <div>
-                        <div className="flex flex-wrap items-center gap-3 mb-3">
-                            <span className="px-3 py-1 rounded-lg text-xs font-bold uppercase bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 border border-primary-200 dark:border-primary-800 tracking-wider">
-                                {item.tipo}
-                            </span>
-                            <span className="flex items-center gap-1 text-xs font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded-lg border border-green-200 dark:border-green-800">
-                                <ShieldCheck size={12} /> Verificado
-                            </span>
-                            <span className="text-gray-400 text-sm flex items-center gap-1">
-                                <Calendar size={14} /> {new Date(item.creado).toLocaleDateString()}
-                            </span>
-                        </div>
-                        <h1 className="text-2xl md:text-5xl font-black text-dark dark:text-dark leading-tight tracking-tight">
-                            {item.titulo}
-                        </h1>
-                    </div>
-
-                    {/* Stats */}
-                    <div className="flex gap-6 text-gray-500 dark:text-gray-400">
-                        <div>
-                            <p className="text-md md:text-2xl font-bold text-gray-900 dark:text-white flex items-center justify-center md:justify-end gap-2">
-                                <Download size={16} /> {formatNumber(totalDownloads)}
-                            </p>
-                            <p className="text-xs uppercase font-bold tracking-wider">Descargas</p>
-                        </div>
-                        <div className="w-px bg-gray-300 dark:bg-gray-700"></div>
-                        <div>
-                            <p className="text-md md:text-2xl font-bold text-gray-900 dark:text-white flex items-center justify-center md:justify-end gap-2">
-                                <Eye size={16} /> {formatNumber(item.vistas || 0)}
-                            </p>
-                            <p className="text-xs uppercase font-bold tracking-wider">Vistas</p>
-                        </div>
-                    </div>
-                </div>
+        <div className="min-h-screen bg-gray-50 dark:bg-[#0f0f0f] animate-fade-in-up" style={{ animationDuration: '200ms' }}>
+            <div className="max-w-[1800px] mx-auto px-2 md:px-4 py-4">
 
                 {/* LAYOUT GRID PRINCIPAL */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 md:gap-5">
-                    {/* COLUMNA IZQUIERDA */}
-                    <div className="lg:col-span-8 flex flex-col gap-3 md:gap-5">
-                        {/* VISOR DE GALERÍA (se mantiene igual) */}
-                        <div>
-                            <div className="rounded-2xl relative group aspect-video mb-2 shadow-md">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    {/* COLUMNA IZQUIERDA - CONTENIDO PRINCIPAL */}
+                    <div className="lg:col-span-8 flex flex-col gap-6">
+                        {/* VISOR DE GALERÍA MÁS PEQUEÑO */}
+                        <div className="w-full">
+                            <div className="rounded-xl overflow-hidden bg-black shadow-lg">
                                 {youtubeId ? (
                                     <iframe 
                                         key={youtubeId} 
                                         src={`https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=0&rel=0`}
                                         title="YouTube video player" 
-                                        className="w-full h-full rounded-2xl" 
+                                        className="w-full aspect-video" 
                                         frameBorder="0" 
                                         allowFullScreen
                                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -313,7 +313,7 @@ const DetalleContenido = () => {
                                     <video 
                                         src={currentMedia} 
                                         key={currentMedia} 
-                                        className="w-full h-full object-contain bg-black rounded-2xl" 
+                                        className="w-full aspect-video object-contain bg-black" 
                                         controls 
                                         muted 
                                         loop 
@@ -322,7 +322,7 @@ const DetalleContenido = () => {
                                     <img 
                                         src={currentMedia} 
                                         key={currentMedia} 
-                                        className="w-full h-full object-cover transition-transform duration-700 rounded-2xl" 
+                                        className="w-full aspect-video object-cover" 
                                         alt={item.titulo} 
                                     />
                                 )}
@@ -331,13 +331,13 @@ const DetalleContenido = () => {
                                     <>
                                         <button 
                                             onClick={handlePrev} 
-                                            className="absolute top-1/2 left-4 -translate-y-1/2 p-3 rounded-full bg-black/50 text-white hover:bg-black/70 hover:scale-110 transition-all opacity-0 group-hover:opacity-100 backdrop-blur-sm border border-white/10 z-10"
+                                            className="absolute top-1/2 left-4 -translate-y-1/2 p-3 rounded-full bg-black/70 text-white hover:bg-black/90 transition-all opacity-0 group-hover:opacity-100 backdrop-blur-sm border border-white/20 z-10"
                                         >
                                             <ChevronLeft size={24} />
                                         </button>
                                         <button 
                                             onClick={handleNext} 
-                                            className="absolute top-1/2 right-4 -translate-y-1/2 p-3 rounded-full bg-black/50 text-white hover:bg-black/70 hover:scale-110 transition-all opacity-0 group-hover:opacity-100 backdrop-blur-sm border border-white/10 z-10"
+                                            className="absolute top-1/2 right-4 -translate-y-1/2 p-3 rounded-full bg-black/70 text-white hover:bg-black/90 transition-all opacity-0 group-hover:opacity-100 backdrop-blur-sm border border-white/20 z-10"
                                         >
                                             <ChevronRight size={24} />
                                         </button>
@@ -345,29 +345,40 @@ const DetalleContenido = () => {
                                 )}
                             </div>
 
-                            {/* TIRA DE MINIATURAS */}
+                            {/* TIRA DE MINIATURAS ESTILO YOUTUBE */}
                             {galleryItems.length > 1 && (
-                                <div className="flex gap-1 overflow-auto scrollbar-hide snap-x">
-                                    {galleryItems.map((media, index) => {
-                                        const isYt = getYouTubeId(media);
-                                        const isVid = isVideo(media);
-                                        const thumbSrc = isYt ? `https://img.youtube.com/vi/${isYt}/mqdefault.jpg` : media;
-
+                                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide snap-x mt-3">
+                                    {galleryItems.map((item, index) => {
+                                        const isYt = getYouTubeId(item);
+                                        const isVid = isVideo(item);
+                                        const thumbSrc = isYt ? `https://img.youtube.com/vi/${isYt}/mqdefault.jpg` : item;
+                                        const isActive = index === selectedIndex;
+                                        
                                         return (
-                                            <button 
-                                                key={index} 
+                                            <button
+                                                key={index}
                                                 onClick={() => setSelectedIndex(index)}
                                                 className={clsx(
-                                                    "relative h-20 w-34 shrink-0 rounded-lg border-2 transition-all cursor-pointer snap-start group/thumb",
-                                                    selectedIndex === index ? "border-primary-500" : "border-transparent"
+                                                    "relative flex-shrink-0 w-24 md:w-32 aspect-video rounded-lg overflow-hidden transition-all duration-200 snap-start border-2",
+                                                    isActive 
+                                                        ? "border-primary-600 dark:border-primary-400 ring-2 ring-primary-500/30" 
+                                                        : "border-transparent hover:border-gray-300 dark:hover:border-gray-600"
                                                 )}
                                             >
                                                 {(isYt || isVid) && (
-                                                    <div className="absolute inset-0 flex items-center justify-center z-10 rounded-lg">
-                                                        <PlayCircle size={38} className="text-white drop-shadow-md" />
+                                                    <div className="absolute inset-0 flex items-center justify-center z-10">
+                                                        <PlayCircle size={16} className="text-white drop-shadow-md" />
                                                     </div>
                                                 )}
-                                                <img src={thumbSrc} alt={`Vista ${index}`} className="w-full h-full object-cover rounded-lg" />
+                                                <img 
+                                                    src={thumbSrc} 
+                                                    alt={`Miniatura ${index + 1}`} 
+                                                    className="w-full h-full object-cover"
+                                                    onError={(e) => { e.target.src = "https://placehold.co/320x180?text=Error"; }}
+                                                />
+                                                {isActive && (
+                                                    <div className="absolute inset-0 bg-primary-600/10 dark:bg-primary-400/10 pointer-events-none"></div>
+                                                )}
                                             </button>
                                         );
                                     })}
@@ -375,44 +386,135 @@ const DetalleContenido = () => {
                             )}
                         </div>
 
-                        {/* DESCRIPCIÓN CON EL NUEVO SMART RENDERER */}
-                        <div className="bg-white dark:bg-[#1e1e1e] p-3 pb-4 md:p-4 md:pb-5 rounded-2xl border border-gray-300 dark:border-gray-700 shadow-md">
-                            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 md:mb-6 flex items-center gap-2 ps-0.5 pb-3 md:pb-4 border-b border-gray-300 dark:border-gray-700">
-                                <Layers size={20} className="text-primary-600 dark:text-primary-300" /> Descripción
-                            </h3>
+                        {/* HEADER ESTILO YOUTUBE (DESPUÉS DE GALERÍA) */}
+                        <div className="bg-white dark:bg-[#1a1a1a] rounded-xl p-4 shadow-sm">
+                            {/* Título Principal */}
+                            <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white mb-3 leading-tight">
+                                {item.titulo}
+                            </h1>
                             
-                            <div className="text-gray-600 dark:text-gray-300 leading-relaxed text-base">
-                                <MarkdownRenderer content={item.descripcion} />
+                            {/* Información del creador y stats */}
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                {/* Creador */}
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-800">
+                                        <AvatarRenderer 
+                                            avatar={item.aporte?.imagen} 
+                                            name={item.aporte?.nombre || 'Creador'} 
+                                        />
+                                    </div>
+                                    <div>
+                                        <Link 
+                                            to={item.aporte?.uid ? `/u/${item.aporte?.uid}` : '#'}
+                                            className="text-sm font-semibold text-gray-900 dark:text-white hover:underline"
+                                        >
+                                            {item.aporte?.nombre || 'Creador'}
+                                        </Link>
+                                        <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
+                                            <span>{formatNumber(item.vistas || 0)} vistas</span>
+                                            <span>•</span>
+                                            <span>{new Date(item.creado).toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Stats y acciones */}
+                                <div className="flex items-center gap-2 md:gap-4">
+                                    <div className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-full text-xs font-medium text-gray-700 dark:text-gray-300">
+                                        <Download size={14} />
+                                        <span>{formatNumber(totalDownloads)}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-full text-xs font-medium text-gray-700 dark:text-gray-300">
+                                        <Eye size={14} />
+                                        <span>{formatNumber(item.vistas || 0)}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1 px-3 py-1.5 bg-green-100 dark:bg-green-900/30 rounded-full text-xs font-bold text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800">
+                                        <ShieldCheck size={12} />
+                                        <span>Verificado</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
+
+                        {/* DESCRIPCIÓN ESTILO YOUTUBE CON BOTÓN VER MÁS */}
+                        <div className="bg-white dark:bg-[#1a1a1a] rounded-xl p-4 shadow-sm">
+                            <div className="flex items-center justify-between mb-3">
+                                <h3 className="text-base font-semibold text-gray-900 dark:text-white">
+                                    Descripción
+                                </h3>
+                                <span className="text-xs text-gray-500 dark:text-gray-400">
+                                    {item.descripcion?.length || 0} caracteres
+                                </span>
+                            </div>
+                            <div className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">
+                                <div className={descriptionExpanded ? '' : 'line-clamp-3'}>
+                                    <MarkdownRenderer content={item.descripcion} />
+                                </div>
+                                {item.descripcion && item.descripcion.length > 200 && (
+                                    <button
+                                        onClick={() => setDescriptionExpanded(!descriptionExpanded)}
+                                        className="mt-2 text-xs font-semibold text-primary-600 dark:text-primary-400 hover:underline"
+                                    >
+                                        {descriptionExpanded ? 'Mostrar menos' : 'Mostrar más'}
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* SECCIÓN DE COMENTARIOS*/}
+                        <CommentSection contentId={id} />
                     </div>
 
-                    {/* COLUMNA DERECHA (se mantiene igual) */}
-                    <div className="lg:col-span-4 space-y-3 md:space-y-5">
+                    {/* COLUMNA DERECHA ESTILO YOUTUBE */}
+                    <div className="lg:col-span-4 space-y-4">
                         {/* TARJETA DE DESCARGA */}
-                        <div className="bg-white dark:bg-[#1e1e1e] p-3 md:p-4 rounded-2xl border border-gray-300 dark:border-gray-700 shadow-md">
-                            <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2 ps-0.5">
-                                <Download size={20} className="text-primary-600 dark:text-primary-300" /> Descargar Archivos
-                            </h3>
+                        <div className="bg-white dark:bg-[#1a1a1a] rounded-xl p-4 shadow-sm">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-base font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                                    <Download size={18} className="text-primary-600 dark:text-primary-400" /> Descargas
+                                </h3>
+                                {item.encrypted && (
+                                    <div className="flex items-center gap-1.5 px-2 py-1 bg-blue-100 dark:bg-blue-900/30 rounded-full">
+                                        <Lock size={10} className="text-blue-600 dark:text-blue-400" />
+                                        <span className="text-[10px] font-bold text-blue-700 dark:text-blue-300">Protegido</span>
+                                    </div>
+                                )}
+                            </div>
                             {item.descargas.length > 0 && (
-                                <div className="flex flex-col gap-3 mt-4 md:mt-5">
+                                <div className="flex flex-col gap-2">
                                     {item.descargas.map((d, idx) => (
                                         <button 
                                             key={idx} 
-                                            onClick={() => handleDownload(d.url)}
+                                            onClick={() => handleDownload(d)}
+                                            disabled={downloading === d.url}
                                             className={clsx(
-                                                "relative flex items-center justify-between px-4 py-3 rounded-xl transition-all w-full text-left group/item cursor-pointer",
-                                                "bg-primary-600 hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-800 text-white"
+                                                "relative flex items-center justify-between px-4 py-3 rounded-lg transition-all w-full text-left group/item cursor-pointer border",
+                                                downloading === d.url 
+                                                    ? "bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 cursor-not-allowed" 
+                                                    : "bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 hover:border-primary-300 dark:hover:border-primary-700"
                                             )}
                                         >
                                             <div className="flex flex-col">
-                                                <span className="truncate font-bold text-sm text-white">{d.label}</span>
-                                                <span className="text-[10px] flex items-center gap-1 font-medium text-primary-100">
-                                                    <Download size={12} /> {formatNumber(d.count || 0)} descargas
+                                                <div className="flex items-center gap-2">
+                                                    <span className="truncate font-medium text-sm text-gray-900 dark:text-white">{d.label}</span>
+                                                    {(d.encrypted || item.encrypted) && (
+                                                        <Lock size={10} className="text-blue-500" />
+                                                    )}
+                                                </div>
+                                                <span className="text-[11px] flex items-center gap-1 text-gray-500 dark:text-gray-400">
+                                                    <Download size={10} /> {formatNumber(d.count || 0)} descargas
                                                 </span>
                                             </div>
-                                            <div className="p-2 rounded-lg transition-colors bg-white/20">
-                                                <Download size={20} className="text-white" />
+                                            <div className="p-1.5 rounded-lg transition-colors">
+                                                {downloading === d.url ? (
+                                                    decrypting ? (
+                                                        <Unlock size={16} className="text-primary-600 dark:text-primary-400 animate-pulse" />
+                                                    ) : (
+                                                        <Loader2 size={16} className="text-gray-400 animate-spin" />
+                                                    )
+                                                ) : (
+                                                    <Download size={16} className="text-gray-500 dark:text-gray-400 group-hover/item:text-primary-600 dark:group-hover/item:text-primary-400" />
+                                                )}
                                             </div>
                                         </button>
                                     ))}
@@ -428,33 +530,33 @@ const DetalleContenido = () => {
                             )}
                         </div>
                         
-                        {/* CREDITOS Y APORTE */}
-                        <div className="bg-white dark:bg-[#1e1e1e] p-3 md:p-4 rounded-2xl border border-gray-300 dark:border-gray-700 shadow-md">
+                        {/* CREDITOS Y APORTE ESTILO YOUTUBE */}
+                        <div className="bg-white dark:bg-[#1a1a1a] rounded-xl p-4 shadow-sm">
                             <div className="mb-4">
-                                <h4 className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2 ps-0.5">
-                                    <Users size={16} className="text-primary-600 dark:text-primary-300" /> Créditos
+                                <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                                    <Users size={16} className="text-primary-600 dark:text-primary-400" /> Créditos
                                 </h4>
-                                <div className="space-y-3">
-                                    {item.creditos?.map((creador, i) => (
+                                <div className="space-y-2">
+                                    {item.creadores?.map((creador, i) => (
                                         <SmartUserRow key={i} user={creador} role="creator" />
                                     ))}
                                 </div>
                             </div>
 
                             {item.aporte && (
-                                <div className="pt-5 border-t border-gray-300 dark:border-gray-700">
-                                    <h4 className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2 ps-0.5">
-                                        <User size={16} className="text-primary-600 dark:text-primary-300" /> Aportado por
+                                <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+                                    <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                                        <User size={16} className="text-primary-600 dark:text-primary-400" /> Aportado por
                                     </h4>
                                     <SmartUserRow user={item.aporte} role="uploader" />
                                 </div>
                             )}
                         </div>
 
-                        {/* REDES SOCIALES */}
+                        {/* REDES SOCIALES ESTILO YOUTUBE */}
                         {item.redes && item.redes.length > 0 && (
-                            <div className="bg-white dark:bg-[#1e1e1e] p-3 md:p-4 rounded-2xl border border-gray-300 dark:border-gray-700 shadow-md">
-                                <h4 className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2 ps-0.5">
+                            <div className="bg-white dark:bg-[#1a1a1a] rounded-xl p-4 shadow-sm">
+                                <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
                                     <Globe size={16} className="text-blue-500" /> Redes y Enlaces
                                 </h4>
                                 <div className="flex flex-wrap gap-2">

@@ -4,11 +4,11 @@ import { Shield, ExternalLink, Calendar, User } from 'lucide-react';
 import { clsx } from 'clsx';
 import AvatarRenderer from './AvatarRenderer';
 
-const CreatorCard = ({ username, avatar, banner, role, createdAt }) => {
+const CreatorCard = ({ username, avatar, banner, role, createdat }) => {
   
   // Formatear fecha
-  const fecha = createdAt 
-    ? new Date(createdAt).toLocaleDateString('es-ES', { month: 'short', year: 'numeric' }) 
+  const fecha = createdat 
+    ? new Date(createdat).toLocaleDateString('es-ES', { month: 'short', year: 'numeric' }) 
     : 'N/A';
 
   // Detectar si el banner es una URL de imagen
@@ -17,7 +17,7 @@ const CreatorCard = ({ username, avatar, banner, role, createdAt }) => {
   return (
     <Link 
       to={`/u/${username}`} 
-      className="block group relative bg-white dark:bg-[#1e1e1e] border border-gray-300 dark:border-gray-700 rounded-2xl overflow-hidden shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+      className="block group relative bg-white dark:bg-[#1e1e1e] border border-gray-300 dark:border-gray-700 rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300"
     >
       
       {/* --- BANNER SUPERIOR DINÁMICO --- */}
@@ -56,7 +56,7 @@ const CreatorCard = ({ username, avatar, banner, role, createdAt }) => {
         <div className="relative -mt-10 mb-3 flex justify-between items-end">
           
           {/* Avatar con Renderer */}
-          <div className="w-20 h-20 rounded-full border-4 border-white dark:border-[#1e1e1e] shadow-md group-hover:scale-105 transition-transform overflow-hidden bg-gray-200 dark:bg-gray-800">
+          <div className="w-20 h-20 rounded-full border-4 border-white dark:border-[#1e1e1e] shadow-md overflow-hidden bg-gray-200 dark:bg-gray-800">
              <AvatarRenderer 
                 avatar={avatar} 
                 name={username} 

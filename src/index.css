@@ -4,12 +4,14 @@
 
 /* Estilos base para transiciones suaves de tema */
 body {
-  @apply bg-light-bg text-black transition-colors duration-300;
+  @apply bg-white text-black transition-colors duration-300;
+  /* @apply bg-light-bg text-black transition-colors duration-300; */
 }
 
 /* Estilos cuando el modo oscuro está activo */
 .dark body {
   @apply bg-dark-bg text-white;
+  /* @apply bg-dark-bg text-white; */
 }
 
 /* src/index.css */
