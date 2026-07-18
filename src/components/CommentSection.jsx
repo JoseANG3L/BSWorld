@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MessageSquare, Send, Trash2, Edit3, CornerDownRight, X, Reply, Check, Clock, Heart, MoreHorizontal, ChevronDown, ChevronUp, ThumbsUp, User as UserIcon } from 'lucide-react';
+import { MessageSquare, Send, Trash2, Edit3, CornerDownRight, X, Reply, Check, Clock, Heart, MoreHorizontal, ChevronDown, ChevronUp, ThumbsUp, User as UserIcon, Link } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuth } from '../context/AuthContext';
 import { 
@@ -154,7 +154,7 @@ const CommentCard = ({ comment, contentId, onCommentMutated, isReply = false }) 
               type="text" 
               value={editText} 
               onChange={(e) => setEditText(e.target.value)} 
-              className="flex-1 px-4 py-2.5 text-sm bg-white dark:bg-gray-800 border-2 border-primary-300 dark:border-primary-700 rounded-xl focus:ring-2 focus:ring-primary-500/30 outline-none dark:text-white transition-all" 
+              className="flex-1 px-4 py-2.5 text-sm bg-white dark:bg-[#191B1E] border-2 border-primary-300 dark:border-primary-700 rounded-xl focus:ring-2 focus:ring-primary-500/30 outline-none dark:text-white transition-all" 
               required 
               autoFocus
             />
@@ -222,7 +222,7 @@ const CommentCard = ({ comment, contentId, onCommentMutated, isReply = false }) 
             placeholder="Escribe una respuesta..." 
             value={replyText} 
             onChange={(e) => setReplyText(e.target.value)} 
-            className="flex-1 px-4 py-2.5 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-primary-500/20 dark:text-white transition-all" 
+            className="flex-1 px-4 py-2.5 text-sm bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-primary-500/20 dark:text-white transition-all" 
             required 
             autoFocus
           />
@@ -318,7 +318,7 @@ const CommentSection = ({ contentId }) => {
               value={commentText} 
               onChange={(e) => setCommentText(e.target.value)} 
               disabled={submitting}
-              className="w-full px-4 py-3 text-sm rounded-xl bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-700 outline-none text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 dark:focus:border-primary-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full px-4 py-3 text-sm rounded-xl bg-white dark:bg-[#191B1E] border-2 border-gray-300 dark:border-gray-700 outline-none text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 dark:focus:border-primary-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               required
             />
             <button 
@@ -366,7 +366,7 @@ const CommentSection = ({ contentId }) => {
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-12 gap-4 text-center">
-          <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded-full">
+          <div className="p-4 bg-gray-100 dark:bg-[#191B1E] rounded-full">
             <MessageSquare size={32} className="text-gray-400 dark:text-gray-600" />
           </div>
           <div>

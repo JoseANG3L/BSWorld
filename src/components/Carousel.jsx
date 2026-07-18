@@ -72,8 +72,8 @@ const Carousel = ({ title, limit = 6, tipo = null, autoPlayInterval = 5000 }) =>
 
   return (
     <div 
-      className="flex flex-col animate-fade-in-up w-full shadow-xl overflow-hidden bg-black relative"
-      style={{ animationDuration: '250ms' }}
+      className="flex flex-col animate-fade-in-up w-full overflow-hidden relative"
+      style={{ animationDuration: '200ms' }}
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
@@ -105,7 +105,7 @@ const Carousel = ({ title, limit = 6, tipo = null, autoPlayInterval = 5000 }) =>
         {items.map((item, index) => index === currentIndex && (
           <div 
             key={`content-${item.id}`} 
-            className="absolute inset-0 flex flex-col justify-end p-4 md:p-8 z-30 animate-fade-in"
+            className="absolute inset-0 flex flex-col justify-end p-2 md:p-4 py-4 md:py-6 z-30 animate-fade-in"
             style={{ animationDuration: '400ms' }}
           >
             <div className="max-w-xl space-y-2 md:space-y-3">

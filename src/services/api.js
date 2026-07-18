@@ -132,13 +132,21 @@ export const getGlobalStats = async () => {
 // ---------------------------------------------------------
 // 6. USUARIOS Y CACHÉ
 // ---------------------------------------------------------
+
+// Modifica la función en tu archivo de servicios api.js
 export const getUserPublicProfile = async (uid) => {
   if (!uid) return null;
   if (userCache[uid]) return userCache[uid];
 
   const { data, error } = await supabase.from('users').select('*').eq('id', uid).single();
+  
   if (data && !error) {
-    const profile = { uid: data.id, nombre: data.username, imagen: data.avatar || null };
+    const profile = { 
+      uid: data.id, 
+      nombre: data.username, 
+      imagen: data.avatar || null,
+      verificado: !!data.verificado
+    };
     userCache[uid] = profile;
     return profile;
   }

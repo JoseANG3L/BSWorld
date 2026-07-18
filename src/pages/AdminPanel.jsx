@@ -181,7 +181,7 @@ const AdminPanel = () => {
                   const itemTotalDownloads = item.descargas?.reduce((acc, curr) => acc + (curr.count || 0), 0) || 0;
                   
                   return (
-                    <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/20 transition-colors group">
+                    <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-[#191B1E]/20 transition-colors group">
                       {/* MINIATURA Y TÍTULO */}
                       <td className="p-3 pl-4 flex items-center gap-3">
                         <img 
@@ -198,7 +198,7 @@ const AdminPanel = () => {
 
                       {/* TIPO */}
                       <td className="p-3">
-                        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-gray-100 dark:bg-gray-800/80 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700">
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-gray-100 dark:bg-[#191B1E]/80 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700">
                           {item.tipo}
                         </span>
                       </td>
@@ -233,7 +233,7 @@ const AdminPanel = () => {
                                   item.status === 'pending' && "bg-amber-50 text-orange-700 border-amber-200 dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-900/30",
                                   item.status === 'published_editing' && "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/20 dark:text-blue-400 dark:border-blue-900/30",
                                   item.status === 'rejected' && "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/20 dark:text-red-400 dark:border-red-900/30",
-                                  item.status === 'draft' && "bg-gray-100 text-gray-600 border-gray-300 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700"
+                                  item.status === 'draft' && "bg-gray-100 text-gray-600 border-gray-300 dark:bg-[#191B1E] dark:text-gray-400 dark:border-gray-700"
                                 )}
                               >
                                 <option value="published">Publicado</option>

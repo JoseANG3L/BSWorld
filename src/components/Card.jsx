@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Download, Tag, ChevronDown, AlertCircle, Eye, User, ShieldCheck, Edit3, Trash2, Loader2, ExternalLink } from 'lucide-react';
+import { Download, Tag, ChevronDown, AlertCircle, Eye, User, ShieldCheck, Edit3, Trash2, Loader2, ExternalLink, Heart } from 'lucide-react';
 import { clsx } from 'clsx';
 import AvatarRenderer from './AvatarRenderer';
 import LikeButton from './LikeButton';
@@ -10,24 +10,34 @@ import { registerDownload, getUserPublicProfile } from '../services/api';
 const COOLDOWN_TIME = 3600000; 
 
 // --- SUB-COMPONENTE INTELIGENTE ---
-// Este componente recibe un usuario, verifica si tiene UID,
-// busca sus datos nuevos y renderiza el resultado.
-const SmartUserDisplay = ({ initialUser, type = 'list' , extraCount = 0 }) => {
-  const [userData, setUserData] = useState(initialUser);
+const SmartUserDisplay = ({ initialUser, type = 'list', extraCount = 0 }) => {
+  const [userData, setUserData] = useState(() => {
+    if (typeof initialUser === 'string') {
+      return { uid: initialUser, nombre: 'Cargando...', imagen: null, verificado: false };
+    }
+    return {
+      uid: initialUser?.uid || initialUser?.id || null,
+      nombre: initialUser?.nombre || initialUser?.username || 'Cargando...',
+      imagen: initialUser?.imagen || initialUser?.avatar || null,
+      verificado: initialUser?.verificado || false
+    };
+  });
 
   useEffect(() => {
     let isMounted = true;
-    // Solo buscamos si tiene UID y si no hemos buscado ya (optimización básica)
-    if (initialUser?.uid) {
+    const targetUid = typeof initialUser === 'string' ? initialUser : (initialUser?.uid || initialUser?.id);
+
+    if (targetUid) {
       const fetchFresh = async () => {
         try {
-          const freshProfile = await getUserPublicProfile(initialUser.uid);
+          const freshProfile = await getUserPublicProfile(targetUid);
           if (freshProfile && isMounted) {
-            setUserData(prev => ({
-               ...prev,
+            setUserData({
+               uid: freshProfile.uid,
                nombre: freshProfile.nombre,
-               imagen: freshProfile.imagen
-            }));
+               imagen: freshProfile.imagen,
+               verificado: freshProfile.verificado
+            });
           }
         } catch (error) {
           console.error("Error actualizando usuario tarjeta", error);
@@ -36,15 +46,14 @@ const SmartUserDisplay = ({ initialUser, type = 'list' , extraCount = 0 }) => {
       fetchFresh();
     }
     return () => { isMounted = false; };
-  }, [initialUser?.uid]);
+  }, [initialUser]);
 
-  const esVerificado = !!userData.uid;
+  const esVerificado = userData.verificado;
 
-  // Renderizado A: Formato Lista (Dropdown de Créditos)
   if (type === 'list') {
     return (
       <Link to={`/u/${userData.nombre}`} className="flex items-center gap-3 p-2 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors group">
-        <div className="w-6 h-6 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-800 shrink-0 border border-gray-300 dark:border-gray-600 relative">
+        <div className="w-6 h-6 rounded-full overflow-hidden bg-gray-200 dark:bg-[#191B1E] shrink-0 border border-gray-300 dark:border-gray-600 relative">
             <AvatarRenderer avatar={userData.imagen} name={userData.nombre} />
         </div>
         <div className="flex items-center gap-1 min-w-0">
@@ -57,16 +66,15 @@ const SmartUserDisplay = ({ initialUser, type = 'list' , extraCount = 0 }) => {
     );
   }
 
-  // Renderizado B: Formato Footer (Aporte)
   if (type === 'footer') {
     return (
-        <div className="mt-auto pt-3 border-t border-gray-300 dark:border-gray-700 flex items-center justify-between">
+        <div className="mt-auto pt-3 border-t border-gray-100 dark:border-gray-800/65 flex items-center justify-between">
             <span className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wide flex items-center gap-1">
                 <User size={10} /> Aporte
             </span>
             <Link 
                 to={`/u/${userData.nombre}`}
-                onClick={(e) => e.stopPropagation()} // Evitar abrir vista previa si se hace clic aquí
+                onClick={(e) => e.stopPropagation()} 
                 className="flex items-center gap-1.5 group/aporte"
             >
                 <div className="w-4 h-4 rounded-full overflow-hidden border border-gray-200 dark:border-gray-600">
@@ -81,28 +89,19 @@ const SmartUserDisplay = ({ initialUser, type = 'list' , extraCount = 0 }) => {
     );
   }
 
-  // Renderizado C: Cabecera (El primer creador visible en la card)
   if (type === 'header') {
       return (
         <>
             <div className="relative shrink-0">
-                <div className="w-6 h-6 rounded-full border border-gray-300 dark:border-gray-700 overflow-hidden bg-gray-200 dark:bg-gray-800">
+                <div className="w-6 h-6 rounded-full border border-gray-300 dark:border-gray-700 overflow-hidden bg-gray-200 dark:bg-[#191B1E]">
                     <AvatarRenderer avatar={userData.imagen} name={userData.nombre} />
-                    
-                    {/* {totalExtra > 0 &&
-                      <div className="absolute top-0 right-0 bg-gray-900 dark:bg-white text-white dark:text-black text-[10px] font-bold h-4 w-4 flex items-center justify-center rounded-full ring-2 ring-white dark:ring-[#1e1e1e]">
-                        +{totalExtra}
-                      </div>} */}
                 </div>
-                {/* Nota: El badge de +Total se maneja en el padre */}
             </div>
-            {/* Contenedor Flex para Nombre + Badge */}
             <div className="flex items-center gap-1.5 min-w-0">
-               <span className="text-sm font-bold text-gray-700 dark:text-gray-200 truncate group-hover/creator:text-primary-600 dark:group-hover/creator:text-primary-400 transition-colors">
-                   {userData.nombre}
+               <span className="text-sm font-bold text-gray-700 dark:text-gray-100 truncate transition-colors">
+                    {userData.nombre}
                </span>
-               
-               {/* Badge de Total Extra a la derecha del nombre */}
+               {esVerificado && <ShieldCheck size={12} className="text-blue-500 shrink-0" />}
                {extraCount > 0 && (
                    <span className="shrink-0 w-6 h-5 flex items-center justify-center text-[9px] font-bold bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300 rounded-full border border-gray-300 dark:border-gray-700">
                        + {extraCount}
@@ -136,17 +135,17 @@ const getStatusConfig = (status) => {
     case 'draft':
       return { 
         label: 'Borrador', 
-        style: 'bg-gray-100 text-gray-600 border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700' 
+        style: 'bg-gray-100 text-gray-600 border-gray-200 dark:bg-[#191B1E] dark:text-gray-400 dark:border-gray-700' 
       };
     case 'inactive':
       return { 
         label: 'Inactivo', 
-        style: 'bg-gray-100 text-gray-500 border-gray-200 dark:bg-gray-800 dark:text-gray-500' 
+        style: 'bg-gray-100 text-gray-500 border-gray-200 dark:bg-[#191B1E] dark:text-gray-500' 
       };
     default:
       return { 
         label: 'Desconocido', 
-        style: 'bg-gray-100 text-gray-500 border-gray-200 dark:bg-gray-800 dark:text-gray-500' 
+        style: 'bg-gray-100 text-gray-500 border-gray-200 dark:bg-[#191B1E] dark:text-gray-500' 
       };
   }
 };
@@ -175,7 +174,6 @@ const Card = ({
 
   const [localDescargas, setLocalDescargas] = useState(descargas);
   const [isSpamming, setIsSpamming] = useState(false);
-  const [deletingId, setDeletingId] = useState(null);
 
   const calculatedTotal = localDescargas.reduce((acc, curr) => acc + (curr.count || 0), 0);
   
@@ -216,8 +214,6 @@ const Card = ({
     setLocalDescargas(descargas);
   }, [descargas]);
 
-
-    // ✅ Usar useMemo para calcular listaCreditos cuando creditos cambie
   const listaCreditos = useMemo(() => {
     return (Array.isArray(creadores) ? creadores : [creadores]).map(creador => {
       if (typeof creador === 'object' && creador !== null) return creador;
@@ -225,7 +221,6 @@ const Card = ({
     });
   }, [creadores]);
 
-  // ✅ Valores derivados que también dependen de creditos
   const primerCredito = useMemo(() => 
     listaCreditos[0] || { nombre: 'Desconocido', imagen: null }
   , [listaCreditos]);
@@ -237,124 +232,105 @@ const Card = ({
   const statusConfig = getStatusConfig(status);
 
   return (
-    <div className="group flex flex-col bg-white dark:bg-[#1e1e1e] border border-gray-300 dark:border-gray-700 rounded-2xl shadow-lg transition-all duration-300 z-0 relative h-full">
+    <div className="group flex flex-col bg-white dark:bg-[#1e1e1e] border border-gray-300 dark:border-gray-800 rounded-lg shadow-sm transition-all duration-300 z-0 relative h-full">
       
-      {/* ESTADO: CREADO, PUBLICADO, EN PROCESO, EN REVISION, EN PENDIENTE, FINALIZADO */}
-      {isEditable &&
-        <div className={`text-xs font-bold text-center p-1 ${statusConfig.style} rounded-t-2xl`}>
+      {/* ESTADO */}
+      {isEditable && (
+        <div className={`text-xs font-bold text-center p-1 ${statusConfig.style} rounded-t-xl`}>
           {statusConfig.label}
         </div>
-      }
+      )}
 
       {/* 1. IMAGEN */}
       <Link 
         to={(!isPreview && id) ? `/view/${id}` : "#"} 
-        className={clsx("relative w-full aspect-video overflow-hidden bg-gray-100 dark:bg-gray-800 block cursor-pointer", isPreview && "cursor-default", !isEditable && "rounded-t-2xl")}
+        className={clsx("relative w-full aspect-video overflow-hidden bg-gray-100 dark:bg-[#191B1E] block cursor-pointer", isPreview && "cursor-default", !isEditable && "rounded-t-lg")}
         onClick={(e) => isPreview && e.preventDefault()}
       >
         <img 
           src={imagen || '/default.jpg'} 
           alt={titulo}
           loading="lazy"
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
           onError={(e) => { e.target.src = '/default.jpg'; }}
         />
-        <div className={clsx(
-            "absolute top-2 right-2 px-2 py-1 backdrop-blur-md rounded-lg border border-white/10 flex items-center gap-1.5 text-xs font-bold shadow-sm z-10 transition-colors duration-300",
-            isSpamming ? "bg-red-600 text-white" : "bg-black/60 text-white"
-        )}>
-            {isSpamming ? <AlertCircle size={12}/> : <Eye size={12} className="text-primary-400" />}
-            {formatNumber(vistas)}
-        </div>
 
-        {/* Botón de Likes */}
-        {!isPreview && id && (
-          <div className="absolute top-2 left-2 z-10">
-            <LikeButton contentId={id} initialLikes={likes_count} size="sm" />
+        {/* Spam Limit Alert overlay */}
+        {isSpamming && (
+          <div className="absolute top-2 right-2 px-2.5 py-1 bg-red-600 text-white rounded-lg flex items-center gap-1.5 text-xs font-bold shadow-sm z-10 animate-pulse">
+            <AlertCircle size={12} /> Límite excedido
           </div>
         )}
-        <div className="absolute inset-0 bg-primary-900/0 group-hover:bg-primary-900/10 transition-colors duration-300" />
 
-        {/* --- CAPA DE ACCIONES (OVERLAY) --- */}
-        {/* Esta capa aparece encima de la card */}
+        {/* Capa de acciones para edición */}
         {isEditable && (
           <div className="absolute bottom-3 right-3 flex flex-col gap-2 z-20">
-          
-            {/* Botón Editar */}
             <button
               onClick={(e) => {
                 e.preventDefault(); 
                 e.stopPropagation();
                 navigate(`/subir?edit=${id}`);
               }}
-              className="p-2 bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 rounded-xl shadow-lg hover:bg-gray-200 dark:hover:bg-gray-800 transition-all border border-gray-200 dark:border-gray-700"
+              className="p-2 bg-white dark:bg-[#191B1E] text-blue-600 dark:text-blue-400 rounded-xl shadow-lg hover:bg-gray-200 dark:hover:bg-[#191B1E] transition-all border border-gray-200 dark:border-gray-700"
               title="Editar Contenido"
-              >
+            >
               <Edit3 size={18} />
             </button>
 
-            {/* Botón Eliminar */}
             <button 
-                onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    // Llamamos a la función que pasó el padre (MisMods)
-                    if (handleDelete) handleDelete(id, titulo);
-                }}
-                className="p-2 bg-white dark:bg-gray-800 text-red-500 rounded-xl shadow-lg hover:bg-gray-200 dark:hover:bg-gray-800 transition-all border border-gray-200 dark:border-gray-700"
-                disabled={isDeleting}
-                title="Eliminar"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (handleDelete) handleDelete(id, titulo);
+              }}
+              className="p-2 bg-white dark:bg-[#191B1E] text-red-500 rounded-xl shadow-lg hover:bg-gray-200 dark:hover:bg-[#191B1E] transition-all border border-gray-200 dark:border-gray-700"
+              disabled={isDeleting}
+              title="Eliminar"
             >
-                {isDeleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+              {isDeleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
             </button>
-
           </div>
         )}
-
       </Link>
 
-      <div className="flex flex-col flex-1 px-3 pt-3 pb-3">
+      <div className="flex flex-col flex-1 px-3 pt-3 pb-3 space-y-2.5">
         
         {/* 2. TÍTULO */}
         <Link 
             to={(!isPreview && id) ? `/view/${id}` : "#"} 
-            className={clsx("block mb-2", !isPreview && "hover:text-primary-600 dark:hover:text-primary-400 transition-colors")}
+            className={clsx("block", !isPreview && "hover:text-primary-600 dark:hover:text-primary-400 transition-colors")}
             onClick={(e) => isPreview && e.preventDefault()}
         >
-            <h3 className="text-md font-bold text-gray-900 dark:text-white line-clamp-1 hover:text-primary-600 dark:hover:text-primary-400 transition-colors" title={titulo}>{titulo}</h3>
+            <h3 className="text-md font-bold text-black dark:text-white line-clamp-1 hover:text-primary-600 dark:hover:text-primary-400 transition-colors" title={titulo}>{titulo}</h3>
         </Link>
 
-        {/* 3. DESCARGAS */}
-        <div className="relative mb-2" ref={downloadRef}>
+        {/* 3. DESCARGAS DESPLEGABLE */}
+        <div className="relative" ref={downloadRef}>
           <button 
             onClick={() => setIsOpenDownload(!isOpenDownload)}
             className={clsx(
-              "flex text-sm items-center justify-between px-3 w-full py-2.5 rounded-xl text-white font-bold transition-all duration-200 shadow-md active:scale-95 group/btn",
-              isOpenDownload ? "bg-primary-700 ring-2 ring-primary-300 dark:ring-primary-600" : "bg-primary-600 hover:bg-primary-700"
+              "flex text-sm items-center justify-between px-3 w-full py-2.5 rounded-lg text-white font-bold shadow-md transition-all duration-150 active:scale-[0.98]",
+              isOpenDownload ? "bg-primary-600" : "bg-primary-700 hover:bg-primary-600"
             )}
           >
             <div className="flex items-center gap-2">
                 <Download size={18} strokeWidth={2.5} /> <span>Descargar</span>
             </div>
-            <div className="flex items-center gap-2 pl-3 border-l border-white/20">
-                <span className="text-xs font-medium opacity-90 group-hover/btn:opacity-100">{formatNumber(calculatedTotal)}</span>
+            <div className="flex items-center">
                 <ChevronDown size={16} className={clsx("transition-transform duration-200", isOpenDownload && "rotate-180")} />
             </div>
           </button>
 
           {isOpenDownload && (
-            <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#252525] border border-gray-300 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden animate-fade-in-up origin-top" style={{ animationDuration: '200ms' }}>
+            <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#252525] border border-gray-300 dark:border-gray-700 rounded-lg shadow-lg z-50 overflow-hidden animate-fade-in-up origin-top" style={{ animationDuration: '200ms' }}>
               <div className="py-1 max-h-40 overflow-y-auto">
                 {localDescargas.length > 0 ? (
                   localDescargas.map((option, index) => (
-                    <a key={index} href={option.url} target="_blank" rel="noopener noreferrer" onClick={() => handleDownloadClick(option.url)} className="flex items-center justify-between px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-700 dark:hover:text-primary-300 transition-colors border-b border-gray-50 dark:border-gray-800 last:border-0 group/item cursor-pointer">
+                    <a key={index} href={option.url} target="_blank" rel="noopener noreferrer" onClick={() => handleDownloadClick(option.url)} className="flex items-center justify-between px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors border-b border-gray-50 dark:border-gray-800 last:border-0 group/item cursor-pointer">
                       <div className="flex flex-col truncate pr-2">
                           <span className="truncate font-bold">{option.label}</span>
-                          <span className="text-[10px] text-gray-500 dark:text-gray-400 group-hover/item:text-primary-500 dark:group-hover/item:text-primary-300 transition-colors flex items-center gap-1">
-                            <Download size={10} /> {formatNumber(option.count || 0)} {option.count > 1 ? 'descargas' : 'descarga'}
-                          </span>
                       </div>
-                      <Download size={16} className="shrink-0 text-gray-500 dark:text-gray-400 group-hover/item:text-primary-500 dark:group-hover/item:text-primary-300 transition-colors" />
+                      <Download size={16} className="" />
                     </a>
                   ))
                 ) : <span className="block px-4 py-3 text-sm text-gray-500 dark:text-gray-400 text-center italic">Sin descargas</span>}
@@ -363,25 +339,19 @@ const Card = ({
           )}
         </div>
 
-        {/* 4. CRÉDITOS (Con Búsqueda Inteligente) */}
-        <div className="relative mb-2.5" ref={creditosRef}>
+        {/* 4. CRÉDITOS */}
+        <div className="relative" ref={creditosRef}>
           {listaCreditos.length === 1 ? (
-            // Solo 1 creador: clickable directo al perfil
             <Link 
               to={`/u/${primerCredito.nombre}`} 
-              className="flex items-center gap-2 w-full px-2 py-1 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors text-left group/creator"
+              className="flex items-center gap-2 w-full px-2 py-1 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-left group/creator"
             >
               <SmartUserDisplay initialUser={primerCredito} type="header" extraCount={0} />
-              <ExternalLink size={14} className="ml-auto text-gray-400 group-hover/creator:text-primary-600 transition-colors" />
             </Link>
           ) : (
-            // Múltiples creadores: dropdown menu
             <>
-              <button onClick={() => setIsOpenCredits(!isOpenCredits)} className="flex items-center gap-2 w-full px-2 py-1 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors text-left group/creator">
-                
-                {/* Usamos el sub-componente en modo header para el primero */}
+              <button onClick={() => setIsOpenCredits(!isOpenCredits)} className="flex items-center gap-2 w-full px-2 py-1 rounded-lg hover:bg-gray-200 dark:hover:bg-[#191B1E] transition-colors text-left group/creator">
                 <SmartUserDisplay initialUser={primerCredito} type="header" extraCount={totalExtra} />
-                
                 <ChevronDown size={14} className={clsx("ml-auto text-gray-400 transition-transform", isOpenCredits && "rotate-180")} />
               </button>
               
@@ -389,7 +359,6 @@ const Card = ({
                 <div className="absolute bottom-full left-0 right-0 mb-2 bg-white dark:bg-[#252525] border border-gray-300 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden animate-fade-in-up origin-bottom py-1" style={{ animationDuration: '200ms' }}>
                   <div className="max-h-48 overflow-y-auto">
                     {listaCreditos.map((creador, index) => (
-                      // Usamos el sub-componente en modo list para el dropdown
                       <SmartUserDisplay key={index} initialUser={creador} type="list" />
                     ))}
                   </div>
@@ -400,19 +369,41 @@ const Card = ({
         </div>
 
         {/* 5. TAGS */}
-        <div className="flex flex-wrap gap-1 mb-3">
-          {tags && tags.map((tag, index) => (
-            <div key={index} className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700">
-              {/* <Tag size={10} className="text-gray-600 dark:text-gray-400" /> */}
-              <span className="text-[9px] font-bold uppercase tracking-wider text-gray-600 dark:text-gray-400">{tag}</span>
-            </div>
-          ))}
-        </div>
-
-        {/* 6. APORTE DE (Con Búsqueda Inteligente) */}
-        {aporte && (
-            <SmartUserDisplay initialUser={aporte} type="footer" />
+        {tags && tags.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {tags.map((tag, index) => (
+              <div key={index} className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-gray-50 dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-gray-600 dark:text-gray-400">{tag}</span>
+              </div>
+            ))}
+          </div>
         )}
+
+        {/* 6. APORTE DE */}
+        {/* {aporte && (
+          <SmartUserDisplay initialUser={aporte} type="footer" />
+        )} */}
+
+        {/* 👇 NUEVO BLOQUE: MÉTRICAS GENERALES DE LA CARD */}
+        <div className="flex justify-between items-center w-full pt-3 border-t border-gray-100 dark:border-gray-800/60 text-gray-500 dark:text-gray-400 text-xs font-semibold">
+          {/* Vistas */}
+          <div className="flex items-center gap-1.5" title="Total de visualizaciones">
+            <Eye size={14} className="text-gray-400 dark:text-gray-500" />
+            <span>{formatNumber(vistas)}</span>
+          </div>
+          
+          {/* Likes */}
+          <div className="flex items-center gap-1.5" title="Total de valoraciones">
+            <Heart size={14} className="text-red-500/80 dark:text-red-400/80 fill-current" />
+            <span>{formatNumber(likes_count)}</span>
+          </div>
+
+          {/* Descargas totales calculadas */}
+          <div className="flex items-center gap-1.5" title="Total de descargas globales">
+            <Download size={14} className="text-primary-500/80 dark:text-primary-400/80" />
+            <span>{formatNumber(calculatedTotal)}</span>
+          </div>
+        </div>
 
       </div>
     </div>

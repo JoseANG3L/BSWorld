@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Search, Sun, Moon, User, Menu, LogOut, ShieldCheck, UserPlus, LogIn, Settings, Upload, LayoutGrid, Bell, ChevronDown, Home, Crown, Wrench, Info, Mail, Earth } from 'lucide-react';
+import { Search, Sun, Moon, User, Menu, LogOut, ShieldCheck, UserPlus, LogIn, Settings, Upload, LayoutGrid, Gamepad2, ChevronDown, Home, Crown, Boxes, Info, Mail, Earth } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useAuth } from '../context/AuthContext';
@@ -11,7 +11,7 @@ import SubirMod from '../pages/SubirMod';
 const menuItems = [
   { to: "/", icon: Home, label: "Inicio" },
   { to: "/comunidad", icon: Crown, label: "Comunidad" },
-  { to: "/mods", icon: Wrench, label: "Mods" },
+  { to: "/mods", icon: Gamepad2, label: "Mods" },
 ];
 
 const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
@@ -68,7 +68,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
       <div className="lg:hidden relative" ref={navMenuRef}>
         <button
           onClick={() => setIsNavMenuOpen(!isNavMenuOpen)}
-          className="p-1.5 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+          className="p-1.5 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
         >
           <Menu size={18} />
         </button>
@@ -85,7 +85,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
                     "flex items-center gap-3 px-4 py-2.5 text-sm transition-colors",
                     isActive
                       ? "text-primary-600 dark:text-primary-400 font-semibold"
-                      : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-primary-600 dark:hover:text-primary-400"
+                      : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-primary-600 dark:hover:text-primary-400"
                   )}
                 >
                   <item.icon size={16} strokeWidth={isActive ? 2.5 : 2} fill={isActive ? "currentColor" : "none"} />
@@ -99,7 +99,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
 
       {/* LOGO BSWorld (Solo texto, centrado en móvil, izquierda en desktop) */}
       <Link to="/" className="flex items-center shrink-0 group mx-auto md:mx-0">
-        <span className="font-bold text-sm md:text-xl text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors">
+        <span className="font-bold text-sm md:text-xl text-black dark:text-white hover:text-primary-700 dark:hover:text-primary-300 transition-colors">
           BSWorld
         </span>
       </Link>
@@ -117,7 +117,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
           onKeyDown={handleSearch}
           className={clsx(
             "w-full py-2 pl-11 pr-4 rounded-xl text-sm font-medium transition-all duration-300 outline-none border shadow-sm",
-            "bg-white dark:bg-[#1e1e1e] border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 placeholder-gray-400",
+            "bg-white dark:bg-[#191B1E] border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 placeholder-gray-400",
             "focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
           )}
         />
@@ -142,7 +142,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
             onKeyDown={handleSearch}
             className={clsx(
               "flex-1 py-2 pl-4 pr-4 rounded-xl text-sm font-medium transition-all duration-300 outline-none border shadow-sm",
-              "bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 placeholder-gray-400",
+              "bg-gray-50 dark:bg-[#191B1E] border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 placeholder-gray-400",
               "focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
             )}
           />
@@ -214,7 +214,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
               // CONECTADO: Avatar + Username + Flecha
               <div className="flex gap-2">
                 <div className="relative w-9 h-9 rounded-full bg-gradient-to-tr from-primary-600 to-primary-900 shadow-sm shrink-0">
-                  <div className="w-full h-full rounded-full overflow-hidden bg-white dark:bg-gray-800">
+                  <div className="w-full h-full rounded-full overflow-hidden bg-white dark:bg-[#191B1E]">
                     <AvatarRenderer 
                       avatar={user.avatar} 
                       name={user.username} 
@@ -222,10 +222,10 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
                   </div>
                 </div>
                 <div className="flex items-center gap-1 max-w-[120px]">
-                  <span className="text-sm font-bold text-gray-700 dark:text-gray-200 truncate select-none hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+                  <span className="text-sm font-bold text-gray-900 dark:text-gray-200 truncate select-none">
                     {user.username}
                   </span>
-                  <ChevronDown size={14} className={clsx("text-gray-400 dark:text-gray-500 transition-transform duration-300 flex-shrink-0", isProfileOpen && "rotate-180")} />
+                  <ChevronDown size={14} className={clsx("text-gray-900 dark:text-gray-500 transition-transform duration-300 flex-shrink-0", isProfileOpen && "rotate-180")} />
                 </div>
               </div>
             ) : (
@@ -247,7 +247,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
                   </div>
                   <Link
                     to={`/u/${user.username}`}
-                    className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
                     onClick={() => setIsProfileOpen(false)}
                   >
                     <User size={16} />
@@ -255,7 +255,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
                   </Link>
                   <Link
                     to="/mis-mods" 
-                    className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
                     onClick={() => setIsProfileOpen(false)}
                   >
                     <LayoutGrid size={16} />
@@ -263,7 +263,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
                   </Link>
                   <Link
                     to="/configuracion" 
-                    className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
                     onClick={() => setIsProfileOpen(false)}
                   >
                     <Settings size={16} />
@@ -271,12 +271,12 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
                   </Link>
 
                   {user?.role === 'admin' && (
-                    <Link to="/admin" onClick={() => setIsProfileOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-primary-600 transition-colors">
+                    <Link to="/admin" onClick={() => setIsProfileOpen(false)} className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
                       <ShieldCheck size={16} /> Panel Admin
                     </Link>
                   )}
                   <div className="h-px bg-gray-100 dark:bg-gray-700 my-1"></div>
-                  <button onClick={() => { logout(); setIsProfileOpen(false); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                  <button onClick={() => { logout(); setIsProfileOpen(false); }} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900 transition-colors">
                     <LogOut size={16} /> Cerrar Sesión
                   </button>
                 </>
@@ -289,7 +289,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
                     href="/login"
                     rel="noopener noreferrer"
                     onClick={() => setIsProfileOpen(false)}
-                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-primary-600 transition-colors"
+                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
                   >
                     <LogIn size={16} /> Iniciar Sesión
                   </a>
@@ -297,7 +297,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
                     href="/login?register=true"
                     rel="noopener noreferrer"
                     onClick={() => setIsProfileOpen(false)}
-                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-primary-600 transition-colors"
+                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
                   >
                     <UserPlus size={16} /> Registrarse
                   </a>

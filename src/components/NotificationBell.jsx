@@ -146,14 +146,14 @@ const NotificationBell = () => {
         return { 
           icon: EyeOff, // Necesitarás importar EyeOff de lucide-react
           color: "text-gray-500", 
-          bg: "bg-gray-100 dark:bg-gray-800", 
+          bg: "bg-gray-100 dark:bg-[#191B1E]", 
           label: "Inactivo" 
         };
       default:
         return { 
           icon: Bell, 
           color: "text-gray-500", 
-          bg: "bg-gray-100 dark:bg-gray-800", 
+          bg: "bg-gray-100 dark:bg-[#191B1E]", 
           label: "Aviso" 
         };
     }
@@ -212,7 +212,7 @@ const NotificationBell = () => {
                   <div
                     key={notif.id}
                     onClick={() => handleNotifClick(notif)}
-                    className="flex gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer group"
+                    className="flex gap-3 p-3 hover:bg-gray-50 dark:hover:bg-[#191B1E] transition-colors cursor-pointer group"
                   >
                     <div className={clsx("p-2.5 rounded-full h-fit shrink-0", config.bg, config.color)}>
                       <Icon size={18} />

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Wrench, Loader2 } from 'lucide-react'; 
+import { Gamepad2, Loader2 } from 'lucide-react'; 
 import DataContainer from '../components/DataContainer';
 import Card from '../components/Card';
 import { getPublicContent } from '../services/api';
@@ -11,7 +11,6 @@ const Mods = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Llamamos a la función importada
         const data = await getPublicContent();
         // const data = await getContentByType("mod");
         setMods(data);
@@ -34,7 +33,7 @@ const Mods = () => {
   return (
     <DataContainer
       title="Mods"
-      icon={Wrench} 
+      icon={Gamepad2} 
       gradientClass="from-purple-500 to-pink-500"
       items={mods}
       searchKey="titulo"
@@ -42,7 +41,7 @@ const Mods = () => {
       typeKey="tipo"
       customTypes={['mod', 'mapa', 'personaje', 'minijuego', 'modpack', 'paquete']}
       renderItem={(item) => (
-        <Card key={item.id} {...item} />
+        <Card {...item} />
       )}
     />
   );

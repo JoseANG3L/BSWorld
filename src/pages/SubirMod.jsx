@@ -389,7 +389,7 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
           </div>
           <div className="flex items-center gap-4 shrink-0">
             <span className="text-2xl font-black bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">{getProgress()}%</span>
-            <button type="button" onClick={handleClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors">
+            <button type="button" onClick={handleClose} className="p-2 hover:bg-gray-100 dark:hover:bg-[#191B1E] rounded-xl transition-colors">
               <CloseIcon size={20} className="text-gray-500 dark:text-gray-400" />
             </button>
           </div>
@@ -421,12 +421,12 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <label htmlFor="titulo" className={clsx("block text-xs font-bold uppercase tracking-wide", errors.titulo ? "text-red-500 dark:text-red-400" : "text-gray-500 dark:text-gray-400")}>Nombre *</label>
-                      <input id="titulo" type="text" name="titulo" value={formData.titulo} onChange={handleChange} required className={clsx("w-full px-3 py-2 h-9 text-xs md:text-sm bg-white dark:bg-gray-800/60 border rounded-xl outline-none transition-all shadow-sm", errors.titulo ? "border-red-500 focus:ring-1 focus:ring-red-500 focus:border-red-500" : "border-gray-300 dark:border-gray-700 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 dark:text-white")} placeholder="Ej: Super Mod Pack" />
+                      <input id="titulo" type="text" name="titulo" value={formData.titulo} onChange={handleChange} required className={clsx("w-full px-3 py-2 h-9 text-xs md:text-sm bg-white dark:bg-[#191B1E]/60 border rounded-xl outline-none transition-all shadow-sm", errors.titulo ? "border-red-500 focus:ring-1 focus:ring-red-500 focus:border-red-500" : "border-gray-300 dark:border-gray-700 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 dark:text-white")} placeholder="Ej: Super Mod Pack" />
                     </div>
                     <div className="space-y-1.5">
                       <label htmlFor="tipo" className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Tipo</label>
                       <div className="relative">
-                        <select id="tipo" name="tipo" value={formData.tipo} onChange={handleChange} className="w-full pl-3 pr-8 py-1.5 h-9 text-xs md:text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none dark:text-white cursor-pointer appearance-none capitalize shadow-sm">
+                        <select id="tipo" name="tipo" value={formData.tipo} onChange={handleChange} className="w-full pl-3 pr-8 py-1.5 h-9 text-xs md:text-sm bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none dark:text-white cursor-pointer appearance-none capitalize shadow-sm">
                           {['mod', 'mapa', 'personaje', 'minijuego', 'modpack', 'paquete'].map(t => <option key={t} value={t}>{t}</option>)}
                         </select>
                         <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
@@ -435,11 +435,11 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
                   </div>
 
                   <div className="relative" ref={searchRef}>
-                    <label className={clsx("block text-xs font-bold uppercase tracking-wide mb-1.5 flex items-center gap-1", errors.creadores ? "text-red-500 dark:text-red-400" : "text-gray-500 dark:text-gray-400")}>Creadores / Créditos *</label>
-                    <div className={clsx("py-1 px-1.5 rounded-xl border flex flex-wrap gap-1.5 shadow-sm items-center transition-all duration-200", errors.creadores ? "bg-red-50/20 dark:bg-red-950/10 border-red-500 focus-within:ring-1 focus-within:ring-red-500 focus-within:border-red-500" : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 focus-within:ring-1 focus-within:ring-primary-500 focus-within:border-primary-500")}>
+                    <label className={clsx("text-xs font-bold uppercase tracking-wide mb-1.5 flex items-center gap-1", errors.creadores ? "text-red-500 dark:text-red-400" : "text-gray-500 dark:text-gray-400")}>Creadores / Créditos *</label>
+                    <div className={clsx("py-1 px-1.5 rounded-xl border flex flex-wrap gap-1.5 shadow-sm items-center transition-all duration-200", errors.creadores ? "bg-red-50/20 dark:bg-red-950/10 border-red-500 focus-within:ring-1 focus-within:ring-red-500 focus-within:border-red-500" : "bg-white dark:bg-[#191B1E] border-gray-300 dark:border-gray-700 focus-within:ring-1 focus-within:ring-primary-500 focus-within:border-primary-500")}>
                       {selectedCreators.map((creator, idx) => (
                         <div key={idx} className="flex items-center gap-1.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-700 pl-1 pr-1.5 py-1 rounded-full shadow-sm max-w-full">
-                          <div className="w-5 h-5 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-800 flex items-center justify-center shrink-0 border dark:border-gray-600">
+                          <div className="w-5 h-5 rounded-full overflow-hidden bg-gray-200 dark:bg-[#191B1E] flex items-center justify-center shrink-0 border dark:border-gray-600">
                             <AvatarRenderer avatar={creator.imagen} name={creator.nombre} />
                           </div>
                           <span className="text-[12px] font-bold text-gray-700 dark:text-gray-200 truncate max-w-[100px]">{creator.nombre}</span>
@@ -456,7 +456,7 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
                             {userSuggestions.map((u) => (
                               <li key={u.uid}>
                                 <button type="button" onClick={() => addUserCreator(u)} className="w-full flex items-center gap-3 px-3 py-2 hover:bg-primary-50 dark:hover:bg-primary-900/10 text-left transition-colors">
-                                  <div className="w-6 h-6 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-800 flex items-center justify-center shrink-0 border dark:border-gray-700">
+                                  <div className="w-6 h-6 rounded-full overflow-hidden bg-gray-200 dark:bg-[#191B1E] flex items-center justify-center shrink-0 border dark:border-gray-700">
                                     <AvatarRenderer avatar={u.imagen} name={u.nombre} />
                                   </div>
                                   <span className="text-xs font-bold text-gray-800 dark:text-gray-200 truncate">{u.nombre}</span>
@@ -484,7 +484,7 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
                     <div className="flex flex-col md:flex-row gap-3 items-start">
                       <div className="relative flex-1 w-full">
                         <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
-                        <input id="imagen" type="url" name="imagen" value={formData.imagen} onChange={handleChange} className={clsx("w-full pl-9 pr-4 py-2 h-9 text-xs bg-white dark:bg-gray-800/60 border rounded-xl outline-none font-medium shadow-sm transition-all", errors.imagen ? "border-red-500 focus:ring-1 focus:ring-red-500 focus:border-red-500" : "border-gray-300 dark:border-gray-700 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 dark:text-white")} placeholder="https://i.imgur.com/imagen.png" />
+                        <input id="imagen" type="url" name="imagen" value={formData.imagen} onChange={handleChange} className={clsx("w-full pl-9 pr-4 py-2 h-9 text-xs bg-white dark:bg-[#191B1E]/60 border rounded-xl outline-none font-medium shadow-sm transition-all", errors.imagen ? "border-red-500 focus:ring-1 focus:ring-red-500 focus:border-red-500" : "border-gray-300 dark:border-gray-700 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 dark:text-white")} placeholder="https://i.imgur.com/imagen.png" />
                       </div>
                       {formData.imagen && formData.imagen.length > 10 && (
                         <div className="w-full md:w-36 shrink-0 rounded-xl border border-gray-300 dark:border-gray-800 aspect-video overflow-hidden bg-white dark:bg-gray-900/20 shadow-md animate-fade-in">
@@ -506,10 +506,10 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
                         return (
                           <div key={index} className="flex flex-col sm:flex-row gap-2 bg-white/50 dark:bg-gray-900/20 p-2.5 rounded-xl border border-gray-300 dark:border-gray-800 relative shadow-sm">
                             <div className="flex-1 relative self-center">
-                              <input aria-label="URL de galería" type="url" value={url} onChange={(e) => handleGalleryImageChange(index, e.target.value)} className="w-full px-3 py-1.5 h-9 text-xs bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl outline-none dark:text-white focus:ring-1 focus:ring-primary-500 focus:border-primary-500" placeholder="URL de imagen o video (mp4/YouTube)" />
+                              <input aria-label="URL de galería" type="url" value={url} onChange={(e) => handleGalleryImageChange(index, e.target.value)} className="w-full px-3 py-1.5 h-9 text-xs bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 rounded-xl outline-none dark:text-white focus:ring-1 focus:ring-primary-500 focus:border-primary-500" placeholder="URL de imagen o video (mp4/YouTube)" />
                             </div>
                             {url && url.length > 10 && (
-                              <div className="relative w-full sm:w-20 h-12 rounded-lg bg-gray-100 dark:bg-gray-800 overflow-hidden shrink-0 border border-gray-300 dark:border-gray-700 shadow-inner flex items-center justify-center">
+                              <div className="relative w-full sm:w-20 h-12 rounded-lg bg-gray-100 dark:bg-[#191B1E] overflow-hidden shrink-0 border border-gray-300 dark:border-gray-700 shadow-inner flex items-center justify-center">
                                 {(isYt || isVid) && <div className="absolute inset-0 flex items-center justify-center bg-black/20 z-10"><PlayCircle size={14} className="text-white" /></div>}
                                 <img src={isYt ? `https://img.youtube.com/vi/${isYt}/mqdefault.jpg` : url} alt="" className="w-full h-full object-cover" onError={(e) => { e.target.src = "https://placehold.co/100x60?text=Error"; }} />
                               </div>
@@ -529,7 +529,7 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
                 <div className="space-y-4 animate-fade-in bg-white dark:bg-[#1e1e1e] rounded-2xl shadow-md border border-gray-300 dark:border-gray-700/80 p-4 sm:p-5">
                   <div className="space-y-3">
                     <div className="flex items-center justify-between pb-1">
-                      <span className="block text-xs font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wide flex items-center gap-1">
+                      <span className="text-xs font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wide flex items-center gap-1">
                         Descargas
                       </span>
                       <button type="button" onClick={handleAddDownload} className="flex items-center gap-1 px-2.5 py-1 bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 border border-primary-200/40 dark:border-primary-800/60 rounded-xl text-xs font-bold transition-colors"><Plus size={12} /> Añadir</button>
@@ -539,7 +539,7 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
                       {formData.descargas.map((download, index) => (
                         <div key={index} className="flex flex-col sm:flex-row gap-2 bg-white/50 dark:bg-gray-900/20 p-2.5 rounded-xl border border-gray-300 dark:border-gray-800 relative shadow-sm">
                           <div className="relative w-full sm:w-44 shrink-0">
-                            <select value={DOWNLOAD_LABELS.includes(download.nombre) ? download.nombre : 'custom'} onChange={(e) => handleDownloadChange(index, 'nombre', e.target.value === 'custom' ? '' : e.target.value)} className="w-full pl-3 pr-8 py-1.5 h-9 text-xs rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 font-bold cursor-pointer appearance-none dark:text-white outline-none shadow-sm focus:ring-1 focus:ring-primary-500 focus:border-primary-500">
+                            <select value={DOWNLOAD_LABELS.includes(download.nombre) ? download.nombre : 'custom'} onChange={(e) => handleDownloadChange(index, 'nombre', e.target.value === 'custom' ? '' : e.target.value)} className="w-full pl-3 pr-8 py-1.5 h-9 text-xs rounded-lg bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 font-bold cursor-pointer appearance-none dark:text-white outline-none shadow-sm focus:ring-1 focus:ring-primary-500 focus:border-primary-500">
                               {DOWNLOAD_LABELS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                               <option value="custom">Otro</option>
                             </select>
@@ -547,11 +547,11 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
                           </div>
                           
                           {!DOWNLOAD_LABELS.includes(download.nombre) && (
-                            <input aria-label="Nombre del servidor" type="text" value={download.nombre} onChange={(e) => handleDownloadChange(index, 'nombre', e.target.value)} placeholder="Ej: Mediafire" className="w-full sm:flex-1 px-3 h-9 text-xs bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500" />
+                            <input aria-label="Nombre del servidor" type="text" value={download.nombre} onChange={(e) => handleDownloadChange(index, 'nombre', e.target.value)} placeholder="Ej: Mediafire" className="w-full sm:flex-1 px-3 h-9 text-xs bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500" />
                           )}
                           
                           <div className="flex-1 relative">
-                            <input aria-label="URL de descarga" type="url" value={download.url} onChange={(e) => handleDownloadChange(index, 'url', e.target.value)} placeholder="https://..." required className="w-full px-3 h-9 text-xs bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg outline-none dark:text-white shadow-sm focus:ring-1 focus:ring-primary-500 focus:border-primary-500" />
+                            <input aria-label="URL de descarga" type="url" value={download.url} onChange={(e) => handleDownloadChange(index, 'url', e.target.value)} placeholder="https://..." required className="w-full px-3 h-9 text-xs bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 rounded-lg outline-none dark:text-white shadow-sm focus:ring-1 focus:ring-primary-500 focus:border-primary-500" />
                           </div>
                           
                           {formData.descargas.length > 1 && (
@@ -564,23 +564,23 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
 
                   <div className="space-y-2 pt-4 w-full border-t border-gray-300 dark:border-gray-800/60">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="block text-xs font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wide flex items-center gap-1.5">
+                      <span className="text-xs font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wide flex items-center gap-1.5">
                         Etiquetas
                       </span>
-                      <span className={clsx("text-[10px] font-bold px-2 py-0.5 rounded-md", formData.tags.length >= 10 ? "bg-red-100 text-red-600" : "bg-gray-100 text-gray-500 dark:bg-gray-800")}>
+                      <span className={clsx("text-[10px] font-bold px-2 py-0.5 rounded-md", formData.tags.length >= 10 ? "bg-red-100 text-red-600" : "bg-gray-100 text-gray-500 dark:bg-[#191B1E]")}>
                         {formData.tags.length} / 10
                       </span>
                     </div>
                     <div className="flex gap-2">
                       <div className="relative flex-1">
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">#</span>
-                        <input aria-label="Escribe una etiqueta" type="text" value={tagInput} onChange={(e) => setTagInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())} disabled={formData.tags.length >= 10} className="w-full pl-7 pr-3 py-1.5 h-9 text-xs bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all disabled:opacity-50 shadow-sm" placeholder="skins, pvp... (Enter)" />
+                        <input aria-label="Escribe una etiqueta" type="text" value={tagInput} onChange={(e) => setTagInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())} disabled={formData.tags.length >= 10} className="w-full pl-7 pr-3 py-1.5 h-9 text-xs bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all disabled:opacity-50 shadow-sm" placeholder="skins, pvp... (Enter)" />
                       </div>
                       <button type="button" onClick={handleAddTag} disabled={formData.tags.length >= 10 || !tagInput.trim()} className="px-3 h-9 bg-primary-600 hover:bg-primary-700 text-white rounded-xl shadow-sm flex items-center justify-center shrink-0"><Plus size={14} /></button>
                     </div>
                     <div className="flex flex-wrap gap-1.5 min-h-[36px] p-2 bg-white dark:bg-[#252525] border border-gray-300 dark:border-gray-800 rounded-xl shadow-inner">
                       {formData.tags.length > 0 ? formData.tags.map((tag, index) => (
-                        <span key={index} className="inline-flex items-center gap-1.5 pl-2 pr-1 py-0.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-700 rounded-lg text-[11px] font-bold shadow-sm">
+                        <span key={index} className="inline-flex items-center gap-1.5 pl-2 pr-1 py-0.5 bg-white dark:bg-[#191B1E] text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-700 rounded-lg text-[11px] font-bold shadow-sm">
                           <span className="text-primary-500 font-black">#</span>{tag}
                           <button type="button" onClick={() => handleRemoveTag(tag)} className="p-0.5 rounded-md hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"><X size={11} strokeWidth={2.5} /></button>
                         </span>
@@ -589,7 +589,7 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
                     {formData.tags.length < 10 && (
                       <div className="mt-3 flex flex-wrap gap-1.5">
                         {RECOMMENDED_TAGS.map(tag => !formData.tags.includes(tag) && (
-                          <button key={tag} type="button" onClick={() => addTagDirect(tag)} className="px-2 py-0.5 rounded-md border border-dashed text-[10px] font-bold text-gray-400 dark:text-gray-500 hover:text-primary-600 hover:border-primary-400 bg-white dark:bg-gray-800 dark:border-gray-700 transition-colors">+ {tag}</button>
+                          <button key={tag} type="button" onClick={() => addTagDirect(tag)} className="px-2 py-0.5 rounded-md border border-dashed text-[10px] font-bold text-gray-400 dark:text-gray-500 hover:text-primary-600 hover:border-primary-400 bg-white dark:bg-[#191B1E] dark:border-gray-700 transition-colors">+ {tag}</button>
                         ))}
                       </div>
                     )}
@@ -708,7 +708,7 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
       {/* FOOTER FIJO CON BOTONES */}
       <div className="flex-shrink-0 bg-white dark:bg-[#1e1e1e] border-t border-gray-300 dark:border-gray-800 px-4 py-3">
         <div className="max-w-4xl mx-auto flex gap-2 justify-between items-center">
-          <button type="button" onClick={handlePrevTab} disabled={currentTab === 0} className={clsx("w-24 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-white rounded-xl text-xs font-bold flex items-center justify-center gap-0.5 shadow-sm disabled:opacity-30 disabled:cursor-not-allowed")}>
+          <button type="button" onClick={handlePrevTab} disabled={currentTab === 0} className={clsx("w-24 py-2 bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-white rounded-xl text-xs font-bold flex items-center justify-center gap-0.5 shadow-sm disabled:opacity-30 disabled:cursor-not-allowed")}>
             <ChevronLeft size={14} /> Atrás
           </button>
           
@@ -725,7 +725,7 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
                   </button>
                 ) : (
                   <>
-                    <button type="button" onClick={() => handleSubmitForm('draft')} disabled={loading || !isEncryptionReady} className="w-24 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-bold text-xs rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700/50 transition-all flex items-center justify-center gap-1 shadow-sm disabled:opacity-50">
+                    <button type="button" onClick={() => handleSubmitForm('draft')} disabled={loading || !isEncryptionReady} className="w-24 py-2 bg-gray-100 dark:bg-[#191B1E] text-gray-700 dark:text-gray-200 font-bold text-xs rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700/50 transition-all flex items-center justify-center gap-1 shadow-sm disabled:opacity-50">
                       <FileText size={14} /> Borrador
                     </button>
                     <button type="button" onClick={() => handleSubmitForm('pending')} disabled={loading || !isEncryptionReady} className="w-24 py-2 bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1 shadow-sm disabled:opacity-50">

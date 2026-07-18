@@ -171,7 +171,7 @@ const Resultados = () => {
       ) : (
         // ESTADO VACÍO TOTAL
         <div className="flex flex-col items-center justify-center py-24 bg-gray-50 dark:bg-[#1e1e1e] rounded-3xl border border-gray-200 dark:border-gray-800 text-center">
-           <div className="bg-gray-200 dark:bg-gray-800 p-6 rounded-full mb-4">
+           <div className="bg-gray-200 dark:bg-[#191B1E] p-6 rounded-full mb-4">
               <Frown size={64} className="text-gray-400" />
            </div>
            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">No encontramos nada</h2>
@@ -192,7 +192,7 @@ const TabButton = ({ active, onClick, icon: Icon, label, count }) => (
       "flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm transition-all whitespace-nowrap border select-none",
       active 
         ? "bg-primary-600 text-white border-primary-600 shadow-md transform" 
-        : "bg-white dark:bg-[#1e1e1e] text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
+        : "bg-white dark:bg-[#1e1e1e] text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-[#191B1E]"
     )}
   >
     <Icon size={16} />

@@ -29,7 +29,7 @@ const StatCard = ({ icon: Icon, value, label, color, loading }) => (
 );
 
 const TechBadge = ({ label }) => (
-  <span className="px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 text-xs font-bold border border-gray-300 dark:border-gray-700 shadow-sm transition-colors cursor-default select-none">
+  <span className="px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-[#191B1E] text-gray-600 dark:text-gray-300 text-xs font-bold border border-gray-300 dark:border-gray-700 shadow-sm transition-colors cursor-default select-none">
     {label}
   </span>
 );
@@ -195,12 +195,12 @@ const AcercaDe = () => {
               </p>
 
               <div className="flex justify-center gap-2 flex-wrap">
-                <a href="https://www.facebook.com/jose.angel.625627/" target="_blank" rel="noopener noreferrer" className="p-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-[#4267B2] hover:text-white transition-all hover:-translate-y-1"><Facebook size={18} /></a>
-                <a href="https://github.com/JoseANG3L" target="_blank" rel="noopener noreferrer" className="p-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-black hover:text-white transition-all hover:-translate-y-1"><Github size={18} /></a>
-                <a href="https://www.instagram.com/ijoseang3l/" target="_blank" rel="noopener noreferrer" className="p-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-[#E1306C] hover:text-white transition-all hover:-translate-y-1"><Instagram size={18} /></a>
-                <a href="https://www.twitch.tv/ijoseang3l" target="_blank" rel="noopener noreferrer" className="p-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-[#9146FF] hover:text-white transition-all hover:-translate-y-1"><Twitch size={18} /></a>
-                <a href="https://x.com/byANG3L_HD" target="_blank" rel="noopener noreferrer" className="p-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-[#1DA1F2] hover:text-white transition-all hover:-translate-y-1"><Twitter size={18} /></a>
-                <a href="https://www.youtube.com/c/@JoseANG3LYT" target="_blank" rel="noopener noreferrer" className="p-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-[#FF0000] hover:text-white transition-all hover:-translate-y-1"><Youtube size={18} /></a>
+                <a href="https://www.facebook.com/jose.angel.625627/" target="_blank" rel="noopener noreferrer" className="p-2 rounded-xl bg-gray-100 dark:bg-[#191B1E] text-gray-600 dark:text-gray-300 hover:bg-[#4267B2] hover:text-white transition-all hover:-translate-y-1"><Facebook size={18} /></a>
+                <a href="https://github.com/JoseANG3L" target="_blank" rel="noopener noreferrer" className="p-2 rounded-xl bg-gray-100 dark:bg-[#191B1E] text-gray-600 dark:text-gray-300 hover:bg-black hover:text-white transition-all hover:-translate-y-1"><Github size={18} /></a>
+                <a href="https://www.instagram.com/ijoseang3l/" target="_blank" rel="noopener noreferrer" className="p-2 rounded-xl bg-gray-100 dark:bg-[#191B1E] text-gray-600 dark:text-gray-300 hover:bg-[#E1306C] hover:text-white transition-all hover:-translate-y-1"><Instagram size={18} /></a>
+                <a href="https://www.twitch.tv/ijoseang3l" target="_blank" rel="noopener noreferrer" className="p-2 rounded-xl bg-gray-100 dark:bg-[#191B1E] text-gray-600 dark:text-gray-300 hover:bg-[#9146FF] hover:text-white transition-all hover:-translate-y-1"><Twitch size={18} /></a>
+                <a href="https://x.com/byANG3L_HD" target="_blank" rel="noopener noreferrer" className="p-2 rounded-xl bg-gray-100 dark:bg-[#191B1E] text-gray-600 dark:text-gray-300 hover:bg-[#1DA1F2] hover:text-white transition-all hover:-translate-y-1"><Twitter size={18} /></a>
+                <a href="https://www.youtube.com/c/@JoseANG3LYT" target="_blank" rel="noopener noreferrer" className="p-2 rounded-xl bg-gray-100 dark:bg-[#191B1E] text-gray-600 dark:text-gray-300 hover:bg-[#FF0000] hover:text-white transition-all hover:-translate-y-1"><Youtube size={18} /></a>
               </div>
             </div>
           </div>

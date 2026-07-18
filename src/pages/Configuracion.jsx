@@ -175,7 +175,7 @@ const Configuracion = () => {
           <div className="bg-white dark:bg-[#1e1e1e] rounded-2xl border border-gray-300 dark:border-gray-700 shadow-sm overflow-hidden">
             
             {/* VISTA PREVIA BANNER */}
-            <div className="h-32 w-full bg-gray-200 dark:bg-gray-800 relative transition-all duration-300">
+            <div className="h-32 w-full bg-gray-200 dark:bg-[#191B1E] relative transition-all duration-300">
                {formData.banner ? (
                  isBannerUrl ? (
                    <img 
@@ -211,7 +211,7 @@ const Configuracion = () => {
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 truncate">{user?.email}</p>
 
                 <div className="flex flex-col gap-2">
-                  <div className={clsx("px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2", user?.role === 'admin' ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300" : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400")}>
+                  <div className={clsx("px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2", user?.role === 'admin' ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300" : "bg-gray-100 text-gray-600 dark:bg-[#191B1E] dark:text-gray-400")}>
                     <Shield size={14} /> {user?.role === 'admin' ? 'Administrador' : 'Miembro'}
                   </div>
                   <div className="px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-300 text-xs font-medium flex items-center justify-center gap-2">
@@ -245,7 +245,7 @@ const Configuracion = () => {
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Nombre de Usuario</label>
                 <div className="relative group">
                   <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary-500 transition-colors" size={20} />
-                  <input type="text" name="username" required value={formData.username} onChange={handleChange} className="w-full pl-12 pr-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all dark:text-white" />
+                  <input type="text" name="username" required value={formData.username} onChange={handleChange} className="w-full pl-12 pr-4 py-3 rounded-xl bg-gray-50 dark:bg-[#191B1E] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all dark:text-white" />
                 </div>
               </div>
 
@@ -253,7 +253,7 @@ const Configuracion = () => {
               <div>
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Avatar</label>
                 
-                <div className="flex gap-2 mb-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl w-fit">
+                <div className="flex gap-2 mb-2 p-1 bg-gray-100 dark:bg-[#191B1E] rounded-xl w-fit">
                     <button type="button" onClick={() => setAvatarTab('url')} className={clsx("px-4 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2", avatarTab === 'url' ? "bg-white dark:bg-gray-700 shadow-sm text-primary-600 dark:text-white" : "text-gray-500 hover:text-gray-700 dark:text-gray-400")}>
                         <LinkIcon size={14} /> URL
                     </button>
@@ -267,7 +267,7 @@ const Configuracion = () => {
                     {avatarTab === 'url' && (
                         <div className="relative group">
                             <Camera className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary-500 transition-colors" size={20} />
-                            <input type="url" name="avatar" placeholder="https://..." value={formData.avatar} onChange={handleChange} className="w-full pl-12 pr-4 py-3 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all dark:text-white" />
+                            <input type="url" name="avatar" placeholder="https://..." value={formData.avatar} onChange={handleChange} className="w-full pl-12 pr-4 py-3 rounded-xl bg-white dark:bg-[#191B1E] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all dark:text-white" />
                         </div>
                     )}
 
@@ -285,7 +285,7 @@ const Configuracion = () => {
                                                 type="button" 
                                                 onClick={() => updateAvatarDesign(name, selectedColor)} 
                                                 className={clsx(
-                                                    "aspect-square rounded-xl flex items-center justify-center transition-all border-2 bg-white dark:bg-gray-800", 
+                                                    "aspect-square rounded-xl flex items-center justify-center transition-all border-2 bg-white dark:bg-[#191B1E]", 
                                                     selectedIcon === name 
                                                         ? "border-primary-500 text-primary-600 bg-primary-50 dark:bg-primary-900/20 shadow-sm" 
                                                         : "border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -323,7 +323,7 @@ const Configuracion = () => {
               <div>
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Diseño del Banner</label>
                 
-                <div className="flex gap-2 mb-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl w-fit">
+                <div className="flex gap-2 mb-2 p-1 bg-gray-100 dark:bg-[#191B1E] rounded-xl w-fit">
                     <button type="button" onClick={() => setBannerTab('presets')} className={clsx("px-4 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2", bannerTab === 'presets' ? "bg-white dark:bg-gray-700 shadow-sm text-primary-600 dark:text-white" : "text-gray-500 hover:text-gray-700 dark:text-gray-400")}>
                         <LayoutGrid size={14} /> Presets
                     </button>
@@ -357,7 +357,7 @@ const Configuracion = () => {
                     {bannerTab === 'custom' && (
                         <div className="relative group">
                            <ImageIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary-500 transition-colors" size={20} />
-                           <input type="url" name="banner" placeholder="https://imgur.com/..." value={formData.banner} onChange={handleChange} className="w-full pl-12 pr-4 py-3 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all dark:text-white" />
+                           <input type="url" name="banner" placeholder="https://imgur.com/..." value={formData.banner} onChange={handleChange} className="w-full pl-12 pr-4 py-3 rounded-xl bg-white dark:bg-[#191B1E] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all dark:text-white" />
                         </div>
                     )}
                 </div>

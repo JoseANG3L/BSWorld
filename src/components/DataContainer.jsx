@@ -2,17 +2,23 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Search, Filter, ArrowUpDown, Sparkles, X, ChevronDown, Check } from 'lucide-react';
 import { clsx } from 'clsx';
 
-const DataContainer = ({ 
-  title, 
+const capitalizeText = (str) => {
+  if (!str) return '';
+  const stringValue = str.toString();
+  return stringValue.charAt(0).toUpperCase() + stringValue.slice(1).toLowerCase();
+};
+
+const DataContainer = ({
+  title,
   icon: Icon = Sparkles,
   gradientClass = "from-pink-500 to-purple-500",
   items = [],
   searchKey = 'nombre',
   dateKey = 'fecha',
   renderItem,
-  enableTypeFilter = false, 
-  typeKey = 'tipo', 
-  customTypes = null // 👈 NUEVO PROP: Puedes pasar un array como ['mapas', 'personajes', 'mods', 'minijuegos']
+  enableTypeFilter = false,
+  typeKey = 'tipo',
+  customTypes = null
 }) => {
   // 1. ESTADO INTERNO
   const [busqueda, setBusqueda] = useState('');
@@ -26,7 +32,7 @@ const DataContainer = ({
   const typeDropdownRef = useRef(null);
   const ordenDropdownRef = useRef(null);
 
-  // 👇 LÓGICA RE AJUSTADA: Si hay customTypes usa esos, si no, los extrae de los items
+  // Si hay customTypes usa esos, si no, los extrae de los items
   const availableTypes = useMemo(() => {
     if (customTypes && Array.isArray(customTypes)) {
       return customTypes;
@@ -57,9 +63,12 @@ const DataContainer = ({
     });
 
     if (enableTypeFilter && selectedTypes.length > 0) {
-      resultado = resultado.filter(item => 
-        selectedTypes.includes(item[typeKey]?.toLowerCase()) || selectedTypes.includes(item[typeKey])
-      );
+      const typesInLowerCase = selectedTypes.map(t => t.toString().toLowerCase());
+      
+      resultado = resultado.filter(item => {
+        const itemType = item[typeKey]?.toString().toLowerCase();
+        return itemType && typesInLowerCase.includes(itemType);
+      });
     }
 
     resultado.sort((a, b) => {
@@ -99,7 +108,7 @@ const DataContainer = ({
       {/* HEADER */}
       <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-4 md:mb-6">
         <h2 className="flex text-2xl font-bold text-gray-800 dark:text-white items-center gap-3">
-          <div className={clsx("w-10 h-10 rounded-xl flex items-center justify-center shadow-md text-white", `bg-gradient-to-br ${gradientClass}`)}>
+          <div className={clsx("w-10 h-10 rounded-xl flex items-center justify-center shadow-sm text-white", `bg-gradient-to-br ${gradientClass}`)}>
               <Icon size={20} strokeWidth={2.5} />
           </div>
           {title}
@@ -112,7 +121,7 @@ const DataContainer = ({
         {/* Búsqueda */}
         <div className="relative w-full md:flex-1">
           <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input type="text" placeholder={`Buscar por ${searchKey}...`} value={busqueda} onChange={(e) => setBusqueda(e.target.value)} className="w-full pl-10 pr-4 py-2.5 h-10 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all text-sm" />
+          <input type="text" placeholder={`Buscar por ${searchKey}...`} value={busqueda} onChange={(e) => setBusqueda(e.target.value)} className="w-full pl-10 pr-4 py-2.5 h-10 rounded-xl dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all text-sm" />
         </div>
 
         {/* Filtro de tipos */}
@@ -123,17 +132,21 @@ const DataContainer = ({
               <button
                 type="button"
                 onClick={() => { setIsTypeDropdownOpen(!isTypeDropdownOpen); setIsOrdenDropdownOpen(false); }}
-                className="w-full pl-10 pr-10 py-2.5 h-10 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none appearance-none cursor-pointer transition-all text-sm font-medium text-left"
+                className="w-full pl-10 pr-10 py-2.5 h-10 rounded-xl dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none appearance-none cursor-pointer transition-all text-sm font-medium text-left"
               >
                 <span className="truncate block">
-                  {selectedTypes.length === 0 ? 'Todos los tipos' : selectedTypes.length === 1 ? selectedTypes[0] : `${selectedTypes.length} tipos`}
+                  {selectedTypes.length === 0 
+                    ? 'Todos los tipos' 
+                    : selectedTypes.length === 1 
+                      ? capitalizeText(selectedTypes[0]) 
+                      : `${selectedTypes.length} tipos`}
                 </span>
               </button>
               <ChevronDown size={16} className={clsx("absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none transition-transform duration-200", isTypeDropdownOpen && "rotate-180")} />
             </div>
 
             {isTypeDropdownOpen && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl shadow-lg z-50 p-1">
+              <div className="absolute top-full left-0 right-0 mt-2 dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 rounded-xl shadow-lg z-50 p-1">
                 <div className="flex flex-col gap-0.5">
                   <button
                     type="button"
@@ -155,7 +168,7 @@ const DataContainer = ({
                       <div className={clsx("w-4 h-4 rounded border flex items-center justify-center transition-colors flex-shrink-0", selectedTypes.includes(type) ? "bg-primary-500 border-primary-500" : "border-gray-300 dark:border-gray-600")}>
                         {selectedTypes.includes(type) && <Check size={12} className="text-white" />}
                       </div>
-                      <span className="capitalize text-ellipsis overflow-hidden shrink">{type}</span>
+                      <span className="text-ellipsis overflow-hidden shrink">{capitalizeText(type)}</span>
                     </button>
                   ))}
                 </div>
@@ -168,7 +181,7 @@ const DataContainer = ({
         <div className="flex items-center gap-2 w-full md:w-auto" ref={ordenDropdownRef}>
           <div className="relative w-full md:w-64">
             <ArrowUpDown size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <button type="button" onClick={() => { setIsOrdenDropdownOpen(!isOrdenDropdownOpen); setIsTypeDropdownOpen(false); }} className="w-full pl-10 pr-10 py-2.5 h-10 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none appearance-none cursor-pointer transition-all text-sm font-medium text-left">
+            <button type="button" onClick={() => { setIsOrdenDropdownOpen(!isOrdenDropdownOpen); setIsTypeDropdownOpen(false); }} className="w-full pl-10 pr-10 py-2.5 h-10 rounded-xl dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none appearance-none cursor-pointer transition-all text-sm font-medium text-left">
               <span className="truncate block">
                 {orden === 'mas_descargas' ? 'Más Descargas' : orden === 'mas_vistas' ? 'Más Vistas' : orden === 'az' ? 'Nombre (A-Z)' : orden === 'za' ? 'Nombre (Z-A)' : orden === 'recientes' ? 'Más Recientes' : orden === 'antiguos' ? 'Más Antiguos' : orden}
               </span>
@@ -176,7 +189,7 @@ const DataContainer = ({
             <ChevronDown size={16} className={clsx("absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none transition-transform duration-200", isOrdenDropdownOpen && "rotate-180")} />
 
             {isOrdenDropdownOpen && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl shadow-lg z-50 p-1">
+              <div className="absolute top-full left-0 right-0 mt-2 dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 rounded-xl shadow-lg z-50 p-1">
                 <div className="flex flex-col gap-0.5">
                   {[{ val: 'mas_descargas', label: 'Más Descargas' }, { val: 'mas_vistas', label: 'Más Vistas' }, { val: 'az', label: 'Nombre (A-Z)' }, { val: 'za', label: 'Nombre (Z-A)' }, { val: 'recientes', label: 'Más Recientes' }, { val: 'antiguos', label: 'Más Antiguos' }].map((opt) => (
                     <button key={opt.val} type="button" onClick={() => { setOrden(opt.val); setIsOrdenDropdownOpen(false); }} className={clsx("w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors", orden === opt.val ? "text-gray-800 dark:text-white bg-gray-200 dark:bg-gray-700 font-semibold" : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700")}>{opt.label}</button>
@@ -192,9 +205,10 @@ const DataContainer = ({
       {visibleItems.length > 0 ? (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 md:gap-4 pb-4">
-            {visibleItems.map((item) => (
-               <React.Fragment key={item.id}>{renderItem(item)}</React.Fragment>
-            ))}
+            {/* 👇 SOLUCIÓN: Usamos React.cloneElement para inyectar la prop "key" de forma directa y limpia al elemento devuelto por renderItem */}
+            {visibleItems.map((item) => 
+               React.cloneElement(renderItem(item), { key: item.id || item._id })
+            )}
           </div>
           {hasMore && (
             <div className="flex justify-center mt-6">

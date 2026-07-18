@@ -14,16 +14,16 @@ const Footer = () => {
             Conecta con la comunidad y lleva tu experiencia al siguiente nivel.
           </p>
           <div className="flex items-center gap-3">
-            <a href="#" className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-primary-100 dark:hover:bg-primary-900/30 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+            <a href="#" className="p-2 rounded-lg bg-gray-100 dark:bg-[#191B1E] text-gray-600 dark:text-gray-400 hover:bg-primary-100 dark:hover:bg-primary-900/30 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
               <Github size={18} />
             </a>
-            <a href="#" className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-primary-100 dark:hover:bg-primary-900/30 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+            <a href="#" className="p-2 rounded-lg bg-gray-100 dark:bg-[#191B1E] text-gray-600 dark:text-gray-400 hover:bg-primary-100 dark:hover:bg-primary-900/30 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
               <Twitter size={18} />
             </a>
-            <a href="#" className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-primary-100 dark:hover:bg-primary-900/30 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+            <a href="#" className="p-2 rounded-lg bg-gray-100 dark:bg-[#191B1E] text-gray-600 dark:text-gray-400 hover:bg-primary-100 dark:hover:bg-primary-900/30 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
               <Instagram size={18} />
             </a>
-            <a href="#" className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-primary-100 dark:hover:bg-primary-900/30 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+            <a href="#" className="p-2 rounded-lg bg-gray-100 dark:bg-[#191B1E] text-gray-600 dark:text-gray-400 hover:bg-primary-100 dark:hover:bg-primary-900/30 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
               <Facebook size={18} />
             </a>
           </div>

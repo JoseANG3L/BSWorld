@@ -1,14 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { getAllUsers } from '../services/api';
 import CreatorCard from '../components/CreatorCard';
-import { Search, Crown, Loader2 } from 'lucide-react';
-import { clsx } from 'clsx';
+import { Crown, Loader2 } from 'lucide-react';
 import DataContainer from '../components/DataContainer';
 
 const Comunidad = () => {
   const [users, setUsers] = useState([]);
-  const [filteredUsers, setFilteredUsers] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -16,17 +13,14 @@ const Comunidad = () => {
       try {
         const data = await getAllUsers();
         
-        // --- CORRECCIÓN AQUÍ ---
-        // DataContainer espera una propiedad 'id' para usarla como key.
-        // Creamos una copia de los datos añadiendo 'id' (que será igual al uid).
+        // Normalizamos los datos inyectando la prop 'id' que DataContainer 
+        // necesita para el React.cloneElement interno.
         const normalizedData = data.map(user => ({
             ...user,
-            id: user.uid // <--- CLAVE PARA QUE REACT NO SE QUEJE
+            id: user.uid || user.id
         }));
 
         setUsers(normalizedData);
-        setFilteredUsers(normalizedData);
-        
       } catch (error) {
         console.error("Error cargando comunidad:", error);
       } finally {
@@ -35,14 +29,6 @@ const Comunidad = () => {
     };
     fetchUsers();
   }, []);
-
-  // Filtro en tiempo real
-  useEffect(() => {
-    const results = users.filter(user => 
-      (user.username || '').toLowerCase().includes(searchTerm.toLowerCase())
-    );
-    setFilteredUsers(results);
-  }, [searchTerm, users]);
 
   if (loading) return (
     <div className="h-full flex items-center justify-center min-h-[50vh]">
@@ -55,15 +41,13 @@ const Comunidad = () => {
       title="Comunidad"
       icon={Crown}
       gradientClass="from-yellow-500 to-orange-400"
-      items={filteredUsers}
-      searchKey="username"
+      items={users} // 👈 Pasamos la lista completa directa, DataContainer la filtrará internamente
+      searchKey="username" // 👈 Mapea con el input de búsqueda de DataContainer
       renderItem={(user) => (
-        // En el renderItem de DataContainer:
-        <CreatorCard 
-          key={user.id}
+        <CreatorCard
           username={user.username}
           avatar={user.avatar}
-          banner={user.banner} // <--- ASEGÚRATE DE AGREGAR ESTA LÍNEA
+          banner={user.banner}
           role={user.role}
           createdat={user.createdat}
         />

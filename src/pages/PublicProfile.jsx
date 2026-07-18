@@ -86,7 +86,7 @@ const PublicProfile = () => {
 
   if (!exists) return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4 animate-fade-in-up">
-        <div className="bg-gray-100 dark:bg-gray-800 p-8 rounded-full mb-6">
+        <div className="bg-gray-100 dark:bg-[#191B1E] p-8 rounded-full mb-6">
            <UserX size={64} className="text-gray-400"/>
         </div>
         <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Usuario no encontrado</h2>
@@ -194,7 +194,7 @@ const PublicProfile = () => {
 };
 
 const TabButton = ({ active, onClick, icon: Icon, label, count }) => (
-  <button onClick={onClick} className={clsx("flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm transition-all whitespace-nowrap border select-none", active ? "bg-primary-600 text-white border-primary-600 shadow-sm transform" : "bg-white dark:bg-[#1e1e1e] text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800")}>
+  <button onClick={onClick} className={clsx("flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm transition-all whitespace-nowrap border select-none", active ? "bg-primary-600 text-white border-primary-600 shadow-sm transform" : "bg-white dark:bg-[#1e1e1e] text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-[#191B1E]")}>
     <Icon size={16} /> {label} {count > 0 && <span className={clsx("ml-1 text-[10px] px-1.5 py-0.5 rounded-md", active ? "bg-white/20 text-white dark:bg-black/10" : "bg-gray-100 dark:bg-gray-700 text-gray-400")}>{count}</span>}
   </button>
 );

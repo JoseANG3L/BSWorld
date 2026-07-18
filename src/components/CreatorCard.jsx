@@ -17,7 +17,7 @@ const CreatorCard = ({ username, avatar, banner, role, createdat }) => {
   return (
     <Link 
       to={`/u/${username}`} 
-      className="block group relative bg-white dark:bg-[#1e1e1e] border border-gray-300 dark:border-gray-700 rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300"
+      className="block group relative bg-white dark:bg-[#1e1e1e] border border-gray-300 dark:border-gray-700 rounded-2xl overflow-hidden shadow-sm transition-all duration-300"
     >
       
       {/* --- BANNER SUPERIOR DINÁMICO --- */}
@@ -56,7 +56,7 @@ const CreatorCard = ({ username, avatar, banner, role, createdat }) => {
         <div className="relative -mt-10 mb-3 flex justify-between items-end">
           
           {/* Avatar con Renderer */}
-          <div className="w-20 h-20 rounded-full border-4 border-white dark:border-[#1e1e1e] shadow-md overflow-hidden bg-gray-200 dark:bg-gray-800">
+          <div className="w-20 h-20 rounded-full border-4 border-white dark:border-[#1e1e1e] shadow-md overflow-hidden bg-gray-200 dark:bg-[#191B1E]">
              <AvatarRenderer 
                 avatar={avatar} 
                 name={username} 
@@ -64,7 +64,7 @@ const CreatorCard = ({ username, avatar, banner, role, createdat }) => {
           </div>
           
           {/* Icono de flecha */}
-          <div className="mb-1 p-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 group-hover:bg-primary-600 group-hover:text-white transition-colors">
+          <div className="mb-1 p-2 rounded-full bg-gray-100 dark:bg-[#191B1E] text-gray-500 dark:text-gray-400 group-hover:bg-primary-600 group-hover:text-white transition-colors">
             <ExternalLink size={18} />
           </div>
         </div>
@@ -79,7 +79,7 @@ const CreatorCard = ({ username, avatar, banner, role, createdat }) => {
           </h3>
           
           <div className="flex flex-wrap items-center gap-2 mt-2 text-xs text-gray-500 dark:text-gray-400 font-medium">
-            <span className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-md border border-gray-200 dark:border-gray-700">
+            <span className="flex items-center gap-1 bg-gray-100 dark:bg-[#191B1E] px-2 py-1 rounded-md border border-gray-200 dark:border-gray-700">
                <Calendar size={12} /> {fecha}
             </span>
             
@@ -87,7 +87,7 @@ const CreatorCard = ({ username, avatar, banner, role, createdat }) => {
               "capitalize px-2 py-1 rounded-md border flex items-center gap-1",
               role === 'admin' 
                 ? "bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800"
-                : "bg-gray-50 text-gray-600 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700"
+                : "bg-gray-50 text-gray-600 border-gray-200 dark:bg-[#191B1E] dark:text-gray-300 dark:border-gray-700"
             )}>
                <User size={12} /> {role === 'admin' ? 'Admin' : 'Miembro'}
             </span>

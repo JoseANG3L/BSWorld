@@ -110,7 +110,7 @@ const Contacto = () => {
                 </p>
                 <button 
                   onClick={() => setFormStatus('idle')}
-                  className="px-8 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-bold hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                  className="px-8 py-3 rounded-xl bg-gray-100 dark:bg-[#191B1E] text-gray-700 dark:text-gray-300 font-bold hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
                 >
                   Enviar otro mensaje
                 </button>
@@ -133,7 +133,7 @@ const Contacto = () => {
                     <div className="absolute left-4 top-3.5 text-gray-400">
                         <HelpCircle size={20} />
                     </div>
-                    <select className="w-full pl-12 pr-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all dark:text-white cursor-pointer appearance-none">
+                    <select className="w-full pl-12 pr-4 py-3 rounded-xl bg-gray-50 dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all dark:text-white cursor-pointer appearance-none">
                         <option>Soporte Técnico</option>
                         <option>Reportar un Bug</option>
                         <option>Subir mi Mod</option>

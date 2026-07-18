@@ -72,7 +72,7 @@ const FollowButton = ({ targetUserId, size = 'md', showText = true }) => {
         sizeClasses[size],
         isFollowing
           ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-600 dark:text-primary-400'
-          : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700',
+          : 'bg-white dark:bg-[#191B1E] border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700',
         !user && 'opacity-50 cursor-not-allowed',
         loading && 'opacity-70 cursor-wait'
       )}
