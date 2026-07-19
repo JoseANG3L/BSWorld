@@ -117,7 +117,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
           onKeyDown={handleSearch}
           className={clsx(
             "w-full py-2 pl-11 pr-4 rounded-xl text-sm font-medium transition-all duration-300 outline-none border shadow-sm",
-            "bg-white dark:bg-[#191B1E] border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 placeholder-gray-400",
+            "bg-white dark:bg-[#191B1E] border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 placeholder-gray-400",
             "focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
           )}
         />

@@ -285,20 +285,15 @@ const CommentSection = ({ contentId }) => {
   };
 
   return (
-    <div className="bg-gradient-to-br from-white to-gray-50 dark:from-[#1e1e1e] dark:to-[#1a1a1a] p-4 md:p-6 rounded-2xl border border-gray-300 dark:border-gray-700 shadow-lg flex flex-col gap-5">
+    <div className="flex flex-col gap-5 bg-white dark:bg-[#1e1e1e] rounded-lg p-2 md:p-4 shadow-sm border border-gray-300 dark:border-transparent">
       <div className="flex items-center justify-between pb-3 border-b border-gray-200 dark:border-gray-800">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-primary-100 dark:bg-primary-900/30 rounded-xl">
-            <MessageSquare size={20} className="text-primary-600 dark:text-primary-300" />
-          </div>
-          <div>
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-              Comentarios
-            </h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              {comments.length} {comments.length === 1 ? 'comentario' : 'comentarios'}
-            </p>
-          </div>
+          <h3 className="text-base font-semibold text-gray-900 dark:text-white">
+            Comentarios
+          </h3>
+          <p className="text-xs text-gray-500 dark:text-gray-400 pt-0.5">
+            {comments.length} {comments.length === 1 ? 'comentario' : 'comentarios'}
+          </p>
         </div>
       </div>
 

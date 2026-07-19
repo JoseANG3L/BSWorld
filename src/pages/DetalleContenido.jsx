@@ -289,19 +289,20 @@ const DetalleContenido = () => {
     if (!item) return null;
 
     return (
-        <div className="flex animate-fade-in-up" style={{ animationDuration: '200ms' }}>
+        <div className="flex flex-col lg:flex-row gap-3 lg:gap-5 p-2 lg:p-4 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
 
             {/* COLUMNA IZQUIERDA - CONTENIDO PRINCIPAL */}
-            <div className="w-full flex flex-col gap-6 px-2 md:px-4 py-4">
+            <div className="w-full flex flex-col gap-4">
+
                 {/* VISOR DE GALERÍA MÁS PEQUEÑO */}
                 <div className="w-full">
-                    <div className="rounded-xl overflow-hidden bg-black shadow-lg">
+                    <div className="bg-black">
                         {youtubeId ? (
                             <iframe 
                                 key={youtubeId} 
                                 src={`https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=0&rel=0`}
                                 title="YouTube video player" 
-                                className="w-full aspect-video" 
+                                className="w-full aspect-video rounded-xl bg-black" 
                                 frameBorder="0" 
                                 allowFullScreen
                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -310,7 +311,7 @@ const DetalleContenido = () => {
                             <video 
                                 src={currentMedia} 
                                 key={currentMedia} 
-                                className="w-full aspect-video object-contain bg-black" 
+                                className="w-full aspect-video object-contain bg-black rounded-xl" 
                                 controls 
                                 muted 
                                 loop 
@@ -319,7 +320,7 @@ const DetalleContenido = () => {
                             <img 
                                 src={currentMedia} 
                                 key={currentMedia} 
-                                className="w-full aspect-video object-cover" 
+                                className="w-full aspect-video object-cover rounded-xl bg-black" 
                                 alt={item.titulo} 
                             />
                         )}
@@ -344,7 +345,7 @@ const DetalleContenido = () => {
 
                     {/* TIRA DE MINIATURAS ESTILO YOUTUBE */}
                     {galleryItems.length > 1 && (
-                        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide snap-x mt-3">
+                        <div className="flex gap-2 md:gap-2 scrollbar-hide snap-x mt-2 md:mt-4">
                             {galleryItems.map((item, index) => {
                                 const isYt = getYouTubeId(item);
                                 const isVid = isVideo(item);
@@ -356,10 +357,10 @@ const DetalleContenido = () => {
                                         key={index}
                                         onClick={() => setSelectedIndex(index)}
                                         className={clsx(
-                                            "relative flex-shrink-0 w-24 md:w-32 aspect-video rounded-lg overflow-hidden transition-all duration-200 snap-start border-2",
+                                            "relative flex-shrink-0 w-24 md:w-36 aspect-video rounded-lg transition-all duration-200 snap-start border shadow-sm ring-1",
                                             isActive 
-                                                ? "border-primary-600 dark:border-primary-400 ring-2 ring-primary-500/30" 
-                                                : "border-transparent hover:border-gray-300 dark:hover:border-gray-600"
+                                                ? "ring-primary-500 border-primary-500"
+                                                : "ring-transparent border-transparent hover:ring-primary-500 hover:border-primary-500"
                                         )}
                                     >
                                         {(isYt || isVid) && (
@@ -370,7 +371,7 @@ const DetalleContenido = () => {
                                         <img 
                                             src={thumbSrc} 
                                             alt={`Miniatura ${index + 1}`} 
-                                            className="w-full h-full object-cover"
+                                            className="w-full h-full object-cover rounded-lg"
                                             onError={(e) => { e.target.src = "https://placehold.co/320x180?text=Error"; }}
                                         />
                                         {isActive && (
@@ -384,9 +385,9 @@ const DetalleContenido = () => {
                 </div>
 
                 {/* HEADER ESTILO YOUTUBE (DESPUÉS DE GALERÍA) */}
-                <div className="bg-white dark:bg-[#1a1a1a] rounded-xl p-4 shadow-sm">
+                <div className="bg-white dark:bg-[#1e1e1e] rounded-lg p-2 md:p-4 shadow-sm border border-gray-300 dark:border-transparent">
                     {/* Título Principal */}
-                    <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white mb-3 leading-tight">
+                    <h1 className="text-md md:text-lg font-bold text-gray-900 dark:text-white mb-3 leading-tight">
                         {item.titulo}
                     </h1>
                     
@@ -434,23 +435,34 @@ const DetalleContenido = () => {
                 </div>
 
                 {/* DESCRIPCIÓN ESTILO YOUTUBE CON BOTÓN VER MÁS */}
-                <div className="bg-white dark:bg-[#1a1a1a] rounded-xl p-4 shadow-sm">
-                    <div className="flex items-center justify-between mb-3">
+                <div 
+                    onClick={() => !descriptionExpanded && setDescriptionExpanded(true)}
+                    className={clsx(
+                        "bg-white dark:bg-[#1e1e1e] rounded-lg p-2 md:p-4 shadow-sm border border-gray-300 dark:border-transparent", 
+                        !descriptionExpanded && "cursor-pointer bg-gradient-to-t hover:from-gray-50 hover:to-gray-100 dark:hover:from-[#2a2a2a] dark:hover:to-[#1e1e1e] group"
+                    )}
+                >
+                    <div className="flex items-center justify-between">
                         <h3 className="text-base font-semibold text-gray-900 dark:text-white">
                             Descripción
                         </h3>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
-                            {item.descripcion?.length || 0} caracteres
-                        </span>
                     </div>
                     <div className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">
-                        <div className={descriptionExpanded ? '' : 'line-clamp-3'}>
+                        {/* 
+                        Usamos un max-h aproximado para 3 líneas de texto (aprox 4.5rem o 72px)
+                        y aplicamos una transición suave si quieres que se vea premium al expandirse.
+                        */}
+                        <div className={clsx(
+                            "transition-all duration-300 overflow-hidden",
+                            descriptionExpanded ? "" : "max-h-20"
+                        )}>
                             <MarkdownRenderer content={item.descripcion} />
                         </div>
+                        
                         {item.descripcion && item.descripcion.length > 200 && (
                             <button
                                 onClick={() => setDescriptionExpanded(!descriptionExpanded)}
-                                className="mt-2 text-xs font-semibold text-primary-600 dark:text-primary-400 hover:underline"
+                                className="mt-2 text-xs font-semibold text-gray-600 dark:text-gray-400 group-hover:text-primary-600 dark:group-hover:text-primary-400 hover:text-primary-600 dark:hover:text-primary-400"
                             >
                                 {descriptionExpanded ? 'Mostrar menos' : 'Mostrar más'}
                             </button>
@@ -463,7 +475,7 @@ const DetalleContenido = () => {
             </div>
 
             {/* COLUMNA DERECHA ESTILO YOUTUBE */}
-            <div className="min-w-[420px] space-y-4">
+            <div className="lg:min-w-[420px] xl:min-w-[480px] 2xl:min-w-[520px] space-y-4">
                 {/* TARJETA DE DESCARGA */}
                 <div className="bg-white dark:bg-[#1a1a1a] rounded-xl p-4 shadow-sm">
                     <div className="flex items-center justify-between mb-4">

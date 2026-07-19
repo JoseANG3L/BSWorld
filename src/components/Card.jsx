@@ -232,7 +232,7 @@ const Card = ({
   const statusConfig = getStatusConfig(status);
 
   return (
-    <div className="group flex flex-col bg-white dark:bg-[#1e1e1e] border border-gray-300 dark:border-gray-800 rounded-lg shadow-sm transition-all duration-300 z-0 relative h-full">
+    <div className="group flex flex-col bg-white dark:bg-[#1e1e1e] border border-gray-300 dark:border-transparent rounded-lg shadow-sm transition-all duration-300 z-0 relative h-full">
       
       {/* ESTADO */}
       {isEditable && (

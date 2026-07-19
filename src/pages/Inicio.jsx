@@ -135,7 +135,7 @@ const Inicio = () => {
 
             <Link
               to="/mods?sort=recientes"
-              className="group flex flex-col items-center justify-center text-center bg-white dark:bg-[#1e1e1e] border border-gray-300 dark:border-gray-800 rounded-lg p-6 w-[280px] sm:w-[300px] md:w-[240px] lg:w-[260px] xl:w-[280px] shrink-0 snap-start transition-all duration-300 shadow-sm relative"
+              className="group flex flex-col items-center justify-center text-center bg-white dark:bg-[#1e1e1e] border border-gray-300 dark:border-transparent rounded-lg p-6 w-[280px] sm:w-[300px] md:w-[240px] lg:w-[260px] xl:w-[280px] shrink-0 snap-start transition-all duration-300 shadow-sm relative"
             >
               <div className="flex flex-col items-center gap-3 z-10">
                 <div className="w-11 h-11 rounded-xl bg-primary-500/10 dark:bg-primary-500/5 text-primary-600 dark:text-primary-400 flex items-center justify-center shadow-inner">
@@ -204,7 +204,7 @@ const Inicio = () => {
 
             <Link 
               to="/mods?sort=mas_descargas"
-              className="group flex flex-col items-center justify-center text-center bg-white dark:bg-[#1e1e1e] border border-gray-300 dark:border-gray-800 rounded-lg p-6 w-[280px] sm:w-[300px] md:w-[240px] lg:w-[260px] xl:w-[280px] shrink-0 snap-start transition-all duration-300 shadow-sm relative"
+              className="group flex flex-col items-center justify-center text-center bg-white dark:bg-[#1e1e1e] border border-gray-300 dark:border-transparent rounded-lg p-6 w-[280px] sm:w-[300px] md:w-[240px] lg:w-[260px] xl:w-[280px] shrink-0 snap-start transition-all duration-300 shadow-sm relative"
             >
               <div className="flex flex-col items-center gap-3 z-10">
                 <div className="w-11 h-11 rounded-xl bg-primary-500/10 dark:bg-primary-500/5 text-primary-600 dark:text-primary-400 flex items-center justify-center shadow-inner">
@@ -273,7 +273,7 @@ const Inicio = () => {
 
             <Link 
               to="/mods?sort=mas_descargas"
-              className="group flex flex-col items-center justify-center text-center bg-white dark:bg-[#1e1e1e] border border-gray-300 dark:border-gray-800 rounded-lg p-6 w-[280px] sm:w-[300px] md:w-[240px] lg:w-[260px] xl:w-[280px] shrink-0 snap-start transition-all duration-300 shadow-sm relative"
+              className="group flex flex-col items-center justify-center text-center bg-white dark:bg-[#1e1e1e] border border-gray-300 dark:border-transparent rounded-lg p-6 w-[280px] sm:w-[300px] md:w-[240px] lg:w-[260px] xl:w-[280px] shrink-0 snap-start transition-all duration-300 shadow-sm relative"
             >
               <div className="flex flex-col items-center gap-3 z-10">
                 <div className="w-11 h-11 rounded-xl bg-primary-500/10 dark:bg-primary-500/5 text-primary-600 dark:text-primary-400 flex items-center justify-center shadow-inner">
