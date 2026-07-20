@@ -331,15 +331,13 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
         else finalStatus = (originalStatus === 'published' || originalStatus === 'published_editing') ? 'published_editing' : 'pending';
       }
 
-      const finalRedes = dynamicNetworks.filter(r => r.url.trim() !== '' && r.label.trim() !== '').map(r => ({ label: r.label.toUpperCase(), url: r.url.trim() }));
-
       let processedDescargas = formData.descargas.filter(d => d.url !== '');
       processedDescargas = await Promise.all(
         processedDescargas.map(async (d) => {
           try {
             const encryptedUrl = await encryptionService.encryptUrl(d.url, encryptionKey);
-            return { label: d.nombre, url: encryptedUrl, encrypted: true };
-          } catch (error) { return { label: d.nombre, url: d.url, encrypted: false }; }
+            return { label: d.nombre, url: encryptedUrl };
+          } catch (error) { return { label: d.nombre, url: d.url }; }
         })
       );
 
@@ -356,8 +354,7 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
         aporte: formData.aporte, 
         creado: new Date(formData.creado).toISOString(),
         status: finalStatus,
-        visibilidad: formData.visibilidad, 
-        encrypted: true
+        visibilidad: formData.visibilidad
       };
 
       if (isEditing) await updateContent(editId, payload);

@@ -9,13 +9,13 @@ const Layout = ({ toggleTheme, isDarkMode }) => {
   const location = useLocation();
 
   return (
-    <div className="flex flex-col h-screen transition-colors duration-300 relative overflow-hidden">
+    <div className="flex flex-col min-h-screen transition-colors duration-300 relative">
       <Header 
         toggleTheme={toggleTheme} 
         isDarkMode={isDarkMode} 
       />
       
-      <main className="flex-1 transition-colors duration-300 relative z-0 overflow-y-auto">
+      <main className="flex-1 transition-colors duration-300 relative z-0">
         <Outlet />
         <Footer />
       </main>

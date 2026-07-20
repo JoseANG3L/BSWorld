@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext'; 
 
 // Componentes
@@ -34,6 +34,15 @@ import SubirMod from './pages/SubirMod';
 import SubirModPage from './pages/SubirModPage';
 import Notificaciones from './pages/Notificaciones';
 
+// 👇 COMPONENTE INTERNO PARA REINICIAR EL SCROLL EN CADA CAMBIO DE RUTA
+const ScrollToTop = () => {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [pathname]);
+  return null;
+};
+
 function App() {
   // Lógica del Tema Oscuro (Persistencia)
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -56,6 +65,7 @@ function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <ScrollToTop />
         <Routes>
           {/* 👇 RUTAS INDEPENDIENTES: Fuera del Layout principal */}
           <Route path="/login" element={<Login />} />
