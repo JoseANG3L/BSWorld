@@ -9,7 +9,7 @@ import {
     Info, Lock, Unlock, Heart, X
 } from 'lucide-react';
 import { clsx } from 'clsx';
-import { getContentById, registerDownload, registerView, getUserPublicProfile, toggleLike, isLikedByUser } from '../services/api';
+import { getContentById, registerDownload, registerView, getUserPublicProfile, toggleLike, isLikedByUser, getRecommendedContent } from '../services/api';
 import AvatarRenderer from '../components/AvatarRenderer';
 import { useAuth } from '../context/AuthContext';
 import MarkdownRenderer from '../components/MarkdownRenderer';
@@ -50,8 +50,70 @@ const SmartCreatorAvatar = ({ creador, className = "w-10 h-10 md:w-11 md:h-11" }
     );
 };
 
+// --- SUB-COMPONENTE: ITEM HORIZONTAL DE CONTENIDO RECOMENDADO ---
+const RecommendedItem = ({ content }) => {
+    const creadoresList = useMemo(() => {
+        if (!content?.creadores) return [];
+        return (Array.isArray(content.creadores) ? content.creadores : [content.creadores]).map(c => {
+            if (typeof c === 'object' && c !== null) return c;
+            return { nombre: c, imagen: null, uid: null };
+        });
+    }, [content?.creadores]);
+
+    const primerCreador = creadoresList[0] || { nombre: 'Desconocido' };
+
+    return (
+        <Link 
+            to={`/view/${content.id}`}
+            className="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all group"
+        >
+            {/* Imagen a la izquierda */}
+            <div className="w-16 h-16 shrink-0 rounded-lg overflow-hidden bg-gray-200 dark:bg-[#191B1E]">
+                <img 
+                    src={content.imagen || '/default.jpg'} 
+                    alt={content.titulo}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                    onError={(e) => { e.target.src = '/default.jpg'; }}
+                />
+            </div>
+
+            {/* Información a la derecha */}
+            <div className="flex flex-col min-w-0 flex-1">
+                {/* Título */}
+                <h4 className="text-sm font-bold text-gray-900 dark:text-white line-clamp-1 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+                    {content.titulo}
+                </h4>
+
+                {/* Creadores */}
+                <div className="flex items-center gap-1 mt-1">
+                    <span className="text-xs text-gray-600 dark:text-gray-400 truncate">
+                        {primerCreador.nombre}
+                    </span>
+                    {creadoresList.length > 1 && (
+                        <span className="text-xs text-gray-500 dark:text-gray-500">
+                            +{creadoresList.length - 1}
+                        </span>
+                    )}
+                </div>
+
+                {/* Fecha */}
+                <div className="flex items-center gap-1 mt-1 text-xs text-gray-500 dark:text-gray-500">
+                    <Calendar size={10} />
+                    <span>
+                        {new Date(content.creado).toLocaleDateString('es-ES', { 
+                            year: 'numeric', 
+                            month: 'short', 
+                            day: 'numeric' 
+                        })}
+                    </span>
+                </div>
+            </div>
+        </Link>
+    );
+};
+
 // --- SUB-COMPONENTE: FILA DE USUARIO INTELIGENTE ---
-const SmartUserRow = ({ user, role = "creator", showRole = true }) => {
+const SmartUserRow = ({ user, role = "creator", showRole = true, type = "default" }) => {
     const [profile, setProfile] = useState(() => {
         if (typeof user === 'string') {
             return { uid: user, nombre: 'Cargando...', imagen: null, verificado: false };
@@ -90,25 +152,47 @@ const SmartUserRow = ({ user, role = "creator", showRole = true }) => {
     }, [user]);
 
     return (
-        <Link 
-            to={profile.nombre ? `/u/${profile.nombre}` : '#'} 
-            className="flex items-center gap-3 group p-2 -mx-2 rounded-xl hover:bg-gray-50 dark:hover:bg-white/5 transition-all"
-        >
-            <div className="w-10 h-10 shrink-0 rounded-full overflow-hidden relative">
-                <AvatarRenderer avatar={profile.imagen} name={profile.nombre} />
-            </div>
-
-            <div className="flex flex-col">
-                <div className="flex items-center gap-1.5">
-                    <p className="text-sm font-bold text-gray-900 dark:text-white group-hover:text-primary-600 transition-colors line-clamp-1">
-                        {profile.nombre}
-                    </p>
-                    {profile.verificado && (
-                        <ShieldCheck size={14} className="text-blue-500 shrink-0" title="Verificado" />
-                    )}
+        type === "list" ? (
+            <Link 
+                to={profile.nombre ? `/u/${profile.nombre}` : '#'} 
+                className="flex items-center gap-3 group p-2 -mx-2 rounded-xl hover:bg-gray-300 dark:hover:bg-gray-700 transition-all"
+            >
+                <div className="w-10 h-10 shrink-0 rounded-full overflow-hidden relative">
+                    <AvatarRenderer avatar={profile.imagen} name={profile.nombre} />
                 </div>
-            </div>
-        </Link>
+
+                <div className="flex flex-col">
+                    <div className="flex items-center gap-1.5">
+                        <p className="text-sm font-bold text-gray-900 dark:text-white transition-colors line-clamp-1">
+                            {profile.nombre}
+                        </p>
+                        {profile.verificado && (
+                            <ShieldCheck size={14} className="text-blue-500 shrink-0" title="Verificado" />
+                        )}
+                    </div>
+                </div>
+            </Link>
+        ) : (
+            <Link 
+                to={profile.nombre ? `/u/${profile.nombre}` : '#'} 
+                className="flex items-center gap-3 group hover:opacity-80 transition-opacity"
+            >
+                <div className="w-10 h-10 shrink-0 rounded-full overflow-hidden relative">
+                    <AvatarRenderer avatar={profile.imagen} name={profile.nombre} />
+                </div>
+
+                <div className="flex flex-col">
+                    <div className="flex items-center gap-1.5">
+                        <p className="text-sm font-bold text-gray-900 dark:text-white transition-colors line-clamp-1">
+                            {profile.nombre}
+                        </p>
+                        {profile.verificado && (
+                            <ShieldCheck size={14} className="text-blue-500 shrink-0" title="Verificado" />
+                        )}
+                    </div>
+                </div>
+            </Link>
+        )
     );
 };
 
@@ -188,6 +272,8 @@ const DetalleContenido = () => {
     const [isLiked, setIsLiked] = useState(false);
     const [likeLoading, setLikeLoading] = useState(false);
     const [showCreatorsModal, setShowCreatorsModal] = useState(false);
+    const [recommendedContent, setRecommendedContent] = useState([]);
+    const [loadingRecommended, setLoadingRecommended] = useState(false);
     const viewRegistered = useRef(false);
 
     // 👇 BLOQUEO DE SCROLL EN EL BODY CUANDO EL MODAL ESTÁ ABIERTO
@@ -232,6 +318,17 @@ const DetalleContenido = () => {
                     viewRegistered.current = true;
                     sessionStorage.setItem(viewKey, 'true');
                     registerView(id).catch(err => console.error("Error contando vista", err));
+                }
+
+                // Cargar contenido recomendado
+                setLoadingRecommended(true);
+                try {
+                    const recommended = await getRecommendedContent(id, data.tipo, data.tags || [], 10);
+                    setRecommendedContent(recommended);
+                } catch (error) {
+                    console.error("Error cargando contenido recomendado:", error);
+                } finally {
+                    setLoadingRecommended(false);
                 }
             } catch (error) {
                 console.error("Error cargando detalle:", error);
@@ -644,8 +741,8 @@ const DetalleContenido = () => {
                 {/* CRÉDITOS Y APORTE SEPARADOS (COLUMNA DERECHA) */}
                 {item.aporte && (
                     <div className="bg-white dark:bg-[#1e1e1e] rounded-lg p-3 md:p-4 shadow-sm border border-gray-300 dark:border-transparent">
-                        <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                            <User size={16} className="text-primary-600 dark:text-primary-400" /> Aportado por
+                        <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-3">
+                            Aportado por
                         </h4>
                         <SmartUserRow user={item.aporte} role="uploader" />
                     </div>
@@ -655,8 +752,8 @@ const DetalleContenido = () => {
                 {/* REDES Y ENLACES */}
                 {item.redes && item.redes.length > 0 && (
                     <div className="bg-white dark:bg-[#1e1e1e] rounded-lg p-3 md:p-4 shadow-sm border border-gray-300 dark:border-transparent">
-                        <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                            <Globe size={16} className="text-primary-600 dark:text-primary-400" /> Enlaces Externos
+                        <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-3">
+                            Enlaces Externos
                         </h4>
                         <div className="flex flex-wrap gap-2">
                             {item.redes.map((link, idx) => {
@@ -673,16 +770,16 @@ const DetalleContenido = () => {
                 {/* ETIQUETAS */}
                 {item.tags && item.tags.length > 0 && (
                     <div className="bg-white dark:bg-[#1e1e1e] p-3 md:p-4 rounded-lg shadow-sm border border-gray-300 dark:border-transparent">
-                        <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                            <Tag size={16} className="text-primary-600 dark:text-primary-400" /> Etiquetas
+                        <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-3">
+                            Etiquetas
                         </h4>
                         <div className="flex flex-wrap gap-2">
                             {item.tags.map((tag, index) => (
                                 <div 
                                     key={index} 
-                                    className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-gray-50 dark:bg-[#191B1E] border border-gray-200 dark:border-gray-700"
+                                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-gray-50 dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700"
                                 >
-                                    <span className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-400">
+                                    <span className="text-[11px] font-bold uppercase tracking-wider text-gray-600 dark:text-gray-400">
                                         {tag}
                                     </span>
                                 </div>
@@ -691,8 +788,29 @@ const DetalleContenido = () => {
                     </div>
                 )}
 
+                {/* MODS RECOMENDADOS */}
+                {recommendedContent.length > 0 && (
+                    <div className="bg-white dark:bg-[#1e1e1e] p-3 md:p-4 rounded-lg shadow-sm border border-gray-300 dark:border-transparent">
+                        <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-3">
+                            Mods Recomendados
+                        </h4>
+                        {loadingRecommended ? (
+                            <div className="flex items-center justify-center py-4">
+                                <Loader2 size={20} className="animate-spin text-gray-400" />
+                            </div>
+                        ) : (
+                            <div className="flex flex-col gap-2">
+                                {recommendedContent.map((content) => (
+                                    <RecommendedItem key={content.id} content={content} />
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
+                
+
                 {/* COMPARTIR */}
-                <div className="bg-white dark:bg-[#1e1e1e] p-3 md:p-4 rounded-lg shadow-sm border border-gray-300 dark:border-transparent">
+                {/* <div className="bg-white dark:bg-[#1e1e1e] p-3 md:p-4 rounded-lg shadow-sm border border-gray-300 dark:border-transparent">
                     <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
                         <Share2 size={16} className="text-primary-600 dark:text-primary-400" /> Compartir
                     </h4>
@@ -713,38 +831,25 @@ const DetalleContenido = () => {
                             {copied ? <Check size={18} /> : <LinkIcon size={18} />}
                         </button>
                     </div>
-                </div>
+                </div> */}
             </div>
 
             {/* MODAL DE CREADORES */}
             {showCreatorsModal && createPortal(
                 <div 
-                    className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+                    className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm flex items-center justify-center"
                     onClick={() => setShowCreatorsModal(false)}
                 >
                     <div 
-                        className="bg-white dark:bg-[#1e1e1e] rounded-2xl p-6 max-w-md w-full border border-gray-200 dark:border-gray-800 shadow-2xl relative animate-fade-in-up"
+                        className="bg-white dark:bg-[#1e1e1e] rounded-2xl p-2 md:p-4 max-w-md w-full border border-gray-200 dark:border-transparent shadow-2xl relative animate-fade-in-up"
                         style={{ animationDuration: '150ms' }}
                         onClick={(e) => e.stopPropagation()}
                     >
-                        {/* Cabecera */}
-                        <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-100 dark:border-gray-800">
-                            <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                                Lista de Creadores
-                            </h3>
-                            <button 
-                                onClick={() => setShowCreatorsModal(false)}
-                                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                                title="Cerrar"
-                            >
-                                <X size={18} />
-                            </button>
-                        </div>
                         
                         {/* Lista de creadores */}
                         <div className="space-y-2">
                             {creadoresList.map((creador, idx) => (
-                                <SmartUserRow key={idx} user={creador} role="creator" showRole={false} />
+                                <SmartUserRow key={idx} user={creador} role="creator" showRole={false} type="list" />
                             ))}
                         </div>
                     </div>

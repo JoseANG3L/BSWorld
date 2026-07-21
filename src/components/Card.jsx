@@ -52,12 +52,12 @@ const SmartUserDisplay = ({ initialUser, type = 'list', extraCount = 0 }) => {
 
   if (type === 'list') {
     return (
-      <Link to={`/u/${userData.nombre}`} className="flex items-center gap-3 p-2 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors group">
-        <div className="w-6 h-6 rounded-full overflow-hidden bg-gray-200 dark:bg-[#191B1E] shrink-0 border border-gray-300 dark:border-gray-600 relative">
+      <Link to={`/u/${userData.nombre}`} className="flex items-center gap-3 px-2 py-1.5 hover:bg-primary-300 dark:hover:bg-gray-700 transition-colors group">
+        <div className="w-6 h-6 rounded-full overflow-hidden bg-gray-200 dark:bg-[#191B1E] shrink-0 relative">
             <AvatarRenderer avatar={userData.imagen} name={userData.nombre} />
         </div>
         <div className="flex items-center gap-1 min-w-0">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-200 group-hover:text-primary-600 dark:group-hover:text-primary-400 truncate">
+            <span className="text-sm font-bold text-gray-700 dark:text-gray-200 truncate">
                 {userData.nombre}
             </span>
             {esVerificado && <ShieldCheck size={10} className="text-blue-500 shrink-0" />}
@@ -103,7 +103,7 @@ const SmartUserDisplay = ({ initialUser, type = 'list', extraCount = 0 }) => {
                </span>
                {esVerificado && <ShieldCheck size={12} className="text-blue-500 shrink-0" />}
                {extraCount > 0 && (
-                   <span className="shrink-0 w-6 h-5 flex items-center justify-center text-[9px] font-bold bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300 rounded-full border border-gray-300 dark:border-gray-700">
+                   <span className="shrink-0 w-5 h-5 flex items-center justify-center text-[9px] font-bold bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-300 rounded-full border border-gray-300 dark:border-gray-700">
                        + {extraCount}
                    </span>
                )}
@@ -322,7 +322,7 @@ const Card = ({
           </button>
 
           {isOpenDownload && (
-            <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#252525] border border-gray-300 dark:border-gray-700 rounded-lg shadow-lg z-50 overflow-hidden animate-fade-in-up origin-top" style={{ animationDuration: '200ms' }}>
+            <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#252525] border border-gray-300 dark:border-transparent rounded-lg shadow-lg z-50 overflow-hidden animate-fade-in-up origin-top" style={{ animationDuration: '200ms' }}>
               <div className="py-1 max-h-40 overflow-y-auto">
                 {localDescargas.length > 0 ? (
                   localDescargas.map((option, index) => (
@@ -350,13 +350,13 @@ const Card = ({
             </Link>
           ) : (
             <>
-              <button onClick={() => setIsOpenCredits(!isOpenCredits)} className="flex items-center gap-2 w-full px-2 py-1 rounded-lg hover:bg-gray-200 dark:hover:bg-[#191B1E] transition-colors text-left group/creator">
+              <button onClick={() => setIsOpenCredits(!isOpenCredits)} className="flex items-center gap-2 w-full px-2 py-1 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-left group/creator">
                 <SmartUserDisplay initialUser={primerCredito} type="header" extraCount={totalExtra} />
                 <ChevronDown size={14} className={clsx("ml-auto text-gray-400 transition-transform", isOpenCredits && "rotate-180")} />
               </button>
               
               {isOpenCredits && (
-                <div className="absolute bottom-full left-0 right-0 mb-2 bg-white dark:bg-[#252525] border border-gray-300 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden animate-fade-in-up origin-bottom py-1" style={{ animationDuration: '200ms' }}>
+                <div className="absolute bottom-full left-0 right-0 mb-2 bg-white dark:bg-[#252525] border border-gray-300 dark:border-transparent rounded-xl shadow-xl z-50 overflow-hidden animate-fade-in-up origin-bottom py-1" style={{ animationDuration: '200ms' }}>
                   <div className="max-h-48 overflow-y-auto">
                     {listaCreditos.map((creador, index) => (
                       <SmartUserDisplay key={index} initialUser={creador} type="list" />

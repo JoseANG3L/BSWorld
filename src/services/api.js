@@ -596,3 +596,22 @@ export const getUserComments = async (userId) => {
     return [];
   }
 };
+
+// --- MODS RECOMENDADOS ---
+export const getRecommendedContent = async (currentId, tipo, tags = [], limit = 5) => {
+  try {
+    const { data, error } = await supabase
+      .from('content')
+      .select('*')
+      .eq('status', 'published')
+      .neq('id', currentId)
+      .order('likes_count', { ascending: false })
+      .limit(limit);
+    
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error("Error obteniendo contenido recomendado:", error);
+    return [];
+  }
+};
