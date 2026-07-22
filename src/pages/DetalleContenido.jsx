@@ -60,15 +60,46 @@ const RecommendedItem = ({ content }) => {
         });
     }, [content?.creadores]);
 
-    const primerCreador = creadoresList[0] || { nombre: 'Desconocido' };
+    const primerCreador = creadoresList[0] || { nombre: 'Desconocido', imagen: null, uid: null };
+
+    const [creatorData, setCreatorData] = useState(() => ({
+        nombre: primerCreador.nombre || 'Desconocido',
+        imagen: primerCreador.imagen || null,
+        uid: primerCreador.uid || null
+    }));
+
+    useEffect(() => {
+        let isMounted = true;
+        const targetUid = primerCreador.uid || primerCreador.id;
+
+        if (targetUid) {
+            getUserPublicProfile(targetUid).then(fresh => {
+                if (fresh && isMounted) {
+                    setCreatorData({
+                        nombre: fresh.nombre,
+                        imagen: fresh.imagen,
+                        uid: fresh.uid
+                    });
+                }
+            }).catch(err => console.error("Error obteniendo avatar creador recomendado", err));
+        }
+        return () => { isMounted = false; };
+    }, [primerCreador]);
+
+    const formatNumber = (num) => {
+        if (!num) return '0';
+        if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+        if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
+        return num.toString();
+    };
 
     return (
         <Link 
             to={`/view/${content.id}`}
-            className="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all group"
+            className="flex items-center gap-3 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700/30 transition-all group"
         >
             {/* Imagen a la izquierda */}
-            <div className="w-16 h-16 shrink-0 rounded-lg overflow-hidden bg-gray-200 dark:bg-[#191B1E]">
+            <div className="h-20 aspect-video shrink-0 rounded-lg overflow-hidden bg-gray-200 dark:bg-[#191B1E]">
                 <img 
                     src={content.imagen || '/default.jpg'} 
                     alt={content.titulo}
@@ -84,10 +115,13 @@ const RecommendedItem = ({ content }) => {
                     {content.titulo}
                 </h4>
 
-                {/* Creadores */}
-                <div className="flex items-center gap-1 mt-1">
+                {/* Creador con avatar */}
+                <div className="flex items-center gap-2 mt-1">
+                    <div className="w-4 h-4 shrink-0 rounded-full overflow-hidden bg-gray-200 dark:bg-[#191B1E]">
+                        <AvatarRenderer avatar={creatorData.imagen} name={creatorData.nombre} />
+                    </div>
                     <span className="text-xs text-gray-600 dark:text-gray-400 truncate">
-                        {primerCreador.nombre}
+                        {creatorData.nombre}
                     </span>
                     {creadoresList.length > 1 && (
                         <span className="text-xs text-gray-500 dark:text-gray-500">
@@ -96,16 +130,21 @@ const RecommendedItem = ({ content }) => {
                     )}
                 </div>
 
-                {/* Fecha */}
+                {/* Vistas y fecha */}
                 <div className="flex items-center gap-1 mt-1 text-xs text-gray-500 dark:text-gray-500">
-                    <Calendar size={10} />
-                    <span>
-                        {new Date(content.creado).toLocaleDateString('es-ES', { 
-                            year: 'numeric', 
-                            month: 'short', 
-                            day: 'numeric' 
-                        })}
-                    </span>
+                    <div className="flex items-center gap-1">
+                        <span>{formatNumber(content.vistas || 0)} vistas</span>
+                    </div>
+                    •
+                    <div className="flex items-center gap-1">
+                        <span>
+                            {new Date(content.creado).toLocaleDateString('es-ES', { 
+                                year: 'numeric', 
+                                month: 'short', 
+                                day: 'numeric' 
+                            })}
+                        </span>
+                    </div>
                 </div>
             </div>
         </Link>
@@ -272,13 +311,17 @@ const DetalleContenido = () => {
     const [isLiked, setIsLiked] = useState(false);
     const [likeLoading, setLikeLoading] = useState(false);
     const [showCreatorsModal, setShowCreatorsModal] = useState(false);
+    const [showShareModal, setShowShareModal] = useState(false);
+    const [showLoginModal, setShowLoginModal] = useState(false);
     const [recommendedContent, setRecommendedContent] = useState([]);
     const [loadingRecommended, setLoadingRecommended] = useState(false);
+    const [descriptionOverflow, setDescriptionOverflow] = useState(false);
+    const descriptionRef = useRef(null);
     const viewRegistered = useRef(false);
 
     // 👇 BLOQUEO DE SCROLL EN EL BODY CUANDO EL MODAL ESTÁ ABIERTO
     useEffect(() => {
-        if (showCreatorsModal) {
+        if (showCreatorsModal || showShareModal || showLoginModal) {
             document.body.style.overflow = 'hidden';
         } else {
             document.body.style.overflow = 'unset';
@@ -287,7 +330,15 @@ const DetalleContenido = () => {
         return () => {
             document.body.style.overflow = 'unset';
         };
-    }, [showCreatorsModal]);
+    }, [showCreatorsModal, showShareModal, showLoginModal]);
+
+    // 👇 VERIFICAR SI LA DESCRIPCIÓN DESBORDA EL CONTENEDOR
+    useEffect(() => {
+        if (descriptionRef.current && item?.descripcion) {
+            const isOverflowing = descriptionRef.current.scrollHeight > descriptionRef.current.clientHeight;
+            setDescriptionOverflow(isOverflowing);
+        }
+    }, [item?.descripcion]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -362,25 +413,49 @@ const DetalleContenido = () => {
         setTimeout(() => setCopied(false), 2000);
     };
 
+    const handleShare = (platform) => {
+        if (socialLinks[platform]) {
+            window.open(socialLinks[platform], '_blank', 'width=600,height=400');
+        }
+    };
+
     const handleLike = async () => {
         if (!user) {
-            navigate('/login');
+            setShowLoginModal(true);
             return;
         }
 
-        setLikeLoading(true);
+        // Optimistic update: actualizar UI inmediatamente
+        const newLikedState = !isLiked;
+        const previousLikedState = isLiked;
+        const previousLikesCount = item.likes_count || 0;
+
+        setIsLiked(newLikedState);
+        setItem(prev => ({
+            ...prev,
+            likes_count: newLikedState ? previousLikesCount + 1 : Math.max(0, previousLikesCount - 1)
+        }));
+
         try {
             const liked = await toggleLike(user.id, id);
-            setIsLiked(liked);
-            
-            setItem(prev => ({
-                ...prev,
-                likes_count: liked ? (prev.likes_count || 0) + 1 : Math.max(0, (prev.likes_count || 0) - 1)
-            }));
+
+            // Verificar que el resultado coincida con el optimistic update
+            if (liked !== newLikedState) {
+                // Revertir si hay discrepancia
+                setIsLiked(liked);
+                setItem(prev => ({
+                    ...prev,
+                    likes_count: liked ? previousLikesCount + 1 : Math.max(0, previousLikesCount - 1)
+                }));
+            }
         } catch (error) {
             console.error('Error al dar like:', error);
-        } finally {
-            setLikeLoading(false);
+            // Revertir en caso de error
+            setIsLiked(previousLikedState);
+            setItem(prev => ({
+                ...prev,
+                likes_count: previousLikesCount
+            }));
         }
     };
 
@@ -614,29 +689,28 @@ const DetalleContenido = () => {
                             </div>
                         </button>
 
-                        <div className="flex items-center gap-2 md:gap-3">
+                        <div className="flex items-center gap-2">
                             <button 
                                 onClick={handleLike}
-                                disabled={likeLoading}
                                 className={clsx(
-                                    "flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors",
+                                    "flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-semibold transition-all duration-150 active:scale-95 hover:opacity-80",
                                     isLiked 
-                                        ? "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400" 
-                                        : "bg-gray-100 dark:bg-[#191B1E] text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+                                        ? "text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300" 
+                                        : "text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400"
                                 )}
                             >
                                 <Heart 
-                                    size={14} 
-                                    className={clsx(isLiked && "fill-current")} 
+                                    size={18} 
+                                    className={clsx(isLiked && "fill-current transition-colors duration-150")} 
                                 />
                                 <span>{formatNumber(item.likes_count || 0)}</span>
                             </button>
                             
                             <button 
-                                onClick={handleCopyLink}
-                                className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 dark:bg-[#191B1E] rounded-full text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                                onClick={() => setShowShareModal(true)}
+                                className="flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400"
                             >
-                                <Share2 size={14} />
+                                <Share2 size={18} />
                             </button>
                         </div>
                     </div>
@@ -644,10 +718,10 @@ const DetalleContenido = () => {
 
                 {/* DESCRIPCIÓN CON BOTÓN VER MÁS */}
                 <div 
-                    onClick={() => !descriptionExpanded && setDescriptionExpanded(true)}
+                    onClick={() => descriptionOverflow && !descriptionExpanded && setDescriptionExpanded(true)}
                     className={clsx(
                         "bg-white dark:bg-[#1e1e1e] rounded-lg p-2 md:p-4 shadow-sm border border-gray-300 dark:border-transparent transition-colors", 
-                        !descriptionExpanded && "cursor-pointer hover:bg-gray-50/60 dark:hover:bg-[#222]"
+                        descriptionOverflow && !descriptionExpanded && "cursor-pointer hover:bg-gray-50/60 dark:hover:bg-[#222]"
                     )}
                 >
                     <div className="flex items-center justify-between mb-1">
@@ -656,14 +730,17 @@ const DetalleContenido = () => {
                         </h3>
                     </div>
                     <div className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">
-                        <div className={clsx(
-                            "transition-all duration-300 overflow-hidden",
-                            descriptionExpanded ? "" : "max-h-20 select-none"
-                        )}>
+                        <div 
+                            ref={descriptionRef}
+                            className={clsx(
+                                "transition-all duration-300 overflow-hidden",
+                                descriptionExpanded ? "" : "max-h-20 select-none"
+                            )}
+                        >
                             <MarkdownRenderer content={item.descripcion} />
                         </div>
                         
-                        {item.descripcion && item.descripcion.length > 180 && (
+                        {descriptionOverflow && (
                             <button
                                 onClick={(e) => {
                                     e.stopPropagation();
@@ -686,7 +763,7 @@ const DetalleContenido = () => {
                 
                 {/* TARJETA DE DESCARGAS */}
                 <div className="bg-white dark:bg-[#1e1e1e] rounded-lg p-3 md:p-4 shadow-sm border border-gray-300 dark:border-transparent">
-                    <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center justify-between mb-3">
                         <h3 className="text-base font-semibold text-gray-900 dark:text-white">
                             Descargas
                         </h3>
@@ -699,15 +776,15 @@ const DetalleContenido = () => {
                                     onClick={() => handleDownload(d)}
                                     disabled={downloading === d.url}
                                     className={clsx(
-                                        "relative flex items-center justify-between px-3 py-2 rounded-lg transition-colors w-full text-left border",
+                                        "flex items-center justify-between px-3 py-2 rounded-lg transition-colors w-full text-left border",
                                         downloading === d.url 
-                                            ? "bg-gray-50 dark:bg-[#191B1E] border-gray-200 dark:border-gray-700 cursor-not-allowed" 
-                                            : "bg-gray-50 dark:bg-[#191B1E] border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800"
+                                            ? "bg-white dark:bg-[#2e3238] border-gray-300 dark:border-transparent cursor-not-allowed" 
+                                            : "bg-white dark:bg-[#2e3238] border-gray-300 dark:border-transparent hover:bg-gray-200 dark:hover:bg-gray-700"
                                     )}
                                 >
                                     <div className="flex flex-col truncate pr-2">
                                         <div className="flex items-center gap-2">
-                                            <span className="truncate font-medium text-sm text-gray-900 dark:text-white">{d.label}</span>
+                                            <span className="truncate font-bold text-sm text-gray-700 dark:text-gray-200">{d.label}</span>
                                             {d.encrypted && (
                                                 <Lock size={12} className="text-blue-500 shrink-0" />
                                             )}
@@ -716,7 +793,7 @@ const DetalleContenido = () => {
                                             <Download size={10} /> {formatNumber(d.count || 0)} descargas
                                         </span>
                                     </div>
-                                    <div className="p-1.5 rounded-lg transition-colors shrink-0">
+                                    <div className="shrink-0">
                                         {downloading === d.url ? (
                                             decrypting ? (
                                                 <Unlock size={16} className="text-primary-600 dark:text-primary-400 animate-pulse" />
@@ -840,7 +917,7 @@ const DetalleContenido = () => {
                     className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm flex items-center justify-center"
                     onClick={() => setShowCreatorsModal(false)}
                 >
-                    <div 
+                    <div
                         className="bg-white dark:bg-[#1e1e1e] rounded-2xl p-2 md:p-4 max-w-md w-full border border-gray-200 dark:border-transparent shadow-2xl relative animate-fade-in-up"
                         style={{ animationDuration: '150ms' }}
                         onClick={(e) => e.stopPropagation()}
@@ -855,6 +932,152 @@ const DetalleContenido = () => {
                     </div>
                 </div>,
                 document.body // 👈 Lo inyecta directamente en el body de la página
+            )}
+
+            {/* MODAL DE COMPARTIR */}
+            {showShareModal && createPortal(
+                <div
+                    className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm flex items-center justify-center"
+                    onClick={() => setShowShareModal(false)}
+                >
+                    <div
+                        className="bg-white dark:bg-[#1e1e1e] rounded-2xl p-4 md:p-6 max-w-md w-full border border-gray-200 dark:border-transparent shadow-2xl relative animate-fade-in-up"
+                        style={{ animationDuration: '150ms' }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Compartir</h3>
+                            <button
+                                onClick={() => setShowShareModal(false)}
+                                className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                            >
+                                <X size={20} className="text-gray-500 dark:text-gray-400" />
+                            </button>
+                        </div>
+
+                        {/* Botones de redes sociales */}
+                        <div className="grid grid-cols-3 gap-3 mb-4">
+                            <button
+                                onClick={() => handleShare('whatsapp')}
+                                className="flex flex-col items-center gap-2 p-3 rounded-xl bg-green-600 hover:bg-green-700 text-white transition-colors"
+                            >
+                                <MessageCircle size={24} />
+                                <span className="text-xs font-medium">WhatsApp</span>
+                            </button>
+                            <button
+                                onClick={() => handleShare('telegram')}
+                                className="flex flex-col items-center gap-2 p-3 rounded-xl bg-[#0088cc] hover:bg-[#007dbb] text-white transition-colors"
+                            >
+                                <Send size={24} />
+                                <span className="text-xs font-medium">Telegram</span>
+                            </button>
+                            <button
+                                onClick={() => handleShare('twitter')}
+                                className="flex flex-col items-center gap-2 p-3 rounded-xl bg-[#1DA1F2] hover:bg-[#0c85d0] text-white transition-colors"
+                            >
+                                <Twitter size={24} />
+                                <span className="text-xs font-medium">Twitter</span>
+                            </button>
+                            <button
+                                onClick={() => handleShare('facebook')}
+                                className="flex flex-col items-center gap-2 p-3 rounded-xl bg-[#1877F2] hover:bg-[#0c5dc7] text-white transition-colors"
+                            >
+                                <Facebook size={24} />
+                                <span className="text-xs font-medium">Facebook</span>
+                            </button>
+                            <button
+                                onClick={() => handleShare('email')}
+                                className="flex flex-col items-center gap-2 p-3 rounded-xl bg-gray-600 hover:bg-gray-700 text-white transition-colors"
+                            >
+                                <Mail size={24} />
+                                <span className="text-xs font-medium">Email</span>
+                            </button>
+                            <button
+                                onClick={handleCopyLink}
+                                className={clsx(
+                                    "flex flex-col items-center gap-2 p-3 rounded-xl text-white transition-colors",
+                                    copied ? "bg-green-600" : "bg-orange-600 hover:bg-orange-700"
+                                )}
+                            >
+                                {copied ? <Check size={24} /> : <LinkIcon size={24} />}
+                                <span className="text-xs font-medium">{copied ? 'Copiado' : 'Copiar'}</span>
+                            </button>
+                        </div>
+
+                        {/* Enlace para copiar */}
+                        <div className="flex items-center gap-2 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                            <input
+                                type="text"
+                                value={window.location.href}
+                                readOnly
+                                className="flex-1 bg-transparent text-sm text-gray-700 dark:text-gray-300 outline-none truncate"
+                            />
+                            <button
+                                onClick={handleCopyLink}
+                                className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                            >
+                                {copied ? <Check size={16} className="text-green-600" /> : <Copy size={16} className="text-gray-500" />}
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {/* MODAL DE LOGIN */}
+            {showLoginModal && createPortal(
+                <div
+                    className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm flex items-center justify-center"
+                    onClick={() => setShowLoginModal(false)}
+                >
+                    <div
+                        className="bg-white dark:bg-[#1e1e1e] rounded-2xl p-6 md:p-8 max-w-sm w-full border border-gray-200 dark:border-transparent shadow-2xl relative animate-fade-in-up"
+                        style={{ animationDuration: '150ms' }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <button
+                            onClick={() => setShowLoginModal(false)}
+                            className="absolute top-4 right-4 p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                        >
+                            <X size={20} className="text-gray-500 dark:text-gray-400" />
+                        </button>
+
+                        <div className="flex flex-col items-center text-center mb-6">
+                            <div className="w-16 h-16 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center mb-4">
+                                <Heart size={32} className="text-primary-600 dark:text-primary-400" />
+                            </div>
+                            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                                Inicia sesión para dar like
+                            </h3>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                                Necesitas tener una cuenta para interactuar con el contenido
+                            </p>
+                        </div>
+
+                        <div className="flex flex-col gap-3">
+                            <button
+                                onClick={() => {
+                                    navigate('/login');
+                                    setShowLoginModal(false);
+                                }}
+                                className="w-full py-3 px-4 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2"
+                            >
+                                <LogIn size={18} />
+                                <span>Iniciar sesión</span>
+                            </button>
+                            <button
+                                onClick={() => {
+                                    navigate('/register');
+                                    setShowLoginModal(false);
+                                }}
+                                className="w-full py-3 px-4 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-semibold rounded-xl transition-colors"
+                            >
+                                Crear cuenta
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
             )}
         </div>
     );

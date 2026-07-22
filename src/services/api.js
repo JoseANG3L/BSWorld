@@ -384,34 +384,21 @@ export const toggleLike = async (userId, contentId) => {
       .eq('user_id', userId)
       .eq('content_id', contentId)
       .maybeSingle();
-    
+
     if (existingLike) {
       // Si existe, eliminar (unlike)
+      // Los triggers manejarán automáticamente los contadores
       const { error } = await supabase
         .from('likes')
         .delete()
         .eq('user_id', userId)
         .eq('content_id', contentId);
-      
+
       if (error) throw error;
-      
-      // Decrementar contador de likes del mod
-      await supabase.rpc('decrement_content_likes', { content_id: contentId });
-      
-      // Decrementar total_likes del creador
-      const { data: content } = await supabase
-        .from('content')
-        .select('aporte')
-        .eq('id', contentId)
-        .single();
-      
-      if (content?.aporte?.uid) {
-        await supabase.rpc('decrement_user_likes', { user_id: content.aporte.uid });
-      }
-      
       return false; // Unlike
     } else {
       // Si no existe, crear (like)
+      // Los triggers manejarán automáticamente los contadores
       const { error } = await supabase
         .from('likes')
         .insert({
@@ -419,23 +406,8 @@ export const toggleLike = async (userId, contentId) => {
           content_id: contentId,
           created_at: new Date().toISOString()
         });
-      
+
       if (error) throw error;
-      
-      // Incrementar contador de likes del mod
-      await supabase.rpc('increment_content_likes', { content_id: contentId });
-      
-      // Incrementar total_likes del creador
-      const { data: content } = await supabase
-        .from('content')
-        .select('aporte')
-        .eq('id', contentId)
-        .single();
-      
-      if (content?.aporte?.uid) {
-        await supabase.rpc('increment_user_likes', { user_id: content.aporte.uid });
-      }
-      
       return true; // Like
     }
   } catch (error) {
