@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { getContentByCreator, getUserByUsername, getUserPublicProfile } from '../services/api'; // Importamos la nueva función
 import Card from '../components/Card';
 import { 
   Calendar, Shield, UserX, Loader2,
-  Grid, Boxes, Map, Gamepad2, Package, Wrench, User, Search, ChevronDown
+  Grid, Boxes, Map, Gamepad2, Package, Wrench, User, Search, ChevronDown, ArrowUpDown
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import AvatarRenderer from '../components/AvatarRenderer';
@@ -17,7 +17,22 @@ const PublicProfile = () => {
   const [loading, setLoading] = useState(true);
   const [exists, setExists] = useState(true);
   
+  const [busqueda, setBusqueda] = useState('');
+  const [orden, setOrden] = useState('recientes');
   const [activeTab, setActiveTab] = useState('todos');
+  const [isOrdenDropdownOpen, setIsOrdenDropdownOpen] = useState(false);
+  const ordenDropdownRef = useRef(null);
+
+  // Cierre del menú de ordenamiento al dar clic afuera
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (ordenDropdownRef.current && !ordenDropdownRef.current.contains(event.target)) {
+        setIsOrdenDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     const loadData = async () => {
@@ -53,10 +68,39 @@ const PublicProfile = () => {
   }, [username]);
 
   // --- LÓGICA DE FILTRADO ---
-  const filteredContent = content.filter(item => {
-    if (activeTab === 'todos') return true;
-    return item.tipo === activeTab;
-  });
+  const filteredContent = useMemo(() => {
+    let resultado = content.filter(item => {
+      if (activeTab === 'todos') return true;
+      return item.tipo === activeTab;
+    });
+
+    // Aplicar búsqueda
+    if (busqueda) {
+      const lowerBusqueda = busqueda.toLowerCase();
+      resultado = resultado.filter(item => {
+        const matchTitle = item.titulo?.toLowerCase().includes(lowerBusqueda);
+        const matchTags = item.tags?.some(tag => tag.toLowerCase().includes(lowerBusqueda));
+        return matchTitle || matchTags;
+      });
+    }
+
+    // Aplicar ordenamiento
+    resultado.sort((a, b) => {
+      if (orden === 'recientes') return new Date(b.creado) - new Date(a.creado);
+      if (orden === 'antiguos') return new Date(a.creado) - new Date(b.creado);
+      if (orden === 'az') return a.titulo.localeCompare(b.titulo);
+      if (orden === 'za') return b.titulo.localeCompare(a.titulo);
+      if (orden === 'mas_vistas') return (b.vistas || 0) - (a.vistas || 0);
+      if (orden === 'mas_descargas') {
+        const totalA = (a.descargas || []).reduce((acc, curr) => acc + (curr.count || 0), 0);
+        const totalB = (b.descargas || []).reduce((acc, curr) => acc + (curr.count || 0), 0);
+        return totalB - totalA;
+      }
+      return 0;
+    });
+
+    return resultado;
+  }, [content, activeTab, busqueda, orden]);
 
   // --- CONFIGURACIÓN DE TABS ---
   const counts = {
@@ -154,24 +198,54 @@ const PublicProfile = () => {
          </div>
       </div>
 
-      {/* SECCIÓN 2: TABS */}
+      {/* SECCIÓN 3: BARRA DE BÚSQUEDA Y ORDENAMIENTO */}
       <div className="max-w-7xl mx-auto mb-4 md:mb-6">
-        <div className="block md:hidden">
-            <div className="relative">
-                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" size={20} />
-                <select value={activeTab} onChange={(e) => setActiveTab(e.target.value)} className="w-full appearance-none bg-white dark:bg-[#1e1e1e] border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white py-3 pl-4 pr-10 rounded-xl shadow-sm font-medium focus:ring-2 focus:ring-primary-500 focus:outline-none transition-all">
-                    {tabsConfig.map((tab) => (
-                        <option key={tab.id} value={tab.id}>{tab.label} {tab.count > 0 ? `(${tab.count})` : ''}</option>
+        <div className="flex flex-col md:flex-row gap-3 md:gap-4 items-start md:items-center">
+          {/* Búsqueda */}
+          <div className="relative w-full md:flex-1">
+            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input 
+              type="text" 
+              placeholder="Buscar por título o etiquetas..." 
+              value={busqueda} 
+              onChange={(e) => setBusqueda(e.target.value)} 
+              className="w-full pl-10 pr-4 py-2.5 h-10 rounded-xl dark:bg-[#191B1E] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all text-sm" 
+            />
+          </div>
+
+          {/* Ordenamiento */}
+          <div className="flex items-center gap-2 w-full md:w-auto" ref={ordenDropdownRef}>
+            <div className="relative w-full md:w-64">
+              <ArrowUpDown size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <button 
+                type="button" 
+                onClick={() => setIsOrdenDropdownOpen(!isOrdenDropdownOpen)} 
+                className="w-full pl-10 pr-10 py-2.5 h-10 rounded-xl dark:bg-[#191B1E] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none appearance-none cursor-pointer transition-all text-sm font-medium text-left"
+              >
+                <span className="truncate block">
+                  {orden === 'mas_descargas' ? 'Más Descargas' : orden === 'mas_vistas' ? 'Más Vistas' : orden === 'az' ? 'Nombre (A-Z)' : orden === 'za' ? 'Nombre (Z-A)' : orden === 'recientes' ? 'Más Recientes' : orden === 'antiguos' ? 'Más Antiguos' : orden}
+                </span>
+              </button>
+              <ChevronDown size={16} className={clsx("absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none transition-transform duration-200", isOrdenDropdownOpen && "rotate-180")} />
+
+              {isOrdenDropdownOpen && (
+                <div className="absolute top-full left-0 right-0 mt-2 dark:bg-[#191B1E] border border-gray-300 dark:border-transparent rounded-xl shadow-lg z-50 p-1">
+                  <div className="flex flex-col gap-0.5">
+                    {[{ val: 'mas_descargas', label: 'Más Descargas' }, { val: 'mas_vistas', label: 'Más Vistas' }, { val: 'az', label: 'Nombre (A-Z)' }, { val: 'za', label: 'Nombre (Z-A)' }, { val: 'recientes', label: 'Más Recientes' }, { val: 'antiguos', label: 'Más Antiguos' }].map((opt) => (
+                      <button 
+                        key={opt.val} 
+                        type="button" 
+                        onClick={() => { setOrden(opt.val); setIsOrdenDropdownOpen(false); }} 
+                        className={clsx("w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors", orden === opt.val ? "text-gray-800 dark:text-white bg-gray-200 dark:bg-gray-700 font-semibold" : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700")}
+                      >
+                        {opt.label}
+                      </button>
                     ))}
-                </select>
+                  </div>
+                </div>
+              )}
             </div>
-        </div>
-        <div className="hidden md:flex justify-center">
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 px-1 scrollbar-hide max-w-full">
-                {tabsConfig.map((tab) => (
-                    <TabButton key={tab.id} active={activeTab === tab.id} onClick={() => setActiveTab(tab.id)} icon={tab.icon} label={tab.label} count={tab.count} />
-                ))}
-            </div>
+          </div>
         </div>
       </div>
 
@@ -192,11 +266,5 @@ const PublicProfile = () => {
     </div>
   );
 };
-
-const TabButton = ({ active, onClick, icon: Icon, label, count }) => (
-  <button onClick={onClick} className={clsx("flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm transition-all whitespace-nowrap border select-none", active ? "bg-primary-600 text-white border-primary-600 shadow-sm transform" : "bg-white dark:bg-[#1e1e1e] text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-[#191B1E]")}>
-    <Icon size={16} /> {label} {count > 0 && <span className={clsx("ml-1 text-[10px] px-1.5 py-0.5 rounded-md", active ? "bg-white/20 text-white dark:bg-black/10" : "bg-gray-100 dark:bg-gray-700 text-gray-400")}>{count}</span>}
-  </button>
-);
 
 export default PublicProfile;

@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import Header from './Header';
 import MobileBottomNav from './MobileBottomNav';
 import Footer from './Footer';
-import { clsx } from 'clsx';
 
 const Layout = ({ toggleTheme, isDarkMode }) => {
   const location = useLocation();
@@ -15,12 +14,21 @@ const Layout = ({ toggleTheme, isDarkMode }) => {
         isDarkMode={isDarkMode} 
       />
       
-      <main className="flex-1 transition-colors duration-300 relative z-0">
+      {/* Mantenemos pb-14 o pb-16 en móvil para reservar espacio a MobileBottomNav */}
+      <main className="flex-1 transition-colors duration-300 relative z-0 pb-14 lg:pb-0">
         <Outlet />
+        
         <Footer />
+        {/* 💡 Oculto en móviles, visible solo en pantallas grandes */}
+        {/* <div className="hidden lg:block">
+          <Footer />
+        </div> */}
       </main>
       
-      <MobileBottomNav />
+      {/* Navegación inferior fija en móvil */}
+      {/* <div className="fixed bottom-0 left-0 right-0 z-40 lg:hidden">
+        <MobileBottomNav />
+      </div> */}
     </div>
   );
 };

@@ -33,6 +33,8 @@ import DetalleContenido from './pages/DetalleContenido';
 import SubirMod from './pages/SubirMod';
 import SubirModPage from './pages/SubirModPage';
 import Notificaciones from './pages/Notificaciones';
+import Servidores from './pages/Servidores';
+import DetalleServidor from './pages/DetalleServidor';
 
 // 👇 COMPONENTE INTERNO PARA REINICIAR EL SCROLL EN CADA CAMBIO DE RUTA
 const ScrollToTop = () => {
@@ -96,6 +98,8 @@ function App() {
             <Route path="acerca-de" element={<AcercaDe />} />
             <Route path="contacto" element={<Contacto />} />
             <Route path="destacados" element={<Destacados />} />
+            <Route path="servidores" element={<Servidores />} />
+            <Route path="servidor/:id" element={<DetalleServidor />} />
             <Route path="/view/:id" element={<DetalleContenido />} />
 
             {/* --- RUTAS PROTEGIDAS --- */}

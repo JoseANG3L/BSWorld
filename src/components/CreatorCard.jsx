@@ -17,7 +17,7 @@ const CreatorCard = ({ username, avatar, banner, role, createdat }) => {
   return (
     <Link 
       to={`/u/${username}`} 
-      className="block group relative bg-white dark:bg-[#1e1e1e] border border-gray-300 dark:border-gray-700 rounded-2xl overflow-hidden shadow-sm transition-all duration-300"
+      className="block group relative bg-white dark:bg-[#1e1e1e] border border-gray-300 dark:border-transparent rounded-2xl overflow-hidden shadow-sm transition-all duration-300"
     >
       
       {/* --- BANNER SUPERIOR DINÁMICO --- */}

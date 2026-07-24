@@ -33,7 +33,7 @@ const CopyCodeButton = ({ text }) => {
 const MarkdownRenderer = ({ content, className = '' }) => {
     if (!content) {
         return (
-            <div className="flex items-center gap-2 text-gray-400 dark:text-gray-500 italic">
+            <div className="flex items-center py-3 gap-2 text-gray-400 dark:text-gray-500 italic">
                 <AlertCircle size={20} />
                 Sin descripción disponible.
             </div>

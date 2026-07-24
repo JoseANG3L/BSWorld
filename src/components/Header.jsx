@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Search, Sun, Moon, User, Menu, LogOut, ShieldCheck, UserPlus, LogIn, Settings, Upload, LayoutGrid, Gamepad2, ChevronDown, Home, Crown, Boxes, Info, Mail, Earth } from 'lucide-react';
+import { Search, Sun, Moon, User, Menu, LogOut, ShieldCheck, UserPlus, LogIn, Settings, Upload, LayoutGrid, Gamepad2, ChevronDown, Home, Crown, Boxes, Info, Mail, Earth, Server } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useAuth } from '../context/AuthContext';
@@ -12,6 +12,7 @@ const menuItems = [
   { to: "/", icon: Home, label: "Inicio" },
   { to: "/comunidad", icon: Crown, label: "Comunidad" },
   { to: "/mods", icon: Gamepad2, label: "Mods" },
+  { to: "/servidores", icon: Server, label: "Servidores" },
 ];
 
 const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
@@ -62,18 +63,18 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
 
   return (
     <>
-    <header className="flex items-center gap-2 md:gap-4 sticky top-0 z-40 px-2 md:px-4 py-2 bg-white dark:bg-dark-bg transition-colors duration-300 border-b border-gray-200 dark:border-gray-800 shadow-sm">
+    <header className="flex items-center gap-2 lg:gap-4 sticky top-0 z-40 px-2 lg:px-4 py-2 bg-white dark:bg-dark-bg transition-colors duration-300 border-b border-gray-200 dark:border-gray-800 shadow-sm">
 
       {/* MENÚ HAMBURGUESA (Solo móvil) */}
       <div className="lg:hidden relative" ref={navMenuRef}>
         <button
           onClick={() => setIsNavMenuOpen(!isNavMenuOpen)}
-          className="p-1.5 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+          className="w-9 h-9 flex items-center justify-center rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
         >
-          <Menu size={18} />
+          <Menu size={24} />
         </button>
         {isNavMenuOpen && (
-          <div className="absolute left-0 mt-2 w-48 bg-white dark:bg-[#1e1e1e] rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 py-2 z-50 animate-fade-in-up">
+          <div className="absolute left-0 mt-2 w-48 bg-white dark:bg-[#1e1e1e] rounded-xl shadow-xl border border-gray-300 dark:border-transparent py-2 z-50 origin-top-left">
             {menuItems.map((item) => {
               const isActive = location.pathname === item.to;
               return (
@@ -97,15 +98,41 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
         )}
       </div>
 
+      {/* ICONO BÚSQUEDA (Solo móvil, izquierda) */}
+      <button className="w-9 h-9 flex items-center justify-center md:hidden p-1.5 mr-auto rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700" onClick={() => setIsFocused(true)}>
+        <Search size={22} className="text-gray-600 dark:text-gray-400" />
+      </button>
+
+      {/* SEARCH EXPANDIDO (Solo móvil cuando está enfocado) */}
+      {isFocused && (
+        <div className="absolute inset-0 left-0 right-0 top-0 bottom-0 bg-white dark:bg-dark-bg z-50 flex items-center gap-2 pl-2 pr-3 md:hidden">
+          <button className="p-1.5" onClick={() => setIsFocused(false)}>
+            <Search size={22} className="text-gray-600 dark:text-gray-400" />
+          </button>
+          <input
+            type="text"
+            placeholder="Buscar mapas, mods..."
+            autoFocus
+            onBlur={() => setIsFocused(false)}
+            onKeyDown={handleSearch}
+            className={clsx(
+              "flex-1 py-2 px-4 rounded-xl text-sm font-medium transition-all duration-300 outline-none border shadow-sm",
+              "bg-white dark:bg-[#191B1E] border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 placeholder-gray-400",
+              "focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+            )}
+          />
+        </div>
+      )}
+
       {/* LOGO BSWorld (Solo texto, centrado en móvil, izquierda en desktop) */}
-      <Link to="/" className="flex items-center shrink-0 group mx-auto md:mx-0">
-        <span className="font-bold text-sm md:text-xl text-black dark:text-white hover:text-primary-700 dark:hover:text-primary-300 transition-colors">
+      <Link to="/" className="flex items-center shrink-0 group mx-auto md:mx-0 pr-1 lg:pr-0">
+        <span className="pt-0.5 font-bold text-xl md:text-xl text-black dark:text-white hover:text-primary-700 dark:hover:text-primary-300 transition-colors">
           BSWorld
         </span>
       </Link>
 
       {/* SEARCH BAR (Desktop) */}
-      <div className="hidden md:block relative transition-all duration-300 ease-out flex-1 max-w-2xl">
+      <div className="hidden md:block relative transition-all duration-300 ease-out flex-1 max-w-2xl pr-1 lg:pr-0">
         <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
           <Search size={18} className={clsx("transition-colors duration-300", isFocused ? "text-primary-600 dark:text-primary-400" : "text-gray-400")} />
         </div>
@@ -123,34 +150,10 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
         />
       </div>
 
-      {/* ICONO BÚSQUEDA (Solo móvil, derecha) */}
-      <button className="md:hidden p-1.5 ml-auto" onClick={() => setIsFocused(true)}>
-        <Search size={18} className="text-gray-600 dark:text-gray-400" />
-      </button>
-
-      {/* SEARCH EXPANDIDO (Solo móvil cuando está enfocado) */}
-      {isFocused && (
-        <div className="absolute inset-0 left-0 right-0 top-0 bottom-0 bg-white dark:bg-[#1e1e1e] z-50 flex items-center gap-2 px-2 md:hidden">
-          <button className="p-1.5" onClick={() => setIsFocused(false)}>
-            <Search size={18} className="text-gray-600 dark:text-gray-400" />
-          </button>
-          <input
-            type="text"
-            placeholder="Buscar mapas, mods..."
-            autoFocus
-            onBlur={() => setIsFocused(false)}
-            onKeyDown={handleSearch}
-            className={clsx(
-              "flex-1 py-2 pl-4 pr-4 rounded-xl text-sm font-medium transition-all duration-300 outline-none border shadow-sm",
-              "bg-gray-50 dark:bg-[#191B1E] border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 placeholder-gray-400",
-              "focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
-            )}
-          />
-        </div>
-      )}
+      
 
       {/* MENÚ DE NAVEGACIÓN (DESKTOP) */}
-      <div className="hidden lg:flex items-center gap-1 ml-4">
+      <div className="hidden lg:flex items-center gap-1 ml-0 xl:ml-4">
         {menuItems.map((item) => {
           const isActive = location.pathname === item.to;
           return (
@@ -158,7 +161,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
               key={item.to}
               to={item.to}
               className={clsx(
-                "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 relative group",
+                "flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-all duration-300 relative group",
                 isActive
                   ? "text-primary-600 dark:text-primary-400 font-semibold"
                   : "text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400"
@@ -176,15 +179,15 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
       </div>
 
       {/* ACCIONES (Desktop) */}
-      <div className="hidden md:flex items-center gap-3 ml-auto">
+      <div className="hidden md:flex items-center gap-2 lg:gap-3 ml-auto">
 
         {/* SUBIR MOD */}
         <button 
           onClick={handleSubirModClick}
-          className="flex px-4 py-2 bg-primary-600 hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-800 text-white rounded-lg text-sm font-semibold transition-colors shadow-sm items-center gap-2"
+          className="flex items-center justify-center w-9 h-9 xl:w-auto xl:h-auto px-0 py-0 xl:px-4 xl:py-2 bg-primary-600 hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-800 text-white rounded-full xl:rounded-lg text-sm font-semibold transition-colors shadow-sm gap-2"
         >
           <Upload size={16} strokeWidth={3} />
-          <span>Subir</span>
+          <span className="hidden xl:flex">Subir</span>
         </button>
 
         {/* THEME TOGGLE */}
@@ -221,12 +224,14 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
                     />
                   </div>
                 </div>
-                <div className="flex items-center gap-1 max-w-[120px]">
+                
+                <div className="hidden xl:flex items-center gap-1 max-w-[120px]">
                   <span className="text-sm font-bold text-gray-900 dark:text-gray-200 truncate select-none">
                     {user.username}
                   </span>
                   <ChevronDown size={14} className={clsx("text-gray-900 dark:text-gray-500 transition-transform duration-300 flex-shrink-0", isProfileOpen && "rotate-180")} />
                 </div>
+
               </div>
             ) : (
               // DESCONECTADO: Icono gris
@@ -238,7 +243,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
 
           {/* MENÚ DESPLEGABLE */}
           {isProfileOpen && (
-            <div className="absolute right-0 mt-3 w-56 bg-white dark:bg-[#1e1e1e] rounded-xl shadow-xl border border-gray-300 dark:border-gray-700 py-2 z-50 origin-top-right overflow-hidden">
+            <div className="absolute right-0 mt-3 w-56 bg-white dark:bg-[#1e1e1e] rounded-xl shadow-xl border border-gray-300 dark:border-transparent py-2 z-50 origin-top-right overflow-hidden">
               {user ? (
                 <>
                   <div className="px-4 pb-3 pt-1 border-b border-gray-100 dark:border-gray-800 mb-1">
