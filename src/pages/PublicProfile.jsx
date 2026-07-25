@@ -1,16 +1,18 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useParams } from 'react-router-dom';
-import { getContentByCreator, getUserByUsername, getUserPublicProfile } from '../services/api'; // Importamos la nueva función
+import { useParams, Link } from 'react-router-dom';
+import { getContentByCreator, getUserByUsername, getUserPublicProfile } from '../services/api';
 import Card from '../components/Card';
 import { 
   Calendar, Shield, UserX, Loader2,
-  Grid, Boxes, Map, Gamepad2, Package, Wrench, User, Search, ChevronDown, ArrowUpDown
+  Grid, Boxes, Map, Gamepad2, Package, Wrench, User, Search, ChevronDown, ArrowUpDown, Edit3, Settings
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import AvatarRenderer from '../components/AvatarRenderer';
+import { useAuth } from '../context/AuthContext';
 
 const PublicProfile = () => {
   const { username } = useParams();
+  const { user: currentUser } = useAuth(); // Contexto de usuario autenticado
   
   const [profile, setProfile] = useState(null);
   const [content, setContent] = useState([]);
@@ -22,6 +24,12 @@ const PublicProfile = () => {
   const [activeTab, setActiveTab] = useState('todos');
   const [isOrdenDropdownOpen, setIsOrdenDropdownOpen] = useState(false);
   const ordenDropdownRef = useRef(null);
+
+  // Verificar si el usuario en sesión es el dueño de este perfil
+  const isOwnProfile = useMemo(() => {
+    if (!currentUser || !profile) return false;
+    return currentUser.id === profile.uid || currentUser.username?.toLowerCase() === username?.toLowerCase();
+  }, [currentUser, profile, username]);
 
   // Cierre del menú de ordenamiento al dar clic afuera
   useEffect(() => {
@@ -43,11 +51,9 @@ const PublicProfile = () => {
         
         let finalProfile = userData;
 
-        // 2. Si encontramos el UID, usamos getUserPublicProfile para obtener datos frescos y cacheados
+        // 2. Si encontramos el UID, usamos getUserPublicProfile para obtener datos frescos
         if (userData && userData.uid) {
             const publicProfile = await getUserPublicProfile(userData.uid);
-            // Fusionamos: Los datos de 'userData' (como el banner/rol que vienen de la query)
-            // con los datos frescos de 'publicProfile' (nombre/imagen actualizados)
             finalProfile = { ...userData, ...publicProfile };
         }
 
@@ -74,7 +80,6 @@ const PublicProfile = () => {
       return item.tipo === activeTab;
     });
 
-    // Aplicar búsqueda
     if (busqueda) {
       const lowerBusqueda = busqueda.toLowerCase();
       resultado = resultado.filter(item => {
@@ -84,7 +89,6 @@ const PublicProfile = () => {
       });
     }
 
-    // Aplicar ordenamiento
     resultado.sort((a, b) => {
       if (orden === 'recientes') return new Date(b.creado) - new Date(a.creado);
       if (orden === 'antiguos') return new Date(a.creado) - new Date(b.creado);
@@ -102,26 +106,6 @@ const PublicProfile = () => {
     return resultado;
   }, [content, activeTab, busqueda, orden]);
 
-  // --- CONFIGURACIÓN DE TABS ---
-  const counts = {
-    mapa: content.filter(i => i.tipo === 'mapa').length,
-    minijuego: content.filter(i => i.tipo === 'minijuego').length,
-    modpack: content.filter(i => i.tipo === 'modpack').length,
-    mod: content.filter(i => i.tipo === 'mod').length,
-    paquete: content.filter(i => i.tipo === 'paquete').length,
-    personaje: content.filter(i => i.tipo === 'personaje').length,
-  };
-
-  const tabsConfig = [
-    { id: 'todos', label: 'Todo', icon: Grid, count: content.length },
-    { id: 'mapa', label: 'Mapas', icon: Map, count: counts.mapa },
-    { id: 'minijuego', label: 'Minijuegos', icon: Gamepad2, count: counts.minijuego },
-    { id: 'modpack', label: 'Modpacks', icon: Boxes, count: counts.modpack },
-    { id: 'mod', label: 'Mods', icon: Wrench, count: counts.mod },
-    { id: 'paquete', label: 'Paquetes', icon: Package, count: counts.paquete },
-    { id: 'personaje', label: 'Personajes', icon: User, count: counts.personaje },
-  ];
-
   if (loading) return (
     <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4">
       <Loader2 className="animate-spin text-primary-600" size={48}/>
@@ -137,10 +121,7 @@ const PublicProfile = () => {
     </div>
   );
 
-  // Avatar y Banner
-  // Priorizamos 'imagen' (que viene de getUserPublicProfile) sobre 'avatar'
   const displayAvatar = profile?.imagen || profile?.avatar; 
-  const hasCustomBanner = !!profile?.banner;
   const banner = profile?.banner;
   const joinDate = profile?.createdat 
     ? new Date(profile.createdat).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }) 
@@ -163,6 +144,18 @@ const PublicProfile = () => {
             ) : (
                 <div className={clsx("w-full h-full", profile?.role === 'admin' ? "bg-gradient-to-r from-yellow-500 to-orange-600" : "bg-gradient-to-r from-primary-600 to-purple-600")}></div>
             )}
+
+            {/* Botón rápido sobre el banner si es el dueño */}
+            {isOwnProfile && (
+              <Link 
+                to="/configuracion"
+                className="absolute top-3 right-3 md:top-4 md:right-4 p-2.5 rounded-full bg-black/40 hover:bg-black/70 text-white backdrop-blur-md transition-all border border-white/20 shadow-lg flex items-center gap-2 text-xs font-semibold"
+                title="Editar banner o avatar"
+              >
+                <Edit3 size={15} />
+                <span className="hidden md:inline">Editar Perfil</span>
+              </Link>
+            )}
          </div>
 
          <div className="max-w-7xl mx-auto">
@@ -182,6 +175,20 @@ const PublicProfile = () => {
                      <h1 className="text-3xl md:text-4xl font-black text-gray-900 dark:text-white flex items-center justify-center gap-2">
                         {username}
                      </h1>
+
+                     {/* BOTÓN EDITAR PERFIL DEBAJO DEL NOMBRE */}
+                     {isOwnProfile && (
+                       <div className="mt-3 flex justify-center">
+                         <Link
+                           to="/configuracion"
+                           className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-100 dark:bg-[#191B1E] hover:bg-gray-200 dark:hover:bg-gray-800 text-gray-800 dark:text-gray-200 font-semibold text-xs transition-colors border border-gray-300 dark:border-gray-700 shadow-sm"
+                         >
+                           <Settings size={15} />
+                           <span>Editar perfil</span>
+                         </Link>
+                       </div>
+                     )}
+
                      <div className="flex items-center justify-center gap-6 mt-4 text-sm text-gray-600 dark:text-gray-300">
                          <div className="flex flex-col items-center">
                              <span className="font-bold text-lg">{content.length}</span>
@@ -198,7 +205,7 @@ const PublicProfile = () => {
          </div>
       </div>
 
-      {/* SECCIÓN 3: BARRA DE BÚSQUEDA Y ORDENAMIENTO */}
+      {/* SECCIÓN 2: BARRA DE BÚSQUEDA Y ORDENAMIENTO */}
       <div className="max-w-7xl mx-auto mb-4 md:mb-6">
         <div className="flex flex-col md:flex-row gap-3 md:gap-4 items-start md:items-center">
           {/* Búsqueda */}

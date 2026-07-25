@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Search, Sun, Moon, User, Menu, LogOut, ShieldCheck, UserPlus, LogIn, Settings, Upload, LayoutGrid, Gamepad2, ChevronDown, Home, Crown, Boxes, Info, Mail, Earth, Server } from 'lucide-react';
+import { Search, Sun, Moon, User, Menu, LogOut, ShieldCheck, UserPlus, LogIn, Settings, Upload, 
+  LayoutGrid, Gamepad2, ChevronDown, Home, Crown, Bell, Info, Mail, Earth, Server, Heart } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useAuth } from '../context/AuthContext';
@@ -63,18 +64,18 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
 
   return (
     <>
-    <header className="flex items-center gap-1 md:gap-2 lg:gap-4 sticky top-0 z-40 px-2 lg:px-4 py-2 bg-white dark:bg-dark-bg transition-colors duration-300 border-b border-gray-200 dark:border-gray-800 shadow-sm">
+    <header className="flex items-center gap-1 md:gap-2 lg:gap-4 sticky top-0 z-40 px-2 lg:px-4 py-1.5 md:py-2 bg-white dark:bg-dark-bg transition-colors duration-300 border-b border-gray-200 dark:border-gray-800 shadow-sm">
 
       {/* MENÚ HAMBURGUESA (Solo móvil) */}
       <div className="lg:hidden relative" ref={navMenuRef}>
         <button
           onClick={() => setIsNavMenuOpen(!isNavMenuOpen)}
-          className="w-9 h-9 flex items-center justify-center rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+          className="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
         >
           <Menu size={26} />
         </button>
         {isNavMenuOpen && (
-          <div className="absolute left-0 mt-1 md:mt-3 w-56 bg-white dark:bg-[#1e1e1e] rounded-xl shadow-xl border border-gray-300 dark:border-transparent py-2 z-50 origin-top-left">
+          <div className="absolute left-0 mt-1.5 md:mt-3 w-56 bg-white dark:bg-[#1e1e1e] rounded-xl shadow-xl border border-gray-300 dark:border-transparent py-2 z-50 origin-top-left">
             {menuItems.map((item) => {
               const isActive = location.pathname === item.to;
               return (
@@ -99,7 +100,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
       </div>
 
       {/* ICONO BÚSQUEDA (Solo móvil, izquierda) */}
-      <button className="w-9 h-9 flex items-center justify-center md:hidden mr-2 p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700" onClick={() => setIsFocused(true)}>
+      <button className="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center md:hidden mr-2 p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700" onClick={() => setIsFocused(true)}>
         <Search size={22} className="text-gray-600 dark:text-gray-400" />
       </button>
 
@@ -182,7 +183,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
         {/* SUBIR MOD */}
         <button 
           onClick={handleSubirModClick}
-          className="flex items-center justify-center w-9 h-9 xl:w-auto xl:h-auto px-0 py-0 xl:px-4 xl:py-2 bg-primary-600 hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-800 text-white rounded-full xl:rounded-lg text-sm font-semibold transition-colors shadow-sm gap-2"
+          className="flex items-center justify-center w-8 h-8 md:w-9 md:h-9 xl:w-auto xl:h-auto px-0 py-0 xl:px-4 xl:py-2 bg-primary-600 hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-800 text-white rounded-full xl:rounded-lg text-sm font-semibold transition-colors shadow-sm gap-2"
         >
           <Upload size={16} strokeWidth={3} />
           <span className="hidden xl:flex">Subir</span>
@@ -216,7 +217,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
             {user ? (
               // CONECTADO: Avatar + Username + Flecha
               <div className="flex gap-2">
-                <div className="relative w-9 h-9 rounded-full bg-gradient-to-tr from-primary-600 to-primary-900 shadow-sm shrink-0">
+                <div className="relative w-8 h-8 md:w-9 md:h-9 rounded-full bg-gradient-to-tr from-primary-600 to-primary-900 shadow-sm shrink-0">
                   <div className="w-full h-full rounded-full overflow-hidden bg-white dark:bg-[#191B1E]">
                     <AvatarRenderer 
                       avatar={user.avatar} 
@@ -235,7 +236,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
               </div>
             ) : (
               // DESCONECTADO: Icono gris
-              <div className="w-9 h-9 rounded-full bg-white dark:bg-[#252525] border border-gray-300 dark:border-gray-700 flex items-center justify-center shadow-sm hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400 transition-all">
+              <div className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-white dark:bg-[#252525] border border-gray-300 dark:border-gray-700 flex items-center justify-center shadow-sm hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400 transition-all">
                 <User size={20} className="text-gray-500 dark:text-gray-400 group-hover:text-primary-600 dark:group-hover:text-primary-400" />
               </div>
             )}
@@ -243,7 +244,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
 
           {/* MENÚ DESPLEGABLE */}
           {isProfileOpen && (
-            <div className="absolute right-0 mt-2 md:mt-3 w-56 bg-white dark:bg-[#1e1e1e] rounded-xl shadow-xl border border-gray-300 dark:border-transparent py-2 z-50 origin-top-right overflow-hidden">
+            <div className="absolute right-0 mt-1.5 md:mt-3 w-56 bg-white dark:bg-[#1e1e1e] rounded-xl shadow-xl border border-gray-300 dark:border-transparent py-2 z-50 origin-top-right overflow-hidden">
               {user ? (
                 <>
                   {/* Información del Usuario */}
@@ -256,7 +257,9 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
                   {[
                     { to: `/u/${user.username}`, icon: User, label: 'Mi Perfil' },
                     { to: '/mis-mods', icon: LayoutGrid, label: 'Mis Mods' },
-                    { to: '/configuracion', icon: Settings, label: 'Configuración' },
+                    // { to: '/favoritos', icon: Heart, label: 'Favoritos' },
+                    { to: '/notificaciones', icon: Bell, label: 'Notificaciones' },
+                    // { to: '/configuracion', icon: Settings, label: 'Configuración' },
                     ...(user?.role === 'admin' ? [{ to: '/admin', icon: ShieldCheck, label: 'Panel Admin' }] : [])
                   ].map((item) => (
                     <Link
