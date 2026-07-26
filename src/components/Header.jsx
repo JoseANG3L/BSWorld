@@ -1,13 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Search, Sun, Moon, User, Menu, LogOut, ShieldCheck, UserPlus, LogIn, Settings, Upload, 
-  LayoutGrid, Gamepad2, ChevronDown, Home, Crown, Bell, Info, Mail, Earth, Server, Heart } from 'lucide-react';
+import { 
+  Search, Sun, Moon, User, Menu, LogOut, ShieldCheck, UserPlus, LogIn, Settings, Upload, 
+  LayoutGrid, Gamepad2, ChevronDown, Home, Crown, Bell, Info, Mail, Earth, Server, Heart 
+} from 'lucide-react';
 import { clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
 import { useAuth } from '../context/AuthContext';
 import AvatarRenderer from './AvatarRenderer';
 import NotificationBell from './NotificationBell';
 import SubirMod from '../pages/SubirMod';
+import Login from '../pages/Login'; // 👈 Importamos el componente Login Modal
 
 const menuItems = [
   { to: "/", icon: Home, label: "Inicio" },
@@ -24,7 +26,12 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
   const [isFocused, setIsFocused] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNavMenuOpen, setIsNavMenuOpen] = useState(false);
+  
+  // ESTADOS DE MODALES
   const [isSubirModOpen, setIsSubirModOpen] = useState(false);
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [loginInitialRegister, setLoginInitialRegister] = useState(false);
+
   const profileRef = useRef(null);
   const navMenuRef = useRef(null);
 
@@ -58,8 +65,15 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
     if (user) {
       setIsSubirModOpen(true);
     } else {
-      navigate('/login');
+      setLoginInitialRegister(false);
+      setIsLoginOpen(true);
     }
+  };
+
+  const handleOpenLogin = (register = false) => {
+    setLoginInitialRegister(register);
+    setIsLoginOpen(true);
+    setIsProfileOpen(false);
   };
 
   return (
@@ -125,7 +139,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
         </div>
       )}
 
-      {/* LOGO BSWorld (Solo texto, centrado en móvil, izquierda en desktop) */}
+      {/* LOGO BSWorld */}
       <Link to="/" className="flex items-center shrink-0 group mx-auto md:mx-0 pr-1 lg:pr-0">
         <span className="pt-0.5 font-bold text-xl md:text-xl text-black dark:text-white hover:text-primary-700 dark:hover:text-primary-300 transition-colors">
           BSWorld
@@ -257,9 +271,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
                   {[
                     { to: `/u/${user.username}`, icon: User, label: 'Mi Perfil' },
                     { to: '/mis-mods', icon: LayoutGrid, label: 'Mis Mods' },
-                    // { to: '/favoritos', icon: Heart, label: 'Favoritos' },
                     { to: '/notificaciones', icon: Bell, label: 'Notificaciones' },
-                    // { to: '/configuracion', icon: Settings, label: 'Configuración' },
                     ...(user?.role === 'admin' ? [{ to: '/admin', icon: ShieldCheck, label: 'Panel Admin' }] : [])
                   ].map((item) => (
                     <Link
@@ -293,20 +305,24 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Cuenta</p>
                   </div>
 
-                  {[
-                    { to: '/login', icon: LogIn, label: 'Iniciar Sesión' },
-                    { to: '/login?register=true', icon: UserPlus, label: 'Registrarse' }
-                  ].map((item) => (
-                    <Link
-                      key={item.to}
-                      to={item.to}
-                      onClick={() => setIsProfileOpen(false)}
-                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700/60 transition-colors"
-                    >
-                      <item.icon size={16} />
-                      <span>{item.label}</span>
-                    </Link>
-                  ))}
+                  {/* Opciones de Login / Registro como Modal */}
+                  <button
+                    type="button"
+                    onClick={() => handleOpenLogin(false)}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700/60 transition-colors text-left"
+                  >
+                    <LogIn size={16} />
+                    <span>Iniciar Sesión</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleOpenLogin(true)}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700/60 transition-colors text-left"
+                  >
+                    <UserPlus size={16} />
+                    <span>Registrarse</span>
+                  </button>
                 </>
               )}
             </div>
@@ -317,6 +333,13 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
     
     {/* MODAL SUBIR MOD */}
     <SubirMod isOpen={isSubirModOpen} onClose={() => setIsSubirModOpen(false)} />
+
+    {/* MODAL LOGIN / REGISTRO */}
+    <Login 
+      isOpen={isLoginOpen} 
+      onClose={() => setIsLoginOpen(false)} 
+      initialRegister={loginInitialRegister} 
+    />
     </>
   );
 };

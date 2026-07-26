@@ -9,6 +9,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 // Páginas Públicas
 import Inicio from './pages/Inicio';
 import Login from './pages/Login';
+import LoginPage from './pages/LoginPage';
 import AcercaDe from './pages/AcercaDe';
 import Contacto from './pages/Contacto';
 
@@ -36,7 +37,7 @@ import Notificaciones from './pages/Notificaciones';
 import Servidores from './pages/Servidores';
 import DetalleServidor from './pages/DetalleServidor';
 
-// 👇 COMPONENTE INTERNO PARA REINICIAR EL SCROLL EN CADA CAMBIO DE RUTA
+// COMPONENTE INTERNO PARA REINICIAR EL SCROLL EN CADA CAMBIO DE RUTA
 const ScrollToTop = () => {
   const { pathname } = useLocation();
   useEffect(() => {
@@ -69,11 +70,12 @@ function App() {
       <BrowserRouter>
         <ScrollToTop />
         <Routes>
-          {/* 👇 RUTAS INDEPENDIENTES: Fuera del Layout principal */}
-          <Route path="/login" element={<Login />} />
+          {/* RUTAS INDEPENDIENTES: Fuera del Layout principal */}
+          {/* <Route path="/login" element={<Login />} /> */}
+          <Route path="/login-page" element={<LoginPage />} />
           <Route path="/subir" element={<SubirModPage />} />
 
-          {/* 💻 RUTAS ENVUELTAS EN EL LAYOUT (Llevan Sidebar y Header) */}
+          {/* RUTAS ENVUELTAS EN EL LAYOUT (Llevan Sidebar y Header) */}
           <Route path="/" element={<Layout toggleTheme={toggleTheme} isDarkMode={isDarkMode} />}>
             
             {/* --- RUTAS PRINCIPALES --- */}

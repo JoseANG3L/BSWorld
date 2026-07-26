@@ -3,7 +3,8 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { 
   Save, Plus, Trash2, Image as ImageIcon, Tag, User, Link2, X, 
   ChevronRight, ChevronLeft, Layers, PenTool, Loader2, PlayCircle, 
-  ChevronDown, FileText, Upload, Link as LinkIcon, Lock, Globe, X as CloseIcon, Eye
+  ChevronDown, FileText, Upload, Link as LinkIcon, Lock, Globe, Eye,
+  Sparkles, Check, Edit3, Gamepad2, Map, Boxes, Package, Wrench, Shield
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { 
@@ -19,6 +20,7 @@ import SimpleEditor from "../components/SimpleEditor";
 import Modal from '../components/Modal';
 import AvatarRenderer from '../components/AvatarRenderer';
 import { encryptionService, initializeEncryption } from '../services/encryption';
+import { createPortal } from 'react-dom';
 
 // --- HELPERS ---
 const getYouTubeId = (url) => {
@@ -35,7 +37,15 @@ const isVideo = (url) => {
 
 const DOWNLOAD_LABELS = ["API 9 (1.7.44+)", "API 8 (1.7.20+)", "API 7 (1.7.5+)", "API 6 (1.6.4+)", "API 4 (1.4.150+)"];
 const RECOMMENDED_TAGS = ["api 9", "api 8", "api 7", "api 6", "api 4", "pvp", "texturas", "utilidad"];
-const PREDEFINED_NETWORKS = ["YouTube", "Twitter/X", "Discord", "Sitio Web"];
+
+const TIPO_CARDS = [
+  { id: 'mod', title: 'Mod General', desc: 'Scripts Python y modificaciones de código', icon: Wrench, color: 'from-blue-500 to-indigo-600' },
+  { id: 'mapa', title: 'Mapa Custom', desc: 'Escenarios y terrenos personalizados', icon: Map, color: 'from-emerald-500 to-teal-600' },
+  { id: 'personaje', title: 'Personaje / Skin', desc: 'Skins de personajes y apariencias', icon: User, color: 'from-purple-500 to-pink-600' },
+  { id: 'minijuego', title: 'Minijuego', desc: 'Modos de juego y reglas personalizadas', icon: Gamepad2, color: 'from-amber-500 to-orange-600' },
+  { id: 'modpack', title: 'Modpack', desc: 'Colección masiva de múltiples mods', icon: Boxes, color: 'from-red-500 to-rose-600' },
+  { id: 'paquete', title: 'Paquete Texturas', desc: 'Interfaces, audios o texturas HD', icon: Package, color: 'from-cyan-500 to-blue-600' }
+];
 
 const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
   const { user } = useAuth();
@@ -48,7 +58,7 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
 
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(!!editId);
-  const [currentTab, setCurrentTab] = useState(0);
+  const [currentStep, setCurrentStep] = useState(0);
   const [encryptionKey, setEncryptionKey] = useState(null);
   const [isEncryptionReady, setIsEncryptionReady] = useState(false);
 
@@ -59,7 +69,7 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
     creadores: false
   });
 
-  // --- MODAL ---
+  // --- MODAL CONFIRMACIONES ---
   const [modal, setModal] = useState({
     isOpen: false, type: 'success', title: '', message: '', showCancel: false, confirmText: 'Aceptar', cancelText: 'Cancelar', onConfirm: null, onCancel: null
   });
@@ -90,23 +100,34 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
   const [isSearching, setIsSearching] = useState(false);
   const [originalStatus, setOriginalStatus] = useState(null);
 
-  const tabs = [
-    { id: 'basico', label: 'Básico', icon: User },
-    { id: 'imagenes', label: 'Imágenes', icon: ImageIcon },
-    { id: 'descargas_tags', label: 'Descargas y Tags', icon: Tag },
-    { id: 'visibilidad_seccion', label: 'Visibilidad', icon: Eye },
+  const steps = [
+    { id: 'titulo', label: '1. Nombre' },
+    { id: 'tipo', label: '2. Categoría' },
+    { id: 'creadores', label: '3. Creadores' },
+    { id: 'descripcion', label: '4. Detalles' },
+    { id: 'imagenes', label: '5. Multimedia' },
+    { id: 'descargas', label: '6. Archivos' },
+    { id: 'visibilidad', label: '7. Privacidad' },
+    { id: 'resumen', label: '8. Finalizar' },
   ];
 
+  // Bloqueo estricto del scroll en el cuerpo y documento
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+      document.documentElement.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+      document.documentElement.style.overflow = 'unset';
+    };
+  }, [isOpen]);
+
   const getProgress = () => {
-    let score = 0;
-    let total = 6;
-    if (formData.titulo) score++;
-    if (formData.descripcion) score++;
-    if (formData.imagen) score++;
-    if (formData.tags.length > 0) score++;
-    if (formData.descargas.some(d => d.url)) score++;
-    if (selectedCreators.length > 0) score++;
-    return Math.round((score / total) * 100);
+    return Math.round(((currentStep + 1) / steps.length) * 100);
   };
 
   useEffect(() => {
@@ -176,18 +197,11 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
     }
   }, [formData, selectedCreators, initialFormData]);
 
-  // Limpiar estados de error individuales dinámicamente cuando el usuario escribe
   useEffect(() => {
     if (formData.titulo) setErrors(prev => ({ ...prev, titulo: false }));
-  }, [formData.titulo]);
-
-  useEffect(() => {
     if (formData.imagen) setErrors(prev => ({ ...prev, imagen: false }));
-  }, [formData.imagen]);
-
-  useEffect(() => {
     if (selectedCreators.length > 0) setErrors(prev => ({ ...prev, creadores: false }));
-  }, [selectedCreators]);
+  }, [formData.titulo, formData.imagen, selectedCreators]);
 
   const handleClose = () => {
     if (hasChanges) {
@@ -208,9 +222,7 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
           closeModal();
           if (onClose) onClose();
         },
-        onCancel: () => {
-          closeModal();
-        }
+        onCancel: () => closeModal()
       });
     } else {
       if (onClose) onClose();
@@ -277,49 +289,49 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
       setSelectedCreators([...selectedCreators, { nombre: creatorInput.trim(), imagen: null, uid: null }]);
       setCreatorInput(''); setShowSuggestions(false);
     }
-    if (e.key === 'Backspace' && !creatorInput && selectedCreators.length > 0) {
-      e.preventDefault();
-      const lastCreator = selectedCreators[selectedCreators.length - 1];
-      setCreatorInput(lastCreator.nombre);
-      removeCreator(selectedCreators.length - 1);
-    }
   };
   const removeCreator = (index) => { const newCreators = [...selectedCreators]; newCreators.splice(index, 1); setSelectedCreators(newCreators); };
 
-  const handleNextTab = () => { if (currentTab < tabs.length - 1) setCurrentTab(currentTab + 1); };
-  const handlePrevTab = () => { if (currentTab > 0) setCurrentTab(currentTab - 1); };
+  const handleNextStep = () => {
+    if (currentStep === 0 && !formData.titulo.trim()) {
+      setErrors(prev => ({ ...prev, titulo: true }));
+      return;
+    }
+    if (currentStep === 2 && selectedCreators.length === 0) {
+      setErrors(prev => ({ ...prev, creadores: true }));
+      return;
+    }
+    if (currentStep === 4 && !formData.imagen.trim()) {
+      setErrors(prev => ({ ...prev, imagen: true }));
+      return;
+    }
+    if (currentStep < steps.length - 1) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+
+  const handlePrevStep = () => {
+    if (currentStep > 0) setCurrentStep(currentStep - 1);
+  };
 
   const handleSubmitForm = async (action) => {
-    // Evaluar estado de errores obligatorios
     const hasTituloError = !formData.titulo.trim();
     const hasImagenError = !formData.imagen.trim();
     const hasCreadoresError = selectedCreators.length === 0;
 
     if (hasTituloError || hasImagenError || hasCreadoresError) {
-      setErrors({
-        titulo: hasTituloError,
-        imagen: hasImagenError,
-        creadores: hasCreadoresError
-      });
-
-      // Redirigir de forma automática al Tab correspondiente para mostrar la advertencia visual
-      if (hasTituloError || hasCreadoresError) {
-        setCurrentTab(0);
-      } else if (hasImagenError) {
-        setCurrentTab(1);
-      }
-
+      setErrors({ titulo: hasTituloError, imagen: hasImagenError, creadores: hasCreadoresError });
       setModal({ 
         isOpen: true, 
         type: 'error', 
-        title: 'Faltan datos obligatorios', 
-        message: 'Por favor, rellena todos los campos marcados en rojo antes de guardar el mod.' 
+        title: 'Campos incompletos', 
+        message: 'Asegúrate de haber ingresado un nombre, al menos un creador y la imagen principal.' 
       });
       return;
     }
     
     if (!isEncryptionReady || !encryptionKey) {
-      setModal({ isOpen: true, type: 'error', title: 'Seguridad', message: 'El sistema de encriptación se está inicializando. Reintente en un segundo.' });
+      setModal({ isOpen: true, type: 'error', title: 'Seguridad', message: 'Inicializando motor de encriptación. Intenta en un segundo.' });
       return;
     }
 
@@ -361,372 +373,512 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
       else await createContent(payload, false);
 
       setModal({
-        isOpen: true, type: 'success', title: '¡Éxito!',
-        message: finalStatus === 'published_editing' ? 'Cambios enviados a revisión. La versión anterior seguirá pública.' : `Contenido guardado exitosamente.`,
-        onConfirm: () => navigate(user.role === 'admin' ? '/admin' : '/mis-mods')
+        isOpen: true, type: 'success', title: '¡Publicación enviada!',
+        message: finalStatus === 'published_editing' ? 'Cambios enviados a revisión.' : 'Tu contenido se procesó correctamente.',
+        onConfirm: () => {
+          if (onClose) onClose();
+          navigate(user.role === 'admin' ? '/admin' : '/mis-mods');
+        }
       });
-    } catch (error) { console.error(error); setModal({ isOpen: true, type: 'error', title: 'Error', message: 'No se pudo guardar el mod.' }); } finally { setLoading(false); }
+    } catch (error) { 
+      console.error(error); 
+      setModal({ isOpen: true, type: 'error', title: 'Error', message: 'No se pudo procesar la solicitud.' }); 
+    } finally { 
+      setLoading(false); 
+    }
   };
 
   if (!isOpen) return null;
 
-  if (fetching) return <div className="fixed inset-0 bg-white dark:bg-[#1e1e1e] flex items-center justify-center z-[100]"><Loader2 className="animate-spin text-primary-600" size={48} /></div>;
+  if (fetching) return createPortal(
+    <div className="fixed inset-0 bg-white dark:bg-[#1e1e1e] flex items-center justify-center z-[99999]">
+      <Loader2 className="animate-spin text-primary-600" size={48} />
+    </div>,
+    document.body
+  );
 
-  return (
-    <div className="fixed inset-0 bg-gray-100 dark:bg-[#0d0d0d] flex flex-col z-[100] animate-fade-in">
+  return createPortal(
+    <div className="fixed inset-0 h-screen w-screen bg-white dark:bg-dark-bg flex flex-col z-[99999] overflow-hidden animate-fade-in">
       
-      {/* HEADER FIJO */}
-      <div className="flex-shrink-0 bg-white dark:bg-[#1e1e1e] border-b border-gray-300 dark:border-gray-800 px-4 pt-4">
-        <div className="flex items-center justify-between mb-2">
+      {/* HEADER DINÁMICO PASO A PASO */}
+      <div className="flex-shrink-0 bg-white dark:bg-[#1e1e1e] border-b border-gray-200 dark:border-gray-800 px-4 pt-4 pb-2">
+        <div className="max-w-4xl mx-auto flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
-            <div className={clsx("w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-lg shrink-0", isEditing ? "bg-blue-600" : "bg-primary-600")}>
-              {isEditing ? <PenTool size={18} /> : <Layers size={18} />}
+            <div className={clsx("w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-md shrink-0", isEditing ? "bg-blue-600" : "bg-primary-600")}>
+              {isEditing ? <PenTool size={18} strokeWidth={2.5} /> : <Sparkles size={18} strokeWidth={2.5} />}
             </div>
-            <h1 className="text-xl md:text-2xl font-black text-gray-800 dark:text-white tracking-tight">{isEditing ? "Editar Contenido" : "Subir Mod"}</h1>
+            <div>
+              <h1 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white leading-none">
+                {isEditing ? "Editar Publicación" : "Publicar Nuevo Mod"}
+              </h1>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Paso {currentStep + 1} de {steps.length}: <span className="font-semibold text-primary-600 dark:text-primary-400">{steps[currentStep].label}</span></p>
+            </div>
           </div>
+
           <div className="flex items-center gap-4 shrink-0">
-            <span className="text-2xl font-black bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">{getProgress()}%</span>
-            <button type="button" onClick={handleClose} className="p-2 hover:bg-gray-100 dark:hover:bg-[#191B1E] rounded-xl transition-colors">
-              <CloseIcon size={20} className="text-gray-500 dark:text-gray-400" />
+            <div className="hidden sm:flex items-center gap-2">
+              <div className="w-28 h-2 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div className="h-full bg-primary-600 transition-all duration-300" style={{ width: `${getProgress()}%` }} />
+              </div>
+              <span className="text-xs font-bold text-gray-600 dark:text-gray-400">{getProgress()}%</span>
+            </div>
+            <button type="button" onClick={handleClose} className="p-2 rounded-xl text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+              <X size={20} />
             </button>
           </div>
         </div>
-        
-        {/* TABS FIJOS */}
-        <div className="flex border-b border-gray-300 dark:border-gray-800 bg-white/50 dark:bg-gray-900/40 overflow-x-auto scrollbar-none snap-x">
-          {tabs.map((tab, index) => (
-            <button key={tab.id} type="button" onClick={() => setCurrentTab(index)} className={clsx("flex-1 min-w-[140px] sm:min-w-0 flex flex-col sm:flex-row items-center justify-center gap-1.5 py-4 px-2 snap-start transition-all relative outline-none text-xs font-bold", currentTab === index ? "text-primary-600 dark:text-primary-400 bg-white dark:bg-[#1e1e1e]" : "text-gray-400 dark:text-gray-500 hover:text-gray-500")}>
-              {currentTab === index && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-600" />}
-              <tab.icon size={14} className="shrink-0" />
-              <span className={clsx("text-[10px] sm:text-xs tracking-tight whitespace-nowrap", 
-                index === 0 && (errors.titulo || errors.creadores) && "text-red-500 font-extrabold",
-                index === 1 && errors.imagen && "text-red-500 font-extrabold"
-              )}>{tab.label}</span>
+
+        {/* NAVEGACIÓN PASO A PASO */}
+        <div className="max-w-4xl mx-auto flex items-center justify-between border-t border-gray-100 dark:border-gray-800/80 pt-2 overflow-x-auto scrollbar-none gap-2">
+          {steps.map((step, idx) => (
+            <button
+              key={step.id}
+              onClick={() => setCurrentStep(idx)}
+              className={clsx(
+                "px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5",
+                currentStep === idx 
+                  ? "bg-primary-50 dark:bg-primary-950/40 text-primary-600 dark:text-primary-400 border border-primary-200 dark:border-primary-800" 
+                  : idx < currentStep 
+                    ? "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800" 
+                    : "text-gray-400 dark:text-gray-600"
+              )}
+            >
+              {idx < currentStep ? <Check size={12} className="text-green-500 stroke-[3]" /> : <span className="w-4 h-4 rounded-full bg-gray-200 dark:bg-gray-800 text-[10px] flex items-center justify-center">{idx + 1}</span>}
+              <span>{step.label.split('. ')[1]}</span>
             </button>
           ))}
         </div>
       </div>
 
-      {/* CONTENIDO CENTRAL */}
-      <div className="flex-1 overflow-y-auto p-4 md:p-6">
-        <div className="max-w-4xl mx-auto">
-          <form onSubmit={(e) => e.preventDefault()}>
-              
-              {/* TAB 1: INFORMACIÓN BÁSICA + CRÉDITOS */}
-              {currentTab === 0 && (
-                <div className="space-y-4 animate-fade-in bg-white dark:bg-[#1e1e1e] rounded-2xl shadow-md border border-gray-300 dark:border-gray-700/80 p-4 sm:p-5">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label htmlFor="titulo" className={clsx("block text-xs font-bold uppercase tracking-wide", errors.titulo ? "text-red-500 dark:text-red-400" : "text-gray-500 dark:text-gray-400")}>Nombre *</label>
-                      <input id="titulo" type="text" name="titulo" value={formData.titulo} onChange={handleChange} required className={clsx("w-full px-3 py-2 h-9 text-xs md:text-sm bg-white dark:bg-[#191B1E]/60 border rounded-xl outline-none transition-all shadow-sm", errors.titulo ? "border-red-500 focus:ring-1 focus:ring-red-500 focus:border-red-500" : "border-gray-300 dark:border-gray-700 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 dark:text-white")} placeholder="Ej: Super Mod Pack" />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label htmlFor="tipo" className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Tipo</label>
-                      <div className="relative">
-                        <select id="tipo" name="tipo" value={formData.tipo} onChange={handleChange} className="w-full pl-3 pr-8 py-1.5 h-9 text-xs md:text-sm bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none dark:text-white cursor-pointer appearance-none capitalize shadow-sm">
-                          {['mod', 'mapa', 'personaje', 'minijuego', 'modpack', 'paquete'].map(t => <option key={t} value={t}>{t}</option>)}
-                        </select>
-                        <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+      {/* CONTENIDO PRINCIPAL POR PASO */}
+      <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
+        <div className="max-w-2xl mx-auto my-auto">
+          
+          {/* PASO 1: NOMBRE */}
+          {currentStep === 0 && (
+            <div className="space-y-4 animate-fade-in">
+              <div className="text-center md:text-left mb-6">
+                <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-1">¿Cómo se llama tu proyecto?</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Ingresa un título claro y llamativo para que la comunidad lo identifique rápidamente.</p>
+              </div>
+
+              <div className="space-y-2">
+                <input 
+                  type="text" 
+                  name="titulo" 
+                  value={formData.titulo} 
+                  onChange={handleChange} 
+                  autoFocus
+                  placeholder="Ej: Super Mod Pack 2026..." 
+                  className={clsx(
+                    "w-full px-4 py-3.5 text-base md:text-lg bg-white dark:bg-[#191B1E] border rounded-2xl outline-none transition-all shadow-sm font-medium",
+                    errors.titulo ? "border-red-500 focus:ring-2 focus:ring-red-500" : "border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-primary-500 dark:text-white"
+                  )} 
+                />
+                {errors.titulo && <p className="text-xs text-red-500 font-semibold">El nombre del mod es obligatorio.</p>}
+              </div>
+            </div>
+          )}
+
+          {/* PASO 2: TIPO DE MOD CON TARJETAS INTERACTIVAS */}
+          {currentStep === 1 && (
+            <div className="space-y-4 animate-fade-in">
+              <div className="text-center md:text-left mb-4">
+                <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-1">Selecciona el tipo de contenido</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Elige la categoría principal a la que pertenece tu aporte.</p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {TIPO_CARDS.map((card) => {
+                  const IconComp = card.icon;
+                  const isSelected = formData.tipo === card.id;
+                  return (
+                    <button
+                      key={card.id}
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, tipo: card.id }))}
+                      className={clsx(
+                        "p-4 rounded-2xl border text-left transition-all duration-200 flex items-start gap-3.5 relative overflow-hidden group",
+                        isSelected 
+                          ? "border-primary-500 bg-primary-50/50 dark:bg-primary-950/20 ring-2 ring-primary-500/50 shadow-md" 
+                          : "border-gray-200 dark:border-gray-800 bg-white dark:bg-[#191B1E] hover:border-gray-300 dark:hover:border-gray-700"
+                      )}
+                    >
+                      <div className={clsx("w-10 h-10 rounded-xl flex items-center justify-center text-white shrink-0 bg-gradient-to-br shadow-sm", card.color)}>
+                        <IconComp size={20} strokeWidth={2.5} />
                       </div>
-                    </div>
-                  </div>
-
-                  <div className="relative" ref={searchRef}>
-                    <label className={clsx("text-xs font-bold uppercase tracking-wide mb-1.5 flex items-center gap-1", errors.creadores ? "text-red-500 dark:text-red-400" : "text-gray-500 dark:text-gray-400")}>Creadores / Créditos *</label>
-                    <div className={clsx("py-1 px-1.5 rounded-xl border flex flex-wrap gap-1.5 shadow-sm items-center transition-all duration-200", errors.creadores ? "bg-red-50/20 dark:bg-red-950/10 border-red-500 focus-within:ring-1 focus-within:ring-red-500 focus-within:border-red-500" : "bg-white dark:bg-[#191B1E] border-gray-300 dark:border-gray-700 focus-within:ring-1 focus-within:ring-primary-500 focus-within:border-primary-500")}>
-                      {selectedCreators.map((creator, idx) => (
-                        <div key={idx} className="flex items-center gap-1.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-700 pl-1 pr-1.5 py-1 rounded-full shadow-sm max-w-full">
-                          <div className="w-5 h-5 rounded-full overflow-hidden bg-gray-200 dark:bg-[#191B1E] flex items-center justify-center shrink-0 border dark:border-gray-600">
-                            <AvatarRenderer avatar={creator.imagen} name={creator.nombre} />
-                          </div>
-                          <span className="text-[12px] font-bold text-gray-700 dark:text-gray-200 truncate max-w-[100px]">{creator.nombre}</span>
-                          <button type="button" onClick={() => removeCreator(idx)} className="text-gray-400 hover:text-red-500 p-0.5 shrink-0 transition-colors"><X size={10} /></button>
-                        </div>
-                      ))}
-                      <input type="text" value={creatorInput} onChange={handleCreatorSearch} onKeyDown={addTextCreator} placeholder="Buscar creador de la comunidad..." className="flex-1 bg-transparent outline-none text-sm dark:text-white min-w-[120px] p-1" />
-                    </div>
-
-                    {showSuggestions && creatorInput.length > 1 && (
-                      <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-[#252525] rounded-xl shadow-xl border border-gray-300 dark:border-gray-700 z-50 overflow-hidden max-h-40 overflow-y-auto">
-                        {userSuggestions.length > 0 ? (
-                          <ul className="divide-y divide-gray-100 dark:divide-gray-800">
-                            {userSuggestions.map((u) => (
-                              <li key={u.uid}>
-                                <button type="button" onClick={() => addUserCreator(u)} className="w-full flex items-center gap-3 px-3 py-2 hover:bg-primary-50 dark:hover:bg-primary-900/10 text-left transition-colors">
-                                  <div className="w-6 h-6 rounded-full overflow-hidden bg-gray-200 dark:bg-[#191B1E] flex items-center justify-center shrink-0 border dark:border-gray-700">
-                                    <AvatarRenderer avatar={u.imagen} name={u.nombre} />
-                                  </div>
-                                  <span className="text-xs font-bold text-gray-800 dark:text-gray-200 truncate">{u.nombre}</span>
-                                </button>
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (!isSearching && <div className="p-2.5 text-center text-[11px] text-gray-400 italic">Presiona <b>Enter</b> para agregarlo como creador externo.</div>)}
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-sm font-bold text-gray-900 dark:text-white">{card.title}</h4>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-snug">{card.desc}</p>
                       </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Descripción</label>
-                    <SimpleEditor value={formData.descripcion} onChange={handleDescriptionChange} />
-                  </div>
-                </div>
-              )}
-
-              {/* TAB 2: IMÁGENES Y GALERÍA */}
-              {currentTab === 1 && (
-                <div className="space-y-4 animate-fade-in bg-white dark:bg-[#1e1e1e] rounded-2xl shadow-md border border-gray-300 dark:border-gray-700/80 p-4 sm:p-5">
-                  <div className="space-y-1.5">
-                    <label htmlFor="imagen" className={clsx("block text-xs font-bold uppercase tracking-wide", errors.imagen ? "text-red-500 dark:text-red-400" : "text-gray-500 dark:text-gray-400")}>Imagen Principal *</label>
-                    <div className="flex flex-col md:flex-row gap-3 items-start">
-                      <div className="relative flex-1 w-full">
-                        <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
-                        <input id="imagen" type="url" name="imagen" value={formData.imagen} onChange={handleChange} className={clsx("w-full pl-9 pr-4 py-2 h-9 text-xs bg-white dark:bg-[#191B1E]/60 border rounded-xl outline-none font-medium shadow-sm transition-all", errors.imagen ? "border-red-500 focus:ring-1 focus:ring-red-500 focus:border-red-500" : "border-gray-300 dark:border-gray-700 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 dark:text-white")} placeholder="https://i.imgur.com/imagen.png" />
-                      </div>
-                      {formData.imagen && formData.imagen.length > 10 && (
-                        <div className="w-full md:w-36 shrink-0 rounded-xl border border-gray-300 dark:border-gray-800 aspect-video overflow-hidden bg-white dark:bg-gray-900/20 shadow-md animate-fade-in">
-                          <img src={formData.imagen} className="w-full h-full object-cover" alt="Vista previa" onError={(e) => { e.target.style.display = 'none'; }} />
+                      {isSelected && (
+                        <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-primary-600 text-white flex items-center justify-center">
+                          <Check size={12} strokeWidth={3} />
                         </div>
                       )}
-                    </div>
-                  </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
-                  <div className="space-y-3 pt-3 w-full border-t border-gray-300 dark:border-gray-800/60">
-                    <div className="flex items-center justify-between pb-1">
-                      <span className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Galería</span>
-                      <button type="button" onClick={handleAddGalleryImage} className="flex items-center gap-1 px-2.5 py-1 bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 border border-primary-200/40 dark:border-primary-800/60 rounded-xl text-xs font-bold transition-colors"><Plus size={12} /> Añadir</button>
+          {/* PASO 3: CREADORES */}
+          {currentStep === 2 && (
+            <div className="space-y-4 animate-fade-in">
+              <div className="text-center md:text-left mb-4">
+                <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-1">Créditos y Autores</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Añade a los usuarios que participaron o crearon este mod.</p>
+              </div>
+
+              <div className="relative" ref={searchRef}>
+                <div className={clsx(
+                  "p-2 rounded-2xl border flex flex-wrap gap-2 shadow-sm items-center transition-all min-h-[56px]",
+                  errors.creadores ? "border-red-500 bg-red-50/10" : "bg-white dark:bg-[#191B1E] border-gray-300 dark:border-gray-700 focus-within:ring-2 focus-within:ring-primary-500"
+                )}>
+                  {selectedCreators.map((creator, idx) => (
+                    <div key={idx} className="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-800 pl-1.5 pr-2 py-1 rounded-xl border border-gray-200 dark:border-gray-700">
+                      <div className="w-5 h-5 rounded-full overflow-hidden bg-gray-300 shrink-0">
+                        <AvatarRenderer avatar={creator.imagen} name={creator.nombre} />
+                      </div>
+                      <span className="text-xs font-bold text-gray-800 dark:text-gray-200">{creator.nombre}</span>
+                      <button type="button" onClick={() => removeCreator(idx)} className="text-gray-400 hover:text-red-500 p-0.5"><X size={12} /></button>
                     </div>
-                    <div className="grid grid-cols-1 gap-2.5 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
-                      {formData.galeria.map((url, index) => {
-                        const isYt = getYouTubeId(url);
-                        const isVid = isVideo(url);
-                        return (
-                          <div key={index} className="flex flex-col sm:flex-row gap-2 bg-white/50 dark:bg-gray-900/20 p-2.5 rounded-xl border border-gray-300 dark:border-gray-800 relative shadow-sm">
-                            <div className="flex-1 relative self-center">
-                              <input aria-label="URL de galería" type="url" value={url} onChange={(e) => handleGalleryImageChange(index, e.target.value)} className="w-full px-3 py-1.5 h-9 text-xs bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 rounded-xl outline-none dark:text-white focus:ring-1 focus:ring-primary-500 focus:border-primary-500" placeholder="URL de imagen o video (mp4/YouTube)" />
-                            </div>
-                            {url && url.length > 10 && (
-                              <div className="relative w-full sm:w-20 h-12 rounded-lg bg-gray-100 dark:bg-[#191B1E] overflow-hidden shrink-0 border border-gray-300 dark:border-gray-700 shadow-inner flex items-center justify-center">
-                                {(isYt || isVid) && <div className="absolute inset-0 flex items-center justify-center bg-black/20 z-10"><PlayCircle size={14} className="text-white" /></div>}
-                                <img src={isYt ? `https://img.youtube.com/vi/${isYt}/mqdefault.jpg` : url} alt="" className="w-full h-full object-cover" onError={(e) => { e.target.src = "https://placehold.co/100x60?text=Error"; }} />
+                  ))}
+                  <input 
+                    type="text" 
+                    value={creatorInput} 
+                    onChange={handleCreatorSearch} 
+                    onKeyDown={addTextCreator} 
+                    placeholder="Buscar usuario..." 
+                    className="flex-1 bg-transparent outline-none text-sm dark:text-white min-w-[140px] px-2 py-1" 
+                  />
+                </div>
+
+                {showSuggestions && creatorInput.length > 1 && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#252525] rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden max-h-48 overflow-y-auto">
+                    {userSuggestions.length > 0 ? (
+                      <ul className="divide-y divide-gray-100 dark:divide-gray-800">
+                        {userSuggestions.map((u) => (
+                          <li key={u.uid}>
+                            <button type="button" onClick={() => addUserCreator(u)} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-primary-50 dark:hover:bg-primary-950/30 text-left transition-colors">
+                              <div className="w-7 h-7 rounded-full overflow-hidden bg-gray-200 shrink-0">
+                                <AvatarRenderer avatar={u.imagen} name={u.nombre} />
                               </div>
-                            )}
-                            <button type="button" onClick={() => handleRemoveGalleryImage(index)} className="p-2 text-gray-400 hover:text-red-500 transition-colors self-center"><Trash2 size={14} /></button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    {formData.galeria.length === 0 && (<div className="text-center py-6 border border-dashed border-gray-300 dark:border-gray-800 rounded-xl text-gray-400 dark:text-gray-500 text-xs italic">No has añadido imágenes adicionales todavía.</div>)}
-                  </div>
-                </div>
-              )}
-
-              {/* TAB 3: DESCARGAS Y TAGS */}
-              {currentTab === 2 && (
-                <div className="space-y-4 animate-fade-in bg-white dark:bg-[#1e1e1e] rounded-2xl shadow-md border border-gray-300 dark:border-gray-700/80 p-4 sm:p-5">
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between pb-1">
-                      <span className="text-xs font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wide flex items-center gap-1">
-                        Descargas
-                      </span>
-                      <button type="button" onClick={handleAddDownload} className="flex items-center gap-1 px-2.5 py-1 bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 border border-primary-200/40 dark:border-primary-800/60 rounded-xl text-xs font-bold transition-colors"><Plus size={12} /> Añadir</button>
-                    </div>
-
-                    <div className="space-y-2.5 max-h-[220px] overflow-y-auto pr-1 custom-scrollbar">
-                      {formData.descargas.map((download, index) => (
-                        <div key={index} className="flex flex-col sm:flex-row gap-2 bg-white/50 dark:bg-gray-900/20 p-2.5 rounded-xl border border-gray-300 dark:border-gray-800 relative shadow-sm">
-                          <div className="relative w-full sm:w-44 shrink-0">
-                            <select value={DOWNLOAD_LABELS.includes(download.nombre) ? download.nombre : 'custom'} onChange={(e) => handleDownloadChange(index, 'nombre', e.target.value === 'custom' ? '' : e.target.value)} className="w-full pl-3 pr-8 py-1.5 h-9 text-xs rounded-lg bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 font-bold cursor-pointer appearance-none dark:text-white outline-none shadow-sm focus:ring-1 focus:ring-primary-500 focus:border-primary-500">
-                              {DOWNLOAD_LABELS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                              <option value="custom">Otro</option>
-                            </select>
-                            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={12} />
-                          </div>
-                          
-                          {!DOWNLOAD_LABELS.includes(download.nombre) && (
-                            <input aria-label="Nombre del servidor" type="text" value={download.nombre} onChange={(e) => handleDownloadChange(index, 'nombre', e.target.value)} placeholder="Ej: Mediafire" className="w-full sm:flex-1 px-3 h-9 text-xs bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500" />
-                          )}
-                          
-                          <div className="flex-1 relative">
-                            <input aria-label="URL de descarga" type="url" value={download.url} onChange={(e) => handleDownloadChange(index, 'url', e.target.value)} placeholder="https://..." required className="w-full px-3 h-9 text-xs bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 rounded-lg outline-none dark:text-white shadow-sm focus:ring-1 focus:ring-primary-500 focus:border-primary-500" />
-                          </div>
-                          
-                          {formData.descargas.length > 1 && (
-                            <button type="button" onClick={() => handleRemoveDownload(index)} className="p-2 text-gray-400 hover:text-red-500 transition-colors self-center"><Trash2 size={14} /></button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2 pt-4 w-full border-t border-gray-300 dark:border-gray-800/60">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wide flex items-center gap-1.5">
-                        Etiquetas
-                      </span>
-                      <span className={clsx("text-[10px] font-bold px-2 py-0.5 rounded-md", formData.tags.length >= 10 ? "bg-red-100 text-red-600" : "bg-gray-100 text-gray-500 dark:bg-[#191B1E]")}>
-                        {formData.tags.length} / 10
-                      </span>
-                    </div>
-                    <div className="flex gap-2">
-                      <div className="relative flex-1">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">#</span>
-                        <input aria-label="Escribe una etiqueta" type="text" value={tagInput} onChange={(e) => setTagInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())} disabled={formData.tags.length >= 10} className="w-full pl-7 pr-3 py-1.5 h-9 text-xs bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 rounded-xl focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all disabled:opacity-50 shadow-sm" placeholder="skins, pvp... (Enter)" />
-                      </div>
-                      <button type="button" onClick={handleAddTag} disabled={formData.tags.length >= 10 || !tagInput.trim()} className="px-3 h-9 bg-primary-600 hover:bg-primary-700 text-white rounded-xl shadow-sm flex items-center justify-center shrink-0"><Plus size={14} /></button>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5 min-h-[36px] p-2 bg-white dark:bg-[#252525] border border-gray-300 dark:border-gray-800 rounded-xl shadow-inner">
-                      {formData.tags.length > 0 ? formData.tags.map((tag, index) => (
-                        <span key={index} className="inline-flex items-center gap-1.5 pl-2 pr-1 py-0.5 bg-white dark:bg-[#191B1E] text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-700 rounded-lg text-[11px] font-bold shadow-sm">
-                          <span className="text-primary-500 font-black">#</span>{tag}
-                          <button type="button" onClick={() => handleRemoveTag(tag)} className="p-0.5 rounded-md hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"><X size={11} strokeWidth={2.5} /></button>
-                        </span>
-                      )) : <span className="text-[10px] text-gray-400 italic px-1 self-center">Ninguna etiqueta añadida...</span>}
-                    </div>
-                    {formData.tags.length < 10 && (
-                      <div className="mt-3 flex flex-wrap gap-1.5">
-                        {RECOMMENDED_TAGS.map(tag => !formData.tags.includes(tag) && (
-                          <button key={tag} type="button" onClick={() => addTagDirect(tag)} className="px-2 py-0.5 rounded-md border border-dashed text-[10px] font-bold text-gray-400 dark:text-gray-500 hover:text-primary-600 hover:border-primary-400 bg-white dark:bg-[#191B1E] dark:border-gray-700 transition-colors">+ {tag}</button>
+                              <span className="text-xs font-bold text-gray-800 dark:text-gray-200">{u.nombre}</span>
+                            </button>
+                          </li>
                         ))}
-                      </div>
+                      </ul>
+                    ) : (!isSearching && <div className="p-3 text-center text-xs text-gray-400">Presiona <b>Enter</b> para agregarlo como creador externo.</div>)}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* PASO 4: DESCRIPCIÓN */}
+          {currentStep === 3 && (
+            <div className="space-y-4 animate-fade-in">
+              <div className="text-center md:text-left mb-4">
+                <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-1">Descripción e Instrucciones</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Detalla las funciones, cómo instalarlo o los créditos extendidos.</p>
+              </div>
+
+              <SimpleEditor value={formData.descripcion} onChange={handleDescriptionChange} />
+            </div>
+          )}
+
+          {/* PASO 5: MULTIMEDIA */}
+          {currentStep === 4 && (
+            <div className="space-y-5 animate-fade-in">
+              <div className="text-center md:text-left mb-2">
+                <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-1">Imagen Principal y Galería</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Pega enlaces directos de tus capturas de pantalla o videos demostrativos.</p>
+              </div>
+
+              {/* Imagen Principal */}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Imagen de Portada *</label>
+                <div className="flex gap-2 items-center">
+                  <input 
+                    type="url" 
+                    name="imagen" 
+                    value={formData.imagen} 
+                    onChange={handleChange} 
+                    placeholder="https://i.imgur.com/tu-imagen.png" 
+                    className={clsx(
+                      "flex-1 px-4 py-2.5 text-sm bg-white dark:bg-[#191B1E] border rounded-xl outline-none dark:text-white",
+                      errors.imagen ? "border-red-500" : "border-gray-300 dark:border-gray-700"
+                    )}
+                  />
+                </div>
+                {formData.imagen && (
+                  <div className="w-full aspect-video max-h-48 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-800 bg-black">
+                    <img src={formData.imagen} alt="Portada" className="w-full h-full object-cover" onError={(e) => e.target.style.display = 'none'} />
+                  </div>
+                )}
+              </div>
+
+              {/* Galería Adicional */}
+              <div className="space-y-2 pt-3 border-t border-gray-100 dark:border-gray-800">
+                <div className="flex justify-between items-center">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Imágenes / Videos Adicionales</label>
+                  <button type="button" onClick={handleAddGalleryImage} className="text-xs font-bold text-primary-600 dark:text-primary-400 hover:underline flex items-center gap-1"><Plus size={14} /> Añadir URL</button>
+                </div>
+                {formData.galeria.map((url, idx) => (
+                  <div key={idx} className="flex gap-2">
+                    <input 
+                      type="url" 
+                      value={url} 
+                      onChange={(e) => handleGalleryImageChange(idx, e.target.value)} 
+                      placeholder="URL de imagen o YouTube..." 
+                      className="flex-1 px-3 py-2 text-xs bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 rounded-xl outline-none dark:text-white"
+                    />
+                    <button type="button" onClick={() => handleRemoveGalleryImage(idx)} className="p-2 text-gray-400 hover:text-red-500"><Trash2 size={16} /></button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* PASO 6: ARCHIVOS Y ETIQUETAS */}
+          {currentStep === 5 && (
+            <div className="space-y-5 animate-fade-in">
+              <div className="text-center md:text-left mb-2">
+                <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-1">Archivos de Descarga y Tags</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Configura los enlaces para obtener el contenido y sus etiquetas.</p>
+              </div>
+
+              {/* Enlaces de descarga */}
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Enlaces de Descarga</span>
+                  <button type="button" onClick={handleAddDownload} className="text-xs font-bold text-primary-600 dark:text-primary-400 hover:underline flex items-center gap-1"><Plus size={14} /> Añadir enlace</button>
+                </div>
+
+                {formData.descargas.map((d, idx) => (
+                  <div key={idx} className="flex flex-col sm:flex-row gap-2 bg-gray-50 dark:bg-[#191B1E] p-3 rounded-2xl border border-gray-200 dark:border-gray-800">
+                    <input 
+                      type="text" 
+                      value={d.nombre} 
+                      onChange={(e) => handleDownloadChange(idx, 'nombre', e.target.value)} 
+                      placeholder="Etiqueta (Ej: API 9, Mediafire...)" 
+                      className="w-full sm:w-1/3 px-3 py-2 text-xs bg-white dark:bg-[#222] border border-gray-300 dark:border-gray-700 rounded-xl outline-none dark:text-white"
+                    />
+                    <input 
+                      type="url" 
+                      value={d.url} 
+                      onChange={(e) => handleDownloadChange(idx, 'url', e.target.value)} 
+                      placeholder="https://..." 
+                      className="flex-1 px-3 py-2 text-xs bg-white dark:bg-[#222] border border-gray-300 dark:border-gray-700 rounded-xl outline-none dark:text-white"
+                    />
+                    {formData.descargas.length > 1 && (
+                      <button type="button" onClick={() => handleRemoveDownload(idx)} className="p-2 text-gray-400 hover:text-red-500"><Trash2 size={16} /></button>
                     )}
                   </div>
+                ))}
+              </div>
+
+              {/* Tags */}
+              <div className="space-y-2 pt-4 border-t border-gray-100 dark:border-gray-800">
+                <span className="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Etiquetas</span>
+                <div className="flex gap-2">
+                  <input 
+                    type="text" 
+                    value={tagInput} 
+                    onChange={(e) => setTagInput(e.target.value)} 
+                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
+                    placeholder="Escribe un tag y presiona Enter..." 
+                    className="flex-1 px-3 py-2 text-xs bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 rounded-xl outline-none dark:text-white"
+                  />
+                  <button type="button" onClick={handleAddTag} className="px-4 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-xs font-bold"><Plus size={16} /></button>
                 </div>
-              )}
 
-              {/* TAB 4: SECCIÓN DE VISIBILIDAD INTERACTIVA POR TARJETAS CON CHECK DE SELECCIÓN */}
-              {currentTab === 3 && (
-                <div className="animate-fade-in bg-white dark:bg-[#1e1e1e] rounded-2xl shadow-md border border-gray-300 dark:border-gray-700/80 p-4 sm:p-5 space-y-4">
-                  <div className="flex items-center gap-2 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">
-                    Ajustes de Publicación
-                  </div>
-                  
-                  <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-                    Selecciona directamente una de las siguientes opciones para configurar el alcance y la privacidad de tu mod en la plataforma:
-                  </p>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
-                    
-                    {/* Tarjeta Opción: Público */}
-                    <button
-                      type="button"
-                      onClick={() => setFormData(prev => ({ ...prev, visibilidad: 'public' }))}
-                      className={clsx(
-                        "p-3 rounded-xl border text-left transition-all duration-200 flex flex-col gap-2 outline-none focus:ring-1 focus:ring-primary-500",
-                        formData.visibilidad === 'public' 
-                          ? "bg-blue-50/70 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900/50 text-blue-800 dark:text-blue-300 ring-1 ring-blue-400/30 shadow-sm" 
-                          : "bg-white dark:bg-[#181818] border-gray-300 dark:border-gray-800 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-700"
-                      )}
-                    >
-                      <div className="flex items-center justify-between w-full font-bold text-xs">
-                        <div className="flex items-center gap-2">
-                          <Globe size={14} className={formData.visibilidad === 'public' ? "text-blue-500" : "text-gray-400"} /> 
-                          Público
-                        </div>
-                        {/* Círculo indicador de selección */}
-                        <div className={clsx(
-                          "w-4 h-4 rounded-full border flex items-center justify-center transition-all shrink-0",
-                          formData.visibilidad === 'public' ? "border-blue-500 bg-white dark:bg-gray-900" : "border-gray-300 dark:border-gray-600"
-                        )}>
-                          {formData.visibilidad === 'public' && <div className="w-2 h-2 rounded-full bg-blue-500 animate-scale-up" />}
-                        </div>
-                      </div>
-                      <p className="text-[11px] leading-relaxed opacity-90">
-                        Cualquier usuario de la plataforma podrá buscar, ver los detalles y descargar el archivo directamente desde el catálogo general.
-                      </p>
-                    </button>
-
-                    {/* Tarjeta Opción: Privado */}
-                    <button
-                      type="button"
-                      onClick={() => setFormData(prev => ({ ...prev, visibilidad: 'private' }))}
-                      className={clsx(
-                        "p-3 rounded-xl border text-left transition-all duration-200 flex flex-col gap-2 outline-none focus:ring-1 focus:ring-primary-500",
-                        formData.visibilidad === 'private' 
-                          ? "bg-red-50/70 dark:bg-red-950/20 border-red-200 dark:border-red-900/50 text-red-800 dark:text-red-300 ring-1 ring-red-400/30 shadow-sm" 
-                          : "bg-white dark:bg-[#181818] border-gray-300 dark:border-gray-800 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-700"
-                      )}
-                    >
-                      <div className="flex items-center justify-between w-full font-bold text-xs">
-                        <div className="flex items-center gap-2">
-                          <Lock size={14} className={formData.visibilidad === 'private' ? "text-red-500" : "text-gray-400"} /> 
-                          Privado
-                        </div>
-                        {/* Círculo indicador de selección */}
-                        <div className={clsx(
-                          "w-4 h-4 rounded-full border flex items-center justify-center transition-all shrink-0",
-                          formData.visibilidad === 'private' ? "border-red-500 bg-white dark:bg-gray-900" : "border-gray-300 dark:border-gray-600"
-                        )}>
-                          {formData.visibilidad === 'private' && <div className="w-2 h-2 rounded-full bg-red-500 animate-scale-up" />}
-                        </div>
-                      </div>
-                      <p className="text-[11px] leading-relaxed opacity-90">
-                        Solo tú podrás visualizar este aporte desde tu panel de control de mods. Nadie más en la comunidad tendrá acceso al contenido ni a las descargas.
-                      </p>
-                    </button>
-
-                    {/* Tarjeta Opción: No Listado */}
-                    <button
-                      type="button"
-                      onClick={() => setFormData(prev => ({ ...prev, visibilidad: 'unlisted' }))}
-                      className={clsx(
-                        "p-3 rounded-xl border text-left transition-all duration-200 flex flex-col gap-2 outline-none focus:ring-1 focus:ring-primary-500",
-                        formData.visibilidad === 'unlisted' 
-                          ? "bg-amber-50/70 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900/50 text-amber-800 dark:text-amber-300 ring-1 ring-amber-400/30 shadow-sm" 
-                          : "bg-white dark:bg-[#181818] border-gray-300 dark:border-gray-800 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-700"
-                      )}
-                    >
-                      <div className="flex items-center justify-between w-full font-bold text-xs">
-                        <div className="flex items-center gap-2">
-                          <LinkIcon size={14} className={formData.visibilidad === 'unlisted' ? "text-amber-500" : "text-gray-400"} /> 
-                          No listado
-                        </div>
-                        {/* Círculo indicador de selección */}
-                        <div className={clsx(
-                          "w-4 h-4 rounded-full border flex items-center justify-center transition-all shrink-0",
-                          formData.visibilidad === 'unlisted' ? "border-amber-500 bg-white dark:bg-gray-900" : "border-gray-300 dark:border-gray-600"
-                        )}>
-                          {formData.visibilidad === 'unlisted' && <div className="w-2 h-2 rounded-full bg-amber-500 animate-scale-up" />}
-                        </div>
-                      </div>
-                      <p className="text-[11px] leading-relaxed opacity-90">
-                        El mod no aparecerá indexado en el buscador global. Solamente los usuarios a quienes les compartas la URL directa podrán verlo y descargarlo.
-                      </p>
-                    </button>
-
-                  </div>
+                <div className="flex flex-wrap gap-1.5 pt-2">
+                  {formData.tags.map((t, idx) => (
+                    <span key={idx} className="px-2.5 py-1 bg-gray-100 dark:bg-gray-800 rounded-lg text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1">
+                      #{t}
+                      <button type="button" onClick={() => handleRemoveTag(t)} className="hover:text-red-500"><X size={12} /></button>
+                    </span>
+                  ))}
                 </div>
-              )}
+              </div>
+            </div>
+          )}
 
-          </form>
+          {/* PASO 7: PRIVACIDAD */}
+          {currentStep === 6 && (
+            <div className="space-y-4 animate-fade-in">
+              <div className="text-center md:text-left mb-4">
+                <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-1">Visibilidad del Aporte</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Determina quién podrá acceder a este contenido.</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {[
+                  { id: 'public', title: 'Público', icon: Globe, desc: 'Visible para toda la comunidad en el catálogo.', color: 'border-blue-500' },
+                  { id: 'private', title: 'Privado', icon: Lock, desc: 'Solo tú podrás verlo desde tu panel de control.', color: 'border-red-500' },
+                  { id: 'unlisted', title: 'No Listado', icon: LinkIcon, desc: 'Acceso únicamente mediante enlace directo.', color: 'border-amber-500' }
+                ].map((opt) => {
+                  const IconComp = opt.icon;
+                  const isSelected = formData.visibilidad === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, visibilidad: opt.id }))}
+                      className={clsx(
+                        "p-4 rounded-2xl border text-left transition-all flex flex-col gap-2 relative",
+                        isSelected ? `${opt.color} bg-primary-50/20 dark:bg-primary-950/20 ring-2 ring-primary-500/30` : "border-gray-200 dark:border-gray-800 bg-white dark:bg-[#191B1E]"
+                      )}
+                    >
+                      <div className="flex justify-between items-center">
+                        <span className="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-2">
+                          <IconComp size={16} /> {opt.title}
+                        </span>
+                        {isSelected && <Check size={16} className="text-primary-600" />}
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{opt.desc}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* PASO 8: RESUMEN Y FINALIZAR (LISTADO DE MODIFICACIONES Y EDICIÓN RÁPIDA) */}
+          {currentStep === 7 && (
+            <div className="space-y-5 animate-fade-in">
+              <div className="text-center md:text-left mb-4">
+                <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-1">Resumen de la Publicación</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Revisa la lista de modificaciones y presiona publicar si todo está correcto.</p>
+              </div>
+
+              <div className="bg-white dark:bg-[#191B1E] border border-gray-200 dark:border-gray-800 rounded-2xl p-5 space-y-4 shadow-sm">
+                
+                {/* Ítem 1: Título y Categoría */}
+                <div className="flex justify-between items-center pb-3 border-b border-gray-100 dark:border-gray-800">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Nombre & Tipo</span>
+                    <h3 className="text-base font-bold text-gray-900 dark:text-white">{formData.titulo || 'Sin nombre'}</h3>
+                    <span className="inline-block mt-0.5 px-2 py-0.5 rounded bg-primary-100 dark:bg-primary-950/50 text-primary-600 dark:text-primary-400 text-[10px] font-extrabold uppercase">
+                      {formData.tipo}
+                    </span>
+                  </div>
+                  <button type="button" onClick={() => setCurrentStep(0)} className="p-2 text-primary-600 dark:text-primary-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors" title="Editar nombre">
+                    <Edit3 size={16} />
+                  </button>
+                </div>
+
+                {/* Ítem 2: Creadores */}
+                <div className="flex justify-between items-center pb-3 border-b border-gray-100 dark:border-gray-800">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Creadores</span>
+                    <p className="text-xs font-semibold text-gray-800 dark:text-gray-200 mt-0.5">
+                      {selectedCreators.map(c => c.nombre).join(', ') || 'Sin creadores asignados'}
+                    </p>
+                  </div>
+                  <button type="button" onClick={() => setCurrentStep(2)} className="p-2 text-primary-600 dark:text-primary-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors" title="Editar creadores">
+                    <Edit3 size={16} />
+                  </button>
+                </div>
+
+                {/* Ítem 3: Multimedia y Portada */}
+                <div className="flex justify-between items-center pb-3 border-b border-gray-100 dark:border-gray-800">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Multimedia</span>
+                    <p className="text-xs font-semibold text-gray-800 dark:text-gray-200 mt-0.5">
+                      Portada: {formData.imagen ? 'Configurada' : 'Falta configurar'} • Galería: {formData.galeria.length} elementos
+                    </p>
+                  </div>
+                  <button type="button" onClick={() => setCurrentStep(4)} className="p-2 text-primary-600 dark:text-primary-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors" title="Editar imágen">
+                    <Edit3 size={16} />
+                  </button>
+                </div>
+
+                {/* Ítem 4: Archivos y Etiquetas */}
+                <div className="flex justify-between items-center pb-3 border-b border-gray-100 dark:border-gray-800">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Descargas & Tags</span>
+                    <p className="text-xs font-semibold text-gray-800 dark:text-gray-200 mt-0.5">
+                      {formData.descargas.filter(d => d.url).length} enlaces directos • {formData.tags.length} etiquetas
+                    </p>
+                  </div>
+                  <button type="button" onClick={() => setCurrentStep(5)} className="p-2 text-primary-600 dark:text-primary-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors" title="Editar descargas">
+                    <Edit3 size={16} />
+                  </button>
+                </div>
+
+                {/* Ítem 5: Privacidad */}
+                <div className="flex justify-between items-center">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Visibilidad</span>
+                    <p className="text-xs font-bold text-gray-800 dark:text-gray-200 capitalize mt-0.5">
+                      {formData.visibilidad}
+                    </p>
+                  </div>
+                  <button type="button" onClick={() => setCurrentStep(6)} className="p-2 text-primary-600 dark:text-primary-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors" title="Editar privacidad">
+                    <Edit3 size={16} />
+                  </button>
+                </div>
+
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
 
-      {/* FOOTER FIJO CON BOTONES */}
-      <div className="flex-shrink-0 bg-white dark:bg-[#1e1e1e] border-t border-gray-300 dark:border-gray-800 px-4 py-3">
-        <div className="max-w-4xl mx-auto flex gap-2 justify-between items-center">
-          <button type="button" onClick={handlePrevTab} disabled={currentTab === 0} className={clsx("w-24 py-2 bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-white rounded-xl text-xs font-bold flex items-center justify-center gap-0.5 shadow-sm disabled:opacity-30 disabled:cursor-not-allowed")}>
-            <ChevronLeft size={14} /> Atrás
+      {/* FOOTER FIJO CON NAVEGACIÓN Y BOTONES DE ACCIÓN */}
+      <div className="flex-shrink-0 bg-white dark:bg-[#1e1e1e] border-t border-gray-200 dark:border-gray-800 px-4 py-3">
+        <div className="max-w-4xl mx-auto flex gap-3 justify-between items-center">
+          <button 
+            type="button" 
+            onClick={handlePrevStep} 
+            disabled={currentStep === 0} 
+            className="px-4 py-2 bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-white rounded-xl text-xs font-bold flex items-center gap-1 shadow-sm disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            <ChevronLeft size={16} /> Anterior
           </button>
           
           <div className="flex gap-2">
-            {currentTab < tabs.length - 1 ? (
-              <button type="button" onClick={handleNextTab} className="w-24 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-0.5 shadow-sm">
-                Siguiente <ChevronRight size={14} />
+            {currentStep < steps.length - 1 ? (
+              <button 
+                type="button" 
+                onClick={handleNextStep} 
+                className="px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-colors"
+              >
+                Siguiente <ChevronRight size={16} />
               </button>
             ) : (
               <>
                 {user?.role === 'admin' ? (
-                  <button type="button" onClick={() => handleSubmitForm('publish')} disabled={loading || !isEncryptionReady} className="w-24 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1 shadow-sm disabled:opacity-50">
-                    {loading ? <Loader2 className="animate-spin" size={14} /> : <Save size={14} />} Guardar
+                  <button 
+                    type="button" 
+                    onClick={() => handleSubmitForm('publish')} 
+                    disabled={loading || !isEncryptionReady} 
+                    className="px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm disabled:opacity-50 transition-colors"
+                  >
+                    {loading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />} Publicar Mod
                   </button>
                 ) : (
                   <>
-                    <button type="button" onClick={() => handleSubmitForm('draft')} disabled={loading || !isEncryptionReady} className="w-24 py-2 bg-gray-100 dark:bg-[#191B1E] text-gray-700 dark:text-gray-200 font-bold text-xs rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700/50 transition-all flex items-center justify-center gap-1 shadow-sm disabled:opacity-50">
-                      <FileText size={14} /> Borrador
+                    <button 
+                      type="button" 
+                      onClick={() => handleSubmitForm('draft')} 
+                      disabled={loading || !isEncryptionReady} 
+                      className="px-4 py-2 bg-gray-100 dark:bg-[#191B1E] text-gray-700 dark:text-gray-200 font-bold text-xs rounded-xl hover:bg-gray-200 dark:hover:bg-gray-800 transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+                    >
+                      <FileText size={16} /> Borrador
                     </button>
-                    <button type="button" onClick={() => handleSubmitForm('pending')} disabled={loading || !isEncryptionReady} className="w-24 py-2 bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1 shadow-sm disabled:opacity-50">
-                      {loading ? <Loader2 className="animate-spin" size={14} /> : <Upload size={14} />} Publicar
+                    <button 
+                      type="button" 
+                      onClick={() => handleSubmitForm('pending')} 
+                      disabled={loading || !isEncryptionReady} 
+                      className="px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs rounded-xl transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+                    >
+                      {loading ? <Loader2 className="animate-spin" size={16} /> : <Upload size={16} />} Publicar
                     </button>
                   </>
                 )}
@@ -750,7 +902,8 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
         cancelText={modal.cancelText} 
         neutralText={modal.neutralText} 
       />
-    </div>
+    </div>,
+    document.body
   );
 };
 

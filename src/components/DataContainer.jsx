@@ -132,7 +132,7 @@ const DataContainer = ({
   return (
     <div className="flex flex-col p-2 md:p-4 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
       {/* HEADER */}
-      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-4 md:mb-6">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-2 md:mb-6">
         <h2 className="flex text-xl md:text-2xl font-bold text-gray-800 dark:text-white items-center gap-3">
           <div className={clsx("w-9 h-9 rounded-xl flex items-center justify-center shadow-sm text-white", `bg-gradient-to-br ${gradientClass}`)}>
               <Icon size={22} strokeWidth={2.5} />
@@ -143,7 +143,7 @@ const DataContainer = ({
       </div>
 
       {/* BARRA DE FILTROS */}
-      <div className="mb-4 md:mb-6 flex flex-row gap-2 md:gap-4 items-start md:items-center">
+      <div className="mb-2 md:mb-6 flex flex-row gap-2 md:gap-3 items-start md:items-center">
         {/* Búsqueda */}
         <div className="relative w-full md:flex-1">
           <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />

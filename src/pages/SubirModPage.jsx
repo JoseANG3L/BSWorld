@@ -21,7 +21,7 @@ const SubirModPage = () => {
     setIsOpen(false);
     setTimeout(() => {
       navigate(-1);
-    }, 300);
+    }, 200);
   };
 
   return <SubirMod isOpen={isOpen} onClose={handleClose} editId={editId} />;
