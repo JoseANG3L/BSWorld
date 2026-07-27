@@ -73,6 +73,18 @@ const PublicProfile = () => {
     loadData();
   }, [username]);
 
+  // Actualizar perfil localmente cuando el usuario actual cambia sus datos y es su propio perfil
+  useEffect(() => {
+    if (isOwnProfile && currentUser) {
+      setProfile(prev => ({
+        ...prev,
+        username: currentUser.username,
+        avatar: currentUser.avatar,
+        banner: currentUser.banner
+      }));
+    }
+  }, [currentUser, isOwnProfile]);
+
   // --- LÓGICA DE FILTRADO ---
   const filteredContent = useMemo(() => {
     let resultado = content.filter(item => {
@@ -143,18 +155,6 @@ const PublicProfile = () => {
                 )
             ) : (
                 <div className={clsx("w-full h-full", profile?.role === 'admin' ? "bg-gradient-to-r from-yellow-500 to-orange-600" : "bg-gradient-to-r from-primary-600 to-purple-600")}></div>
-            )}
-
-            {/* Botón rápido sobre el banner si es el dueño */}
-            {isOwnProfile && (
-              <Link 
-                to="/configuracion"
-                className="absolute top-3 right-3 md:top-4 md:right-4 p-2.5 rounded-full bg-black/40 hover:bg-black/70 text-white backdrop-blur-md transition-all border border-white/20 shadow-lg flex items-center gap-2 text-xs font-semibold"
-                title="Editar banner o avatar"
-              >
-                <Edit3 size={15} />
-                <span className="hidden md:inline">Editar Perfil</span>
-              </Link>
             )}
          </div>
 

@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { 
-  Save, Plus, Trash2, Image as ImageIcon, Tag, User, Link2, X, 
-  ChevronRight, ChevronLeft, Layers, PenTool, Loader2, PlayCircle, 
+  Save, Plus, Trash2, Image as ImageIcon, Tag, User, CheckCircle, X, 
+  ChevronRight, ChevronLeft, AlertTriangle, PenTool, Loader2, PlayCircle, 
   ChevronDown, FileText, Upload, Link as LinkIcon, Lock, Globe, Eye,
   Sparkles, Check, Edit3, Gamepad2, Map, Boxes, Package, Wrench, Shield
 } from 'lucide-react';
@@ -17,7 +17,6 @@ import {
 } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import SimpleEditor from "../components/SimpleEditor";
-import Modal from '../components/Modal';
 import AvatarRenderer from '../components/AvatarRenderer';
 import { encryptionService, initializeEncryption } from '../services/encryption';
 import { createPortal } from 'react-dom';
@@ -71,9 +70,10 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
 
   // --- MODAL CONFIRMACIONES ---
   const [modal, setModal] = useState({
-    isOpen: false, type: 'success', title: '', message: '', showCancel: false, confirmText: 'Aceptar', cancelText: 'Cancelar', onConfirm: null, onCancel: null
+    isOpen: false, type: 'success', title: '', message: '', showCancel: false, confirmText: 'Aceptar', cancelText: 'Cancelar', neutralText: '', onConfirm: null, onCancel: null, onNeutral: null, secondaryText: '', onSecondary: null
   });
   const closeModal = () => setModal(prev => ({ ...prev, isOpen: false }));
+  const [createdContentId, setCreatedContentId] = useState(null);
 
   // FORMULARIO CENTRALIZADO
   const [formData, setFormData] = useState({
@@ -81,10 +81,10 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
     descripcion: '',
     tipo: 'mod',
     imagen: '',
-    status: 'published',
-    visibilidad: 'public', 
+    estado: 'borrador',
+    visibilidad: 'publico',
     creado: new Date().toISOString().split('T')[0],
-    aporte: user?.id || user?.uid || '', 
+    aporte: user?.id || '', 
     tags: [],
     galeria: [], 
     descargas: [{ nombre: '', url: '' }]
@@ -98,7 +98,7 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
   const [userSuggestions, setUserSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
-  const [originalStatus, setOriginalStatus] = useState(null);
+  const [originalEstado, setOriginalEstado] = useState(null);
 
   const steps = [
     { id: 'titulo', label: '1. Nombre' },
@@ -119,12 +119,35 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
     } else {
       document.body.style.overflow = 'unset';
       document.documentElement.style.overflow = 'unset';
+      // Reiniciar formulario al cerrar
+      setCurrentStep(0);
+      setFormData({
+        titulo: '',
+        descripcion: '',
+        tipo: 'mod',
+        imagen: '',
+        estado: 'borrador',
+        visibilidad: 'publico',
+        creado: new Date().toISOString().split('T')[0],
+        aporte: user?.id || '',
+        tags: [],
+        galeria: [],
+        descargas: [{ nombre: '', url: '' }]
+      });
+      setInitialFormData(null);
+      setHasChanges(false);
+      setSelectedCreators([]);
+      setTagInput('');
+      setCreatorInput('');
+      setErrors({ titulo: false, imagen: false, creadores: false });
+      setCreatedContentId(null);
+      setOriginalEstado(null);
     }
     return () => {
       document.body.style.overflow = 'unset';
       document.documentElement.style.overflow = 'unset';
     };
-  }, [isOpen]);
+  }, [isOpen, user?.id, user?.uid]);
 
   const getProgress = () => {
     return Math.round(((currentStep + 1) / steps.length) * 100);
@@ -149,9 +172,9 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
     const loadDataForEdit = async () => {
       if (!isEditing) return;
       try {
-        const data = await getContentById(editId);
+        const data = await getContentById(editId, user?.id);
         if (data) {
-          setOriginalStatus(data.status);
+          setOriginalEstado(data.estado || data.status || 'revision');
           
           if (data.creadores && Array.isArray(data.creadores)) {
              const enrichedCreators = await Promise.all(data.creadores.map(async (creator) => {
@@ -170,10 +193,10 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
             descripcion: data.descripcion || '',
             tipo: data.tipo || 'mod',
             imagen: data.imagen || '',
-            aporte: cleanAporteId || user?.id || user?.uid || '', 
+            aporte: cleanAporteId || user?.id || '', 
             creado: data.creado ? new Date(data.creado).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-            status: data.status || 'published',
-            visibilidad: data.visibilidad || 'public', 
+            estado: data.estado || data.status || 'borrador',
+            visibilidad: data.visibilidad || 'publico', 
             tags: data.tags ? data.tags.filter(t => t !== data.tipo) : [],
             galeria: data.galeria && Array.isArray(data.galeria) ? data.galeria : [], 
             descargas: data.descargas && data.descargas.length > 0 ? data.descargas.map(d => ({ nombre: d.label || '', url: d.url || '' })) : [{ nombre: '', url: '' }],
@@ -211,9 +234,9 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
         title: 'Cambios sin guardar',
         message: 'Tienes modificaciones en el formulario. ¿Qué deseas hacer antes de salir?',
         showCancel: true,
-        confirmText: 'Guardar borrador',
-        neutralText: 'Cerrar sin guardar',
-        cancelText: 'Volver al editor',
+        confirmText: 'Guardar borrador y salir',
+        neutralText: 'Salir sin guardar',
+        cancelText: 'Cancelar',
         onConfirm: () => {
           closeModal();
           handleSubmitForm('draft');
@@ -337,10 +360,17 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
 
     setLoading(true);
     try {
-      let finalStatus = formData.status;
-      if (user.role !== 'admin') {
-        if (action === 'draft') finalStatus = 'draft';
-        else finalStatus = (originalStatus === 'published' || originalStatus === 'published_editing') ? 'published_editing' : 'pending';
+      let finalEstado;
+      
+      if (user.role === 'admin') {
+        // Admin puede establecer el estado directamente
+        if (action === 'draft') finalEstado = 'borrador';
+        else if (action === 'publish') finalEstado = 'aceptado';
+        else finalEstado = formData.estado || 'revision';
+      } else {
+        // Usuarios no admin
+        if (action === 'draft') finalEstado = 'borrador'; // Borrador tiene su propio estado
+        else finalEstado = 'revision'; // Cualquier edición/envío va a revisión
       }
 
       let processedDescargas = formData.descargas.filter(d => d.url !== '');
@@ -365,20 +395,45 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
         descargas: processedDescargas,
         aporte: formData.aporte, 
         creado: new Date(formData.creado).toISOString(),
-        status: finalStatus,
+        estado: finalEstado,
         visibilidad: formData.visibilidad
       };
 
-      if (isEditing) await updateContent(editId, payload);
-      else await createContent(payload, false);
+      let result;
+      if (isEditing) {
+        result = await updateContent(editId, payload);
+        setCreatedContentId(editId);
+      } else {
+        result = await createContent(payload, false);
+        setCreatedContentId(result?.id || result);
+      }
+
+      const isDraft = action === 'draft';
+      const isPublished = finalEstado === 'aceptado';
 
       setModal({
-        isOpen: true, type: 'success', title: '¡Publicación enviada!',
-        message: finalStatus === 'published_editing' ? 'Cambios enviados a revisión.' : 'Tu contenido se procesó correctamente.',
+        isOpen: true,
+        type: 'success',
+        title: isDraft ? '¡Borrador guardado!' : (finalEstado === 'revision' ? '¡Enviado a revisión!' : '¡Publicación aceptada!'),
+        message: isDraft ? 'Tu contenido se ha guardado como borrador.' : (finalEstado === 'revision' ? 'Tu mod está en revisión por los administradores.' : 'Tu contenido ha sido aceptado y publicado.'),
+        showCancel: true,
+        confirmText: 'Ver contenido',
+        cancelText: user.role === 'admin' ? 'Ir al panel' : 'Ir a mis mods',
+        secondaryText: isPublished ? 'Guardar como borrador' : '',
         onConfirm: () => {
+          closeModal();
+          if (onClose) onClose();
+          if (createdContentId) navigate(`/mod/${createdContentId}`);
+        },
+        onCancel: () => {
+          closeModal();
           if (onClose) onClose();
           navigate(user.role === 'admin' ? '/admin' : '/mis-mods');
-        }
+        },
+        onSecondary: isPublished ? () => {
+          closeModal();
+          handleSubmitForm('draft');
+        } : null
       });
     } catch (error) { 
       console.error(error); 
@@ -398,55 +453,22 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
   );
 
   return createPortal(
-    <div className="fixed inset-0 h-screen w-screen bg-white dark:bg-dark-bg flex flex-col z-[99999] overflow-hidden animate-fade-in">
+    <div className="fixed inset-0 h-screen w-screen bg-black flex flex-col z-[99999] overflow-hidden animate-fade-in">
       
-      {/* HEADER DINÁMICO PASO A PASO */}
-      <div className="flex-shrink-0 bg-white dark:bg-[#1e1e1e] border-b border-gray-200 dark:border-gray-800 px-4 pt-4 pb-2">
-        <div className="max-w-4xl mx-auto flex items-center justify-between mb-3">
+      {/* HEADER SIMPLE */}
+      <div className="flex-shrink-0 bg-white dark:bg-[#1e1e1e] border-b border-gray-200 dark:border-gray-800 px-4 py-3">
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className={clsx("w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-md shrink-0", isEditing ? "bg-blue-600" : "bg-primary-600")}>
               {isEditing ? <PenTool size={18} strokeWidth={2.5} /> : <Sparkles size={18} strokeWidth={2.5} />}
             </div>
-            <div>
-              <h1 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white leading-none">
-                {isEditing ? "Editar Publicación" : "Publicar Nuevo Mod"}
-              </h1>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Paso {currentStep + 1} de {steps.length}: <span className="font-semibold text-primary-600 dark:text-primary-400">{steps[currentStep].label}</span></p>
-            </div>
+            <h1 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white">
+              {isEditing ? "Editar Publicación" : "Publicar Nuevo Mod"}
+            </h1>
           </div>
-
-          <div className="flex items-center gap-4 shrink-0">
-            <div className="hidden sm:flex items-center gap-2">
-              <div className="w-28 h-2 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
-                <div className="h-full bg-primary-600 transition-all duration-300" style={{ width: `${getProgress()}%` }} />
-              </div>
-              <span className="text-xs font-bold text-gray-600 dark:text-gray-400">{getProgress()}%</span>
-            </div>
-            <button type="button" onClick={handleClose} className="p-2 rounded-xl text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-              <X size={20} />
-            </button>
-          </div>
-        </div>
-
-        {/* NAVEGACIÓN PASO A PASO */}
-        <div className="max-w-4xl mx-auto flex items-center justify-between border-t border-gray-100 dark:border-gray-800/80 pt-2 overflow-x-auto scrollbar-none gap-2">
-          {steps.map((step, idx) => (
-            <button
-              key={step.id}
-              onClick={() => setCurrentStep(idx)}
-              className={clsx(
-                "px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5",
-                currentStep === idx 
-                  ? "bg-primary-50 dark:bg-primary-950/40 text-primary-600 dark:text-primary-400 border border-primary-200 dark:border-primary-800" 
-                  : idx < currentStep 
-                    ? "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800" 
-                    : "text-gray-400 dark:text-gray-600"
-              )}
-            >
-              {idx < currentStep ? <Check size={12} className="text-green-500 stroke-[3]" /> : <span className="w-4 h-4 rounded-full bg-gray-200 dark:bg-gray-800 text-[10px] flex items-center justify-center">{idx + 1}</span>}
-              <span>{step.label.split('. ')[1]}</span>
-            </button>
-          ))}
+          <button type="button" onClick={handleClose} className="p-2 rounded-xl text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+            <X size={20} />
+          </button>
         </div>
       </div>
 
@@ -621,23 +643,55 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
               </div>
 
               {/* Galería Adicional */}
-              <div className="space-y-2 pt-3 border-t border-gray-100 dark:border-gray-800">
+              <div className="space-y-3 pt-3 border-t border-gray-100 dark:border-gray-800">
                 <div className="flex justify-between items-center">
                   <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Imágenes / Videos Adicionales</label>
                   <button type="button" onClick={handleAddGalleryImage} className="text-xs font-bold text-primary-600 dark:text-primary-400 hover:underline flex items-center gap-1"><Plus size={14} /> Añadir URL</button>
                 </div>
-                {formData.galeria.map((url, idx) => (
-                  <div key={idx} className="flex gap-2">
-                    <input 
-                      type="url" 
-                      value={url} 
-                      onChange={(e) => handleGalleryImageChange(idx, e.target.value)} 
-                      placeholder="URL de imagen o YouTube..." 
-                      className="flex-1 px-3 py-2 text-xs bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 rounded-xl outline-none dark:text-white"
-                    />
-                    <button type="button" onClick={() => handleRemoveGalleryImage(idx)} className="p-2 text-gray-400 hover:text-red-500"><Trash2 size={16} /></button>
-                  </div>
-                ))}
+                {formData.galeria.map((url, idx) => {
+                  const youtubeId = getYouTubeId(url);
+                  const isVideoFile = isVideo(url);
+                  return (
+                    <div key={idx} className="space-y-2">
+                      <div className="flex gap-2">
+                        <input 
+                          type="url" 
+                          value={url} 
+                          onChange={(e) => handleGalleryImageChange(idx, e.target.value)} 
+                          placeholder="URL de imagen o YouTube..." 
+                          className="flex-1 px-3 py-2 text-xs bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 rounded-xl outline-none dark:text-white"
+                        />
+                        <button type="button" onClick={() => handleRemoveGalleryImage(idx)} className="p-2 text-gray-400 hover:text-red-500"><Trash2 size={16} /></button>
+                      </div>
+                      {url && (
+                        <div className="w-full aspect-video max-h-40 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-800 bg-black">
+                          {youtubeId ? (
+                            <iframe 
+                              src={`https://www.youtube.com/embed/${youtubeId}`} 
+                              className="w-full h-full"
+                              allowFullScreen
+                              title={`Video ${idx + 1}`}
+                            />
+                          ) : isVideoFile ? (
+                            <video controls className="w-full h-full object-cover">
+                              <source src={url} />
+                            </video>
+                          ) : (
+                            <img 
+                              src={url} 
+                              alt={`Galería ${idx + 1}`} 
+                              className="w-full h-full object-cover" 
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                                e.target.parentElement.innerHTML = '<div class="w-full h-full flex items-center justify-center text-gray-500 text-xs">Error al cargar imagen</div>';
+                              }}
+                            />
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -717,9 +771,9 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 {[
-                  { id: 'public', title: 'Público', icon: Globe, desc: 'Visible para toda la comunidad en el catálogo.', color: 'border-blue-500' },
-                  { id: 'private', title: 'Privado', icon: Lock, desc: 'Solo tú podrás verlo desde tu panel de control.', color: 'border-red-500' },
-                  { id: 'unlisted', title: 'No Listado', icon: LinkIcon, desc: 'Acceso únicamente mediante enlace directo.', color: 'border-amber-500' }
+                  { id: 'publico', title: 'Público', icon: Globe, desc: 'Visible para toda la comunidad en el catálogo.', color: 'border-blue-500' },
+                  { id: 'privado', title: 'Privado', icon: Lock, desc: 'Solo tú podrás verlo desde tu panel de control.', color: 'border-red-500' },
+                  { id: 'no-listado', title: 'No Listado', icon: LinkIcon, desc: 'Acceso únicamente mediante enlace directo.', color: 'border-amber-500' }
                 ].map((opt) => {
                   const IconComp = opt.icon;
                   const isSelected = formData.visibilidad === opt.id;
@@ -757,16 +811,26 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
 
               <div className="bg-white dark:bg-[#191B1E] border border-gray-200 dark:border-gray-800 rounded-2xl p-5 space-y-4 shadow-sm">
                 
-                {/* Ítem 1: Título y Categoría */}
+                {/* Ítem 1: Título */}
                 <div className="flex justify-between items-center pb-3 border-b border-gray-100 dark:border-gray-800">
                   <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Nombre & Tipo</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Nombre</span>
                     <h3 className="text-base font-bold text-gray-900 dark:text-white">{formData.titulo || 'Sin nombre'}</h3>
+                  </div>
+                  <button type="button" onClick={() => setCurrentStep(0)} className="p-2 text-primary-600 dark:text-primary-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors" title="Editar nombre">
+                    <Edit3 size={16} />
+                  </button>
+                </div>
+
+                {/* Ítem 1.5: Categoría */}
+                <div className="flex justify-between items-center pb-3 border-b border-gray-100 dark:border-gray-800">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Categoría</span>
                     <span className="inline-block mt-0.5 px-2 py-0.5 rounded bg-primary-100 dark:bg-primary-950/50 text-primary-600 dark:text-primary-400 text-[10px] font-extrabold uppercase">
                       {formData.tipo}
                     </span>
                   </div>
-                  <button type="button" onClick={() => setCurrentStep(0)} className="p-2 text-primary-600 dark:text-primary-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors" title="Editar nombre">
+                  <button type="button" onClick={() => setCurrentStep(1)} className="p-2 text-primary-600 dark:text-primary-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors" title="Editar categoría">
                     <Edit3 size={16} />
                   </button>
                 </div>
@@ -888,20 +952,90 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
         </div>
       </div>
 
-      <Modal 
-        isOpen={modal.isOpen} 
-        onClose={closeModal} 
-        onConfirm={modal.onConfirm} 
-        onCancel={modal.onCancel} 
-        onNeutral={modal.onNeutral} 
-        title={modal.title} 
-        message={modal.message} 
-        type={modal.type} 
-        showCancel={modal.showCancel} 
-        confirmText={modal.confirmText} 
-        cancelText={modal.cancelText} 
-        neutralText={modal.neutralText} 
-      />
+      {/* CUSTOM MODAL - MISMO ESTILO QUE LA PÁGINA */}
+      {modal.isOpen && createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity animate-fade-in" 
+            onClick={closeModal}
+          ></div>
+          <div className="relative bg-white dark:bg-[#1e1e1e] rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all animate-scale-up border border-gray-200 dark:border-gray-700 z-50">
+            <button onClick={closeModal} className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+              <X size={20} />
+            </button>
+
+            <div className="p-6">
+              {/* Icono y Título */}
+              <div className="flex items-start gap-4 mb-4">
+                <div className={clsx(
+                  "p-3 rounded-xl shrink-0",
+                  modal.type === 'success' ? "bg-green-100 dark:bg-green-900/30" :
+                  modal.type === 'error' ? "bg-red-100 dark:bg-red-900/30" :
+                  modal.type === 'warning' ? "bg-yellow-100 dark:bg-yellow-900/30" :
+                  "bg-blue-100 dark:bg-blue-900/30"
+                )}>
+                  {modal.type === 'success' && <CheckCircle size={24} className="text-green-500" />}
+                  {modal.type === 'error' && <AlertTriangle size={24} className="text-red-500" />}
+                  {modal.type === 'warning' && <AlertTriangle size={24} className="text-yellow-500" />}
+                  {modal.type === 'info' && <Info size={24} className="text-blue-500" />}
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-black text-gray-900 dark:text-white mb-1">{modal.title}</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{modal.message}</p>
+                </div>
+              </div>
+
+              {/* Botones */}
+              <div className={clsx(
+                "flex gap-2 mt-6",
+                modal.secondaryText ? "flex-col" : modal.neutralText ? "flex-col sm:flex-row-reverse" : "flex"
+              )}>
+                {modal.secondaryText && (
+                  <button 
+                    onClick={modal.onSecondary || closeModal}
+                    className="w-full px-4 py-2.5 bg-primary-50 dark:bg-primary-950/20 text-primary-600 dark:text-primary-400 border border-primary-200 dark:border-primary-800 rounded-xl text-xs font-bold hover:bg-primary-100 dark:hover:bg-primary-950/40 transition-colors"
+                  >
+                    {modal.secondaryText}
+                  </button>
+                )}
+                {modal.neutralText && (
+                  <button 
+                    onClick={modal.onNeutral || closeModal}
+                    className={clsx("w-full px-4 py-2.5 bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/40 rounded-xl text-xs font-bold hover:bg-red-100 dark:hover:bg-red-950/40 transition-colors", modal.secondaryText ? "" : "sm:flex-1")}
+                  >
+                    {modal.neutralText}
+                  </button>
+                )}
+                <button 
+                  onClick={modal.onConfirm || closeModal}
+                  className={clsx(
+                    "px-4 py-2.5 rounded-xl text-white text-xs font-bold transition-colors",
+                    modal.secondaryText ? "w-full" : modal.neutralText ? "w-full sm:flex-1" : "flex-1",
+                    modal.type === 'success' ? "bg-green-600 hover:bg-green-700" :
+                    modal.type === 'error' ? "bg-red-600 hover:bg-red-700" :
+                    modal.type === 'warning' ? "bg-yellow-600 hover:bg-yellow-700" :
+                    "bg-primary-600 hover:bg-primary-700"
+                  )}
+                >
+                  {modal.confirmText}
+                </button>
+                {modal.showCancel && (
+                  <button 
+                    onClick={modal.onCancel || closeModal}
+                    className={clsx(
+                      "px-4 py-2.5 bg-gray-100 dark:bg-[#191B1E] text-gray-700 dark:text-gray-200 rounded-xl text-xs font-bold hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors",
+                      modal.secondaryText ? "w-full" : modal.neutralText ? "w-full sm:flex-1" : "flex-1"
+                    )}
+                  >
+                    {modal.cancelText}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>,
     document.body
   );

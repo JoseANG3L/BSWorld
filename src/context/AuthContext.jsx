@@ -82,6 +82,11 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+  const updateUserProfile = async (updates) => {
+    if (!user) return;
+    setUser(prev => ({ ...prev, ...updates }));
+  };
+
   // --- GESTIÓN DE SESIÓN ---
   useEffect(() => {
     const getSession = async () => {
@@ -183,7 +188,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, signup, logout, loading, signInWithProvider }}>
+    <AuthContext.Provider value={{ user, login, signup, logout, loading, signInWithProvider, updateUserProfile }}>
       {!loading && children}
     </AuthContext.Provider>
   );

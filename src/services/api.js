@@ -13,7 +13,8 @@ export const getContentByType = async (tipo) => {
     .from('content')
     .select('*')
     .eq('tipo', tipo)
-    .eq('status', 'published')
+    .eq('estado', 'aceptado')
+    .eq('visibilidad', 'publico')
     .order('creado', { ascending: false });
   if (error) throw error;
   return data;
@@ -23,7 +24,8 @@ export const getPublicContent = async () => {
   const { data, error } = await supabase
     .from('content')
     .select('*')
-    .eq('status', 'published')
+    .eq('estado', 'aceptado')
+    .eq('visibilidad', 'publico')
     .order('creado', { ascending: false });
   return error ? [] : data;
 };
@@ -36,13 +38,39 @@ export const getAdminContent = async () => {
   return error ? [] : data;
 };
 
-export const getContentById = async (id) => {
+export const getContentById = async (id, userId = null, userRole = null) => {
   const { data, error } = await supabase.from('content').select('*').eq('id', id).single();
-  return error ? null : data;
+  if (error) return null;
+  
+  // Control de acceso por visibilidad y estado
+  if (data) {
+    const visibilidad = data.visibilidad || 'publico';
+    const estado = data.estado || data.status;
+    const ownerId = data.aporte?.uid || data.aporte;
+    
+    // Admin puede ver todo el contenido
+    if (userRole === 'admin') {
+      return data;
+    }
+    
+    // Si es privado, solo el dueño puede verlo
+    if (visibilidad === 'privado') {
+      if (userId !== ownerId) return null;
+    }
+    
+    // Si está en borrador, solo el dueño puede verlo
+    if (estado === 'borrador' || estado === 'draft') {
+      if (userId !== ownerId) return null;
+    }
+    
+    // Si está en revisión, cualquiera puede verlo
+    // Si es no-listado o publico, cualquiera puede verlo
+  }
+  
+  return data;
 };
 
 export const getUserContent = async (uid) => {
-  // Nota: Si 'aporte' es JSONB, usamos el operador ->> para acceder al campo 'uid'
   const { data, error } = await supabase
     .from('content')
     .select('*')
@@ -57,11 +85,11 @@ export const getUserContent = async (uid) => {
 export const updateContent = async (id, data) => {
   const { data: currentData } = await supabase
     .from('content')
-    .select('status, aporte, titulo, tipo, imagen')
+    .select('estado, aporte, titulo, tipo, imagen')
     .eq('id', id)
     .single();
   
-  if (data.status && currentData?.status !== data.status && (data.status === 'published' || data.status === 'rejected')) {
+  if (data.estado && currentData?.estado !== data.estado && (data.estado === 'published' || data.estado === 'rejected')) {
     const uploaderUid = currentData.aporte?.uid;
     if (uploaderUid) {
       await supabase.from('notifications').insert({
@@ -70,7 +98,7 @@ export const updateContent = async (id, data) => {
         modTitle: data.titulo || currentData.titulo,
         modImage: data.imagen || currentData.imagen,
         modType: data.tipo || currentData.tipo,
-        status: data.status,
+        estado: data.estado,
         creado: new Date().toISOString(),
         leida: false
       });
@@ -91,10 +119,10 @@ export const deleteContent = async (id) => {
 };
 
 export const createContent = async (data, isUserSubmission = false) => {
-  const finalStatus = isUserSubmission ? 'pending' : (data.status || 'published');
+  const finalStatus = isUserSubmission ? 'pending' : (data.estado || 'published');
   const newId = uuidv4();
 
-  const payload = { ...data, id: newId, creado: data.creado || new Date().toISOString(), status: finalStatus, vistas: 0 };
+  const payload = { ...data, id: newId, creado: data.creado || new Date().toISOString(), estado: finalStatus, vistas: 0 };
   const { error } = await supabase.from('content').insert(payload);
   if (error) throw error;
   return newId;
@@ -120,7 +148,7 @@ export const registerDownload = async (contentId, downloadUrl) => {
 
 export const getGlobalStats = async () => {
   const { count: usersCount } = await supabase.from('users').select('*', { count: 'exact', head: true });
-  const { data: content } = await supabase.from('content').select('descargas, status').eq('status', 'published');
+  const { data: content } = await supabase.from('content').select('descargas, estado').eq('estado', 'aceptado').eq('visibilidad', 'publico');
   
   let totalDownloads = 0;
   content.forEach(c => {
@@ -205,7 +233,8 @@ export const searchGlobalContent = async (searchTerm) => {
   const { data, error } = await supabase
     .from('content')
     .select('*')
-    .eq('status', 'published')
+    .eq('estado', 'aceptado')
+    .eq('visibilidad', 'publico')
     .or(`titulo.ilike.%${term}%,tags.cs.{${term}}`);
 
   if (error) return [];
@@ -253,7 +282,8 @@ export const getContentByCreator = async (creatorName) => {
       .from('content')
       .select('*')
       .contains('creadores', JSON.stringify([{ nombre: creatorName }]))
-      .eq('status', 'published');
+      .eq('estado', 'aceptado')
+      .eq('visibilidad', 'publico');
 
     if (error) throw error;
     return data || [];
@@ -575,7 +605,8 @@ export const getRecommendedContent = async (currentId, tipo, tags = [], limit = 
     const { data, error } = await supabase
       .from('content')
       .select('*')
-      .eq('status', 'published')
+      .eq('estado', 'aceptado')
+      .eq('visibilidad', 'publico')
       .neq('id', currentId)
       .order('likes_count', { ascending: false })
       .limit(limit);

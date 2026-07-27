@@ -6,16 +6,17 @@ import {
     Share2, ShieldCheck, MessageCircle, Facebook, Twitter, Eye,
     Image as ImageIcon, Layers, Loader2, ChevronLeft, ChevronRight, PlayCircle,
     Link as LinkIcon, Mail, Send, Check, Copy, Youtube, AlertCircle, Code,
-    Info, Lock, Unlock, Heart, X
+    Info, Lock, Unlock, Heart, X, Edit
 } from 'lucide-react';
 import { clsx } from 'clsx';
-import { getContentById, registerDownload, registerView, getUserPublicProfile, toggleLike, isLikedByUser, getRecommendedContent } from '../services/api';
+import { getContentById, registerDownload, registerView, getUserPublicProfile, toggleLike, isLikedByUser, getRecommendedContent, updateContent } from '../services/api';
 import AvatarRenderer from '../components/AvatarRenderer';
 import { useAuth } from '../context/AuthContext';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import CommentSection from '../components/CommentSection';
 import { encryptionService, initializeEncryption } from '../services/encryption';
 import { createPortal } from 'react-dom';
+import Modal from '../components/Modal';
 
 // --- SUB-COMPONENTE: AVATAR INTELIGENTE DE CREADOR ---
 const SmartCreatorAvatar = ({ creador, className = "w-10 h-10 md:w-11 md:h-11" }) => {
@@ -318,6 +319,14 @@ const DetalleContenido = () => {
     const [descriptionOverflow, setDescriptionOverflow] = useState(false);
     const descriptionRef = useRef(null);
     const viewRegistered = useRef(false);
+    
+    // Estados para moderación de admin
+    const [updatingStatus, setUpdatingStatus] = useState(false);
+    const [rejectModal, setRejectModal] = useState({
+        isOpen: false,
+        motivo: ''
+    });
+    const [acceptModal, setAcceptModal] = useState(false);
 
     // 👇 BLOQUEO DE SCROLL EN EL BODY CUANDO EL MODAL ESTÁ ABIERTO
     useEffect(() => {
@@ -343,7 +352,7 @@ const DetalleContenido = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const data = await getContentById(id);
+                const data = await getContentById(id, user?.id, user?.role);
                 if (!data) {
                     navigate('/404');
                     return;
@@ -533,6 +542,60 @@ const DetalleContenido = () => {
         return num.toString();
     };
 
+    // Funciones de moderación para admin
+    const handleAcceptClick = () => {
+        setAcceptModal(true);
+    };
+
+    const handleAcceptConfirm = async () => {
+        setUpdatingStatus(true);
+        try {
+            await updateContent(id, { estado: 'aceptado' });
+            setItem(prev => ({ ...prev, estado: 'aceptado' }));
+            setAcceptModal(false);
+        } catch (error) {
+            console.error('Error al aceptar:', error);
+            alert('Error al aceptar el contenido.');
+        } finally {
+            setUpdatingStatus(false);
+        }
+    };
+
+    const handleRejectClick = () => {
+        setRejectModal({ isOpen: true, motivo: '' });
+    };
+
+    const handleRejectConfirm = async () => {
+        if (!rejectModal.motivo.trim()) {
+            alert('Por favor ingresa el motivo del rechazo.');
+            return;
+        }
+
+        setUpdatingStatus(true);
+        try {
+            await updateContent(id, { 
+                estado: 'rechazado',
+                mensaje_rechazo: rejectModal.motivo 
+            });
+            setItem(prev => ({ 
+                ...prev, 
+                estado: 'rechazado', 
+                mensaje_rechazo: rejectModal.motivo 
+            }));
+            setRejectModal({ isOpen: false, motivo: '' });
+        } catch (error) {
+            console.error('Error al rechazar:', error);
+            alert('Error al rechazar el contenido.');
+        } finally {
+            setUpdatingStatus(false);
+        }
+    };
+
+    const estado = item?.estado || item?.status || 'borrador';
+    const canModerate = user?.role === 'admin' && (estado === 'revision' || estado === 'pending' || estado === 'en_revision' || estado === 'rechazado' || estado === 'aceptado');
+    const isOwner = user?.id === (item?.aporte?.uid || item?.aporte);
+    const canEdit = isOwner && (estado === 'borrador' || estado === 'draft');
+
     if (loading) return (
         <div className="h-full flex items-center justify-center min-h-[50vh]">
             <Loader2 className="animate-spin text-primary-600" size={48} />
@@ -541,374 +604,440 @@ const DetalleContenido = () => {
     if (!item) return null;
 
     return (
-        <div className="flex flex-col lg:flex-row gap-3 lg:gap-4 p-2 lg:p-4 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
+        <div className="flex flex-col gap-3 lg:gap-4 p-2 lg:p-4 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
 
-            {/* COLUMNA IZQUIERDA - CONTENIDO PRINCIPAL */}
-            <div className="w-full flex flex-col gap-4">
-
-                {/* VISOR DE GALERÍA */}
-                <div className="w-full">
-                    <div className="bg-black relative rounded-xl overflow-hidden group">
-                        {youtubeId ? (
-                            <iframe 
-                                key={youtubeId} 
-                                src={`https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=0&rel=0`}
-                                title="YouTube video player" 
-                                className="w-full aspect-video bg-black" 
-                                frameBorder="0" 
-                                allowFullScreen
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            ></iframe>
-                        ) : isVideo(currentMedia) ? (
-                            <video 
-                                src={currentMedia} 
-                                key={currentMedia} 
-                                className="w-full aspect-video object-contain bg-black" 
-                                controls 
-                                muted 
-                                loop 
-                            />
-                        ) : (
-                            <img 
-                                src={currentMedia} 
-                                key={currentMedia} 
-                                className="w-full aspect-video object-cover bg-black" 
-                                alt={item.titulo} 
-                            />
+            {/* BANNER DE MODERACIÓN PARA ADMIN */}
+            {canModerate && (
+                <div className={clsx(
+                    "border rounded-xl p-3 flex items-center justify-between",
+                    estado === 'rechazado' 
+                        ? "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900/40" 
+                        : estado === 'aceptado'
+                        ? "bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-900/40"
+                        : "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900/40"
+                )}>
+                    <div className="flex items-center gap-2">
+                        <ShieldCheck size={18} className={clsx(
+                            estado === 'rechazado' ? "text-red-600 dark:text-red-400" : 
+                            estado === 'aceptado' ? "text-green-600 dark:text-green-400" :
+                            "text-amber-600 dark:text-amber-400"
+                        )} />
+                        <span className={clsx("text-sm font-semibold", 
+                            estado === 'rechazado' ? "text-red-800 dark:text-red-200" : 
+                            estado === 'aceptado' ? "text-green-800 dark:text-green-200" :
+                            "text-amber-800 dark:text-amber-200"
+                        )}>
+                            {estado === 'rechazado' ? 'Contenido rechazado' : 
+                             estado === 'aceptado' ? 'Contenido aceptado' :
+                             'Contenido en revisión'}
+                        </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        {estado !== 'aceptado' && (
+                            <button 
+                                onClick={handleAcceptClick}
+                                disabled={updatingStatus}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold bg-green-600 hover:bg-green-700 text-white transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {updatingStatus ? <Loader2 size={14} className="animate-spin" /> : <Check size={16} />}
+                                <span>Aceptar</span>
+                            </button>
                         )}
+                        {estado !== 'rechazado' && (
+                            <button 
+                                onClick={handleRejectClick}
+                                disabled={updatingStatus}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold bg-red-600 hover:bg-red-700 text-white transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {updatingStatus ? <Loader2 size={14} className="animate-spin" /> : <X size={16} />}
+                                <span>Rechazar</span>
+                            </button>
+                        )}
+                    </div>
+                </div>
+            )}
+            
+            <div className="flex flex-col lg:flex-row gap-3 lg:gap-4">
 
+                {/* COLUMNA IZQUIERDA - CONTENIDO PRINCIPAL */}
+                <div className="w-full flex flex-col gap-4">
+
+                    {/* VISOR DE GALERÍA */}
+                    <div className="w-full">
+                        <div className="bg-black relative rounded-xl overflow-hidden group">
+                            {youtubeId ? (
+                                <iframe 
+                                    key={youtubeId} 
+                                    src={`https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=0&rel=0`}
+                                    title="YouTube video player" 
+                                    className="w-full aspect-video bg-black" 
+                                    frameBorder="0" 
+                                    allowFullScreen
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                ></iframe>
+                            ) : isVideo(currentMedia) ? (
+                                <video 
+                                    src={currentMedia} 
+                                    key={currentMedia} 
+                                    className="w-full aspect-video object-contain bg-black" 
+                                    controls 
+                                    muted 
+                                    loop 
+                                />
+                            ) : (
+                                <img 
+                                    src={currentMedia} 
+                                    key={currentMedia} 
+                                    className="w-full aspect-video object-cover bg-black" 
+                                    alt={item.titulo} 
+                                />
+                            )}
+
+                            {galleryItems.length > 1 && (
+                                <>
+                                    <button 
+                                        onClick={handlePrev} 
+                                        className="absolute top-1/2 left-4 -translate-y-1/2 p-3 rounded-full bg-black/70 text-white hover:bg-black/90 transition-all opacity-0 group-hover:opacity-100 backdrop-blur-sm border border-white/20 z-10"
+                                    >
+                                        <ChevronLeft size={24} />
+                                    </button>
+                                    <button 
+                                        onClick={handleNext} 
+                                        className="absolute top-1/2 right-4 -translate-y-1/2 p-3 rounded-full bg-black/70 text-white hover:bg-black/90 transition-all opacity-0 group-hover:opacity-100 backdrop-blur-sm border border-white/20 z-10"
+                                    >
+                                        <ChevronRight size={24} />
+                                    </button>
+                                </>
+                            )}
+                        </div>
+
+                        {/* TIRA DE MINIATURAS */}
                         {galleryItems.length > 1 && (
-                            <>
-                                <button 
-                                    onClick={handlePrev} 
-                                    className="absolute top-1/2 left-4 -translate-y-1/2 p-3 rounded-full bg-black/70 text-white hover:bg-black/90 transition-all opacity-0 group-hover:opacity-100 backdrop-blur-sm border border-white/20 z-10"
-                                >
-                                    <ChevronLeft size={24} />
-                                </button>
-                                <button 
-                                    onClick={handleNext} 
-                                    className="absolute top-1/2 right-4 -translate-y-1/2 p-3 rounded-full bg-black/70 text-white hover:bg-black/90 transition-all opacity-0 group-hover:opacity-100 backdrop-blur-sm border border-white/20 z-10"
-                                >
-                                    <ChevronRight size={24} />
-                                </button>
-                            </>
+                            <div className="flex gap-2 scrollbar-hide snap-x mt-2 md:mt-4 overflow-x-auto">
+                                {galleryItems.map((mediaItem, index) => {
+                                    const isYt = getYouTubeId(mediaItem);
+                                    const isVid = isVideo(mediaItem);
+                                    const thumbSrc = isYt ? `https://img.youtube.com/vi/${isYt}/mqdefault.jpg` : mediaItem;
+                                    const isActive = index === selectedIndex;
+                                    
+                                    return (
+                                        <button
+                                            key={index}
+                                            onClick={() => setSelectedIndex(index)}
+                                            className={clsx(
+                                                "relative flex-shrink-0 w-24 md:w-36 aspect-video rounded-lg transition-all duration-200 snap-start border shadow-sm ring-1 overflow-hidden",
+                                                isActive 
+                                                    ? "ring-primary-500 border-primary-500"
+                                                    : "ring-transparent border-transparent hover:ring-primary-500 hover:border-primary-500"
+                                            )}
+                                        >
+                                            {(isYt || isVid) && (
+                                                <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/20">
+                                                    <PlayCircle size={16} className="text-white drop-shadow-md" />
+                                                </div>
+                                            )}
+                                            <img 
+                                                src={thumbSrc} 
+                                                alt={`Miniatura ${index + 1}`} 
+                                                className="w-full h-full object-cover"
+                                                onError={(e) => { e.target.src = "https://placehold.co/320x180?text=Error"; }}
+                                            />
+                                        </button>
+                                    );
+                                })}
+                            </div>
                         )}
                     </div>
 
-                    {/* TIRA DE MINIATURAS */}
-                    {galleryItems.length > 1 && (
-                        <div className="flex gap-2 scrollbar-hide snap-x mt-2 md:mt-4 overflow-x-auto">
-                            {galleryItems.map((mediaItem, index) => {
-                                const isYt = getYouTubeId(mediaItem);
-                                const isVid = isVideo(mediaItem);
-                                const thumbSrc = isYt ? `https://img.youtube.com/vi/${isYt}/mqdefault.jpg` : mediaItem;
-                                const isActive = index === selectedIndex;
-                                
-                                return (
-                                    <button
-                                        key={index}
-                                        onClick={() => setSelectedIndex(index)}
-                                        className={clsx(
-                                            "relative flex-shrink-0 w-24 md:w-36 aspect-video rounded-lg transition-all duration-200 snap-start border shadow-sm ring-1 overflow-hidden",
-                                            isActive 
-                                                ? "ring-primary-500 border-primary-500"
-                                                : "ring-transparent border-transparent hover:ring-primary-500 hover:border-primary-500"
-                                        )}
-                                    >
-                                        {(isYt || isVid) && (
-                                            <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/20">
-                                                <PlayCircle size={16} className="text-white drop-shadow-md" />
-                                            </div>
-                                        )}
-                                        <img 
-                                            src={thumbSrc} 
-                                            alt={`Miniatura ${index + 1}`} 
-                                            className="w-full h-full object-cover"
-                                            onError={(e) => { e.target.src = "https://placehold.co/320x180?text=Error"; }}
-                                        />
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    )}
-                </div>
-
-                {/* HEADER ESTILO YOUTUBE (ÚNICAMENTE CREADORES) */}
-                <div className="bg-white dark:bg-[#1e1e1e] rounded-lg p-2 md:p-4 shadow-sm border border-gray-300 dark:border-transparent">
-                    <h1 className="text-md md:text-lg font-bold text-gray-900 dark:text-white mb-3 leading-tight">
-                        {item.titulo}
-                    </h1>
-                    
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    {/* HEADER ESTILO YOUTUBE (ÚNICAMENTE CREADORES) */}
+                    <div className="bg-white dark:bg-[#1e1e1e] rounded-lg p-2 md:p-4 shadow-sm border border-gray-300 dark:border-transparent">
+                        <h1 className="text-md md:text-lg font-bold text-gray-900 dark:text-white mb-3 leading-tight">
+                            {item.titulo}
+                        </h1>
                         
-                        <button 
-                            onClick={() => setShowCreatorsModal(true)}
-                            className="flex items-center text-left hover:opacity-80 transition-opacity"
-                        >
-                            <div className="flex mr-3">
-                                {creadoresList.slice(0, 2).map((creador, idx) => (
-                                    <div key={idx} className={clsx(idx > 0 && "-ml-3")}>
-                                        <SmartCreatorAvatar creador={creador} />
-                                    </div>
-                                ))}
-                                {creadoresList.length > 2 && (
-                                    <div className="relative z-10 w-7 h-7 md:w-8 md:h-8 -ml-3 rounded-full bg-gray-300 dark:bg-gray-700 border-2 border-white dark:border-[#1e1e1e] flex items-center justify-center text-xs font-semibold text-gray-700 dark:text-gray-200 shrink-0">
-                                        +{creadoresList.length - 2}
-                                    </div>
-                                )}
-                            </div>
-
-                            <div>
-                                <div className="flex items-center flex-wrap text-sm font-bold text-gray-900 dark:text-white">
-                                    {creadoresList.length > 0 ? (
-                                        creadoresList.map((creador, idx) => {
-                                            const esUltimo = idx === creadoresList.length - 1;
-                                            const esPenultimo = idx === creadoresList.length - 2;
-
-                                            return (
-                                                <React.Fragment key={idx}>
-                                                    <span>{creador.nombre || 'Creador'}</span>
-                                                    {!esUltimo && (
-                                                        <span>
-                                                            {esPenultimo ? '\u00A0y\u00A0' : ',\u00A0'}
-                                                        </span>
-                                                    )}
-                                                </React.Fragment>
-                                            );
-                                        })
-                                    ) : (
-                                        <span>Desconocido</span>
-                                    )}
-                                </div>
-                                
-                                <div className="flex items-center text-xs text-gray-600 dark:text-gray-400 mt-1">
-                                    <span>{formatNumber(item.vistas || 0)} vistas</span>
-                                    <span className="mx-1.5">•</span>
-                                    <span>{new Date(item.creado).toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
-                                </div>
-                            </div>
-                        </button>
-
-                        <div className="flex items-center gap-2">
-                            <button 
-                                onClick={handleLike}
-                                className={clsx(
-                                    "flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-semibold transition-all duration-150 active:scale-95 hover:opacity-80",
-                                    isLiked 
-                                        ? "text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300" 
-                                        : "text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400"
-                                )}
-                            >
-                                <Heart 
-                                    size={18} 
-                                    className={clsx(isLiked && "fill-current transition-colors duration-150")} 
-                                />
-                                <span>{formatNumber(item.likes_count || 0)}</span>
-                            </button>
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                             
                             <button 
-                                onClick={() => setShowShareModal(true)}
-                                className="flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400"
+                                onClick={() => setShowCreatorsModal(true)}
+                                className="flex items-center text-left hover:opacity-80 transition-opacity"
                             >
-                                <Share2 size={18} />
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                {/* DESCRIPCIÓN CON BOTÓN VER MÁS */}
-                <div 
-                    onClick={() => descriptionOverflow && !descriptionExpanded && setDescriptionExpanded(true)}
-                    className={clsx(
-                        "bg-white dark:bg-[#1e1e1e] rounded-lg p-2 md:p-4 shadow-sm border border-gray-300 dark:border-transparent transition-colors", 
-                        descriptionOverflow && !descriptionExpanded && "cursor-pointer hover:bg-gray-50/60 dark:hover:bg-[#222]"
-                    )}
-                >
-                    <div className="flex items-center justify-between mb-1">
-                        <h3 className="text-base font-semibold text-gray-900 dark:text-white">
-                            Descripción
-                        </h3>
-                    </div>
-                    <div className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">
-                        <div 
-                            ref={descriptionRef}
-                            className={clsx(
-                                "transition-all duration-300 overflow-hidden",
-                                descriptionExpanded ? "" : "max-h-20 select-none"
-                            )}
-                        >
-                            <MarkdownRenderer content={item.descripcion} />
-                        </div>
-                        
-                        {descriptionOverflow && (
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setDescriptionExpanded(!descriptionExpanded);
-                                }}
-                                className="mt-2 text-xs font-bold text-primary-600 dark:text-primary-400 hover:underline"
-                            >
-                                {descriptionExpanded ? 'Mostrar menos' : 'Mostrar más'}
-                            </button>
-                        )}
-                    </div>
-                </div>
-
-                {/* SECCIÓN DE COMENTARIOS */}
-                <CommentSection contentId={id} />
-            </div>
-
-            {/* COLUMNA DERECHA */}
-            <div className="lg:min-w-[420px] xl:min-w-[480px] 2xl:min-w-[520px] space-y-4">
-                
-                {/* TARJETA DE DESCARGAS */}
-                <div className="bg-white dark:bg-[#1e1e1e] rounded-lg p-3 md:p-4 shadow-sm border border-gray-300 dark:border-transparent">
-                    <div className="flex items-center justify-between mb-3">
-                        <h3 className="text-base font-semibold text-gray-900 dark:text-white">
-                            Descargas
-                        </h3>
-                    </div>
-                    {item.descargas && item.descargas.length > 0 ? (
-                        <div className="flex flex-col gap-2">
-                            {item.descargas.map((d, idx) => (
-                                <button 
-                                    key={idx} 
-                                    onClick={() => handleDownload(d)}
-                                    disabled={downloading === d.url}
-                                    className={clsx(
-                                        "flex items-center justify-between px-3 py-2 rounded-lg transition-colors w-full text-left border",
-                                        downloading === d.url 
-                                            ? "bg-white dark:bg-[#2e3238] border-gray-300 dark:border-transparent cursor-not-allowed" 
-                                            : "bg-white dark:bg-[#2e3238] border-gray-300 dark:border-transparent hover:bg-gray-200 dark:hover:bg-gray-700"
-                                    )}
-                                >
-                                    <div className="flex flex-col truncate pr-2">
-                                        <div className="flex items-center gap-2">
-                                            <span className="truncate font-bold text-sm text-gray-700 dark:text-gray-200">{d.label}</span>
-                                            {d.encrypted && (
-                                                <Lock size={12} className="text-blue-500 shrink-0" />
-                                            )}
+                                <div className="flex mr-3">
+                                    {creadoresList.slice(0, 2).map((creador, idx) => (
+                                        <div key={idx} className={clsx(idx > 0 && "-ml-3")}>
+                                            <SmartCreatorAvatar creador={creador} />
                                         </div>
-                                        <span className="text-[11px] flex items-center gap-1 text-gray-500 dark:text-gray-400">
-                                            <Download size={10} /> {formatNumber(d.count || 0)} descargas
-                                        </span>
-                                    </div>
-                                    <div className="shrink-0">
-                                        {downloading === d.url ? (
-                                            decrypting ? (
-                                                <Unlock size={16} className="text-primary-600 dark:text-primary-400 animate-pulse" />
-                                            ) : (
-                                                <Loader2 size={16} className="text-gray-400 animate-spin" />
-                                            )
+                                    ))}
+                                    {creadoresList.length > 2 && (
+                                        <div className="relative z-10 w-7 h-7 md:w-8 md:h-8 -ml-3 rounded-full bg-gray-300 dark:bg-gray-700 border-2 border-white dark:border-[#1e1e1e] flex items-center justify-center text-xs font-semibold text-gray-700 dark:text-gray-200 shrink-0">
+                                            +{creadoresList.length - 2}
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <div className="flex items-center flex-wrap text-sm font-bold text-gray-900 dark:text-white">
+                                        {creadoresList.length > 0 ? (
+                                            creadoresList.map((creador, idx) => {
+                                                const esUltimo = idx === creadoresList.length - 1;
+                                                const esPenultimo = idx === creadoresList.length - 2;
+
+                                                return (
+                                                    <React.Fragment key={idx}>
+                                                        <span>{creador.nombre || 'Creador'}</span>
+                                                        {!esUltimo && (
+                                                            <span>
+                                                                {esPenultimo ? '\u00A0y\u00A0' : ',\u00A0'}
+                                                            </span>
+                                                        )}
+                                                    </React.Fragment>
+                                                );
+                                            })
                                         ) : (
-                                            <Download size={16} className="text-gray-500 dark:text-gray-400" />
+                                            <span>Desconocido</span>
                                         )}
                                     </div>
-                                </button>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="flex items-center gap-2 text-gray-400 dark:text-gray-500 py-2">
-                            <AlertCircle size={16} />
-                            <span className="text-sm">No hay descargas disponibles.</span>
-                        </div>
-                    )}
-                </div>
-                
-                {/* CRÉDITOS Y APORTE SEPARADOS (COLUMNA DERECHA) */}
-                {item.aporte && (
-                    <div className="bg-white dark:bg-[#1e1e1e] rounded-lg p-3 md:p-4 shadow-sm border border-gray-300 dark:border-transparent">
-                        <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-3">
-                            Aportado por
-                        </h4>
-                        <SmartUserRow user={item.aporte} role="uploader" />
-                    </div>
-                )}
-                        
-
-                {/* REDES Y ENLACES */}
-                {item.redes && item.redes.length > 0 && (
-                    <div className="bg-white dark:bg-[#1e1e1e] rounded-lg p-3 md:p-4 shadow-sm border border-gray-300 dark:border-transparent">
-                        <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-3">
-                            Enlaces Externos
-                        </h4>
-                        <div className="flex flex-wrap gap-2">
-                            {item.redes.map((link, idx) => {
-                                const config = getSocialConfig(link.url);
-                                const IconComponent = config.icon;
-                                return (
-                                    <SocialButton key={idx} href={link.url} icon={IconComponent} color={config.color} />
-                                );
-                            })}
-                        </div>
-                    </div>
-                )}
-
-                {/* ETIQUETAS */}
-                {item.tags && item.tags.length > 0 && (
-                    <div className="bg-white dark:bg-[#1e1e1e] p-3 md:p-4 rounded-lg shadow-sm border border-gray-300 dark:border-transparent">
-                        <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-3">
-                            Etiquetas
-                        </h4>
-                        <div className="flex flex-wrap gap-2">
-                            {item.tags.map((tag, index) => (
-                                <div 
-                                    key={index} 
-                                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-gray-50 dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700"
-                                >
-                                    <span className="text-[11px] font-bold uppercase tracking-wider text-gray-600 dark:text-gray-400">
-                                        {tag}
-                                    </span>
+                                    
+                                    <div className="flex items-center text-xs text-gray-600 dark:text-gray-400 mt-1">
+                                        <span>{formatNumber(item.vistas || 0)} vistas</span>
+                                        <span className="mx-1.5">•</span>
+                                        <span>{new Date(item.creado).toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
+                                    </div>
                                 </div>
-                            ))}
+                            </button>
+
+                            <div className="flex items-center gap-2">
+                                {/* Botón editar para creador en borrador */}
+                                {canEdit && (
+                                    <Link 
+                                        to={`/subir/${id}`}
+                                        className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-semibold bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-950/50 transition-all active:scale-95"
+                                    >
+                                        <Edit size={18} />
+                                        <span>Editar</span>
+                                    </Link>
+                                )}
+
+                                <button 
+                                    onClick={handleLike}
+                                    className={clsx(
+                                        "flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-semibold transition-all duration-150 active:scale-95 hover:opacity-80",
+                                        isLiked 
+                                            ? "text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300" 
+                                            : "text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400"
+                                    )}
+                                >
+                                    <Heart 
+                                        size={18} 
+                                        className={clsx(isLiked && "fill-current transition-colors duration-150")} 
+                                    />
+                                    <span>{formatNumber(item.likes_count || 0)}</span>
+                                </button>
+                                
+                                <button 
+                                    onClick={() => setShowShareModal(true)}
+                                    className="flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400"
+                                >
+                                    <Share2 size={18} />
+                                </button>
+                            </div>
                         </div>
                     </div>
-                )}
 
-                {/* MODS RECOMENDADOS */}
-                {recommendedContent.length > 0 && (
-                    <div className="bg-white dark:bg-[#1e1e1e] p-3 md:p-4 rounded-lg shadow-sm border border-gray-300 dark:border-transparent">
-                        <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-3">
-                            Mods Recomendados
-                        </h4>
-                        {loadingRecommended ? (
-                            <div className="flex items-center justify-center py-4">
-                                <Loader2 size={20} className="animate-spin text-gray-400" />
+                    {/* DESCRIPCIÓN CON BOTÓN VER MÁS */}
+                    <div 
+                        onClick={() => descriptionOverflow && !descriptionExpanded && setDescriptionExpanded(true)}
+                        className={clsx(
+                            "bg-white dark:bg-[#1e1e1e] rounded-lg p-2 md:p-4 shadow-sm border border-gray-300 dark:border-transparent transition-colors", 
+                            descriptionOverflow && !descriptionExpanded && "cursor-pointer hover:bg-gray-50/60 dark:hover:bg-[#222]"
+                        )}
+                    >
+                        <div className="flex items-center justify-between mb-1">
+                            <h3 className="text-base font-semibold text-gray-900 dark:text-white">
+                                Descripción
+                            </h3>
+                        </div>
+                        <div className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">
+                            <div 
+                                ref={descriptionRef}
+                                className={clsx(
+                                    "transition-all duration-300 overflow-hidden",
+                                    descriptionExpanded ? "" : "max-h-20 select-none"
+                                )}
+                            >
+                                <MarkdownRenderer content={item.descripcion} />
+                            </div>
+                            
+                            {descriptionOverflow && (
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setDescriptionExpanded(!descriptionExpanded);
+                                    }}
+                                    className="mt-2 text-xs font-bold text-primary-600 dark:text-primary-400 hover:underline"
+                                >
+                                    {descriptionExpanded ? 'Mostrar menos' : 'Mostrar más'}
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* SECCIÓN DE COMENTARIOS */}
+                    <CommentSection contentId={id} />
+                </div>
+
+                {/* COLUMNA DERECHA */}
+                <div className="lg:min-w-[420px] xl:min-w-[480px] 2xl:min-w-[520px] space-y-4">
+                    
+                    {/* TARJETA DE DESCARGAS */}
+                    <div className="bg-white dark:bg-[#1e1e1e] rounded-lg p-3 md:p-4 shadow-sm border border-gray-300 dark:border-transparent">
+                        <div className="flex items-center justify-between mb-3">
+                            <h3 className="text-base font-semibold text-gray-900 dark:text-white">
+                                Descargas
+                            </h3>
+                        </div>
+                        {item.descargas && item.descargas.length > 0 ? (
+                            <div className="flex flex-col gap-2">
+                                {item.descargas.map((d, idx) => (
+                                    <button 
+                                        key={idx} 
+                                        onClick={() => handleDownload(d)}
+                                        disabled={downloading === d.url}
+                                        className={clsx(
+                                            "flex items-center justify-between px-3 py-2 rounded-lg transition-colors w-full text-left border",
+                                            downloading === d.url 
+                                                ? "bg-white dark:bg-[#2e3238] border-gray-300 dark:border-transparent cursor-not-allowed" 
+                                                : "bg-white dark:bg-[#2e3238] border-gray-300 dark:border-transparent hover:bg-gray-200 dark:hover:bg-gray-700"
+                                        )}
+                                    >
+                                        <div className="flex flex-col truncate pr-2">
+                                            <div className="flex items-center gap-2">
+                                                <span className="truncate font-bold text-sm text-gray-700 dark:text-gray-200">{d.label}</span>
+                                                {d.encrypted && (
+                                                    <Lock size={12} className="text-blue-500 shrink-0" />
+                                                )}
+                                            </div>
+                                            <span className="text-[11px] flex items-center gap-1 text-gray-500 dark:text-gray-400">
+                                                <Download size={10} /> {formatNumber(d.count || 0)} descargas
+                                            </span>
+                                        </div>
+                                        <div className="shrink-0">
+                                            {downloading === d.url ? (
+                                                decrypting ? (
+                                                    <Unlock size={16} className="text-primary-600 dark:text-primary-400 animate-pulse" />
+                                                ) : (
+                                                    <Loader2 size={16} className="text-gray-400 animate-spin" />
+                                                )
+                                            ) : (
+                                                <Download size={16} className="text-gray-500 dark:text-gray-400" />
+                                            )}
+                                        </div>
+                                    </button>
+                                ))}
                             </div>
                         ) : (
-                            <div className="flex flex-col gap-2">
-                                {recommendedContent.map((content) => (
-                                    <RecommendedItem key={content.id} content={content} />
-                                ))}
+                            <div className="flex items-center gap-2 text-gray-400 dark:text-gray-500 py-2">
+                                <AlertCircle size={16} />
+                                <span className="text-sm">No hay descargas disponibles.</span>
                             </div>
                         )}
                     </div>
-                )}
-                
+                    
+                    {/* CRÉDITOS Y APORTE SEPARADOS (COLUMNA DERECHA) */}
+                    {item.aporte && (
+                        <div className="bg-white dark:bg-[#1e1e1e] rounded-lg p-3 md:p-4 shadow-sm border border-gray-300 dark:border-transparent">
+                            <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-3">
+                                Aportado por
+                            </h4>
+                            <SmartUserRow user={item.aporte} role="uploader" />
+                        </div>
+                    )}
+                            
 
-                {/* COMPARTIR */}
-                {/* <div className="bg-white dark:bg-[#1e1e1e] p-3 md:p-4 rounded-lg shadow-sm border border-gray-300 dark:border-transparent">
-                    <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                        <Share2 size={16} className="text-primary-600 dark:text-primary-400" /> Compartir
-                    </h4>
-                    <div className="flex flex-wrap gap-2">
-                        <SocialButton href={socialLinks.whatsapp} icon={MessageCircle} color="text-white bg-green-600 hover:bg-green-700" />
-                        <SocialButton href={socialLinks.telegram} icon={Send} color="text-white bg-[#0088cc] hover:bg-[#007dbb]" />
-                        <SocialButton href={socialLinks.twitter} icon={Twitter} color="text-white bg-[#1DA1F2] hover:bg-[#0c85d0]" />
-                        <SocialButton href={socialLinks.facebook} icon={Facebook} color="text-white bg-[#1877F2] hover:bg-[#0c5dc7]" />
-                        <SocialButton href={socialLinks.email} icon={Mail} color="text-white bg-gray-600 hover:bg-gray-700" />
-                        <button 
-                            onClick={handleCopyLink} 
-                            className={clsx(
-                                "p-3 rounded-xl transition-colors text-white",
-                                copied ? "bg-green-600" : "bg-orange-600 hover:bg-orange-700"
+                    {/* REDES Y ENLACES */}
+                    {item.redes && item.redes.length > 0 && (
+                        <div className="bg-white dark:bg-[#1e1e1e] rounded-lg p-3 md:p-4 shadow-sm border border-gray-300 dark:border-transparent">
+                            <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-3">
+                                Enlaces Externos
+                            </h4>
+                            <div className="flex flex-wrap gap-2">
+                                {item.redes.map((link, idx) => {
+                                    const config = getSocialConfig(link.url);
+                                    const IconComponent = config.icon;
+                                    return (
+                                        <SocialButton key={idx} href={link.url} icon={IconComponent} color={config.color} />
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ETIQUETAS */}
+                    {item.tags && item.tags.length > 0 && (
+                        <div className="bg-white dark:bg-[#1e1e1e] p-3 md:p-4 rounded-lg shadow-sm border border-gray-300 dark:border-transparent">
+                            <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-3">
+                                Etiquetas
+                            </h4>
+                            <div className="flex flex-wrap gap-2">
+                                {item.tags.map((tag, index) => (
+                                    <div 
+                                        key={index} 
+                                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-gray-50 dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700"
+                                    >
+                                        <span className="text-[11px] font-bold uppercase tracking-wider text-gray-600 dark:text-gray-400">
+                                            {tag}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* MODS RECOMENDADOS */}
+                    {recommendedContent.length > 0 && (
+                        <div className="bg-white dark:bg-[#1e1e1e] p-3 md:p-4 rounded-lg shadow-sm border border-gray-300 dark:border-transparent">
+                            <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-3">
+                                Mods Recomendados
+                            </h4>
+                            {loadingRecommended ? (
+                                <div className="flex items-center justify-center py-4">
+                                    <Loader2 size={20} className="animate-spin text-gray-400" />
+                                </div>
+                            ) : (
+                                <div className="flex flex-col gap-2">
+                                    {recommendedContent.map((content) => (
+                                        <RecommendedItem key={content.id} content={content} />
+                                    ))}
+                                </div>
                             )}
-                            title="Copiar enlace"
-                        >
-                            {copied ? <Check size={18} /> : <LinkIcon size={18} />}
-                        </button>
-                    </div>
-                </div> */}
+                        </div>
+                    )}
+                    
+
+                    {/* COMPARTIR */}
+                    {/* <div className="bg-white dark:bg-[#1e1e1e] p-3 md:p-4 rounded-lg shadow-sm border border-gray-300 dark:border-transparent">
+                        <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                            <Share2 size={16} className="text-primary-600 dark:text-primary-400" /> Compartir
+                        </h4>
+                        <div className="flex flex-wrap gap-2">
+                            <SocialButton href={socialLinks.whatsapp} icon={MessageCircle} color="text-white bg-green-600 hover:bg-green-700" />
+                            <SocialButton href={socialLinks.telegram} icon={Send} color="text-white bg-[#0088cc] hover:bg-[#007dbb]" />
+                            <SocialButton href={socialLinks.twitter} icon={Twitter} color="text-white bg-[#1DA1F2] hover:bg-[#0c85d0]" />
+                            <SocialButton href={socialLinks.facebook} icon={Facebook} color="text-white bg-[#1877F2] hover:bg-[#0c5dc7]" />
+                            <SocialButton href={socialLinks.email} icon={Mail} color="text-white bg-gray-600 hover:bg-gray-700" />
+                            <button 
+                                onClick={handleCopyLink} 
+                                className={clsx(
+                                    "p-3 rounded-xl transition-colors text-white",
+                                    copied ? "bg-green-600" : "bg-orange-600 hover:bg-orange-700"
+                                )}
+                                title="Copiar enlace"
+                            >
+                                {copied ? <Check size={18} /> : <LinkIcon size={18} />}
+                            </button>
+                        </div>
+                    </div> */}
+                </div>
+
             </div>
 
             {/* MODAL DE CREADORES */}
@@ -1021,6 +1150,46 @@ const DetalleContenido = () => {
                         </div>
                     </div>
                 </div>,
+                document.body
+            )}
+
+            {/* MODAL DE RECHAZO PARA ADMIN */}
+            {rejectModal.isOpen && createPortal(
+                <Modal 
+                    isOpen={rejectModal.isOpen}
+                    onClose={() => setRejectModal({ isOpen: false, motivo: '' })}
+                    onConfirm={handleRejectConfirm}
+                    title="Rechazar Contenido"
+                    message="Por favor, ingresa el motivo del rechazo. Este mensaje será visible para el creador del contenido."
+                    type="warning"
+                    showCancel={true}
+                    confirmText="Rechazar"
+                    cancelText="Cancelar"
+                >
+                    <textarea
+                        value={rejectModal.motivo}
+                        onChange={(e) => setRejectModal({ ...rejectModal, motivo: e.target.value })}
+                        placeholder="Describe el motivo del rechazo..."
+                        className="w-full p-3 rounded-xl bg-gray-50 dark:bg-[#191B1E] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-red-500 transition-all dark:text-white text-sm resize-none"
+                        rows={4}
+                    />
+                </Modal>,
+                document.body
+            )}
+
+            {/* MODAL DE CONFIRMACIÓN PARA ACEPTAR */}
+            {acceptModal && createPortal(
+                <Modal 
+                    isOpen={acceptModal}
+                    onClose={() => setAcceptModal(false)}
+                    onConfirm={handleAcceptConfirm}
+                    title="Aceptar Contenido"
+                    message="¿Estás seguro de que deseas aceptar este contenido? Será visible para todos los usuarios."
+                    type="success"
+                    showCancel={true}
+                    confirmText="Aceptar"
+                    cancelText="Cancelar"
+                />,
                 document.body
             )}
 

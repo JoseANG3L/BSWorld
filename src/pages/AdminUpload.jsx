@@ -39,7 +39,7 @@ const AdminUpload = () => {
       if (!isEditing) return;
 
       try {
-        const data = await getContentById(editId);
+        const data = await getContentById(editId, user?.id);
         if (data) {
           const creadoresString = data.creadores 
             ? data.creadores.map(c => c.nombre).join(', ') 

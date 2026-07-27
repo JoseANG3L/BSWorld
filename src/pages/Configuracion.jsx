@@ -36,7 +36,7 @@ const PRESET_COLORS = [
 ];
 
 const Configuracion = () => {
-  const { user } = useAuth();
+  const { user, updateUserProfile } = useAuth();
   
   const [formData, setFormData] = useState({ username: '', avatar: '', banner: '' });
   const [loading, setLoading] = useState(false);
@@ -47,6 +47,16 @@ const Configuracion = () => {
 
   const [selectedIcon, setSelectedIcon] = useState('User');
   const [selectedColor, setSelectedColor] = useState('#3b82f6');
+
+  // Estados para cambio de contraseña
+  const [passwordData, setPasswordData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordMessage, setPasswordMessage] = useState({ type: '', text: '' });
+
+  // Estados para eliminar cuenta
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [showDeleteSection, setShowDeleteSection] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -84,6 +94,80 @@ const Configuracion = () => {
       setFormData(prev => ({ ...prev, banner: val }));
   };
 
+  const handlePasswordChange = async (e) => {
+    e.preventDefault();
+    setPasswordLoading(true);
+    setPasswordMessage({ type: '', text: '' });
+
+    try {
+      if (!user) {
+        throw new Error('No hay sesión activa');
+      }
+
+      if (passwordData.newPassword !== passwordData.confirmPassword) {
+        throw new Error('Las contraseñas nuevas no coinciden');
+      }
+
+      if (passwordData.newPassword.length < 6) {
+        throw new Error('La contraseña debe tener al menos 6 caracteres');
+      }
+
+      const { data, error } = await supabase.auth.updateUser({
+        password: passwordData.newPassword
+      });
+
+      if (error) {
+        console.error('Error updating password:', error);
+        throw error;
+      }
+
+      setPasswordMessage({ type: 'success', text: 'Contraseña actualizada correctamente' });
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (error) {
+      console.error('Password change error:', error);
+      setPasswordMessage({ type: 'error', text: error.message || 'Error al cambiar contraseña' });
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmation !== 'ELIMINAR') {
+      setPasswordMessage({ type: 'error', text: 'Debes escribir ELIMINAR para confirmar' });
+      return;
+    }
+
+    setDeleteLoading(true);
+
+    try {
+      if (!user) {
+        throw new Error('No hay sesión activa');
+      }
+
+      // 1. Eliminar de la tabla users
+      const { error: dbError } = await supabase
+        .from('users')
+        .delete()
+        .eq('id', user.id);
+
+      if (dbError) {
+        console.error('Error deleting from users table:', dbError);
+        throw dbError;
+      }
+
+      // 2. Cerrar sesión
+      await supabase.auth.signOut();
+      
+      // 3. Redirigir a home
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Delete account error:', error);
+      setPasswordMessage({ type: 'error', text: 'Error al eliminar cuenta: ' + (error.message || 'Error desconocido') });
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
   const renderPreviewAvatar = () => {
     const avatarSrc = formData.avatar;
     
@@ -119,13 +203,33 @@ const Configuracion = () => {
     try {
       if (!user) throw new Error("No hay sesión activa");
 
-      // 1. Actualizar Auth de Supabase
-      const { error: authError } = await supabase.auth.updateUser({
-        data: { displayName: formData.username, photoURL: formData.avatar }
-      });
-      if (authError) throw authError;
+      // 1. Verificar si el username ya existe (solo si cambió)
+      if (formData.username !== user.username) {
+        const { data: existingUser } = await supabase
+          .from("users")
+          .select("username")
+          .ilike("username", formData.username)
+          .neq('id', user.id)
+          .maybeSingle();
 
-      // 2. Actualizar Tabla 'users' de Supabase
+        if (existingUser) {
+          throw new Error("El nombre de usuario ya está en uso");
+        }
+      }
+
+      // 2. Actualizar Auth de Supabase
+      const { error: authError } = await supabase.auth.updateUser({
+        data: { username: formData.username, avatar: formData.avatar }
+      });
+      if (authError) {
+        // Traducir errores comunes de Supabase
+        if (authError.message.includes('duplicate')) {
+          throw new Error("El nombre de usuario ya está en uso");
+        }
+        throw new Error("Error al actualizar autenticación: " + authError.message);
+      }
+
+      // 3. Actualizar Tabla 'users' de Supabase
       const { error: dbError } = await supabase
         .from("users")
         .update({
@@ -133,16 +237,45 @@ const Configuracion = () => {
           avatar: formData.avatar,
           banner: formData.banner
         })
-        .eq('id', user.uid);
+        .eq('id', user.id);
       
-      if (dbError) throw dbError;
+      if (dbError) {
+        // Traducir errores comunes de la base de datos
+        if (dbError.code === '23505') {
+          throw new Error("El nombre de usuario ya está en uso");
+        }
+        throw new Error("Error al actualizar perfil: " + dbError.message);
+      }
+
+      // 4. Actualizar el contexto del usuario localmente
+      updateUserProfile({
+        username: formData.username,
+        avatar: formData.avatar,
+        banner: formData.banner
+      });
 
       setMessage({ type: 'success', text: '¡Perfil actualizado correctamente!' });
-      setTimeout(() => window.location.reload(), 1500);
 
     } catch (error) {
-      console.error(error);
-      setMessage({ type: 'error', text: 'Error al actualizar.' });
+      console.error('Profile update error:', error);
+      
+      // Mensajes de error en español
+      let errorMessage = 'Error al actualizar perfil';
+      if (error.message) {
+        if (error.message.includes('username') || error.message.includes('usuario')) {
+          errorMessage = error.message;
+        } else if (error.message.includes('duplicate')) {
+          errorMessage = 'El nombre de usuario ya está en uso';
+        } else if (error.message.includes('auth')) {
+          errorMessage = 'Error de autenticación';
+        } else if (error.message.includes('network')) {
+          errorMessage = 'Error de conexión. Verifica tu internet';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      setMessage({ type: 'error', text: errorMessage });
     } finally {
       setLoading(false);
     }
@@ -155,27 +288,27 @@ const Configuracion = () => {
   const isBannerUrl = formData.banner && (formData.banner.startsWith('http') || formData.banner.startsWith('data:image'));
 
   return (
-    <div className="animate-fade-in-up" style={{ animationDuration: '200ms' }}>
-      
-      <div className="flex items-center gap-3 mb-4 md:mb-8">
-        <div className={clsx("p-3 rounded-xl text-white bg-primary-600")}>
-          <User size={18} />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Configuración</h1>
-        </div>
+    <div className="w-full max-w-4xl mx-auto flex flex-col p-3 sm:p-4 md:p-6 lg:p-8 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
+
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-4 md:mb-6">
+        <h1 className="flex text-xl md:text-2xl font-bold text-gray-800 dark:text-white items-center gap-3">
+          <div className={clsx("w-9 h-9 rounded-xl flex items-center justify-center shadow-sm text-white bg-primary-600")}>
+              <User size={22} strokeWidth={2.5} />
+          </div>
+          Configuración
+        </h1>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+      <div className="space-y-4 md:space-y-6">
         
         {/* =========================================================
-            COLUMNA IZQUIERDA: TARJETA DE VISTA PREVIA
+            TARJETA DE VISTA PREVIA
            ========================================================= */}
-        <div className="md:col-span-1">
-          <div className="bg-white dark:bg-[#1e1e1e] rounded-2xl border border-gray-300 dark:border-gray-700 shadow-sm overflow-hidden">
+        <div>
+          <div className="bg-white dark:bg-[#1e1e1e] rounded-xl sm:rounded-2xl border border-gray-200 dark:border-gray-700 shadow-lg overflow-hidden">
             
             {/* VISTA PREVIA BANNER */}
-            <div className="h-32 w-full bg-gray-200 dark:bg-[#191B1E] relative transition-all duration-300">
+            <div className="h-28 sm:h-36 w-full bg-gray-200 dark:bg-[#191B1E] relative transition-all duration-500">
                {formData.banner ? (
                  isBannerUrl ? (
                    <img 
@@ -192,12 +325,12 @@ const Configuracion = () => {
                )}
             </div>
 
-            <div className="px-3 md:px-6 pb-4 md:pb-6 text-center">
+            <div className="px-3 sm:px-4 md:px-8 pb-4 sm:pb-6 md:pb-8 text-center">
                 
-                {/* VISTA PREVIA AVATAR (CÍRCULO PERFECTO) */}
-                <div className="relative w-28 h-28 mx-auto -mt-14 mb-3 group">
+                {/* VISTA PREVIA AVATAR */}
+                <div className="relative w-24 h-24 sm:w-32 sm:h-32 mx-auto -mt-12 sm:-mt-16 mb-3 sm:mb-4">
                   {/* Contenedor con aspect-square y rounded-full para asegurar circularidad */}
-                  <div className="w-full h-full rounded-full p-1 bg-white dark:bg-[#1e1e1e] shadow-lg overflow-hidden aspect-square shrink-0">
+                  <div className="w-full h-full rounded-full p-1 sm:p-1.5 bg-white dark:bg-[#1e1e1e] shadow-xl overflow-hidden aspect-square shrink-0 ring-4 ring-white dark:ring-[#1e1e1e] transition-transform duration-300">
                     {/* Render interno */}
                     <div className="w-full h-full rounded-full overflow-hidden">
                         {renderPreviewAvatar()}
@@ -205,17 +338,17 @@ const Configuracion = () => {
                   </div>
                 </div>
 
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white truncate mt-2">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white truncate mt-2 sm:mt-3">
                   {formData.username || "Usuario"}
                 </h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 truncate">{user?.email}</p>
+                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-3 sm:mb-5 truncate">{user?.email}</p>
 
                 <div className="flex flex-col gap-2">
-                  <div className={clsx("px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2", user?.role === 'admin' ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300" : "bg-gray-100 text-gray-600 dark:bg-[#191B1E] dark:text-gray-400")}>
-                    <Shield size={14} /> {user?.role === 'admin' ? 'Administrador' : 'Miembro'}
+                  <div className={clsx("px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl text-[10px] sm:text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all", user?.role === 'admin' ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 ring-1 ring-purple-200 dark:ring-purple-800" : "bg-gray-100 text-gray-600 dark:bg-[#191B1E] dark:text-gray-400 ring-1 ring-gray-200 dark:ring-gray-700")}>
+                    <Shield size={12} /> {user?.role === 'admin' ? 'Administrador' : 'Miembro'}
                   </div>
-                  <div className="px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-300 text-xs font-medium flex items-center justify-center gap-2">
-                    <Calendar size={14} /> Miembro desde: {joinDate}
+                  <div className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-300 text-[10px] sm:text-xs font-medium flex items-center justify-center gap-2 ring-1 ring-blue-200 dark:ring-blue-800">
+                    <Calendar size={12} /> Miembro desde: {joinDate}
                   </div>
                 </div>
             </div>
@@ -223,60 +356,58 @@ const Configuracion = () => {
         </div>
 
         {/* =========================================================
-            COLUMNA DERECHA: FORMULARIO
+            FORMULARIO DE EDICIÓN
            ========================================================= */}
-        <div className="md:col-span-2">
-          <div className="bg-white dark:bg-[#1e1e1e] p-3 md:p-5 rounded-2xl border border-gray-300 dark:border-gray-700 shadow-sm">
+        <div>
+          <div className="bg-white dark:bg-[#1e1e1e] p-4 sm:p-5 md:p-7 rounded-xl sm:rounded-2xl border border-gray-200 dark:border-gray-700 shadow-lg">
             
-            <h3 className="flex items-center gap-2 text-lg font-bold text-gray-900 dark:text-white mb-3 md:mb-5 border-b border-gray-300 dark:border-gray-700 pb-2">
-              <Edit2 size={20} className="text-primary-300" /> Editar Información
+            <h3 className="flex items-center gap-3 text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-4 sm:mb-6 border-b border-gray-200 dark:border-gray-700 pb-3 sm:pb-4">
+              <Edit2 size={18} className="text-primary-500" /> Editar Perfil
             </h3>
 
             {message.text && (
-              <div className={clsx("mb-6 p-4 rounded-xl flex items-center gap-3 text-sm animate-fade-in-up", message.type === 'success' ? "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300" : "bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300")}>
-                {message.type === 'success' ? <CheckCircle size={20} /> : <AlertCircle size={20} />} {message.text}
+              <div className={clsx("mb-4 sm:mb-6 p-3 sm:p-4 rounded-xl flex items-center gap-2 sm:gap-3 text-xs sm:text-sm animate-fade-in-up ring-1", message.type === 'success' ? "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300 ring-green-200 dark:ring-green-800" : "bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300 ring-red-200 dark:ring-red-800")}>
+                {message.type === 'success' ? <CheckCircle size={16} /> : <AlertCircle size={16} />} {message.text}
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4 md:gap-5">
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4 sm:gap-6">
               
               {/* 1. USERNAME */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Nombre de Usuario</label>
+                <label className="block text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2.5">Nombre de Usuario</label>
                 <div className="relative group">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary-500 transition-colors" size={20} />
-                  <input type="text" name="username" required value={formData.username} onChange={handleChange} className="w-full pl-12 pr-4 py-3 rounded-xl bg-gray-50 dark:bg-[#191B1E] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all dark:text-white" />
+                  <User className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary-500 transition-colors" size={16} />
+                  <input type="text" name="username" required value={formData.username} onChange={handleChange} className="w-full pl-9 sm:pl-12 pr-3 sm:pr-4 py-2.5 sm:py-3.5 rounded-lg sm:rounded-xl bg-gray-50 dark:bg-[#191B1E] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all text-sm dark:text-white" />
                 </div>
               </div>
 
               {/* 2. AVATAR CONFIGURATION */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Avatar</label>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Avatar</label>
                 
-                <div className="flex gap-2 mb-2 p-1 bg-gray-100 dark:bg-[#191B1E] rounded-xl w-fit">
-                    <button type="button" onClick={() => setAvatarTab('url')} className={clsx("px-4 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2", avatarTab === 'url' ? "bg-white dark:bg-gray-700 shadow-sm text-primary-600 dark:text-white" : "text-gray-500 hover:text-gray-700 dark:text-gray-400")}>
-                        <LinkIcon size={14} /> URL
+                <div className="flex gap-1.5 mb-3 p-1 bg-gray-100 dark:bg-[#191B1E] rounded-lg w-full">
+                    <button type="button" onClick={() => setAvatarTab('url')} className={clsx("flex-1 px-3 py-2 rounded-md text-xs font-medium transition-all flex items-center justify-center gap-1.5", avatarTab === 'url' ? "bg-white dark:bg-gray-700 shadow-sm text-primary-600 dark:text-white" : "text-gray-500 hover:text-gray-700 dark:text-gray-400")}>
+                        <LinkIcon size={12} /> URL
                     </button>
-                    <button type="button" onClick={() => setAvatarTab('design')} className={clsx("px-4 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2", avatarTab === 'design' ? "bg-white dark:bg-gray-700 shadow-sm text-primary-600 dark:text-white" : "text-gray-500 hover:text-gray-700 dark:text-gray-400")}>
-                        <Palette size={14} /> Diseñar
+                    <button type="button" onClick={() => setAvatarTab('design')} className={clsx("flex-1 px-3 py-2 rounded-md text-xs font-medium transition-all flex items-center justify-center gap-1.5", avatarTab === 'design' ? "bg-white dark:bg-gray-700 shadow-sm text-primary-600 dark:text-white" : "text-gray-500 hover:text-gray-700 dark:text-gray-400")}>
+                        <Palette size={12} /> Diseñar
                     </button>
                 </div>
 
-                <div className="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-4 border border-gray-100 dark:border-gray-700/50">
-                    {/* Avatar: URL */}
+                <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3 border border-gray-100 dark:border-gray-700/50">
                     {avatarTab === 'url' && (
                         <div className="relative group">
-                            <Camera className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary-500 transition-colors" size={20} />
-                            <input type="url" name="avatar" placeholder="https://..." value={formData.avatar} onChange={handleChange} className="w-full pl-12 pr-4 py-3 rounded-xl bg-white dark:bg-[#191B1E] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all dark:text-white" />
+                            <Camera className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary-500 transition-colors" size={16} />
+                            <input type="url" name="avatar" placeholder="https://..." value={formData.avatar} onChange={handleChange} className="w-full pl-10 pr-3 py-2.5 rounded-lg bg-white dark:bg-[#191B1E] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all text-sm dark:text-white" />
                         </div>
                     )}
 
-                    {/* Avatar: Designer */}
                     {avatarTab === 'design' && (
-                        <div className="space-y-4">
+                        <div className="space-y-3">
                             <div>
-                                <p className="text-xs font-bold text-gray-500 uppercase mb-2">1. Elige Icono</p>
-                                <div className="grid grid-cols-5 sm:grid-cols-8 lg:grid-cols-12 gap-2 pr-2 custom-scrollbar">
+                                <p className="text-[10px] font-bold text-gray-500 uppercase mb-2">1. Icono</p>
+                                <div className="grid grid-cols-6 sm:grid-cols-8 lg:grid-cols-10 gap-1.5">
                                     {AVATAR_ICON_NAMES.map((name) => {
                                         const Icon = AVATAR_ICONS_MAP[name];
                                         return (
@@ -285,29 +416,29 @@ const Configuracion = () => {
                                                 type="button" 
                                                 onClick={() => updateAvatarDesign(name, selectedColor)} 
                                                 className={clsx(
-                                                    "aspect-square rounded-xl flex items-center justify-center transition-all border-2 bg-white dark:bg-[#191B1E]", 
+                                                    "aspect-square rounded-lg flex items-center justify-center transition-all border bg-white dark:bg-[#191B1E] hover:scale-105", 
                                                     selectedIcon === name 
                                                         ? "border-primary-500 text-primary-600 bg-primary-50 dark:bg-primary-900/20 shadow-sm" 
-                                                        : "border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                                        : "border-gray-200 dark:border-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
                                                 )}
                                             >
-                                                <Icon size={24} strokeWidth={1.5} />
+                                                <Icon size={18} strokeWidth={1.5} />
                                             </button>
                                         );
                                     })}
                                 </div>
                             </div>
                             <div>
-                                <p className="text-xs font-bold text-gray-500 uppercase mb-2">2. Elige Color</p>
-                                <div className="flex flex-wrap gap-2">
+                                <p className="text-[10px] font-bold text-gray-500 uppercase mb-2">2. Color</p>
+                                <div className="flex flex-wrap gap-1.5">
                                     {AVATAR_COLORS.map((color) => (
                                         <button 
                                             key={color} 
                                             type="button" 
                                             onClick={() => updateAvatarDesign(selectedIcon, color)} 
                                             className={clsx(
-                                                "w-10 h-10 md:w-8 md:h-8 rounded-full border-2 transition-all hover:scale-110", 
-                                                selectedColor === color ? "border-white ring-2 ring-primary-500 shadow-md" : "border-transparent shadow-sm"
+                                                "w-10 h-10 rounded-full border-2 transition-all hover:scale-110", 
+                                                selectedColor === color ? "border-white ring-2 ring-primary-500 shadow-sm" : "border-gray-200 dark:border-gray-700 shadow-sm"
                                             )} 
                                             style={{ backgroundColor: color }} 
                                         />
@@ -323,23 +454,23 @@ const Configuracion = () => {
               <div>
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Diseño del Banner</label>
                 
-                <div className="flex gap-2 mb-2 p-1 bg-gray-100 dark:bg-[#191B1E] rounded-xl w-fit">
-                    <button type="button" onClick={() => setBannerTab('presets')} className={clsx("px-4 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2", bannerTab === 'presets' ? "bg-white dark:bg-gray-700 shadow-sm text-primary-600 dark:text-white" : "text-gray-500 hover:text-gray-700 dark:text-gray-400")}>
-                        <LayoutGrid size={14} /> Presets
+                <div className="flex gap-1.5 mb-3 p-1 bg-gray-100 dark:bg-[#191B1E] rounded-lg w-full">
+                    <button type="button" onClick={() => setBannerTab('presets')} className={clsx("flex-1 px-3 py-2 rounded-md text-xs font-medium transition-all flex items-center justify-center gap-1.5", bannerTab === 'presets' ? "bg-white dark:bg-gray-700 shadow-sm text-primary-600 dark:text-white" : "text-gray-500 hover:text-gray-700 dark:text-gray-400")}>
+                        <LayoutGrid size={12} /> Presets
                     </button>
-                    <button type="button" onClick={() => setBannerTab('colors')} className={clsx("px-4 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2", bannerTab === 'colors' ? "bg-white dark:bg-gray-700 shadow-sm text-primary-600 dark:text-white" : "text-gray-500 hover:text-gray-700 dark:text-gray-400")}>
-                        <Palette size={14} /> Colores
+                    <button type="button" onClick={() => setBannerTab('colors')} className={clsx("flex-1 px-3 py-2 rounded-md text-xs font-medium transition-all flex items-center justify-center gap-1.5", bannerTab === 'colors' ? "bg-white dark:bg-gray-700 shadow-sm text-primary-600 dark:text-white" : "text-gray-500 hover:text-gray-700 dark:text-gray-400")}>
+                        <Palette size={12} /> Colores
                     </button>
-                    <button type="button" onClick={() => setBannerTab('custom')} className={clsx("px-4 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2", bannerTab === 'custom' ? "bg-white dark:bg-gray-700 shadow-sm text-primary-600 dark:text-white" : "text-gray-500 hover:text-gray-700 dark:text-gray-400")}>
-                        <LinkIcon size={14} /> URL
+                    <button type="button" onClick={() => setBannerTab('custom')} className={clsx("flex-1 px-3 py-2 rounded-md text-xs font-medium transition-all flex items-center justify-center gap-1.5", bannerTab === 'custom' ? "bg-white dark:bg-gray-700 shadow-sm text-primary-600 dark:text-white" : "text-gray-500 hover:text-gray-700 dark:text-gray-400")}>
+                        <LinkIcon size={12} /> URL
                     </button>
                 </div>
 
-                <div className="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-4 border border-gray-100 dark:border-gray-700/50">
+                <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3 border border-gray-100 dark:border-gray-700/50">
                     {bannerTab === 'presets' && (
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                             {PRESET_BANNERS.map((imgUrl, index) => (
-                                <button key={index} type="button" onClick={() => updateBanner(imgUrl)} className={clsx("h-16 w-full rounded-lg bg-gray-200 overflow-hidden border-2 transition-all hover:opacity-80", formData.banner === imgUrl ? "border-primary-500 ring-2 ring-primary-500/30" : "border-transparent")}>
+                                <button key={index} type="button" onClick={() => updateBanner(imgUrl)} className={clsx("h-16 w-full rounded-lg bg-gray-200 overflow-hidden border transition-all hover:opacity-80 hover:scale-105", formData.banner === imgUrl ? "border-primary-500 ring-2 ring-primary-500/30 shadow-sm" : "border-gray-200 dark:border-gray-700")}>
                                     <img src={imgUrl} alt={`Preset ${index}`} className="w-full h-full object-cover" />
                                 </button>
                             ))}
@@ -347,32 +478,134 @@ const Configuracion = () => {
                     )}
 
                     {bannerTab === 'colors' && (
-                        <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+                        <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
                             {PRESET_COLORS.map((gradient, index) => (
-                                <button key={index} type="button" onClick={() => updateBanner(gradient)} className={clsx("h-12 w-full rounded-lg border-2 transition-all hover:opacity-80 hover:scale-105", formData.banner === gradient ? "border-white ring-2 ring-primary-500 shadow-md" : "border-transparent")} style={{ background: gradient }}></button>
+                                <button key={index} type="button" onClick={() => updateBanner(gradient)} className={clsx("h-10 w-full rounded-lg border transition-all hover:opacity-80 hover:scale-105", formData.banner === gradient ? "border-white ring-2 ring-primary-500 shadow-sm" : "border-gray-200 dark:border-gray-700")} style={{ background: gradient }}></button>
                             ))}
                         </div>
                     )}
 
                     {bannerTab === 'custom' && (
                         <div className="relative group">
-                           <ImageIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary-500 transition-colors" size={20} />
-                           <input type="url" name="banner" placeholder="https://imgur.com/..." value={formData.banner} onChange={handleChange} className="w-full pl-12 pr-4 py-3 rounded-xl bg-white dark:bg-[#191B1E] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all dark:text-white" />
+                           <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary-500 transition-colors" size={16} />
+                           <input type="url" name="banner" placeholder="https://imgur.com/..." value={formData.banner} onChange={handleChange} className="w-full pl-10 pr-3 py-2.5 rounded-lg bg-white dark:bg-[#191B1E] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all text-sm dark:text-white" />
                         </div>
                     )}
                 </div>
               </div>
 
               {/* Botón Guardar */}
-              <div className="">
-                <button type="submit" disabled={loading} className={clsx("px-8 py-3.5 rounded-xl text-white font-bold flex items-center justify-center gap-2 transition-all w-full md:w-auto", loading ? "bg-gray-400 cursor-not-allowed" : "bg-primary-600 hover:bg-primary-700")}>
-                  {loading ? <Loader2 className="animate-spin" /> : <Save size={20} />}
+              <div className="pt-2">
+                <button type="submit" disabled={loading} className={clsx("px-6 sm:px-8 py-2.5 sm:py-3.5 rounded-lg sm:rounded-xl text-white font-bold flex items-center justify-center gap-2 transition-all w-full sm:w-auto shadow-lg hover:shadow-xl text-sm sm:text-base", loading ? "bg-gray-400 cursor-not-allowed" : "bg-primary-600 hover:bg-primary-700")}>
+                  {loading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
                   {loading ? "Guardando..." : "Guardar Cambios"}
                 </button>
               </div>
 
             </form>
           </div>
+        </div>
+
+        {/* SECCIÓN DE CAMBIO DE CONTRASEÑA */}
+        <div className="bg-white dark:bg-[#1e1e1e] p-4 sm:p-5 md:p-7 rounded-xl sm:rounded-2xl border border-gray-200 dark:border-gray-700 shadow-lg">
+          <h3 className="flex items-center gap-3 text-base sm:text-lg font-bold text-gray-900 dark:text-white mb-3 sm:mb-4">
+            <Shield size={16} className="text-primary-500" /> Cambiar Contraseña
+          </h3>
+
+          {passwordMessage.text && (
+            <div className={clsx("mb-3 sm:mb-4 p-2.5 sm:p-3 rounded-lg sm:rounded-xl flex items-center gap-2 text-xs sm:text-sm", passwordMessage.type === 'success' ? "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300" : "bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300")}>
+              {passwordMessage.type === 'success' ? <CheckCircle size={14} /> : <AlertCircle size={14} />} {passwordMessage.text}
+            </div>
+          )}
+
+          <form onSubmit={handlePasswordChange} className="flex flex-col gap-3 sm:gap-4">
+            <div>
+              <label className="block text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2">Nueva Contraseña</label>
+              <input
+                type="password"
+                value={passwordData.newPassword}
+                onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-gray-50 dark:bg-[#191B1E] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all text-sm dark:text-white"
+                placeholder="Mínimo 6 caracteres"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2">Confirmar Contraseña</label>
+              <input
+                type="password"
+                value={passwordData.confirmPassword}
+                onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-gray-50 dark:bg-[#191B1E] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all text-sm dark:text-white"
+                placeholder="Repite la nueva contraseña"
+                required
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={passwordLoading}
+              className={clsx("px-5 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl text-white font-bold flex items-center justify-center gap-2 transition-all w-full sm:w-fit text-sm sm:text-base", passwordLoading ? "bg-gray-400 cursor-not-allowed" : "bg-primary-600 hover:bg-primary-700")}
+            >
+              {passwordLoading ? <Loader2 className="animate-spin" size={14} /> : <Shield size={14} />}
+              {passwordLoading ? "Actualizando..." : "Cambiar Contraseña"}
+            </button>
+          </form>
+        </div>
+
+        {/* SECCIÓN DE ELIMINAR CUENTA */}
+        <div className="bg-white dark:bg-[#1e1e1e] p-4 sm:p-5 md:p-7 rounded-xl sm:rounded-2xl border border-red-200 dark:border-red-900 shadow-lg">
+          <h3 className="flex items-center gap-3 text-base sm:text-lg font-bold text-red-600 dark:text-red-400 mb-3 sm:mb-4">
+            <AlertCircle size={16} /> Zona de Peligro
+          </h3>
+
+          {!showDeleteSection ? (
+            <button
+              type="button"
+              onClick={() => setShowDeleteSection(true)}
+              className="px-4 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-bold hover:bg-red-200 dark:hover:bg-red-900/30 transition-all text-sm sm:text-base"
+            >
+              Eliminar mi cuenta
+            </button>
+          ) : (
+            <div className="space-y-3 sm:space-y-4">
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                Esta acción es irreversible. Todos tus datos serán eliminados permanentemente.
+              </p>
+              <div>
+                <label className="block text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2">
+                  Escribe <span className="font-bold text-red-600">ELIMINAR</span> para confirmar
+                </label>
+                <input
+                  type="text"
+                  value={deleteConfirmation}
+                  onChange={(e) => setDeleteConfirmation(e.target.value)}
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-gray-50 dark:bg-[#191B1E] border border-red-200 dark:border-red-900 outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-all text-sm dark:text-white"
+                  placeholder="ELIMINAR"
+                />
+              </div>
+              <div className="flex gap-2 sm:gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowDeleteSection(false);
+                    setDeleteConfirmation('');
+                  }}
+                  className="px-4 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-bold hover:bg-gray-200 dark:hover:bg-gray-600 transition-all text-sm sm:text-base"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeleteAccount}
+                  disabled={deleteLoading || deleteConfirmation !== 'ELIMINAR'}
+                  className={clsx("px-4 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl text-white font-bold flex items-center justify-center gap-2 transition-all text-sm sm:text-base", deleteLoading || deleteConfirmation !== 'ELIMINAR' ? "bg-red-400 cursor-not-allowed" : "bg-red-600 hover:bg-red-700")}
+                >
+                  {deleteLoading ? <Loader2 className="animate-spin" size={14} /> : <AlertCircle size={14} />}
+                  {deleteLoading ? "Eliminando..." : "Eliminar Cuenta Definitivamente"}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
       </div>

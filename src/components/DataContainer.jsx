@@ -132,14 +132,14 @@ const DataContainer = ({
   return (
     <div className="flex flex-col p-2 md:p-4 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
       {/* HEADER */}
-      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-2 md:mb-6">
-        <h2 className="flex text-xl md:text-2xl font-bold text-gray-800 dark:text-white items-center gap-3">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-2 md:mb-6">
+        <h1 className="flex text-xl md:text-2xl font-bold text-gray-800 dark:text-white items-center gap-3">
           <div className={clsx("w-9 h-9 rounded-xl flex items-center justify-center shadow-sm text-white", `bg-gradient-to-br ${gradientClass}`)}>
               <Icon size={22} strokeWidth={2.5} />
           </div>
           {title}
           <span className="text-sm font-normal text-gray-500 dark:text-gray-400 self-end mb-1 ml-1">({itemsFiltrados.length})</span>
-        </h2>
+        </h1>
       </div>
 
       {/* BARRA DE FILTROS */}

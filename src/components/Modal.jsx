@@ -15,7 +15,8 @@ const Modal = ({
   confirmText = "Aceptar",
   cancelText = "Cancelar",
   neutralText = "", // 👈 Nuevo texto opcional para el tercer botón
-  showCancel = false 
+  showCancel = false,
+  children // 👈 Nuevo prop para contenido personalizado
 }) => {
   
   useEffect(() => {
@@ -94,6 +95,9 @@ const Modal = ({
 
           <h3 className="text-xl font-black text-gray-900 dark:text-white mb-2">{title}</h3>
           <p className="text-gray-500 dark:text-gray-400 text-sm mb-6 leading-relaxed">{message}</p>
+
+          {/* Contenido personalizado */}
+          {children && <div className="w-full mb-6 text-left">{children}</div>}
 
           {/* 👇 SECCIÓN DE BOTONES INTEGRADA */}
           <div className={clsx(

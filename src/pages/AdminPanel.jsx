@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   LayoutDashboard, Plus, Search, Trash2, Edit, 
-  FileBox, Users, Download, Filter, Loader2, ChevronDown, CheckCircle, Clock
+  FileBox, Users, Download, Filter, Loader2, ChevronDown, CheckCircle, Clock, XCircle, Check, X, Eye
 } from 'lucide-react';
 import { supabase } from '../services/supabaseClient';
-import { deleteContent, updateContent } from '../services/api';
+import { deleteContent, updateContent, getAdminContent } from '../services/api';
 import { clsx } from 'clsx';
+import Modal from '../components/Modal';
 
 const StatCard = ({ icon: Icon, label, value, gradient }) => (
   <div className="bg-white dark:bg-[#1e1e1e] p-5 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm flex items-center gap-4">
@@ -26,16 +27,20 @@ const AdminPanel = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
-  const [updatingId, setUpdatingId] = useState(null); // Estado visual de carga inline
+  const [filterStatus, setFilterStatus] = useState('all'); // all, borrador, revision, aceptado, rechazado
+  const [updatingId, setUpdatingId] = useState(null);
+  
+  // Modal de rechazo
+  const [rejectModal, setRejectModal] = useState({
+    isOpen: false,
+    itemId: null,
+    motivo: ''
+  });
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const { data: contentData, error: contentError } = await supabase
-          .from('content')
-          .select('*')
-          .order('creado', { ascending: false });
-        if (contentError) throw contentError;
+        const contentData = await getAdminContent();
 
         const { count: usersCount, error: usersError } = await supabase
           .from('users')
@@ -64,15 +69,51 @@ const AdminPanel = () => {
     fetchData();
   }, []);
 
-  // 👇 FUNCIÓN CLAVE: Actualiza el estado del mod inline directamente a Supabase
-  const handleStatusChange = async (id, newStatus) => {
+  // Aceptar mod
+  const handleAccept = async (id) => {
     setUpdatingId(id);
     try {
-      await updateContent(id, { status: newStatus }); // Llama a tu api.js
-      setContent(prev => prev.map(item => item.id === id ? { ...item, status: newStatus } : item));
+      await updateContent(id, { estado: 'aceptado' });
+      setContent(prev => prev.map(item => item.id === id ? { ...item, estado: 'aceptado' } : item));
     } catch (error) {
       console.error(error);
-      alert("Error al actualizar el estado del contenido.");
+      alert("Error al aceptar el contenido.");
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  // Abrir modal de rechazo
+  const handleRejectClick = (id) => {
+    setRejectModal({
+      isOpen: true,
+      itemId: id,
+      motivo: ''
+    });
+  };
+
+  // Confirmar rechazo con motivo
+  const handleRejectConfirm = async () => {
+    if (!rejectModal.motivo.trim()) {
+      alert('Por favor ingresa el motivo del rechazo.');
+      return;
+    }
+
+    setUpdatingId(rejectModal.itemId);
+    try {
+      await updateContent(rejectModal.itemId, { 
+        estado: 'rechazado',
+        mensaje_rechazo: rejectModal.motivo 
+      });
+      setContent(prev => prev.map(item => 
+        item.id === rejectModal.itemId 
+          ? { ...item, estado: 'rechazado', mensaje_rechazo: rejectModal.motivo } 
+          : item
+      ));
+      setRejectModal({ isOpen: false, itemId: null, motivo: '' });
+    } catch (error) {
+      console.error(error);
+      alert("Error al rechazar el contenido.");
     } finally {
       setUpdatingId(null);
     }
@@ -91,9 +132,11 @@ const AdminPanel = () => {
   };
 
   const filteredContent = content.filter(item => {
+    const estado = item.estado || item.status || 'borrador';
     const matchesSearch = item.titulo.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filterType === 'all' || item.tipo === filterType;
-    return matchesSearch && matchesType;
+    const matchesStatus = filterStatus === 'all' || estado === filterStatus;
+    return matchesSearch && matchesType && matchesStatus;
   });
 
   if (loading) return (
@@ -159,6 +202,17 @@ const AdminPanel = () => {
               <option value="minijuego">Minijuegos</option>
               <option value="modpack">Modpacks</option>
             </select>
+            <select 
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="bg-white dark:bg-[#252525] border border-gray-200 dark:border-gray-700 rounded-xl py-1.5 h-9 px-3 text-xs font-semibold dark:text-white focus:ring-2 focus:ring-primary-500/20 outline-none cursor-pointer shadow-sm"
+            >
+              <option value="all">Todos los estados</option>
+              <option value="borrador">Borradores</option>
+              <option value="revision">En Revisión</option>
+              <option value="aceptado">Aceptados</option>
+              <option value="rechazado">Rechazados</option>
+            </select>
           </div>
         </div>
 
@@ -179,6 +233,44 @@ const AdminPanel = () => {
               {filteredContent.length > 0 ? (
                 filteredContent.map((item) => {
                   const itemTotalDownloads = item.descargas?.reduce((acc, curr) => acc + (curr.count || 0), 0) || 0;
+                  const estado = item.estado || item.status || 'borrador';
+                  
+                  const getStatusConfig = (estado) => {
+                    switch (estado) {
+                      case 'aceptado':
+                      case 'published':
+                        return { 
+                          label: 'Aceptado', 
+                          style: 'bg-green-50 text-green-700 border-green-200 dark:bg-green-950/20 dark:text-green-400 dark:border-green-900/30'
+                        };
+                      case 'revision':
+                      case 'pending':
+                        return { 
+                          label: 'En Revisión', 
+                          style: 'bg-amber-50 text-orange-700 border-amber-200 dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-900/30'
+                        };
+                      case 'rechazado':
+                      case 'rejected':
+                        return { 
+                          label: 'Rechazado', 
+                          style: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950/20 dark:text-red-400 dark:border-red-900/30'
+                        };
+                      case 'borrador':
+                      case 'draft':
+                        return { 
+                          label: 'Borrador', 
+                          style: 'bg-gray-100 text-gray-600 border-gray-300 dark:bg-[#191B1E] dark:text-gray-400 dark:border-gray-700'
+                        };
+                      default:
+                        return { 
+                          label: 'Desconocido', 
+                          style: 'bg-gray-100 text-gray-500 border-gray-300 dark:bg-[#191B1E] dark:text-gray-500'
+                        };
+                    }
+                  };
+
+                  const statusConfig = getStatusConfig(estado);
+                  const canApprove = estado === 'revision' || estado === 'pending';
                   
                   return (
                     <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-[#191B1E]/20 transition-colors group">
@@ -215,42 +307,47 @@ const AdminPanel = () => {
                           : 'Desconocido'}
                       </td>
 
-                      {/* 👇 GESTIÓN DE ESTADO INLINE SELECTOR */}
+                      {/* ESTADO */}
                       <td className="p-3">
-                        <div className="relative inline-block w-36">
-                          {updatingId === item.id ? (
-                            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-400 py-1 pl-2">
-                              <Loader2 size={12} className="animate-spin text-primary-500" /> Guardando...
-                            </div>
-                          ) : (
-                            <>
-                              <select
-                                value={item.status || 'published'}
-                                onChange={(e) => handleStatusChange(item.id, e.target.value)}
-                                className={clsx(
-                                  "w-full pl-2 pr-6 py-1 text-[11px] font-bold rounded-lg border appearance-none outline-none cursor-pointer transition-all shadow-sm capitalize",
-                                  item.status === 'published' && "bg-green-50 text-green-700 border-green-200 dark:bg-green-950/20 dark:text-green-400 dark:border-green-900/30",
-                                  item.status === 'pending' && "bg-amber-50 text-orange-700 border-amber-200 dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-900/30",
-                                  item.status === 'published_editing' && "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/20 dark:text-blue-400 dark:border-blue-900/30",
-                                  item.status === 'rejected' && "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/20 dark:text-red-400 dark:border-red-900/30",
-                                  item.status === 'draft' && "bg-gray-100 text-gray-600 border-gray-300 dark:bg-[#191B1E] dark:text-gray-400 dark:border-gray-700"
-                                )}
-                              >
-                                <option value="published">Publicado</option>
-                                <option value="pending">En revisión</option>
-                                <option value="published_editing">Editado en revisión</option>
-                                <option value="rejected">Rechazado</option>
-                                <option value="draft">Borrador</option>
-                              </select>
-                              <ChevronDown size={11} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                            </>
-                          )}
-                        </div>
+                        {updatingId === item.id ? (
+                          <div className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-400 py-1 pl-2">
+                            <Loader2 size={12} className="animate-spin text-primary-500" /> Procesando...
+                          </div>
+                        ) : (
+                          <span className={`px-2 py-1 text-[11px] font-bold rounded-lg border capitalize ${statusConfig.style}`}>
+                            {statusConfig.label}
+                          </span>
+                        )}
                       </td>
 
-                      {/* BOTONES ACCIONES */}
+                      {/* ACCIONES */}
                       <td className="p-3 text-right pr-4">
                         <div className="flex items-center justify-end gap-1">
+                          {canApprove && (
+                            <>
+                              <button 
+                                onClick={() => handleAccept(item.id)}
+                                className="p-1.5 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors" 
+                                title="Aceptar"
+                              >
+                                <Check size={15} />
+                              </button>
+                              <button 
+                                onClick={() => handleRejectClick(item.id)}
+                                className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors" 
+                                title="Rechazar"
+                              >
+                                <X size={15} />
+                              </button>
+                            </>
+                          )}
+                          <Link 
+                            to={`/view/${item.id}`}
+                            className="p-1.5 text-gray-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors" 
+                            title="Ver contenido"
+                          >
+                            <Eye size={15} />
+                          </Link>
                           <Link 
                             to={`/subir?edit=${item.id}`}
                             className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors" 
@@ -287,6 +384,27 @@ const AdminPanel = () => {
         </div>
 
       </div>
+
+      {/* MODAL DE RECHAZO */}
+      <Modal 
+        isOpen={rejectModal.isOpen}
+        onClose={() => setRejectModal({ isOpen: false, itemId: null, motivo: '' })}
+        onConfirm={handleRejectConfirm}
+        title="Rechazar Mod"
+        message="Por favor, ingresa el motivo del rechazo. Este mensaje será visible para el creador del mod."
+        type="warning"
+        showCancel={true}
+        confirmText="Rechazar"
+        cancelText="Cancelar"
+      >
+        <textarea
+          value={rejectModal.motivo}
+          onChange={(e) => setRejectModal({ ...rejectModal, motivo: e.target.value })}
+          placeholder="Describe el motivo del rechazo..."
+          className="w-full p-3 rounded-xl bg-gray-50 dark:bg-[#191B1E] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-red-500 transition-all dark:text-white text-sm resize-none"
+          rows={4}
+        />
+      </Modal>
     </div>
   );
 };
