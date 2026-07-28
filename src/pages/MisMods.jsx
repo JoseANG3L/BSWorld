@@ -364,7 +364,7 @@ const MisMods = () => {
               isEditable={true} 
               handleDelete={handleDeleteClick}
               isDeleting={deletingId === item.id}
-              onEdit={() => navigate(`/subir/${item.id}`)}
+              onEdit={() => navigate(`/subir?edit=${item.id}`)}
             />
           ))}
         </div>

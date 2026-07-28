@@ -370,7 +370,8 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
       } else {
         // Usuarios no admin
         if (action === 'draft') finalEstado = 'borrador'; // Borrador tiene su propio estado
-        else finalEstado = 'revision'; // Cualquier edición/envío va a revisión
+        else if (formData.visibilidad === 'privado') finalEstado = 'aceptado'; // Contenido privado no requiere revisión
+        else finalEstado = 'revision'; // Cualquier edición/envío público va a revisión
       }
 
       let processedDescargas = formData.descargas.filter(d => d.url !== '');
@@ -473,7 +474,7 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
       </div>
 
       {/* CONTENIDO PRINCIPAL POR PASO */}
-      <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
+      <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar bg-white dark:bg-dark-bg">
         <div className="max-w-2xl mx-auto my-auto">
           
           {/* PASO 1: NOMBRE */}

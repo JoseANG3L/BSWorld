@@ -133,7 +133,7 @@ const ControlPanelCard = ({
             <Edit3 size={16} />
           </button>
           <Link
-            to={`/content/${id}`}
+            to={`/view/${id}`}
             className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
             title="Ver"
           >

@@ -63,7 +63,11 @@ export const getContentById = async (id, userId = null, userRole = null) => {
       if (userId !== ownerId) return null;
     }
     
-    // Si está en revisión, cualquiera puede verlo
+    // Si está en revisión, solo el dueño puede verlo
+    if (estado === 'revision' || estado === 'pending' || estado === 'en_revision') {
+      if (userId !== ownerId) return null;
+    }
+    
     // Si es no-listado o publico, cualquiera puede verlo
   }
   
