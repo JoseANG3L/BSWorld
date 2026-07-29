@@ -135,7 +135,7 @@ const DataContainer = ({
       <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-2 md:mb-6">
         <h1 className="flex text-xl md:text-2xl font-bold text-gray-800 dark:text-white items-center gap-3">
           <div className={clsx("w-9 h-9 rounded-xl flex items-center justify-center shadow-sm text-white", `bg-gradient-to-br ${gradientClass}`)}>
-              <Icon size={22} strokeWidth={2.5} />
+              <Icon size={20} strokeWidth={2.5} />
           </div>
           {title}
           <span className="text-sm font-normal text-gray-500 dark:text-gray-400 self-end mb-1 ml-1">({itemsFiltrados.length})</span>
@@ -152,7 +152,7 @@ const DataContainer = ({
             placeholder={`Buscar por ${searchKey}...`} 
             value={busqueda} 
             onChange={(e) => setBusqueda(e.target.value)} 
-            className="w-full pl-10 pr-4 py-2.5 h-10 rounded-xl dark:bg-[#191B1E] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all text-sm" 
+            className="w-full pl-10 pr-4 py-2.5 h-10 rounded-xl bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all text-sm" 
           />
         </div>
 
@@ -161,7 +161,7 @@ const DataContainer = ({
           <button
             type="button"
             onClick={handleOpenFiltersModal}
-            className="relative px-4 py-2.5 h-10 rounded-xl dark:bg-[#191B1E] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-sm font-medium flex items-center gap-2 shrink-0"
+            className="relative px-4 py-2.5 h-10 rounded-xl bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-sm font-medium flex items-center gap-2 shrink-0"
           >
             <Filter size={18} className="text-gray-500 dark:text-gray-400" />
             <span>Filtros</span>
@@ -179,7 +179,7 @@ const DataContainer = ({
               <button
                 type="button"
                 onClick={() => { setIsTypeDropdownOpen(!isTypeDropdownOpen); setIsOrdenDropdownOpen(false); }}
-                className="w-full pl-10 pr-10 py-2.5 h-10 rounded-xl dark:bg-[#191B1E] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none appearance-none cursor-pointer transition-all text-sm font-medium text-left"
+                className="w-full pl-10 pr-10 py-2.5 h-10 rounded-xl bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none appearance-none cursor-pointer transition-all text-sm font-medium text-left"
               >
                 <span className="truncate block">
                   {selectedTypes.length === 0 
@@ -193,7 +193,7 @@ const DataContainer = ({
             </div>
 
             {isTypeDropdownOpen && (
-              <div className="absolute top-full left-0 right-0 mt-2 dark:bg-[#191B1E] border border-gray-300 dark:border-transparent rounded-xl shadow-lg z-50 p-1">
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-transparent rounded-xl shadow-lg z-50 p-1">
                 <div className="flex flex-col gap-0.5">
                   <button
                     type="button"
@@ -228,7 +228,7 @@ const DataContainer = ({
         <div className="hidden md:flex items-center gap-2 w-full md:w-auto" ref={ordenDropdownRef}>
           <div className="relative w-full md:w-56 lg:w-64">
             <ArrowUpDown size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <button type="button" onClick={() => { setIsOrdenDropdownOpen(!isOrdenDropdownOpen); setIsTypeDropdownOpen(false); }} className="w-full pl-10 pr-10 py-2.5 h-10 rounded-xl dark:bg-[#191B1E] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none appearance-none cursor-pointer transition-all text-sm font-medium text-left">
+            <button type="button" onClick={() => { setIsOrdenDropdownOpen(!isOrdenDropdownOpen); setIsTypeDropdownOpen(false); }} className="w-full pl-10 pr-10 py-2.5 h-10 rounded-xl bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none appearance-none cursor-pointer transition-all text-sm font-medium text-left">
               <span className="truncate block">
                 {orden === 'mas_descargas' ? 'Más Descargas' : orden === 'mas_vistas' ? 'Más Vistas' : orden === 'az' ? 'Nombre (A-Z)' : orden === 'za' ? 'Nombre (Z-A)' : orden === 'recientes' ? 'Más Recientes' : orden === 'antiguos' ? 'Más Antiguos' : orden}
               </span>
@@ -236,7 +236,7 @@ const DataContainer = ({
             <ChevronDown size={16} className={clsx("absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none transition-transform duration-200", isOrdenDropdownOpen && "rotate-180")} />
 
             {isOrdenDropdownOpen && (
-              <div className="absolute top-full left-0 right-0 mt-2 dark:bg-[#191B1E] border border-gray-300 dark:border-transparent rounded-xl shadow-lg z-50 p-1">
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-transparent rounded-xl shadow-lg z-50 p-1">
                 <div className="flex flex-col gap-0.5">
                   {[{ val: 'mas_descargas', label: 'Más Descargas' }, { val: 'mas_vistas', label: 'Más Vistas' }, { val: 'az', label: 'Nombre (A-Z)' }, { val: 'za', label: 'Nombre (Z-A)' }, { val: 'recientes', label: 'Más Recientes' }, { val: 'antiguos', label: 'Más Antiguos' }].map((opt) => (
                     <button key={opt.val} type="button" onClick={() => { setOrden(opt.val); setIsOrdenDropdownOpen(false); }} className={clsx("w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors", orden === opt.val ? "text-gray-800 dark:text-white bg-gray-200 dark:bg-gray-700 font-semibold" : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700")}>{opt.label}</button>

@@ -172,7 +172,7 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
     const loadDataForEdit = async () => {
       if (!isEditing) return;
       try {
-        const data = await getContentById(editId, user?.id);
+        const data = await getContentById(editId, user?.id, user?.role);
         if (data) {
           setOriginalEstado(data.estado || data.status || 'revision');
           
@@ -902,7 +902,7 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
             type="button" 
             onClick={handlePrevStep} 
             disabled={currentStep === 0} 
-            className="px-4 py-2 bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-white rounded-xl text-xs font-bold flex items-center gap-1 shadow-sm disabled:opacity-30 disabled:cursor-not-allowed"
+            className="px-4 py-2 bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-white rounded-xl text-sm font-bold flex items-center gap-1 shadow-sm disabled:opacity-30 disabled:cursor-not-allowed"
           >
             <ChevronLeft size={16} /> Anterior
           </button>
@@ -912,7 +912,7 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
               <button 
                 type="button" 
                 onClick={handleNextStep} 
-                className="px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-colors"
+                className="px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-bold flex items-center gap-1.5 shadow-sm transition-colors"
               >
                 Siguiente <ChevronRight size={16} />
               </button>
@@ -923,7 +923,7 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
                     type="button" 
                     onClick={() => handleSubmitForm('publish')} 
                     disabled={loading || !isEncryptionReady} 
-                    className="px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm disabled:opacity-50 transition-colors"
+                    className="px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-bold flex items-center gap-1.5 shadow-sm disabled:opacity-50 transition-colors"
                   >
                     {loading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />} Publicar Mod
                   </button>
@@ -933,7 +933,7 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
                       type="button" 
                       onClick={() => handleSubmitForm('draft')} 
                       disabled={loading || !isEncryptionReady} 
-                      className="px-4 py-2 bg-gray-100 dark:bg-[#191B1E] text-gray-700 dark:text-gray-200 font-bold text-xs rounded-xl hover:bg-gray-200 dark:hover:bg-gray-800 transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+                      className="px-4 py-2 bg-gray-100 dark:bg-[#191B1E] text-gray-700 dark:text-gray-200 font-bold text-sm rounded-xl hover:bg-gray-200 dark:hover:bg-gray-800 transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50"
                     >
                       <FileText size={16} /> Borrador
                     </button>
@@ -941,7 +941,7 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
                       type="button" 
                       onClick={() => handleSubmitForm('pending')} 
                       disabled={loading || !isEncryptionReady} 
-                      className="px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs rounded-xl transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+                      className="px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white font-bold text-sm rounded-xl transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50"
                     >
                       {loading ? <Loader2 className="animate-spin" size={16} /> : <Upload size={16} />} Publicar
                     </button>

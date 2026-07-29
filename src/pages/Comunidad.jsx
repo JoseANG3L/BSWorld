@@ -40,7 +40,7 @@ const Comunidad = () => {
     <DataContainer
       title="Comunidad"
       icon={Crown}
-      gradientClass="from-yellow-500 to-orange-400"
+      gradientClass="from-yellow-600 to-orange-500"
       items={users} // 👈 Pasamos la lista completa directa, DataContainer la filtrará internamente
       searchKey="username" // 👈 Mapea con el input de búsqueda de DataContainer
       renderItem={(user) => (

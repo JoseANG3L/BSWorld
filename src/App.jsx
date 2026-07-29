@@ -33,6 +33,7 @@ import Destacados from './pages/Destacados';
 import DetalleContenido from './pages/DetalleContenido';
 import SubirMod from './pages/SubirMod';
 import SubirModPage from './pages/SubirModPage';
+import EditContent from './pages/EditContent';
 import Notificaciones from './pages/Notificaciones';
 import Servidores from './pages/Servidores';
 import DetalleServidor from './pages/DetalleServidor';
@@ -126,6 +127,12 @@ function App() {
             <Route path="mis-mods" element={
                 <ProtectedRoute>
                   <MisMods />
+                </ProtectedRoute>
+              } 
+            />
+            <Route path="edit/:id" element={
+                <ProtectedRoute>
+                  <EditContent />
                 </ProtectedRoute>
               } 
             />

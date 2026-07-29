@@ -594,12 +594,23 @@ export const getUserComments = async (userId) => {
       .select('*, content(titulo, tipo, imagen)')
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
-    
     if (error) throw error;
     return data || [];
   } catch (error) {
     console.error("Error obteniendo comentarios del usuario:", error);
     return [];
+  }
+};
+
+export const getCommentCountByContent = async (contentId) => {
+  try {
+    const { count, error } = await supabase
+      .from('comments')
+      .select('*', { count: 'exact', head: true })
+      .eq('content_id', contentId);
+    return error ? 0 : count || 0;
+  } catch (error) {
+    return 0;
   }
 };
 
