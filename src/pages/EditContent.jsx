@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Save, ArrowLeft, Loader2, AlertTriangle, Plus, Edit, Trash2, Tag, User, X } from 'lucide-react';
+import { Save, ArrowLeft, Loader2, AlertTriangle, Plus, Edit, Trash2, Tag, User, X, ChevronDown } from 'lucide-react';
 import { getContentById, updateContent, searchUsers, getUserPublicProfile, getUserByUsername } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import SimpleEditor from "../components/SimpleEditor";
@@ -13,6 +13,12 @@ const EditContent = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const searchRef = useRef(null);
+  
+  // Refs para dropdowns
+  const tipoDropdownRef = useRef(null);
+  const visibilidadDropdownRef = useRef(null);
+  const estadoDropdownRef = useRef(null);
+  const versionDropdownRefs = useRef([]);
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -37,7 +43,12 @@ const EditContent = () => {
     creado: new Date().toISOString().split('T')[0],
     tags: [],
     galeria: [],
-    descargas: [{ nombre: '', url: '' }]
+    descargas: [
+      { presetLabel: 'API 9 (1.7.44+)', label: 'API 9 (1.7.44+)', url: '' },
+      { presetLabel: 'API 8 (1.7.20+)', label: 'API 8 (1.7.20+)', url: '' },
+      { presetLabel: 'API 7 (1.7.42)', label: 'API 7 (1.7.42)', url: '' },
+      { presetLabel: 'API 6 (1.7.41)', label: 'API 6 (1.7.41)', url: '' }
+    ]
   });
 
   const [tagInput, setTagInput] = useState('');
@@ -46,6 +57,32 @@ const EditContent = () => {
   const [userSuggestions, setUserSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const [galleryMediaTypes, setGalleryMediaTypes] = useState({});
+  
+  // Estados para dropdowns personalizados
+  const [openDropdowns, setOpenDropdowns] = useState({});
+
+  // Cierre de dropdowns al dar clic afuera
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (tipoDropdownRef.current && !tipoDropdownRef.current.contains(event.target)) {
+        setOpenDropdowns(prev => ({ ...prev, tipo: false }));
+      }
+      if (visibilidadDropdownRef.current && !visibilidadDropdownRef.current.contains(event.target)) {
+        setOpenDropdowns(prev => ({ ...prev, visibilidad: false }));
+      }
+      if (estadoDropdownRef.current && !estadoDropdownRef.current.contains(event.target)) {
+        setOpenDropdowns(prev => ({ ...prev, estado: false }));
+      }
+      versionDropdownRefs.current.forEach((ref, index) => {
+        if (ref && !ref.contains(event.target)) {
+          setOpenDropdowns(prev => ({ ...prev, [`version-${index}`]: false }));
+        }
+      });
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Inicializar encriptación
   useEffect(() => {
@@ -80,9 +117,18 @@ const EditContent = () => {
         if (data.creadores && Array.isArray(data.creadores)) {
           const enrichedCreators = await Promise.all(data.creadores.map(async (creator) => {
             let profile = null;
-            if (creator.uid) { try { profile = await getUserPublicProfile(creator.uid); } catch (err) { } } 
-            else if (creator.nombre) { try { profile = await getUserByUsername(creator.nombre); } catch (err) { } }
-            return profile ? { nombre: profile.nombre, imagen: profile.imagen, uid: profile.uid } : { nombre: creator.nombre || "Desconocido", imagen: creator.imagen || null, uid: null };
+            // Si tiene uid, buscar perfil por uid para obtener avatar actualizado
+            if (creator.uid) { 
+              try { profile = await getUserPublicProfile(creator.uid); } catch (err) { } 
+            } 
+            // Si no tiene uid pero tiene nombre, buscar por nombre
+            else if (creator.nombre) { 
+              try { profile = await getUserByUsername(creator.nombre); } catch (err) { } 
+            }
+            // Si se encontró perfil, usar sus datos; si no, usar datos existentes
+            return profile 
+              ? { nombre: profile.nombre, imagen: profile.imagen, uid: profile.uid } 
+              : { nombre: creator.nombre || "Desconocido", imagen: creator.imagen || null, uid: creator.uid || null };
           }));
           setSelectedCreators(enrichedCreators.filter(c => c && c.nombre));
         }
@@ -97,9 +143,25 @@ const EditContent = () => {
           visibilidad: data.visibilidad || 'publico',
           estado: data.estado || data.status || 'borrador',
           creado: data.creado ? new Date(data.creado).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-          tags: data.tags ? data.tags.filter(t => t !== data.tipo) : [],
+          tags: data.tags ? data.tags.filter(t => t !== data.tipo) : [data.tipo || 'mod'],
           galeria: data.galeria && Array.isArray(data.galeria) ? data.galeria : [],
-          descargas: data.descargas && data.descargas.length > 0 ? data.descargas.map(d => ({ nombre: d.label || '', url: d.url || '' })) : [{ nombre: '', url: '' }]
+          descargas: data.descargas && data.descargas.length > 0 
+            ? data.descargas.map(d => {
+                const presetLabels = ['API 9 (1.7.44+)', 'API 8 (1.7.20+)', 'API 7 (1.7.42)', 'API 6 (1.7.41)'];
+                const isPreset = presetLabels.includes(d.label);
+                return { 
+                  presetLabel: isPreset ? d.label : 'Personalizado', 
+                  label: d.label || '', 
+                  url: d.url || '' 
+                };
+              })
+            : [
+                { presetLabel: 'API 9 (1.7.44+)', label: 'API 9 (1.7.44+)', url: '' },
+                { presetLabel: 'API 8 (1.7.20+)', label: 'API 8 (1.7.20+)', url: '' },
+                { presetLabel: 'API 7 (1.7.5+)', label: 'API 7 (1.7.5+)', url: '' },
+                { presetLabel: 'API 6 (1.6.4+)', label: 'API 6 (1.6.4+)', url: '' },
+                { presetLabel: 'API 4 (1.4.150+)', label: 'API 4 (1.4.150+)', url: '' }
+              ]
         });
       } catch (err) {
         setError('Error al cargar el contenido');
@@ -157,19 +219,41 @@ const EditContent = () => {
 
   const handleAddGalleryImage = () => setFormData(prev => ({ ...prev, galeria: [...prev.galeria, ''] }));
 
+  const getYoutubeId = (url) => {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+  };
+
   const handleGalleryImageChange = (index, value) => {
     const newGaleria = [...formData.galeria];
     newGaleria[index] = value;
     setFormData(prev => ({ ...prev, galeria: newGaleria }));
+    
+    // Detectar tipo de media
+    const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv', '.m4v', '.wmv', '.flv'];
+    const isVideo = videoExtensions.some(ext => value.toLowerCase().endsWith(ext));
+    
+    // Detectar YouTube
+    const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+/;
+    const isYoutube = youtubeRegex.test(value);
+    
+    setGalleryMediaTypes(prev => ({ ...prev, [index]: isYoutube ? 'youtube' : (isVideo ? 'video' : 'image') }));
   };
 
   const handleRemoveGalleryImage = (index) => setFormData(prev => ({ ...prev, galeria: prev.galeria.filter((_, i) => i !== index) }));
 
-  const handleAddDownload = () => setFormData(prev => ({ ...prev, descargas: [...prev.descargas, { nombre: '', url: '' }] }));
+  const handleAddDownload = () => setFormData(prev => ({...prev, descargas: [...prev.descargas, { presetLabel: 'API 9 (1.7.44+)', label: 'API 9 (1.7.44+)', url: '' }] }));
 
   const handleDownloadChange = (index, field, value) => {
     const newDescargas = [...formData.descargas];
     newDescargas[index][field] = value;
+    
+    // Si cambia presetLabel y no es Personalizado, actualizar label automáticamente
+    if (field === 'presetLabel' && value !== 'Personalizado') {
+      newDescargas[index].label = value;
+    }
+    
     setFormData(prev => ({ ...prev, descargas: newDescargas }));
   };
 
@@ -237,8 +321,11 @@ const EditContent = () => {
         processedDescargas.map(async (d) => {
           try {
             const encryptedUrl = await encryptionService.encryptUrl(d.url, encryptionKey);
-            return { label: d.nombre, url: encryptedUrl };
-          } catch (error) { return { label: d.nombre, url: d.url }; }
+            // Solo enviamos label al backend, ignoramos presetLabel
+            return { label: d.label || '', url: encryptedUrl };
+          } catch (error) { 
+            return { label: d.label || '', url: d.url }; 
+          }
         })
       );
 
@@ -249,7 +336,7 @@ const EditContent = () => {
         imagen: formData.imagen,
         galeria: formData.galeria.filter(url => url.trim() !== ''),
         redes: [],
-        creadores: selectedCreators.map(c => ({ nombre: c.nombre, uid: c.uid || null })),
+        creadores: selectedCreators.map(c => ({ nombre: c.nombre, uid: c.uid || null, imagen: c.imagen || null })),
         tags: [formData.tipo, ...formData.tags],
         descargas: processedDescargas,
         aporte: user?.id || '',
@@ -296,7 +383,7 @@ const EditContent = () => {
   return (
     <div className="flex flex-col p-2 md:p-4 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
         {/* Header */}
-      <div className="flex items-center justify-between gap-4 mb-6">
+      <div className="flex md:flex-row flex-col items-center justify-between gap-2 md:gap-4 mb-2 md:mb-4">
 
         <h1 className="flex text-xl md:text-2xl font-bold text-gray-800 dark:text-white items-center gap-3">
           <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-sm text-white bg-gradient-to-br from-primary-500 to-primary-600">
@@ -345,7 +432,7 @@ const EditContent = () => {
         {/* Grid de dos columnas */}
         <div className="flex flex-col lg:flex-row gap-3 lg:gap-4">
           {/* Columna Izquierda */}
-          <div className="w-full space-y-5">
+          <div className="w-full space-y-5 bg-white dark:bg-[#1e1e1e] rounded-lg p-2 md:p-4 shadow-sm border border-gray-300 dark:border-transparent">
             {/* Título */}
             <div className="space-y-2">
               <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Título *</label>
@@ -378,13 +465,13 @@ const EditContent = () => {
               <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Creadores *</label>
               <div ref={searchRef} className="relative">
                 <div className={clsx(
-                  "p-2 rounded-2xl border flex flex-wrap gap-2 shadow-sm items-center transition-all min-h-[56px]",
+                  "p-2 rounded-2xl border flex flex-wrap gap-2 shadow-sm items-center transition-all",
                   errors.creadores ? "border-red-500 bg-red-50/10" : "bg-white dark:bg-[#191B1E] border-gray-300 dark:border-gray-700 focus-within:ring-2 focus-within:ring-primary-500"
                 )}>
                   {selectedCreators.map((creator, idx) => (
                     <div key={idx} className="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-800 pl-1.5 pr-2 py-1 rounded-xl border border-gray-200 dark:border-gray-700">
                       <div className="w-5 h-5 rounded-full overflow-hidden bg-gray-300 shrink-0">
-                        <AvatarRenderer username={creator.nombre} avatarUrl={creator.imagen} size={20} className="rounded-full" />
+                        <AvatarRenderer avatar={creator.imagen} name={creator.nombre} size={20} className="rounded-full" />
                       </div>
                       <span className="text-xs font-bold text-gray-800 dark:text-gray-200">{creator.nombre}</span>
                       <button type="button" onClick={() => removeCreator(idx)} className="text-gray-400 hover:text-red-500 p-0.5"><X size={12} /></button>
@@ -423,54 +510,107 @@ const EditContent = () => {
             </div>
 
             {/* Descargas */}
-            <div className="space-y-2">
-              <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Descargas</label>
-              <div className="space-y-3">
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Descargas</label>
+                <button
+                  type="button"
+                  onClick={handleAddDownload}
+                  className="text-sm font-bold text-primary-600 dark:text-primary-400 hover:underline"
+                >
+                  + Agregar
+                </button>
+              </div>
+              
+              <div className="space-y-2">
                 {formData.descargas.map((download, index) => (
-                  <div key={index} className="space-y-2 p-3 bg-gray-50 dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800">
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Descarga {index + 1}</span>
+                  <div key={index} className="flex items-center gap-1">
+                    {/* Selector de preset */}
+                    <div className="relative w-36" ref={(el) => versionDropdownRefs.current[index] = el}>
                       <button
                         type="button"
-                        onClick={() => handleRemoveDownload(index)}
-                        className="text-xs text-red-500 hover:underline font-semibold"
+                        onClick={() => {
+                          setOpenDropdowns(prev => ({
+                            ...prev,
+                            [`version-${index}`]: !prev[`version-${index}`],
+                            tipo: false,
+                            visibilidad: false,
+                            estado: false
+                          }));
+                        }}
+                        className="w-full pl-3 pr-8 py-2 text-sm bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 rounded-xl outline-none appearance-none cursor-pointer transition-all font-medium text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 text-left"
                       >
-                        Eliminar
+                        <span className="truncate block">{download.presetLabel}</span>
                       </button>
+                      <ChevronDown size={14} className={clsx("absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none transition-transform duration-200", openDropdowns[`version-${index}`] && "rotate-180")} />
+                      
+                      {openDropdowns[`version-${index}`] && (
+                        <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 rounded-xl shadow-lg z-50 p-1">
+                          <div className="flex flex-col gap-0.5">
+                            {['API 9 (1.7.44+)', 'API 8 (1.7.20+)', 'API 7 (1.7.42)', 'API 6 (1.7.41)', 'Personalizado'].map((preset) => (
+                              <button
+                                key={preset}
+                                type="button"
+                                onClick={() => {
+                                  handleDownloadChange(index, 'presetLabel', preset);
+                                  setOpenDropdowns(prev => ({ ...prev, [`version-${index}`]: false }));
+                                }}
+                                className={clsx(
+                                  "w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                                  download.presetLabel === preset
+                                    ? "text-gray-800 dark:text-white bg-gray-200 dark:bg-gray-700 font-semibold"
+                                    : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                )}
+                              >
+                                {preset}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <input
-                      type="text"
-                      value={download.nombre}
-                      onChange={(e) => handleDownloadChange(index, 'nombre', e.target.value)}
-                      placeholder="Nombre (ej: API 9)"
-                      className="w-full px-4 py-2.5 text-sm bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 rounded-xl outline-none dark:text-white"
-                    />
+
+                    {/* Label editable (solo si es Personalizado) */}
+                    {download.presetLabel === 'Personalizado' && (
+                      <input
+                        type="text"
+                        value={download.label}
+                        onChange={(e) => handleDownloadChange(index, 'label', e.target.value)}
+                        placeholder="Etiqueta personalizada"
+                        className="w-38 px-3 py-2 text-sm bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 rounded-xl outline-none dark:text-white"
+                      />
+                    )}
+
+                    {/* URL */}
                     <input
                       type="text"
                       value={download.url}
                       onChange={(e) => handleDownloadChange(index, 'url', e.target.value)}
                       placeholder="URL de descarga"
-                      className="w-full px-4 py-2.5 text-sm bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 rounded-xl outline-none dark:text-white"
+                      className="flex-1 px-4 py-2 text-sm bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 rounded-xl outline-none dark:text-white"
                     />
+
+                    {/* Botón eliminar */}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveDownload(index)}
+                      className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                    >
+                      <Trash2 size={16} />
+                    </button>
                   </div>
                 ))}
-                <button
-                  type="button"
-                  onClick={handleAddDownload}
-                  className="w-full py-3 px-4 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400 font-semibold hover:border-primary-500 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
-                >
-                  + Agregar Descarga
-                </button>
               </div>
             </div>
 
             {/* Tags */}
             <div className="space-y-2">
               <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Tags</label>
-              <div className="flex flex-wrap gap-2 mb-3">
+              
+              {/* Input inline con tags */}
+              <div className="p-2 rounded-2xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#191B1E] flex flex-wrap gap-2 shadow-sm items-center transition-all min-h-[56px] focus-within:ring-2 focus-within:ring-primary-500">
                 {formData.tags.map((tag, index) => (
-                  <span key={index} className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-100 dark:bg-primary-950/30 text-primary-700 dark:text-primary-400 rounded-lg text-sm font-semibold">
-                    <Tag size={12} />
+                  <span key={index} className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-500/10 border border-primary-500 text-primary-600 dark:text-primary-400 rounded-lg text-sm font-bold">
                     {tag}
                     <button
                       type="button"
@@ -481,32 +621,55 @@ const EditContent = () => {
                     </button>
                   </span>
                 ))}
-              </div>
-              <div className="flex gap-2">
                 <input
                   type="text"
                   value={tagInput}
                   onChange={(e) => setTagInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
-                  placeholder="Agregar tag..."
-                  className="flex-1 px-4 py-2.5 text-sm bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 rounded-xl outline-none dark:text-white"
+                  placeholder="Escribe y presiona Enter..."
+                  className="flex-1 bg-transparent outline-none text-sm dark:text-white min-w-[140px] px-2 py-1"
                 />
-                <button
-                  type="button"
-                  onClick={handleAddTag}
-                  className="px-4 py-2.5 bg-primary-600 text-white rounded-xl hover:bg-primary-700 font-semibold"
-                >
-                  <Plus size={18} />
-                </button>
+              </div>
+
+              {/* Tags recomendados */}
+              <div className="space-y-2">
+                <span className="text-xs text-gray-500 dark:text-gray-400 font-semibold">Tags recomendados:</span>
+                <div className="flex flex-wrap gap-2">
+                  {['pvp', 'pve', 'survival', 'adventure', 'creative', 'minigame', 'multiplayer', 'singleplayer'].map((recommendedTag) => (
+                    <button
+                      key={recommendedTag}
+                      type="button"
+                      onClick={() => {
+                        if (!formData.tags.includes(recommendedTag) && formData.tags.length < 10) {
+                          setFormData(prev => ({ ...prev, tags: [...prev.tags, recommendedTag] }));
+                        }
+                      }}
+                      className={clsx(
+                        "px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors",
+                        formData.tags.includes(recommendedTag)
+                          ? "bg-primary-600 text-white cursor-default"
+                          : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
+                      )}
+                    >
+                      {recommendedTag}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
 
           {/* Columna Derecha */}
-          <div className="lg:min-w-[420px] xl:min-w-[480px] 2xl:min-w-[520px] space-y-5">
+          <div className="space-y-5 w-full lg:w-[420px] xl:w-[480px] 2xl:w-[520px] flex-shrink-0 bg-white dark:bg-[#1e1e1e] rounded-lg p-2 md:p-4 shadow-sm border border-gray-300 dark:border-transparent">
             {/* Imagen Principal */}
             <div className="space-y-2">
               <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Imagen de Portada *</label>
+              {formData.imagen && (
+                <div className="w-full aspect-video rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-800 bg-black">
+                  <img src={formData.imagen} alt="Portada" className="w-full h-full object-cover" onError={(e) => e.target.style.display = 'none'} />
+                </div>
+              )}
+              {errors.imagen && <p className="text-xs text-red-500 font-semibold">La imagen es obligatoria.</p>}
               <div className="flex gap-2 items-center">
                 <input 
                   type="url" 
@@ -520,12 +683,6 @@ const EditContent = () => {
                   )}
                 />
               </div>
-              {formData.imagen && (
-                <div className="w-full aspect-video max-h-48 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-800 bg-black">
-                  <img src={formData.imagen} alt="Portada" className="w-full h-full object-cover" onError={(e) => e.target.style.display = 'none'} />
-                </div>
-              )}
-              {errors.imagen && <p className="text-xs text-red-500 font-semibold">La imagen es obligatoria.</p>}
             </div>
 
             {/* Galería */}
@@ -542,35 +699,73 @@ const EditContent = () => {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 {formData.galeria.map((url, index) => (
-                  <div key={index} className="relative group">
+                  <div key={index} className="relative group w-full">
                     {url ? (
-                      <div className="relative w-full h-24 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-800">
-                        <img
-                          src={url}
-                          alt={`Galería ${index}`}
-                          className="w-full h-full object-cover"
-                          onError={(e) => e.target.style.display = 'none'}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveGalleryImage(index)}
-                          className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
-                        >
-                          <X size={12} />
-                        </button>
+                      <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-800">
+                        {galleryMediaTypes[index] === 'youtube' ? (
+                          <iframe
+                            src={`https://www.youtube.com/embed/${getYoutubeId(url)}`}
+                            title={`Galería ${index}`}
+                            className="w-full h-full"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                          />
+                        ) : galleryMediaTypes[index] === 'video' ? (
+                          <video
+                            src={url}
+                            alt={`Galería ${index}`}
+                            className="w-full h-full object-cover"
+                            controls
+                            preload="metadata"
+                            onError={(e) => {
+                              console.error('Error cargando video:', url, e);
+                              e.target.style.display = 'none';
+                              setGalleryMediaTypes(prev => ({ ...prev, [index]: 'image' }));
+                            }}
+                          />
+                        ) : (
+                          <img
+                            src={url}
+                            alt={`Galería ${index}`}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              console.error('Error cargando imagen:', url, e);
+                              e.target.style.display = 'none';
+                              // Intentar como video si falla la imagen
+                              const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv', '.m4v', '.wmv', '.flv'];
+                              const isVideo = videoExtensions.some(ext => url.toLowerCase().endsWith(ext));
+                              const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+/;
+                              const isYoutube = youtubeRegex.test(url);
+                              if (isVideo) {
+                                setGalleryMediaTypes(prev => ({ ...prev, [index]: 'video' }));
+                              } else if (isYoutube) {
+                                setGalleryMediaTypes(prev => ({ ...prev, [index]: 'youtube' }));
+                              }
+                            }}
+                          />
+                        )}
                       </div>
                     ) : (
-                      <div className="w-full h-24 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-700 flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+                      <div className="w-full aspect-video rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-700 flex items-center justify-center bg-gray-50 dark:bg-gray-900">
                         <span className="text-xs text-gray-400">URL vacía</span>
                       </div>
                     )}
-                    <input
-                      type="text"
-                      value={url}
-                      onChange={(e) => handleGalleryImageChange(index, e.target.value)}
-                      placeholder="URL de imagen..."
-                      className="mt-2 w-full px-3 py-2 text-xs rounded-lg bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 dark:text-white"
-                    />
+                    <div className="mt-2 flex gap-2 w-full">
+                      <input
+                        type="text"
+                        value={url}
+                        onChange={(e) => handleGalleryImageChange(index, e.target.value)}
+                        placeholder="URL de imagen, video o YouTube..."
+                        className="flex-1 px-3 py-2 text-xs rounded-lg bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 dark:text-white min-w-0"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveGalleryImage(index)}
+                        className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors flex-shrink-0"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -579,51 +774,148 @@ const EditContent = () => {
             {/* Tipo/Categoría */}
             <div className="space-y-2">
               <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Tipo</label>
-              <select
-                name="tipo"
-                value={formData.tipo}
-                onChange={handleChange}
-                className="w-full px-4 py-2.5 text-sm bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 rounded-xl outline-none dark:text-white"
-              >
-                <option value="mod">Mod</option>
-                <option value="mapa">Mapa</option>
-                <option value="personaje">Personaje</option>
-                <option value="minijuego">Minijuego</option>
-                <option value="modpack">Modpack</option>
-                <option value="paquete">Paquete</option>
-              </select>
+              <div className="relative" ref={tipoDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpenDropdowns(prev => ({
+                      ...prev,
+                      tipo: !prev.tipo,
+                      visibilidad: false,
+                      estado: false
+                    }));
+                  }}
+                  className="w-full pl-3 pr-8 py-2.5 h-10 text-sm bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 rounded-xl outline-none appearance-none cursor-pointer transition-all font-medium text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 text-left"
+                >
+                  <span className="truncate block capitalize">{formData.tipo}</span>
+                </button>
+                <ChevronDown size={16} className={clsx("absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none transition-transform duration-200", openDropdowns.tipo && "rotate-180")} />
+                
+                {openDropdowns.tipo && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 rounded-xl shadow-lg z-50 p-1">
+                    <div className="flex flex-col gap-0.5">
+                      {['mod', 'mapa', 'personaje', 'minijuego', 'modpack', 'paquete'].map((tipo) => (
+                        <button
+                          key={tipo}
+                          type="button"
+                          onClick={() => {
+                            handleChange({ target: { name: 'tipo', value: tipo } });
+                            setOpenDropdowns(prev => ({ ...prev, tipo: false }));
+                          }}
+                          className={clsx(
+                            "w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors capitalize",
+                            formData.tipo === tipo
+                              ? "text-gray-800 dark:text-white bg-gray-200 dark:bg-gray-700 font-semibold"
+                              : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                          )}
+                        >
+                          {tipo}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Visibilidad */}
             <div className="space-y-2">
               <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Visibilidad</label>
-              <select
-                name="visibilidad"
-                value={formData.visibilidad}
-                onChange={handleChange}
-                className="w-full px-4 py-2.5 text-sm bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 rounded-xl outline-none dark:text-white"
-              >
-                <option value="publico">Público</option>
-                <option value="privado">Privado</option>
-                <option value="no-listado">No listado</option>
-              </select>
+              <div className="relative" ref={visibilidadDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpenDropdowns(prev => ({
+                      ...prev,
+                      visibilidad: !prev.visibilidad,
+                      tipo: false,
+                      estado: false
+                    }));
+                  }}
+                  className="w-full pl-3 pr-8 py-2.5 h-10 text-sm bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 rounded-xl outline-none appearance-none cursor-pointer transition-all font-medium text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 text-left"
+                >
+                  <span className="truncate block capitalize">{formData.visibilidad === 'no-listado' ? 'No listado' : formData.visibilidad}</span>
+                </button>
+                <ChevronDown size={16} className={clsx("absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none transition-transform duration-200", openDropdowns.visibilidad && "rotate-180")} />
+                
+                {openDropdowns.visibilidad && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 rounded-xl shadow-lg z-50 p-1">
+                    <div className="flex flex-col gap-0.5">
+                      {['publico', 'privado', 'no-listado'].map((vis) => (
+                        <button
+                          key={vis}
+                          type="button"
+                          onClick={() => {
+                            handleChange({ target: { name: 'visibilidad', value: vis } });
+                            setOpenDropdowns(prev => ({ ...prev, visibilidad: false }));
+                          }}
+                          className={clsx(
+                            "w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors capitalize",
+                            formData.visibilidad === vis
+                              ? "text-gray-800 dark:text-white bg-gray-200 dark:bg-gray-700 font-semibold"
+                              : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                          )}
+                        >
+                          {vis === 'no-listado' ? 'No listado' : vis}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Estado (solo para admins) */}
             {user?.role === 'admin' && (
               <div className="space-y-2">
                 <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Estado</label>
-                <select
-                  name="estado"
-                  value={formData.estado}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2.5 text-sm bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 rounded-xl outline-none dark:text-white"
-                >
-                  <option value="borrador">Borrador</option>
-                  <option value="revision">En Revisión</option>
-                  <option value="aceptado">Aceptado</option>
-                  <option value="rechazado">Rechazado</option>
-                </select>
+                <div className="relative" ref={estadoDropdownRef}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOpenDropdowns(prev => ({
+                        ...prev,
+                        estado: !prev.estado,
+                        tipo: false,
+                        visibilidad: false
+                      }));
+                    }}
+                    className="w-full pl-3 pr-8 py-2.5 h-10 text-sm bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 rounded-xl outline-none appearance-none cursor-pointer transition-all font-medium text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 text-left"
+                  >
+                    <span className="truncate block capitalize">{formData.estado === 'borrador' ? 'Borrador' : formData.estado === 'revision' ? 'En Revisión' : formData.estado === 'aceptado' ? 'Aceptado' : formData.estado === 'rechazado' ? 'Rechazado' : formData.estado}</span>
+                  </button>
+                  <ChevronDown size={16} className={clsx("absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none transition-transform duration-200", openDropdowns.estado && "rotate-180")} />
+                  
+                  {openDropdowns.estado && (
+                    <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 rounded-xl shadow-lg z-50 p-1">
+                      <div className="flex flex-col gap-0.5">
+                        {[
+                          { val: 'borrador', label: 'Borrador' },
+                          { val: 'revision', label: 'En Revisión' },
+                          { val: 'aceptado', label: 'Aceptado' },
+                          { val: 'rechazado', label: 'Rechazado' }
+                        ].map((estado) => (
+                          <button
+                            key={estado.val}
+                            type="button"
+                            onClick={() => {
+                              handleChange({ target: { name: 'estado', value: estado.val } });
+                              setOpenDropdowns(prev => ({ ...prev, estado: false }));
+                            }}
+                            className={clsx(
+                              "w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                              formData.estado === estado.val
+                                ? "text-gray-800 dark:text-white bg-gray-200 dark:bg-gray-700 font-semibold"
+                                : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                            )}
+                          >
+                            {estado.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
