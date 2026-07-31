@@ -247,7 +247,7 @@ const AdminPanel = () => {
           value={rejectModal.motivo}
           onChange={(e) => setRejectModal({ ...rejectModal, motivo: e.target.value })}
           placeholder="Describe el motivo del rechazo..."
-          className="w-full p-3 rounded-xl bg-gray-50 dark:bg-[#191B1E] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-red-500 transition-all dark:text-white text-sm resize-none"
+          className="w-full p-3 rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-red-500 transition-all dark:text-white text-sm resize-none"
           rows={4}
         />
       </Modal>

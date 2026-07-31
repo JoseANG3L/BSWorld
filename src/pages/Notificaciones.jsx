@@ -70,7 +70,7 @@ const Notificaciones = () => {
         return { 
           icon: EyeOff, 
           color: "text-gray-500", 
-          bg: "bg-gray-100 dark:bg-[#191B1E]", 
+          bg: "bg-gray-100 dark:bg-[#1D1F23]", 
           label: "Inactivo",
           desc: "Este contenido ha sido pausado y no es visible."
         };
@@ -78,7 +78,7 @@ const Notificaciones = () => {
         return { 
           icon: AlertCircle, 
           color: "text-gray-500", 
-          bg: "bg-gray-100 dark:bg-[#191B1E]", 
+          bg: "bg-gray-100 dark:bg-[#1D1F23]", 
           label: "Aviso",
           desc: "Actualización de sistema."
         };

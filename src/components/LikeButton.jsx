@@ -64,7 +64,7 @@ const LikeButton = ({ contentId, initialLikes = 0, size = 'md' }) => {
         sizeClasses[size],
         isLiked
           ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700 text-red-600 dark:text-red-400'
-          : 'bg-white dark:bg-[#191B1E] border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700',
+          : 'bg-white dark:bg-[#1D1F23] border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700',
         !user && 'opacity-50 cursor-not-allowed',
         loading && 'opacity-70 cursor-wait'
       )}

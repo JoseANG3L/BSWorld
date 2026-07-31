@@ -132,7 +132,7 @@ const Modal = ({
               <button 
                 onClick={onCancel || onClose}
                 className={clsx(
-                  "py-2.5 px-4 rounded-xl font-bold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-[#191B1E] hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-xs md:text-sm",
+                  "py-2.5 px-4 rounded-xl font-bold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-[#1D1F23] hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-xs md:text-sm",
                   neutralText ? "w-full sm:flex-1" : "flex-1"
                 )}
               >

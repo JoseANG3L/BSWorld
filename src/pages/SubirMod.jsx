@@ -23,12 +23,12 @@ const DOWNLOAD_LABELS = ["API 9 (1.7.44+)", "API 8 (1.7.20+)", "API 7 (1.7.5+)",
 const RECOMMENDED_TAGS = ["api 9", "api 8", "api 7", "api 6", "api 4", "pvp", "texturas", "utilidad"];
 
 const TIPO_CARDS = [
-  { id: 'mod', title: 'Mod General', desc: 'Scripts Python y modificaciones de código', icon: Wrench, color: 'from-blue-500 to-indigo-600' },
-  { id: 'mapa', title: 'Mapa Custom', desc: 'Escenarios y terrenos personalizados', icon: Map, color: 'from-emerald-500 to-teal-600' },
-  { id: 'personaje', title: 'Personaje / Skin', desc: 'Skins de personajes y apariencias', icon: User, color: 'from-purple-500 to-pink-600' },
-  { id: 'minijuego', title: 'Minijuego', desc: 'Modos de juego y reglas personalizadas', icon: Gamepad2, color: 'from-amber-500 to-orange-600' },
-  { id: 'modpack', title: 'Modpack', desc: 'Colección masiva de múltiples mods', icon: Boxes, color: 'from-red-500 to-rose-600' },
-  { id: 'paquete', title: 'Paquete Texturas', desc: 'Interfaces, audios o texturas HD', icon: Package, color: 'from-cyan-500 to-blue-600' }
+  { id: 'mod', title: 'Complemento', desc: 'Scripts Python y modificaciones de código', icon: Wrench, color: 'from-blue-500 to-indigo-600' },
+  { id: 'mapa', title: 'Mapa', desc: 'Escenarios y terrenos personalizados', icon: Map, color: 'from-emerald-500 to-teal-600' },
+  { id: 'minijuego', title: 'Minijuego', desc: 'Modos de juego y nuevas reglas', icon: Gamepad2, color: 'from-amber-500 to-orange-600' },
+  { id: 'modpack', title: 'Modpack', desc: 'Juego completo personalizado', icon: Boxes, color: 'from-red-500 to-rose-600' },
+  { id: 'paquete', title: 'Paquete', desc: 'Colección masiva de múltiples mods', icon: Package, color: 'from-cyan-500 to-blue-600' },
+  { id: 'personaje', title: 'Personaje', desc: 'Skins de personajes y apariencias', icon: User, color: 'from-purple-500 to-pink-600' },
 ];
 
 const SubirMod = ({ isOpen, onClose }) => {
@@ -108,17 +108,21 @@ const SubirMod = ({ isOpen, onClose }) => {
   const handleStepClick = (index) => {
     if (index > 0 && !formData.titulo.trim()) {
       setErrors(prev => ({ ...prev, titulo: true }));
+      setOpenDropdowns(prev => ({ ...prev, pasos: false }));
       return;
     }
     if (index > 2 && selectedCreators.length === 0) {
       setErrors(prev => ({ ...prev, creadores: true }));
+      setOpenDropdowns(prev => ({ ...prev, pasos: false }));
       return;
     }
     if (index > 4 && !formData.imagen.trim()) {
       setErrors(prev => ({ ...prev, imagen: true }));
+      setOpenDropdowns(prev => ({ ...prev, pasos: false }));
       return;
     }
     setCurrentStep(index);
+    setOpenDropdowns(prev => ({ ...prev, pasos: false }));
   };
 
   const steps = [
@@ -362,8 +366,9 @@ const SubirMod = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return createPortal(
-    <div className="fixed p-2 md:p-4 inset-0 h-[100dvh] w-screen bg-black/80 backdrop-blur-sm flex items-center justify-center z-[99999] overflow-hidden animate-fade-in-up" style={{ animationDuration: '200ms' }}>
-      <div className="w-full max-w-5xl h-full flex flex-col bg-white dark:bg-dark-bg rounded-2xl overflow-hidden animate-fade-in-up" style={{ animationDuration: '200ms' }}>
+    <div className="fixed p-0 md:p-4 inset-0 h-[100dvh] w-screen bg-black/80 backdrop-blur-sm flex items-center justify-center z-[99999] overflow-hidden animate-fade-in-up" style={{ animationDuration: '200ms' }}>
+
+      <div className="w-full md:max-w-5xl h-full flex flex-col bg-white dark:bg-dark-bg rounded-none md:rounded-2xl overflow-hidden animate-fade-in-up" style={{ animationDuration: '200ms' }}>
         
         {/* HEADER SIMPLE */}
         <div className="flex-shrink-0 bg-white dark:bg-dark-bg border-b border-gray-200 dark:border-gray-800 px-2 md:px-4 pt-3">
@@ -379,6 +384,7 @@ const SubirMod = ({ isOpen, onClose }) => {
             </button>
           </div>
           
+          {/* Dropdown de navegación movil */}
           <div className="sm:hidden w-full relative mb-1" ref={pasosDropdownRef}>
             <div className="relative">
               <button
@@ -390,7 +396,7 @@ const SubirMod = ({ isOpen, onClose }) => {
                     tipo: false
                   }));
                 }}
-                className="w-full pl-3 pr-8 py-2.5 h-10 text-sm bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-transparent rounded-xl outline-none appearance-none cursor-pointer transition-all font-medium text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 text-left flex items-center gap-2.5"
+                className="w-full pl-3 pr-8 py-2.5 h-10 text-sm bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent rounded-xl outline-none appearance-none cursor-pointer transition-all font-medium text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 text-left flex items-center gap-2.5"
               >
                 <CurrentStepIcon size={18} className="text-primary-600 dark:text-primary-400 shrink-0" strokeWidth={2.5} />
                 <span className="truncate block font-bold">
@@ -400,7 +406,7 @@ const SubirMod = ({ isOpen, onClose }) => {
               <ChevronDown size={16} className={clsx("absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none transition-transform duration-200", openDropdowns.pasos && "rotate-180")} />
 
               {openDropdowns.pasos && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 rounded-xl shadow-lg z-50 p-1 max-h-60 overflow-y-auto custom-scrollbar">
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent rounded-xl shadow-lg z-50 p-1 overflow-y-auto custom-scrollbar transition-all duration-300 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
                   <div className="flex flex-col gap-0.5">
                     {steps.map((step, idx) => {
                       const StepIconComp = step.icon;
@@ -427,7 +433,6 @@ const SubirMod = ({ isOpen, onClose }) => {
                             <span>{idx + 1}. {step.label}</span>
                           </div>
                           {isLocked && <Lock size={14} className="text-gray-400 dark:text-gray-600" />}
-                          {idx < currentStep && <Check size={14} className="text-green-500" strokeWidth={3} />}
                         </button>
                       );
                     })}
@@ -477,10 +482,10 @@ const SubirMod = ({ isOpen, onClose }) => {
           
           {/* PASO 1: NOMBRE */}
           {currentStep === 0 && (
-            <div className="space-y-4 animate-fade-in">
+            <div className="space-y-4 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
               <div className="text-center md:text-left mb-4">
                 <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-1">¿Cómo se llama tu mod?</h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Ingresa un título claro y llamativo para que la comunidad lo identifique rápidamente.</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Ingresa un título claro y llamativo para que la comunidad lo encuentre rápidamente.</p>
               </div>
 
               <div className="space-y-2">
@@ -492,7 +497,7 @@ const SubirMod = ({ isOpen, onClose }) => {
                   autoFocus
                   placeholder="Ej: Mi Nuevo Super Mod..." 
                   className={clsx(
-                    "w-full px-4 py-3 text-base md:text-lg bg-white dark:bg-[#191B1E] border rounded-2xl outline-none transition-all duration-300 shadow-sm font-medium",
+                    "w-full px-4 py-3 text-base md:text-lg bg-white dark:bg-[#1D1F23] border rounded-2xl outline-none transition-all duration-300 shadow-sm font-medium",
                     errors.titulo ? "border-red-500 focus:ring-1 focus:ring-red-500" : "border-gray-300 dark:border-transparent focus:ring-1 focus:ring-primary-500 dark:text-white"
                   )} 
                 />
@@ -503,10 +508,10 @@ const SubirMod = ({ isOpen, onClose }) => {
 
           {/* PASO 2: TIPO DE MOD CON TARJETAS INTERACTIVAS */}
           {currentStep === 1 && (
-            <div className="space-y-4 animate-fade-in">
+            <div className="space-y-4 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
               <div className="text-center md:text-left mb-4">
                 <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-1">Selecciona el tipo de contenido</h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Elige la categoría principal a la que pertenece tu aporte.</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Elige la categoría principal a la que pertenece tu mod.</p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -522,7 +527,7 @@ const SubirMod = ({ isOpen, onClose }) => {
                         "p-4 rounded-2xl border text-left transition-all duration-300 flex items-start gap-3.5 relative overflow-hidden group",
                         isSelected 
                           ? "border-primary-500 bg-primary-300/20 dark:bg-primary-600/20 ring-1 ring-primary-500 shadow-md" 
-                          : "border-gray-300 dark:border-transparent bg-white dark:bg-[#191B1E] hover:bg-gray-50 dark:hover:bg-[#232529]"
+                          : "border-gray-300 dark:border-transparent bg-white dark:bg-[#1D1F23] hover:bg-gray-50 dark:hover:bg-[#232529]"
                       )}
                     >
                       <div className={clsx("w-10 h-10 rounded-xl flex items-center justify-center text-white shrink-0 bg-gradient-to-br shadow-sm", card.color)}>
@@ -546,7 +551,7 @@ const SubirMod = ({ isOpen, onClose }) => {
 
           {/* PASO 3: CREADORES */}
           {currentStep === 2 && (
-            <div className="space-y-4 animate-fade-in">
+            <div className="space-y-4 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
               <div className="text-center md:text-left mb-4">
                 <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-1">Créditos y Autores</h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400">Añade a los usuarios que participaron o crearon este mod.</p>
@@ -563,7 +568,7 @@ const SubirMod = ({ isOpen, onClose }) => {
 
           {/* PASO 4: DESCRIPCIÓN */}
           {currentStep === 3 && (
-            <div className="space-y-4 animate-fade-in">
+            <div className="space-y-4 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
               <div className="text-center md:text-left mb-4">
                 <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-1">Descripción e Instrucciones</h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400">Detalla las funciones, cómo instalarlo o los créditos extendidos.</p>
@@ -575,50 +580,18 @@ const SubirMod = ({ isOpen, onClose }) => {
 
           {/* PASO 5: MULTIMEDIA */}
           {currentStep === 4 && (
-            <div className="space-y-5 animate-fade-in">
+            <div className="space-y-5 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
               <div className="text-center md:text-left mb-2">
                 <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-1">Imagen Principal y Galería</h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400">Pega enlaces directos de tus capturas de pantalla o videos demostrativos.</p>
               </div>
 
-              {/* Imagen Principal */}
-              <div className="space-y-2">
-                <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Imagen de Portada *</label>
-                <div className="w-full aspect-video rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-800 bg-gray-100 dark:bg-gray-900">
-                  {formData.imagen ? (
-                    <img 
-                      src={formData.imagen} 
-                      alt="Portada" 
-                      className="w-full h-full object-cover" 
-                      onError={(e) => {
-                        e.target.style.display = 'none';
-                        e.target.parentElement.innerHTML = '<div class="w-full h-full flex items-center justify-center text-gray-400 text-xs">Error al cargar imagen</div>';
-                      }}
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
-                      URL de portada vacía
-                    </div>
-                  )}
-                </div>
-                <input 
-                  type="url" 
-                  name="imagen" 
-                  value={formData.imagen} 
-                  onChange={handleChange} 
-                  placeholder="https://i.imgur.com/tu-imagen.png" 
-                  className={clsx(
-                    "w-full px-4 py-2.5 text-sm bg-white dark:bg-[#191B1E] border rounded-xl outline-none dark:text-white",
-                    errors.imagen ? "border-red-500" : imagenUrlError ? "border-red-500" : "border-gray-300 dark:border-gray-700"
-                  )}
-                />
-                {imagenUrlError && formData.imagen && (
-                  <span className="text-xs text-red-500">URL inválida</span>
-                )}
-              </div>
-
               {/* Galería Adicional */}
               <GalleryInput
+                showMainImage={true}
+                mainImage={formData.imagen}
+                onMainImageChange={handleChange}
+                mainImageError={errors.imagen || (imagenUrlError && formData.imagen)}
                 gallery={formData.galeria}
                 onChange={(galeria) => setFormData(prev => ({ ...prev, galeria }))}
                 layout="inline"
@@ -628,7 +601,7 @@ const SubirMod = ({ isOpen, onClose }) => {
 
           {/* PASO 6: ARCHIVOS Y ETIQUETAS */}
           {currentStep === 5 && (
-            <div className="space-y-5 animate-fade-in">
+            <div className="space-y-5 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
               <div className="text-center md:text-left mb-2">
                 <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-1">Archivos de Descarga y Tags</h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400">Configura los enlaces para obtener el contenido y sus etiquetas.</p>
@@ -658,7 +631,7 @@ const SubirMod = ({ isOpen, onClose }) => {
 
           {/* PASO 7: PRIVACIDAD */}
           {currentStep === 6 && (
-            <div className="space-y-4 animate-fade-in">
+            <div className="space-y-4 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
               <div className="text-center md:text-left mb-4">
                 <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-1">Visibilidad del Aporte</h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400">Determina quién podrá acceder a este contenido.</p>
@@ -679,7 +652,7 @@ const SubirMod = ({ isOpen, onClose }) => {
                       onClick={() => setFormData(prev => ({ ...prev, visibilidad: opt.id }))}
                       className={clsx(
                         "p-4 rounded-2xl border text-left transition-all flex flex-col gap-2 relative",
-                        isSelected ? `${opt.color} bg-primary-50/20 dark:bg-primary-950/20 ring-2 ring-primary-500/30` : "border-gray-200 dark:border-gray-800 bg-white dark:bg-[#191B1E]"
+                        isSelected ? `${opt.color} bg-primary-50/20 dark:bg-primary-950/20 ring-2 ring-primary-500/30` : "border-gray-200 dark:border-gray-800 bg-white dark:bg-[#1D1F23]"
                       )}
                     >
                       <div className="flex justify-between items-center">
@@ -698,13 +671,13 @@ const SubirMod = ({ isOpen, onClose }) => {
 
           {/* PASO 8: RESUMEN Y FINALIZAR (LISTADO DE MODIFICACIONES Y EDICIÓN RÁPIDA) */}
           {currentStep === 7 && (
-            <div className="space-y-4 animate-fade-in">
+            <div className="space-y-4 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
               <div className="text-center md:text-left mb-4">
                 <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-1">Resumen de la Publicación</h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400">Revisa la lista de modificaciones y presiona publicar si todo está correcto.</p>
               </div>
 
-              <div className="bg-white dark:bg-[#191B1E] border border-gray-200 dark:border-gray-800 rounded-2xl p-5 space-y-4 shadow-sm">
+              <div className="bg-white dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-800 rounded-2xl p-5 space-y-4 shadow-sm">
                 
                 {/* Ítem 1: Título */}
                 <div className="flex justify-between items-center pb-3 border-b border-gray-100 dark:border-gray-800">
@@ -792,7 +765,7 @@ const SubirMod = ({ isOpen, onClose }) => {
               type="button" 
               onClick={handlePrevStep} 
               disabled={currentStep === 0} 
-              className="px-4 py-2 bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-white rounded-xl text-sm font-bold flex items-center gap-1 shadow-sm disabled:opacity-30 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-white dark:bg-[#2a2d34] border border-gray-300 dark:border-transparent text-gray-700 dark:text-white rounded-xl text-sm font-bold flex items-center gap-1 shadow-sm disabled:opacity-30 disabled:cursor-not-allowed"
             >
               <ChevronLeft size={16} /> Anterior
             </button>
@@ -823,7 +796,7 @@ const SubirMod = ({ isOpen, onClose }) => {
                         type="button" 
                         onClick={() => handleSubmitForm('draft')} 
                         disabled={loading || !isEncryptionReady} 
-                        className="px-4 py-2 bg-gray-100 dark:bg-[#191B1E] text-gray-700 dark:text-gray-200 font-bold text-sm rounded-xl hover:bg-gray-200 dark:hover:bg-gray-800 transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+                        className="px-4 py-2 bg-gray-100 dark:bg-[#1D1F23] text-gray-700 dark:text-gray-200 font-bold text-sm rounded-xl hover:bg-gray-200 dark:hover:bg-gray-800 transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50"
                       >
                         <FileText size={16} /> Borrador
                       </button>
@@ -916,7 +889,7 @@ const SubirMod = ({ isOpen, onClose }) => {
                   <button 
                     onClick={modal.onCancel || closeModal}
                     className={clsx(
-                      "px-4 py-2.5 bg-gray-100 dark:bg-[#191B1E] text-gray-700 dark:text-gray-200 rounded-xl text-xs font-bold hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors",
+                      "px-4 py-2.5 bg-gray-100 dark:bg-[#1D1F23] text-gray-700 dark:text-gray-200 rounded-xl text-xs font-bold hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors",
                       modal.secondaryText ? "w-full" : modal.neutralText ? "w-full sm:flex-1" : "flex-1"
                     )}
                   >

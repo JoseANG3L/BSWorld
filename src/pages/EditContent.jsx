@@ -345,7 +345,7 @@ const EditContent = () => {
                 value={formData.titulo}
                 onChange={handleChange}
                 className={clsx(
-                  "w-full px-4 py-2.5 text-sm bg-white dark:bg-[#191B1E] shadow-sm border rounded-xl outline-none dark:text-white transition-all duration-300",
+                  "w-full px-4 py-2.5 text-sm bg-white dark:bg-[#1D1F23] shadow-sm border rounded-xl outline-none dark:text-white transition-all duration-300",
                   errors.titulo ? "border-red-500" : "border-gray-300 dark:border-gray-700",
                   "focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
                 )}
@@ -393,35 +393,17 @@ const EditContent = () => {
 
           {/* Columna Derecha */}
           <div className="space-y-5 w-full lg:w-[420px] xl:w-[480px] 2xl:w-[520px] flex-shrink-0 bg-white dark:bg-[#1e1e1e] rounded-lg p-2 md:p-4 shadow-sm border border-gray-300 dark:border-transparent">
-            {/* Imagen Principal */}
-            <div className="space-y-2">
-              <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Imagen de Portada *</label>
-              {formData.imagen && (
-                <div className="w-full aspect-video rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-800 bg-black">
-                  <img src={formData.imagen} alt="Portada" className="w-full h-full object-cover" onError={(e) => e.target.style.display = 'none'} />
-                </div>
-              )}
-              {errors.imagen && <p className="text-xs text-red-500 font-semibold">La imagen es obligatoria.</p>}
-              <div className="flex gap-2 items-center">
-                <input 
-                  type="url" 
-                  name="imagen" 
-                  value={formData.imagen} 
-                  onChange={handleChange} 
-                  placeholder="https://i.imgur.com/tu-imagen.png" 
-                  className={clsx(
-                    "flex-1 px-4 py-2.5 text-sm bg-white dark:bg-[#191B1E] border rounded-xl outline-none dark:text-white",
-                    errors.imagen ? "border-red-500" : "border-gray-300 dark:border-gray-700"
-                  )}
-                />
-              </div>
-            </div>
-
-            {/* Galería */}
+            
+            {/* Imagen Principal y Galería Unificadas */}
             <GalleryInput
+              showMainImage={true}
+              mainImage={formData.imagen}
+              onMainImageChange={handleChange}
+              mainImageError={errors.imagen}
               gallery={formData.galeria}
               onChange={(galeria) => setFormData(prev => ({ ...prev, galeria }))}
             />
+            {errors.imagen && <p className="text-xs text-red-500 font-semibold -mt-3">La imagen es obligatoria.</p>}
 
             {/* Tipo/Categoría */}
             <div className="space-y-2">
@@ -437,14 +419,14 @@ const EditContent = () => {
                       estado: false
                     }));
                   }}
-                  className="w-full pl-3 pr-8 py-2.5 h-10 text-sm bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 rounded-xl outline-none appearance-none cursor-pointer transition-all font-medium text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 text-left"
+                  className="w-full pl-3 pr-8 py-2.5 h-10 text-sm bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-gray-700 rounded-xl outline-none appearance-none cursor-pointer transition-all font-medium text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 text-left"
                 >
                   <span className="truncate block capitalize">{formData.tipo}</span>
                 </button>
                 <ChevronDown size={16} className={clsx("absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none transition-transform duration-200", openDropdowns.tipo && "rotate-180")} />
                 
                 {openDropdowns.tipo && (
-                  <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 rounded-xl shadow-lg z-50 p-1">
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-gray-700 rounded-xl shadow-lg z-50 p-1">
                     <div className="flex flex-col gap-0.5">
                       {['mod', 'mapa', 'personaje', 'minijuego', 'modpack', 'paquete'].map((tipo) => (
                         <button
@@ -484,14 +466,14 @@ const EditContent = () => {
                       estado: false
                     }));
                   }}
-                  className="w-full pl-3 pr-8 py-2.5 h-10 text-sm bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 rounded-xl outline-none appearance-none cursor-pointer transition-all font-medium text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 text-left"
+                  className="w-full pl-3 pr-8 py-2.5 h-10 text-sm bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-gray-700 rounded-xl outline-none appearance-none cursor-pointer transition-all font-medium text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 text-left"
                 >
                   <span className="truncate block capitalize">{formData.visibilidad === 'no-listado' ? 'No listado' : formData.visibilidad}</span>
                 </button>
                 <ChevronDown size={16} className={clsx("absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none transition-transform duration-200", openDropdowns.visibilidad && "rotate-180")} />
                 
                 {openDropdowns.visibilidad && (
-                  <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 rounded-xl shadow-lg z-50 p-1">
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-gray-700 rounded-xl shadow-lg z-50 p-1">
                     <div className="flex flex-col gap-0.5">
                       {['publico', 'privado', 'no-listado'].map((vis) => (
                         <button
@@ -532,14 +514,14 @@ const EditContent = () => {
                         visibilidad: false
                       }));
                     }}
-                    className="w-full pl-3 pr-8 py-2.5 h-10 text-sm bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 rounded-xl outline-none appearance-none cursor-pointer transition-all font-medium text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 text-left"
+                    className="w-full pl-3 pr-8 py-2.5 h-10 text-sm bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-gray-700 rounded-xl outline-none appearance-none cursor-pointer transition-all font-medium text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 text-left"
                   >
                     <span className="truncate block capitalize">{formData.estado === 'borrador' ? 'Borrador' : formData.estado === 'revision' ? 'En Revisión' : formData.estado === 'aceptado' ? 'Aceptado' : formData.estado === 'rechazado' ? 'Rechazado' : formData.estado}</span>
                   </button>
                   <ChevronDown size={16} className={clsx("absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none transition-transform duration-200", openDropdowns.estado && "rotate-180")} />
                   
                   {openDropdowns.estado && (
-                    <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 rounded-xl shadow-lg z-50 p-1">
+                    <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-gray-700 rounded-xl shadow-lg z-50 p-1">
                       <div className="flex flex-col gap-0.5">
                         {[
                           { val: 'borrador', label: 'Borrador' },

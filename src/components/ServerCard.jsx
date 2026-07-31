@@ -61,7 +61,7 @@ const ServerCard = ({
       {/* IMAGEN DEL SERVIDOR */}
       <Link 
         to={`/servidor/${id}`}
-        className="relative w-full aspect-video overflow-hidden bg-gray-100 dark:bg-[#191B1E] block cursor-pointer rounded-t-lg"
+        className="relative w-full aspect-video overflow-hidden bg-gray-100 dark:bg-[#1D1F23] block cursor-pointer rounded-t-lg"
       >
         {imagen ? (
           <img 
@@ -104,7 +104,7 @@ const ServerCard = ({
         </Link>
 
         {/* JUGADORES */}
-        <div className="flex items-center justify-between px-2 py-2 rounded-lg bg-gray-50 dark:bg-[#191B1E]">
+        <div className="flex items-center justify-between px-2 py-2 rounded-lg bg-gray-50 dark:bg-[#1D1F23]">
           <div className="flex items-center gap-2">
             <Users size={16} className="text-green-600 dark:text-green-400" />
             <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
@@ -116,7 +116,7 @@ const ServerCard = ({
         </div>
 
         {/* VERSIÓN */}
-        <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-gray-50 dark:bg-[#191B1E]">
+        <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-gray-50 dark:bg-[#1D1F23]">
           <Activity size={14} className="text-blue-600 dark:text-blue-400" />
           <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">
             Versión {version}
@@ -124,7 +124,7 @@ const ServerCard = ({
         </div>
 
         {/* UBICACIÓN */}
-        <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-gray-50 dark:bg-[#191B1E]">
+        <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-gray-50 dark:bg-[#1D1F23]">
           <MapPin size={14} className="text-purple-600 dark:text-purple-400" />
           <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">
             {ubicacion}
@@ -132,7 +132,7 @@ const ServerCard = ({
         </div>
 
         {/* IP DEL SERVIDOR */}
-        <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-gray-50 dark:bg-[#191B1E]">
+        <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-gray-50 dark:bg-[#1D1F23]">
           <Globe size={14} className="text-cyan-600 dark:text-cyan-400" />
           <span className="text-xs font-mono text-gray-700 dark:text-gray-300 truncate">
             {fullIp}

@@ -345,7 +345,7 @@ const DetalleServidor = () => {
         <div className="p-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {/* JUGADORES */}
-            <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-[#191B1E] rounded-xl">
+            <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-[#1D1F23] rounded-xl">
               <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
                 <Users size={20} className="text-green-600 dark:text-green-400" />
               </div>
@@ -358,7 +358,7 @@ const DetalleServidor = () => {
             </div>
 
             {/* VERSIÓN */}
-            <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-[#191B1E] rounded-xl">
+            <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-[#1D1F23] rounded-xl">
               <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
                 <Activity size={20} className="text-blue-600 dark:text-blue-400" />
               </div>
@@ -369,7 +369,7 @@ const DetalleServidor = () => {
             </div>
 
             {/* UBICACIÓN */}
-            <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-[#191B1E] rounded-xl">
+            <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-[#1D1F23] rounded-xl">
               <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
                 <MapPin size={20} className="text-purple-600 dark:text-purple-400" />
               </div>
@@ -380,7 +380,7 @@ const DetalleServidor = () => {
             </div>
 
             {/* UPTIME */}
-            <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-[#191B1E] rounded-xl">
+            <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-[#1D1F23] rounded-xl">
               <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
                 <Clock size={20} className="text-cyan-600 dark:text-cyan-400" />
               </div>
@@ -425,7 +425,7 @@ const DetalleServidor = () => {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {servidor.caracteristicas.map((caracteristica, index) => (
-                <div key={index} className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-[#191B1E] rounded-lg">
+                <div key={index} className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-[#1D1F23] rounded-lg">
                   <Check size={16} className="text-green-600 dark:text-green-400 shrink-0" />
                   <span className="text-sm text-gray-700 dark:text-gray-300">{caracteristica}</span>
                 </div>
@@ -478,7 +478,7 @@ const DetalleServidor = () => {
             </h2>
             <div className="space-y-3">
               {servidor.staff.map((miembro, index) => (
-                <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-[#191B1E] rounded-lg">
+                <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-[#1D1F23] rounded-lg">
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white font-bold">
                     {miembro.nombre.charAt(0)}
                   </div>

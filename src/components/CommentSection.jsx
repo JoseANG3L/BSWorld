@@ -128,7 +128,7 @@ const CommentCard = ({ comment, contentId, onCommentMutated, isReply = false }) 
       <div className="flex items-start justify-between gap-3">
         {/* Encabezado de Usuario */}
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 bg-gray-200 dark:bg-[#191B1E]">
+          <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 bg-gray-200 dark:bg-[#1D1F23]">
             <AvatarRenderer avatar={comment.users?.avatar} name={comment.users?.username} />
           </div>
           <div className="flex flex-col">
@@ -171,7 +171,7 @@ const CommentCard = ({ comment, contentId, onCommentMutated, isReply = false }) 
               type="text" 
               value={editText} 
               onChange={(e) => setEditText(e.target.value)} 
-              className="flex-1 px-3 py-2 text-sm bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:border-primary-500 dark:text-white" 
+              className="flex-1 px-3 py-2 text-sm bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:border-primary-500 dark:text-white" 
               required 
               autoFocus
             />
@@ -254,7 +254,7 @@ const CommentCard = ({ comment, contentId, onCommentMutated, isReply = false }) 
             placeholder="Escribe una respuesta..." 
             value={replyText} 
             onChange={(e) => setReplyText(e.target.value)} 
-            className="w-full pl-3 pr-10 py-2 text-sm bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:border-primary-500 dark:text-white" 
+            className="w-full pl-3 pr-10 py-2 text-sm bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:border-primary-500 dark:text-white" 
             required 
             autoFocus
           />
@@ -416,7 +416,7 @@ const CommentSection = ({ contentId }) => {
       {/* Caja de Comentarios Principal */}
       {user ? (
         <form onSubmit={handleCreateComment} className="flex gap-2 items-start">
-          <div className="w-9 h-9 rounded-full overflow-hidden shrink-0 bg-gray-200 dark:bg-[#191B1E]">
+          <div className="w-9 h-9 rounded-full overflow-hidden shrink-0 bg-gray-200 dark:bg-[#1D1F23]">
             <AvatarRenderer avatar={user.avatar} name={user.username} />
           </div>
           <div className="flex-1 relative">
@@ -426,7 +426,7 @@ const CommentSection = ({ contentId }) => {
               value={commentText} 
               onChange={(e) => setCommentText(e.target.value)} 
               disabled={submitting}
-              className="w-full pl-3 pr-10 py-2 text-sm rounded-lg bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 outline-none text-gray-800 dark:text-gray-200 focus:border-primary-500 dark:focus:border-primary-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full pl-3 pr-10 py-2 text-sm rounded-lg bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-gray-700 outline-none text-gray-800 dark:text-gray-200 focus:border-primary-500 dark:focus:border-primary-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               required
             />
             <button 
@@ -458,7 +458,7 @@ const CommentSection = ({ contentId }) => {
               type="text" 
               disabled 
               placeholder="Debes iniciar sesión para comentar..." 
-              className="w-full pl-3 pr-32 py-2 text-sm rounded-lg bg-gray-100 dark:bg-[#191B1E]/60 border border-gray-200 dark:border-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed select-none placeholder:text-gray-400 dark:placeholder:text-gray-500"
+              className="w-full pl-3 pr-32 py-2 text-sm rounded-lg bg-gray-100 dark:bg-[#1D1F23]/60 border border-gray-200 dark:border-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed select-none placeholder:text-gray-400 dark:placeholder:text-gray-500"
             />
             <Link 
               to="/login" 
@@ -497,7 +497,7 @@ const CommentSection = ({ contentId }) => {
         </>
       ) : (
         <div className="flex flex-col items-center justify-center py-8 gap-3 text-center">
-          <div className="p-3 bg-gray-100 dark:bg-[#191B1E] rounded-full">
+          <div className="p-3 bg-gray-100 dark:bg-[#1D1F23] rounded-full">
             <MessageSquare size={24} className="text-gray-400 dark:text-gray-600" />
           </div>
           <div>

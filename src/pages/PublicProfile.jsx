@@ -126,7 +126,7 @@ const PublicProfile = () => {
 
   if (!exists) return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4 animate-fade-in-up">
-        <div className="bg-gray-100 dark:bg-[#191B1E] p-8 rounded-full mb-6">
+        <div className="bg-gray-100 dark:bg-[#1D1F23] p-8 rounded-full mb-6">
            <UserX size={64} className="text-gray-400"/>
         </div>
         <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Usuario no encontrado</h2>
@@ -181,7 +181,7 @@ const PublicProfile = () => {
                        <div className="mt-3 flex justify-center">
                          <Link
                            to="/configuracion"
-                           className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-100 dark:bg-[#191B1E] hover:bg-gray-200 dark:hover:bg-gray-800 text-gray-800 dark:text-gray-200 font-semibold text-xs transition-colors border border-gray-300 dark:border-gray-700 shadow-sm"
+                           className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-100 dark:bg-[#1D1F23] hover:bg-gray-200 dark:hover:bg-gray-800 text-gray-800 dark:text-gray-200 font-semibold text-xs transition-colors border border-gray-300 dark:border-gray-700 shadow-sm"
                          >
                            <Settings size={15} />
                            <span>Editar perfil</span>
@@ -216,7 +216,7 @@ const PublicProfile = () => {
               placeholder="Buscar por título o etiquetas..." 
               value={busqueda} 
               onChange={(e) => setBusqueda(e.target.value)} 
-              className="w-full pl-10 pr-4 py-2.5 h-10 rounded-xl dark:bg-[#191B1E] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all text-sm" 
+              className="w-full pl-10 pr-4 py-2.5 h-10 rounded-xl dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all text-sm" 
             />
           </div>
 
@@ -227,7 +227,7 @@ const PublicProfile = () => {
               <button 
                 type="button" 
                 onClick={() => setIsOrdenDropdownOpen(!isOrdenDropdownOpen)} 
-                className="w-full pl-10 pr-10 py-2.5 h-10 rounded-xl dark:bg-[#191B1E] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none appearance-none cursor-pointer transition-all text-sm font-medium text-left"
+                className="w-full pl-10 pr-10 py-2.5 h-10 rounded-xl dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none appearance-none cursor-pointer transition-all text-sm font-medium text-left"
               >
                 <span className="truncate block">
                   {orden === 'mas_descargas' ? 'Más Descargas' : orden === 'mas_vistas' ? 'Más Vistas' : orden === 'az' ? 'Nombre (A-Z)' : orden === 'za' ? 'Nombre (Z-A)' : orden === 'recientes' ? 'Más Recientes' : orden === 'antiguos' ? 'Más Antiguos' : orden}
@@ -236,7 +236,7 @@ const PublicProfile = () => {
               <ChevronDown size={16} className={clsx("absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none transition-transform duration-200", isOrdenDropdownOpen && "rotate-180")} />
 
               {isOrdenDropdownOpen && (
-                <div className="absolute top-full left-0 right-0 mt-2 dark:bg-[#191B1E] border border-gray-300 dark:border-transparent rounded-xl shadow-lg z-50 p-1">
+                <div className="absolute top-full left-0 right-0 mt-2 dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent rounded-xl shadow-lg z-50 p-1">
                   <div className="flex flex-col gap-0.5">
                     {[{ val: 'mas_descargas', label: 'Más Descargas' }, { val: 'mas_vistas', label: 'Más Vistas' }, { val: 'az', label: 'Nombre (A-Z)' }, { val: 'za', label: 'Nombre (Z-A)' }, { val: 'recientes', label: 'Más Recientes' }, { val: 'antiguos', label: 'Más Antiguos' }].map((opt) => (
                       <button 

@@ -89,7 +89,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
           <Menu size={26} />
         </button>
         {isNavMenuOpen && (
-          <div className="absolute left-0 mt-1.5 md:mt-3 w-56 bg-white dark:bg-[#1e1e1e] rounded-xl shadow-xl border border-gray-300 dark:border-transparent py-2 z-50 origin-top-left">
+          <div className="absolute left-0 mt-1.5 md:mt-3 w-56 bg-white dark:bg-[#1e1e1e] rounded-xl shadow-xl border border-gray-300 dark:border-transparent py-2 z-50 origin-top-left animate-fade-in-up" style={{ animationDuration: '200ms' }}>
             {menuItems.map((item) => {
               const isActive = location.pathname === item.to;
               return (
@@ -136,7 +136,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
 
       {/* SEARCH EXPANDIDO (Solo móvil cuando está enfocado) */}
       {isFocused && (
-        <div className="absolute inset-0 left-0 right-0 top-0 bottom-0 bg-white dark:bg-dark-bg z-50 flex items-center gap-2 pl-2 pr-3 md:hidden">
+        <div className="absolute inset-0 left-0 right-0 top-0 bottom-0 bg-white dark:bg-dark-bg z-50 flex items-center gap-2 pl-2 pr-3 md:hidden animate-fade-in-up" style={{ animationDuration: '200ms' }}>
           <button className="p-1.5" onClick={() => setIsFocused(false)}>
             <Search size={22} className="text-gray-600 dark:text-gray-400" />
           </button>
@@ -148,7 +148,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
             onKeyDown={handleSearch}
             className={clsx(
               "flex-1 py-2 px-4 rounded-xl text-sm font-medium transition-all duration-300 outline-none border shadow-sm",
-              "bg-white dark:bg-[#191B1E] border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 placeholder-gray-400",
+              "bg-white dark:bg-[#1D1F23] border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 placeholder-gray-400",
               "focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
             )}
           />
@@ -175,7 +175,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
           onKeyDown={handleSearch}
           className={clsx(
             "w-full py-2 pl-11 pr-4 rounded-xl text-sm font-medium transition-all duration-300 outline-none border shadow-sm",
-            "bg-white dark:bg-[#191B1E] border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 placeholder-gray-400",
+            "bg-white dark:bg-[#1D1F23] border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 placeholder-gray-400",
             "focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
           )}
         />
@@ -248,7 +248,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
               // CONECTADO: Avatar + Username + Flecha
               <div className="flex gap-2">
                 <div className="relative w-9 h-9 rounded-full bg-gradient-to-tr from-primary-600 to-primary-900 shadow-sm shrink-0">
-                  <div className="w-full h-full rounded-full overflow-hidden bg-white dark:bg-[#191B1E]">
+                  <div className="w-full h-full rounded-full overflow-hidden bg-white dark:bg-[#1D1F23]">
                     <AvatarRenderer avatar={user.avatar} name={user.username} />
                   </div>
                 </div>
@@ -271,7 +271,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
 
           {/* MENÚ DESPLEGABLE */}
           {isProfileOpen && (
-            <div className="absolute right-0 mt-1.5 md:mt-3 w-56 bg-white dark:bg-[#1e1e1e] rounded-xl shadow-xl border border-gray-300 dark:border-transparent py-2 z-50 origin-top-right overflow-hidden">
+            <div className="absolute right-0 mt-1.5 md:mt-3 w-56 bg-white dark:bg-[#1e1e1e] rounded-xl shadow-xl border border-gray-300 dark:border-transparent py-2 z-50 origin-top-right overflow-hidden animate-fade-in-up" style={{ animationDuration: '200ms' }}>
               {user ? (
                 <>
                   {/* Información del Usuario */}

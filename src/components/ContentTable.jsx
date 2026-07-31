@@ -131,12 +131,12 @@ const ContentTable = ({
       case 'draft':
         return { 
           label: 'Borrador', 
-          style: 'bg-gray-100 text-gray-600 border-gray-300 dark:bg-[#191B1E] dark:text-gray-400 dark:border-gray-700'
+          style: 'bg-gray-100 text-gray-600 border-gray-300 dark:bg-[#1D1F23] dark:text-gray-400 dark:border-gray-700'
         };
       default:
         return { 
           label: 'Desconocido', 
-          style: 'bg-gray-100 text-gray-500 border-gray-300 dark:bg-[#191B1E] dark:text-gray-500'
+          style: 'bg-gray-100 text-gray-500 border-gray-300 dark:bg-[#1D1F23] dark:text-gray-500'
         };
     }
   };
@@ -558,7 +558,7 @@ const ContentTable = ({
             placeholder="Buscar por nombre..."
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 h-10 rounded-xl bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all text-sm"
+            className="w-full pl-10 pr-4 py-2.5 h-10 rounded-xl bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all text-sm"
           />
         </div>
 
@@ -567,7 +567,7 @@ const ContentTable = ({
           <button
             type="button"
             onClick={handleOpenFiltersModal}
-            className="relative px-4 py-2.5 h-10 rounded-xl bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-sm font-medium flex items-center gap-2 shrink-0"
+            className="relative px-4 py-2.5 h-10 rounded-xl bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-sm font-medium flex items-center gap-2 shrink-0"
           >
             <Filter size={18} className="text-gray-500 dark:text-gray-400" />
             <span>Filtros</span>
@@ -585,7 +585,7 @@ const ContentTable = ({
               <button
                 type="button"
                 onClick={() => { setIsTypeDropdownOpen(!isTypeDropdownOpen); setIsOrdenDropdownOpen(false); setIsVisibilidadDropdownOpen(false); setIsStatusDropdownOpen(false); }}
-                className="w-full pl-10 pr-10 py-2.5 h-10 rounded-xl bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none appearance-none cursor-pointer transition-all text-sm font-medium text-left"
+                className="w-full pl-10 pr-10 py-2.5 h-10 rounded-xl bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none appearance-none cursor-pointer transition-all text-sm font-medium text-left"
               >
                 <span className="truncate block">
                   {selectedTypes.length === 0 
@@ -599,7 +599,7 @@ const ContentTable = ({
             </div>
 
             {isTypeDropdownOpen && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-transparent rounded-xl shadow-lg z-50 p-1">
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent rounded-xl shadow-lg z-50 p-1">
                 <div className="flex flex-col gap-0.5">
                   <button
                     type="button"
@@ -638,7 +638,7 @@ const ContentTable = ({
               <button
                 type="button"
                 onClick={() => { setIsVisibilidadDropdownOpen(!isVisibilidadDropdownOpen); setIsTypeDropdownOpen(false); setIsOrdenDropdownOpen(false); setIsStatusDropdownOpen(false); }}
-                className="w-full pl-10 pr-10 py-2.5 h-10 rounded-xl bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none appearance-none cursor-pointer transition-all text-sm font-medium text-left"
+                className="w-full pl-10 pr-10 py-2.5 h-10 rounded-xl bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none appearance-none cursor-pointer transition-all text-sm font-medium text-left"
               >
                 <span className="truncate block">
                   {selectedVisibilidad.length === 0 
@@ -652,7 +652,7 @@ const ContentTable = ({
             </div>
 
             {isVisibilidadDropdownOpen && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-transparent rounded-xl shadow-lg z-50 p-1">
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent rounded-xl shadow-lg z-50 p-1">
                 <div className="flex flex-col gap-0.5">
                   <button
                     type="button"
@@ -691,7 +691,7 @@ const ContentTable = ({
               <button
                 type="button"
                 onClick={() => { setIsStatusDropdownOpen(!isStatusDropdownOpen); setIsTypeDropdownOpen(false); setIsOrdenDropdownOpen(false); setIsVisibilidadDropdownOpen(false); }}
-                className="w-full pl-10 pr-10 py-2.5 h-10 rounded-xl bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none appearance-none cursor-pointer transition-all text-sm font-medium text-left"
+                className="w-full pl-10 pr-10 py-2.5 h-10 rounded-xl bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none appearance-none cursor-pointer transition-all text-sm font-medium text-left"
               >
                 <span className="truncate block">
                   {selectedStatus.length === 0 
@@ -705,7 +705,7 @@ const ContentTable = ({
             </div>
 
             {isStatusDropdownOpen && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-transparent rounded-xl shadow-lg z-50 p-1">
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent rounded-xl shadow-lg z-50 p-1">
                 <div className="flex flex-col gap-0.5">
                   <button
                     type="button"
@@ -740,7 +740,7 @@ const ContentTable = ({
         <div className="hidden md:flex items-center gap-2 w-full md:w-auto" ref={ordenDropdownRef}>
           <div className="relative w-full md:w-56 lg:w-64">
             <ArrowUpDown size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <button type="button" onClick={() => { setIsOrdenDropdownOpen(!isOrdenDropdownOpen); setIsTypeDropdownOpen(false); setIsVisibilidadDropdownOpen(false); setIsStatusDropdownOpen(false); }} className="w-full pl-10 pr-10 py-2.5 h-10 rounded-xl bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none appearance-none cursor-pointer transition-all text-sm font-medium text-left">
+            <button type="button" onClick={() => { setIsOrdenDropdownOpen(!isOrdenDropdownOpen); setIsTypeDropdownOpen(false); setIsVisibilidadDropdownOpen(false); setIsStatusDropdownOpen(false); }} className="w-full pl-10 pr-10 py-2.5 h-10 rounded-xl bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none appearance-none cursor-pointer transition-all text-sm font-medium text-left">
               <span className="truncate block">
                 {orden === 'mas_descargas' ? 'Más Descargas' : orden === 'mas_vistas' ? 'Más Vistas' : orden === 'az' ? 'Nombre (A-Z)' : orden === 'za' ? 'Nombre (Z-A)' : orden === 'recientes' ? 'Más Recientes' : orden === 'antiguos' ? 'Más Antiguos' : orden}
               </span>
@@ -748,7 +748,7 @@ const ContentTable = ({
             <ChevronDown size={16} className={`absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none transition-transform duration-200 ${isOrdenDropdownOpen ? "rotate-180" : ""}`} />
 
             {isOrdenDropdownOpen && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-transparent rounded-xl shadow-lg z-50 p-1">
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent rounded-xl shadow-lg z-50 p-1">
                 <div className="flex flex-col gap-0.5">
                   {[
                     { val: 'mas_descargas', label: 'Más Descargas' },
@@ -1387,7 +1387,7 @@ const ContentTable = ({
                       value={bulkValue}
                       onChange={(e) => setBulkValue(e.target.value)}
                       placeholder="Nuevo título..."
-                      className="w-full p-3 rounded-xl bg-gray-50 dark:bg-[#191B1E] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white text-sm"
+                      className="w-full p-3 rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white text-sm"
                     />
                   )}
 
@@ -1395,7 +1395,7 @@ const ContentTable = ({
                     <select
                       value={bulkValue}
                       onChange={(e) => setBulkValue(e.target.value)}
-                      className="w-full p-3 rounded-xl bg-gray-50 dark:bg-[#191B1E] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white text-sm"
+                      className="w-full p-3 rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white text-sm"
                     >
                       <option value="">Seleccionar categoría...</option>
                       {availableTypes.map((type) => (
@@ -1410,7 +1410,7 @@ const ContentTable = ({
                     <select
                       value={bulkValue}
                       onChange={(e) => setBulkValue(e.target.value)}
-                      className="w-full p-3 rounded-xl bg-gray-50 dark:bg-[#191B1E] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white text-sm"
+                      className="w-full p-3 rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white text-sm"
                     >
                       <option value="">Seleccionar visibilidad...</option>
                       <option value="publico">Público</option>
@@ -1423,7 +1423,7 @@ const ContentTable = ({
                     <select
                       value={bulkValue}
                       onChange={(e) => setBulkValue(e.target.value)}
-                      className="w-full p-3 rounded-xl bg-gray-50 dark:bg-[#191B1E] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white text-sm"
+                      className="w-full p-3 rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white text-sm"
                     >
                       <option value="">Seleccionar estado...</option>
                       <option value="borrador">Borrador</option>
@@ -1439,7 +1439,7 @@ const ContentTable = ({
                       value={bulkValue}
                       onChange={(e) => setBulkValue(e.target.value)}
                       placeholder="ID del creador..."
-                      className="w-full p-3 rounded-xl bg-gray-50 dark:bg-[#191B1E] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white text-sm"
+                      className="w-full p-3 rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white text-sm"
                     />
                   )}
                 </>
@@ -1513,7 +1513,7 @@ const ContentTable = ({
                     value={editingValue}
                     onChange={(e) => setEditingValue(e.target.value)}
                     placeholder="https://..."
-                    className="w-full p-3 rounded-xl bg-gray-50 dark:bg-[#191B1E] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white text-sm"
+                    className="w-full p-3 rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white text-sm"
                     autoFocus
                   />
                   {(editingValue || (editingItem?.imagen || (editingItem?.imagenes && editingItem.imagenes[0]))) && (
@@ -1544,7 +1544,7 @@ const ContentTable = ({
                     value={editingValue}
                     onChange={(e) => setEditingValue(e.target.value)}
                     placeholder="Título del contenido"
-                    className="w-full p-3 rounded-xl bg-gray-50 dark:bg-[#191B1E] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white text-sm"
+                    className="w-full p-3 rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white text-sm"
                     autoFocus
                   />
                 </div>
@@ -1558,7 +1558,7 @@ const ContentTable = ({
                   <select
                     value={editingValue}
                     onChange={(e) => setEditingValue(e.target.value)}
-                    className="w-full p-3 rounded-xl bg-gray-50 dark:bg-[#191B1E] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white text-sm"
+                    className="w-full p-3 rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white text-sm"
                     autoFocus
                   >
                     <option value="">Seleccionar categoría...</option>
@@ -1582,7 +1582,7 @@ const ContentTable = ({
                     onChange={handleCreatorSearch}
                     onKeyDown={handleCreatorKeyDown}
                     placeholder="Escribe para buscar usuarios..."
-                    className="w-full p-3 rounded-xl bg-gray-50 dark:bg-[#191B1E] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white text-sm"
+                    className="w-full p-3 rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white text-sm"
                     autoFocus
                   />
                   {showSuggestions && creatorInput.length > 1 && (
@@ -1635,7 +1635,7 @@ const ContentTable = ({
                   <select
                     value={editingValue}
                     onChange={(e) => setEditingValue(e.target.value)}
-                    className="w-full p-3 rounded-xl bg-gray-50 dark:bg-[#191B1E] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white text-sm"
+                    className="w-full p-3 rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white text-sm"
                     autoFocus
                   >
                     <option value="publico">Público</option>

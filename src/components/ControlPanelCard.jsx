@@ -44,12 +44,12 @@ const ControlPanelCard = ({
       case 'draft':
         return { 
           label: 'Borrador', 
-          style: 'bg-gray-100 text-gray-600 dark:bg-[#191B1E] dark:text-gray-400'
+          style: 'bg-gray-100 text-gray-600 dark:bg-[#1D1F23] dark:text-gray-400'
         };
       default:
         return { 
           label: 'Desconocido', 
-          style: 'bg-gray-100 text-gray-500 dark:bg-[#191B1E] dark:text-gray-500'
+          style: 'bg-gray-100 text-gray-500 dark:bg-[#1D1F23] dark:text-gray-500'
         };
     }
   };

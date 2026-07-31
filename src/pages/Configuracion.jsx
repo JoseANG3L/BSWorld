@@ -308,7 +308,7 @@ const Configuracion = () => {
           <div className="bg-white dark:bg-[#1e1e1e] rounded-xl sm:rounded-2xl border border-gray-200 dark:border-gray-700 shadow-lg overflow-hidden">
             
             {/* VISTA PREVIA BANNER */}
-            <div className="h-28 sm:h-36 w-full bg-gray-200 dark:bg-[#191B1E] relative transition-all duration-500">
+            <div className="h-28 sm:h-36 w-full bg-gray-200 dark:bg-[#1D1F23] relative transition-all duration-500">
                {formData.banner ? (
                  isBannerUrl ? (
                    <img 
@@ -344,7 +344,7 @@ const Configuracion = () => {
                 <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-3 sm:mb-5 truncate">{user?.email}</p>
 
                 <div className="flex flex-col gap-2">
-                  <div className={clsx("px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl text-[10px] sm:text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all", user?.role === 'admin' ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 ring-1 ring-purple-200 dark:ring-purple-800" : "bg-gray-100 text-gray-600 dark:bg-[#191B1E] dark:text-gray-400 ring-1 ring-gray-200 dark:ring-gray-700")}>
+                  <div className={clsx("px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl text-[10px] sm:text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all", user?.role === 'admin' ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 ring-1 ring-purple-200 dark:ring-purple-800" : "bg-gray-100 text-gray-600 dark:bg-[#1D1F23] dark:text-gray-400 ring-1 ring-gray-200 dark:ring-gray-700")}>
                     <Shield size={12} /> {user?.role === 'admin' ? 'Administrador' : 'Miembro'}
                   </div>
                   <div className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-300 text-[10px] sm:text-xs font-medium flex items-center justify-center gap-2 ring-1 ring-blue-200 dark:ring-blue-800">
@@ -378,7 +378,7 @@ const Configuracion = () => {
                 <label className="block text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2.5">Nombre de Usuario</label>
                 <div className="relative group">
                   <User className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary-500 transition-colors" size={16} />
-                  <input type="text" name="username" required value={formData.username} onChange={handleChange} className="w-full pl-9 sm:pl-12 pr-3 sm:pr-4 py-2.5 sm:py-3.5 rounded-lg sm:rounded-xl bg-gray-50 dark:bg-[#191B1E] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all text-sm dark:text-white" />
+                  <input type="text" name="username" required value={formData.username} onChange={handleChange} className="w-full pl-9 sm:pl-12 pr-3 sm:pr-4 py-2.5 sm:py-3.5 rounded-lg sm:rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all text-sm dark:text-white" />
                 </div>
               </div>
 
@@ -386,7 +386,7 @@ const Configuracion = () => {
               <div>
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Avatar</label>
                 
-                <div className="flex gap-1.5 mb-3 p-1 bg-gray-100 dark:bg-[#191B1E] rounded-lg w-full">
+                <div className="flex gap-1.5 mb-3 p-1 bg-gray-100 dark:bg-[#1D1F23] rounded-lg w-full">
                     <button type="button" onClick={() => setAvatarTab('url')} className={clsx("flex-1 px-3 py-2 rounded-md text-xs font-medium transition-all flex items-center justify-center gap-1.5", avatarTab === 'url' ? "bg-white dark:bg-gray-700 shadow-sm text-primary-600 dark:text-white" : "text-gray-500 hover:text-gray-700 dark:text-gray-400")}>
                         <LinkIcon size={12} /> URL
                     </button>
@@ -399,7 +399,7 @@ const Configuracion = () => {
                     {avatarTab === 'url' && (
                         <div className="relative group">
                             <Camera className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary-500 transition-colors" size={16} />
-                            <input type="url" name="avatar" placeholder="https://..." value={formData.avatar} onChange={handleChange} className="w-full pl-10 pr-3 py-2.5 rounded-lg bg-white dark:bg-[#191B1E] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all text-sm dark:text-white" />
+                            <input type="url" name="avatar" placeholder="https://..." value={formData.avatar} onChange={handleChange} className="w-full pl-10 pr-3 py-2.5 rounded-lg bg-white dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all text-sm dark:text-white" />
                         </div>
                     )}
 
@@ -416,7 +416,7 @@ const Configuracion = () => {
                                                 type="button" 
                                                 onClick={() => updateAvatarDesign(name, selectedColor)} 
                                                 className={clsx(
-                                                    "aspect-square rounded-lg flex items-center justify-center transition-all border bg-white dark:bg-[#191B1E] hover:scale-105", 
+                                                    "aspect-square rounded-lg flex items-center justify-center transition-all border bg-white dark:bg-[#1D1F23] hover:scale-105", 
                                                     selectedIcon === name 
                                                         ? "border-primary-500 text-primary-600 bg-primary-50 dark:bg-primary-900/20 shadow-sm" 
                                                         : "border-gray-200 dark:border-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -454,7 +454,7 @@ const Configuracion = () => {
               <div>
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Diseño del Banner</label>
                 
-                <div className="flex gap-1.5 mb-3 p-1 bg-gray-100 dark:bg-[#191B1E] rounded-lg w-full">
+                <div className="flex gap-1.5 mb-3 p-1 bg-gray-100 dark:bg-[#1D1F23] rounded-lg w-full">
                     <button type="button" onClick={() => setBannerTab('presets')} className={clsx("flex-1 px-3 py-2 rounded-md text-xs font-medium transition-all flex items-center justify-center gap-1.5", bannerTab === 'presets' ? "bg-white dark:bg-gray-700 shadow-sm text-primary-600 dark:text-white" : "text-gray-500 hover:text-gray-700 dark:text-gray-400")}>
                         <LayoutGrid size={12} /> Presets
                     </button>
@@ -488,7 +488,7 @@ const Configuracion = () => {
                     {bannerTab === 'custom' && (
                         <div className="relative group">
                            <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary-500 transition-colors" size={16} />
-                           <input type="url" name="banner" placeholder="https://imgur.com/..." value={formData.banner} onChange={handleChange} className="w-full pl-10 pr-3 py-2.5 rounded-lg bg-white dark:bg-[#191B1E] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all text-sm dark:text-white" />
+                           <input type="url" name="banner" placeholder="https://imgur.com/..." value={formData.banner} onChange={handleChange} className="w-full pl-10 pr-3 py-2.5 rounded-lg bg-white dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all text-sm dark:text-white" />
                         </div>
                     )}
                 </div>
@@ -525,7 +525,7 @@ const Configuracion = () => {
                 type="password"
                 value={passwordData.newPassword}
                 onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-gray-50 dark:bg-[#191B1E] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all text-sm dark:text-white"
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all text-sm dark:text-white"
                 placeholder="Mínimo 6 caracteres"
                 required
               />
@@ -536,7 +536,7 @@ const Configuracion = () => {
                 type="password"
                 value={passwordData.confirmPassword}
                 onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-gray-50 dark:bg-[#191B1E] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all text-sm dark:text-white"
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all text-sm dark:text-white"
                 placeholder="Repite la nueva contraseña"
                 required
               />
@@ -579,7 +579,7 @@ const Configuracion = () => {
                   type="text"
                   value={deleteConfirmation}
                   onChange={(e) => setDeleteConfirmation(e.target.value)}
-                  className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-gray-50 dark:bg-[#191B1E] border border-red-200 dark:border-red-900 outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-all text-sm dark:text-white"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-red-200 dark:border-red-900 outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-all text-sm dark:text-white"
                   placeholder="ELIMINAR"
                 />
               </div>

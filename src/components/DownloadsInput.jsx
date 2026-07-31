@@ -96,7 +96,7 @@ const DownloadsInput = ({
               <button
                 type="button"
                 onClick={() => toggleDropdown(index)}
-                className="w-full pl-3 pr-8 py-2 text-sm bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 rounded-xl outline-none appearance-none cursor-pointer transition-all font-medium text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 text-left"
+                className="w-full pl-3 pr-8 py-2 text-sm bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-gray-700 rounded-xl outline-none appearance-none cursor-pointer transition-all font-medium text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 text-left"
               >
                 <span className="truncate block">{download.presetLabel}</span>
               </button>
@@ -109,7 +109,7 @@ const DownloadsInput = ({
               />
               
               {openDropdowns[`version-${index}`] && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 rounded-xl shadow-lg z-50 p-1">
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-gray-700 rounded-xl shadow-lg z-50 p-1">
                   <div className="flex flex-col gap-0.5">
                     {[...presets, customLabel].map((preset) => (
                       <button
@@ -141,7 +141,7 @@ const DownloadsInput = ({
                 value={download.label || ''}
                 onChange={(e) => handleDownloadChange(index, 'label', e.target.value)}
                 placeholder={customPlaceholder}
-                className="min-w-42 w-42 px-3 py-2 text-sm bg-white dark:bg-[#191B1E] transition-all duration-300 border border-gray-300 dark:border-gray-700 rounded-xl outline-none dark:text-white focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+                className="min-w-42 w-42 px-3 py-2 text-sm bg-white dark:bg-[#1D1F23] transition-all duration-300 border border-gray-300 dark:border-gray-700 rounded-xl outline-none dark:text-white focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
               />
             )}
 
@@ -152,7 +152,7 @@ const DownloadsInput = ({
               onChange={(e) => handleDownloadChange(index, 'url', e.target.value)}
               placeholder="URL de descarga"
               className={clsx(
-                "w-full px-4 py-2 text-sm bg-white dark:bg-[#191B1E] transition-all duration-300 border rounded-xl outline-none dark:text-white focus:ring-1 focus:ring-primary-500",
+                "w-full px-4 py-2 text-sm bg-white dark:bg-[#1D1F23] transition-all duration-300 border rounded-xl outline-none dark:text-white focus:ring-1 focus:ring-primary-500",
                 urlErrors[index] ? "border-red-500 focus:border-red-500" : "border-gray-300 dark:border-gray-700 focus:border-primary-500"
               )}
             />

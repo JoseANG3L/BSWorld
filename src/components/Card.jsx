@@ -53,7 +53,7 @@ const SmartUserDisplay = ({ initialUser, type = 'list', extraCount = 0 }) => {
   if (type === 'list') {
     return (
       <Link to={`/u/${userData.nombre}`} className="flex items-center gap-3 px-2 py-1.5 hover:bg-primary-300 dark:hover:bg-gray-700 transition-colors group">
-        <div className="w-6 h-6 rounded-full overflow-hidden bg-gray-200 dark:bg-[#191B1E] shrink-0 relative">
+        <div className="w-6 h-6 rounded-full overflow-hidden bg-gray-200 dark:bg-[#1D1F23] shrink-0 relative">
             <AvatarRenderer avatar={userData.imagen} name={userData.nombre} />
         </div>
         <div className="flex items-center gap-1 min-w-0">
@@ -93,7 +93,7 @@ const SmartUserDisplay = ({ initialUser, type = 'list', extraCount = 0 }) => {
       return (
         <>
             <div className="relative shrink-0">
-                <div className="w-6 h-6 rounded-full border border-gray-300 dark:border-gray-700 overflow-hidden bg-gray-200 dark:bg-[#191B1E]">
+                <div className="w-6 h-6 rounded-full border border-gray-300 dark:border-gray-700 overflow-hidden bg-gray-200 dark:bg-[#1D1F23]">
                     <AvatarRenderer avatar={userData.imagen} name={userData.nombre} />
                 </div>
             </div>
@@ -139,17 +139,17 @@ const getStatusConfig = (status) => {
     case 'draft':
       return { 
         label: 'Borrador', 
-        style: 'bg-gray-100 text-gray-600 border-gray-200 dark:bg-[#191B1E] dark:text-gray-400 dark:border-gray-700' 
+        style: 'bg-gray-100 text-gray-600 border-gray-200 dark:bg-[#1D1F23] dark:text-gray-400 dark:border-gray-700' 
       };
     case 'inactive':
       return { 
         label: 'Inactivo', 
-        style: 'bg-gray-100 text-gray-500 border-gray-200 dark:bg-[#191B1E] dark:text-gray-500' 
+        style: 'bg-gray-100 text-gray-500 border-gray-200 dark:bg-[#1D1F23] dark:text-gray-500' 
       };
     default:
       return { 
         label: 'Desconocido', 
-        style: 'bg-gray-100 text-gray-500 border-gray-200 dark:bg-[#191B1E] dark:text-gray-500' 
+        style: 'bg-gray-100 text-gray-500 border-gray-200 dark:bg-[#1D1F23] dark:text-gray-500' 
       };
   }
 };
@@ -248,7 +248,7 @@ const Card = ({
       {/* 1. IMAGEN */}
       <Link 
         to={(!isPreview && id) ? `/view/${id}` : "#"} 
-        className={clsx("relative w-full aspect-video overflow-hidden bg-gray-100 dark:bg-[#191B1E] block cursor-pointer", isPreview && "cursor-default", !isEditable && "rounded-t-lg")}
+        className={clsx("relative w-full aspect-video overflow-hidden bg-gray-100 dark:bg-[#1D1F23] block cursor-pointer", isPreview && "cursor-default", !isEditable && "rounded-t-lg")}
         onClick={(e) => isPreview && e.preventDefault()}
       >
         <img 
@@ -275,7 +275,7 @@ const Card = ({
                 e.stopPropagation();
                 navigate(`/subir?edit=${id}`);
               }}
-              className="p-2 bg-white dark:bg-[#191B1E] text-blue-600 dark:text-blue-400 rounded-xl shadow-lg hover:bg-gray-200 dark:hover:bg-[#191B1E] transition-all border border-gray-200 dark:border-gray-700"
+              className="p-2 bg-white dark:bg-[#1D1F23] text-blue-600 dark:text-blue-400 rounded-xl shadow-lg hover:bg-gray-200 dark:hover:bg-[#191B1E] transition-all border border-gray-200 dark:border-gray-700"
               title="Editar Contenido"
             >
               <Edit3 size={18} />
@@ -287,7 +287,7 @@ const Card = ({
                 e.stopPropagation();
                 if (handleDelete) handleDelete(id, titulo);
               }}
-              className="p-2 bg-white dark:bg-[#191B1E] text-red-500 rounded-xl shadow-lg hover:bg-gray-200 dark:hover:bg-[#191B1E] transition-all border border-gray-200 dark:border-gray-700"
+              className="p-2 bg-white dark:bg-[#1D1F23] text-red-500 rounded-xl shadow-lg hover:bg-gray-200 dark:hover:bg-[#191B1E] transition-all border border-gray-200 dark:border-gray-700"
               disabled={isDeleting}
               title="Eliminar"
             >
@@ -376,7 +376,7 @@ const Card = ({
         {tags && tags.length > 0 && (
           <div className="flex flex-wrap gap-1">
             {tags.map((tag, index) => (
-              <div key={index} className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-gray-50 dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700">
+              <div key={index} className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-gray-50 dark:bg-[#1D1F23] border border-gray-300 dark:border-gray-700">
                 <span className="text-[9px] font-bold uppercase tracking-wider text-gray-600 dark:text-gray-400">{tag}</span>
               </div>
             ))}

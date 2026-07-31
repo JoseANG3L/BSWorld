@@ -148,7 +148,7 @@ const Inicio = () => {
               {showLeftArrowNovedades && (
                 <button 
                   onClick={() => scrollNovedades('left')} 
-                  className="p-2 rounded-xl bg-gray-100 dark:bg-[#191B1E] text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800 active:scale-95 transition-all shadow-sm animate-fade-in"
+                  className="p-2 rounded-xl bg-gray-100 dark:bg-[#1D1F23] text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800 active:scale-95 transition-all shadow-sm animate-fade-in"
                   title="Desplazar a la izquierda"
                 >
                   <ArrowLeft size={16} strokeWidth={2.5} />
@@ -157,7 +157,7 @@ const Inicio = () => {
               {showRightArrowNovedades && (
                 <button 
                   onClick={() => scrollNovedades('right')} 
-                  className="p-2 rounded-xl bg-gray-100 dark:bg-[#191B1E] text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800 active:scale-95 transition-all shadow-sm animate-fade-in"
+                  className="p-2 rounded-xl bg-gray-100 dark:bg-[#1D1F23] text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800 active:scale-95 transition-all shadow-sm animate-fade-in"
                   title="Desplazar a la derecha"
                 >
                   <ArrowRight size={16} strokeWidth={2.5} />
@@ -217,7 +217,7 @@ const Inicio = () => {
               {showLeftArrowTop && (
                 <button 
                   onClick={() => scrollTop('left')} 
-                  className="p-2 rounded-xl bg-gray-100 dark:bg-[#191B1E] text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800 active:scale-95 transition-all shadow-sm animate-fade-in"
+                  className="p-2 rounded-xl bg-gray-100 dark:bg-[#1D1F23] text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800 active:scale-95 transition-all shadow-sm animate-fade-in"
                   title="Desplazar a la izquierda"
                 >
                   <ArrowLeft size={16} strokeWidth={2.5} />
@@ -226,7 +226,7 @@ const Inicio = () => {
               {showRightArrowTop && (
                 <button 
                   onClick={() => scrollTop('right')} 
-                  className="p-2 rounded-xl bg-gray-100 dark:bg-[#191B1E] text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800 active:scale-95 transition-all shadow-sm animate-fade-in"
+                  className="p-2 rounded-xl bg-gray-100 dark:bg-[#1D1F23] text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800 active:scale-95 transition-all shadow-sm animate-fade-in"
                   title="Desplazar a la derecha"
                 >
                   <ArrowRight size={16} strokeWidth={2.5} />
@@ -286,7 +286,7 @@ const Inicio = () => {
               {showLeftArrowFav && (
                 <button 
                   onClick={() => scrollFav('left')} 
-                  className="p-2 rounded-xl bg-gray-100 dark:bg-[#191B1E] text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800 active:scale-95 transition-all shadow-sm animate-fade-in"
+                  className="p-2 rounded-xl bg-gray-100 dark:bg-[#1D1F23] text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800 active:scale-95 transition-all shadow-sm animate-fade-in"
                   title="Desplazar a la izquierda"
                 >
                   <ArrowLeft size={16} strokeWidth={2.5} />
@@ -295,7 +295,7 @@ const Inicio = () => {
               {showRightArrowFav && (
                 <button 
                   onClick={() => scrollFav('right')} 
-                  className="p-2 rounded-xl bg-gray-100 dark:bg-[#191B1E] text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800 active:scale-95 transition-all shadow-sm animate-fade-in"
+                  className="p-2 rounded-xl bg-gray-100 dark:bg-[#1D1F23] text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800 active:scale-95 transition-all shadow-sm animate-fade-in"
                   title="Desplazar a la derecha"
                 >
                   <ArrowRight size={16} strokeWidth={2.5} />

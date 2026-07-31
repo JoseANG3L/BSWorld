@@ -146,14 +146,14 @@ const NotificationBell = () => {
         return { 
           icon: EyeOff, // Necesitarás importar EyeOff de lucide-react
           color: "text-gray-500", 
-          bg: "bg-gray-100 dark:bg-[#191B1E]", 
+          bg: "bg-gray-100 dark:bg-[#1D1F23]", 
           label: "Inactivo" 
         };
       default:
         return { 
           icon: Bell, 
           color: "text-gray-500", 
-          bg: "bg-gray-100 dark:bg-[#191B1E]", 
+          bg: "bg-gray-100 dark:bg-[#1D1F23]", 
           label: "Aviso" 
         };
     }

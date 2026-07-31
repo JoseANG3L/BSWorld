@@ -48,7 +48,7 @@ const TagsInput = ({
       </div>
       
       {/* Input inline con tags */}
-      <div className="p-2 rounded-2xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#191B1E] flex flex-wrap gap-2 shadow-sm items-center transition-all duration-300 focus-within:ring-1 focus-within:ring-primary-500 focus-within:border-primary-500">
+      <div className="p-2 rounded-2xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#1D1F23] flex flex-wrap gap-2 shadow-sm items-center transition-all duration-300 focus-within:ring-1 focus-within:ring-primary-500 focus-within:border-primary-500">
         {tags.map((tag, index) => (
           <span key={index} className={clsx(
             "flex items-center gap-1.5 text-sm bg-gray-100 dark:bg-gray-800 shadow-sm border border-gray-300 dark:border-gray-700 pr-2 py-1 rounded-xl group",

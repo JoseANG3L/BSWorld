@@ -171,7 +171,7 @@ const Resultados = () => {
       ) : (
         // ESTADO VACÍO TOTAL
         <div className="flex flex-col items-center justify-center py-24 bg-gray-50 dark:bg-[#1e1e1e] rounded-3xl border border-gray-200 dark:border-gray-800 text-center">
-           <div className="bg-gray-200 dark:bg-[#191B1E] p-6 rounded-full mb-4">
+           <div className="bg-gray-200 dark:bg-[#1D1F23] p-6 rounded-full mb-4">
               <Frown size={64} className="text-gray-400" />
            </div>
            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">No encontramos nada</h2>

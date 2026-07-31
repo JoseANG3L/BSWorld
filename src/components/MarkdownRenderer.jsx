@@ -121,7 +121,7 @@ const MarkdownRenderer = ({ content, className = '' }) => {
                     return (
                         <div key={index} className="my-6">
                             <div className="rounded-lg overflow-hidden border border-gray-300 dark:border-gray-700">
-                                <div className="flex items-center justify-between bg-gray-200 dark:bg-[#191B1E] text-gray-700 dark:text-gray-200 px-3 py-2 text-xs font-mono">
+                                <div className="flex items-center justify-between bg-gray-200 dark:bg-[#1D1F23] text-gray-700 dark:text-gray-200 px-3 py-2 text-xs font-mono">
                                     <span className="flex items-center gap-2">
                                         {element.language}
                                     </span>
@@ -192,7 +192,7 @@ const MarkdownRenderer = ({ content, className = '' }) => {
                                 if (isInline) {
                                     return (
                                         <code
-                                            className="bg-gray-50 dark:bg-[#191B1E] px-2 py-1 rounded-md border border-gray-300 dark:border-gray-700"
+                                            className="bg-gray-50 dark:bg-[#1D1F23] px-2 py-1 rounded-md border border-gray-300 dark:border-gray-700"
                                             data-inline="true"
                                             {...props}
                                         >
@@ -283,7 +283,7 @@ const MarkdownRenderer = ({ content, className = '' }) => {
                             
                             // CITAS
                             blockquote: ({node, children, ...props}) => (
-                                <blockquote className="border-l-4 border-primary-500 pl-4 italic my-3 bg-gray-50 dark:bg-[#191B1E]/30 py-2 rounded-r" {...props}>
+                                <blockquote className="border-l-4 border-primary-500 pl-4 italic my-3 bg-gray-50 dark:bg-[#1D1F23]/30 py-2 rounded-r" {...props}>
                                     {children}
                                 </blockquote>
                             ),
@@ -302,7 +302,7 @@ const MarkdownRenderer = ({ content, className = '' }) => {
                                 </div>
                             ),
                             thead: ({node, children, ...props}) => (
-                                <thead className="bg-gray-50 dark:bg-[#191B1E]" {...props}>
+                                <thead className="bg-gray-50 dark:bg-[#1D1F23]" {...props}>
                                     {children}
                                 </thead>
                             ),

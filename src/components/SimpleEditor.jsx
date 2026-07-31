@@ -229,7 +229,7 @@ const SimpleEditor = ({ value, onChange, placeholder }) => {
     <div className="border border-gray-300 dark:border-gray-700 rounded-xl overflow-hidden bg-white dark:bg-[#1e1e1e] transition-all duration-300 focus-within:ring-1 focus-within:ring-primary-500">
       
       {/* BARRA DE HERRAMIENTAS */}
-      <div className="flex flex-wrap items-center justify-between px-2 bg-gray-50 dark:bg-[#191B1E] border-b border-gray-200 dark:border-gray-700 gap-1">
+      <div className="flex flex-wrap items-center justify-between px-2 bg-gray-50 dark:bg-[#1D1F23] border-b border-gray-200 dark:border-gray-700 gap-1">
         <div className="flex flex-wrap items-center gap-1 mb-1">
           <div className="flex items-center gap-1">
             <button type="button" onClick={formatBold} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Negrita (Ctrl+B)">
@@ -331,7 +331,7 @@ const SimpleEditor = ({ value, onChange, placeholder }) => {
             onChange={(e) => onChange(e.target.value)}
             onPaste={handlePaste}
             placeholder={placeholder || "Describe tu mod aquí..."}
-            className="w-full h-full p-3 md:p-4 dark:bg-[#191B1E] outline-none text-gray-800 dark:text-gray-200 text-sm resize-y min-h-[200px] font-mono"
+            className="w-full h-full p-3 md:p-4 dark:bg-[#1D1F23] outline-none text-gray-800 dark:text-gray-200 text-sm resize-y min-h-[200px] font-mono"
           />
         )}
       </div>

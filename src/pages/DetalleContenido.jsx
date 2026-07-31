@@ -45,7 +45,7 @@ const SmartCreatorAvatar = ({ creador, className = "w-10 h-10 md:w-11 md:h-11" }
     }, [creador]);
 
     return (
-        <div className={clsx("rounded-full overflow-hidden bg-gray-200 dark:bg-[#191B1E] border-2 border-white dark:border-[#1e1e1e] relative shrink-0", className)}>
+        <div className={clsx("rounded-full overflow-hidden bg-gray-200 dark:bg-[#1D1F23] border-2 border-white dark:border-[#1e1e1e] relative shrink-0", className)}>
             <AvatarRenderer avatar={userData.imagen} name={userData.nombre} />
         </div>
     );
@@ -100,7 +100,7 @@ const RecommendedItem = ({ content }) => {
             className="flex items-center gap-3 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700/30 transition-all group"
         >
             {/* Imagen a la izquierda */}
-            <div className="h-20 aspect-video shrink-0 rounded-lg overflow-hidden bg-gray-200 dark:bg-[#191B1E]">
+            <div className="h-20 aspect-video shrink-0 rounded-lg overflow-hidden bg-gray-200 dark:bg-[#1D1F23]">
                 <img 
                     src={content.imagen || '/default.jpg'} 
                     alt={content.titulo}
@@ -118,7 +118,7 @@ const RecommendedItem = ({ content }) => {
 
                 {/* Creador con avatar */}
                 <div className="flex items-center gap-2 mt-1">
-                    <div className="w-4 h-4 shrink-0 rounded-full overflow-hidden bg-gray-200 dark:bg-[#191B1E]">
+                    <div className="w-4 h-4 shrink-0 rounded-full overflow-hidden bg-gray-200 dark:bg-[#1D1F23]">
                         <AvatarRenderer avatar={creatorData.imagen} name={creatorData.nombre} />
                     </div>
                     <span className="text-xs text-gray-600 dark:text-gray-400 truncate">
@@ -981,7 +981,7 @@ const DetalleContenido = () => {
                                 {item.tags.map((tag, index) => (
                                     <div 
                                         key={index} 
-                                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-gray-50 dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700"
+                                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-gray-50 dark:bg-[#1D1F23] border border-gray-300 dark:border-gray-700"
                                     >
                                         <span className="text-[11px] font-bold uppercase tracking-wider text-gray-600 dark:text-gray-400">
                                             {tag}
@@ -1170,7 +1170,7 @@ const DetalleContenido = () => {
                         value={rejectModal.motivo}
                         onChange={(e) => setRejectModal({ ...rejectModal, motivo: e.target.value })}
                         placeholder="Describe el motivo del rechazo..."
-                        className="w-full p-3 rounded-xl bg-gray-50 dark:bg-[#191B1E] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-red-500 transition-all dark:text-white text-sm resize-none"
+                        className="w-full p-3 rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-red-500 transition-all dark:text-white text-sm resize-none"
                         rows={4}
                     />
                 </Modal>,
