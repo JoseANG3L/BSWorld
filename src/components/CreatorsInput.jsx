@@ -80,8 +80,8 @@ const CreatorsInput = ({
   return (
     <div ref={searchRef} className="relative">
       <div className={clsx(
-        "p-2 rounded-2xl border flex flex-wrap gap-2 shadow-sm items-center transition-all duration-300",
-        error ? "border-red-500 bg-red-50/10" : "bg-white dark:bg-[#191B1E] border-gray-300 dark:border-gray-700 focus-within:ring-1 focus-within:ring-primary-500 focus-within:border-primary-500"
+        "p-2 rounded-2xl border flex flex-wrap gap-2 shadow-sm items-center transition-all duration-300 bg-white dark:bg-[#191B1E]",
+        error ? "border-red-500 focus-within:ring-1 focus-within:ring-red-500" : "border-gray-300 dark:border-gray-700 focus-within:ring-1 focus-within:ring-primary-500 focus-within:border-primary-500"
       )}>
         {creators.map((creator, idx) => (
           <div key={idx} className="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-800 shadow-sm border border-gray-300 dark:border-gray-700 pl-1.5 pr-2 py-1 rounded-xl group">
@@ -114,6 +114,7 @@ const CreatorsInput = ({
           className="flex-1 bg-transparent outline-none text-sm dark:text-white px-2 py-1" 
         />
       </div>
+      {error && <p className="text-center md:text-left text-xs text-red-500 font-semibold mt-2">El nombre del creador es obligatorio.</p>}
 
       {showSuggestions && input.length > 1 && (
         <div className="absolute top-full p-1 left-0 right-0 mt-2 bg-white dark:bg-[#191B1E] rounded-xl shadow-lg border border-gray-300 dark:border-gray-700 z-50 overflow-hidden max-h-48 overflow-y-auto">

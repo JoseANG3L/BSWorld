@@ -101,7 +101,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
                     "flex items-center gap-3 px-4 py-2.5 text-sm transition-colors",
                     isActive
                       ? "text-primary-600 dark:text-primary-400 font-semibold"
-                      : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-primary-600 dark:hover:text-primary-400"
+                      : "text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-primary-600 dark:hover:text-primary-400"
                   )}
                 >
                   <item.icon size={16} strokeWidth={isActive ? 2.5 : 2} fill={isActive ? "currentColor" : "none"} />
@@ -109,6 +109,22 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
                 </Link>
               );
             })}
+
+            <div className="md:hidden border-t border-gray-300 dark:border-gray-700 my-1"></div>
+
+            {/* Dark Mode / Light Mode */}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className={clsx(
+                "w-full flex md:hidden items-center gap-3 px-4 py-2.5 text-sm transition-colors",
+                "text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-primary-600 dark:hover:text-primary-400"
+              )}
+              title={isDarkMode ? "Modo Claro" : "Modo Oscuro"}
+            >
+              {isDarkMode ? <Sun size={16} strokeWidth={2} /> : <Moon size={16} strokeWidth={2} />}
+              <span>{isDarkMode ? "Modo Claro" : "Modo Oscuro"}</span>
+            </button>
           </div>
         )}
       </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Save, Plus, Trash2, Image as ImageIcon, Tag, User, CheckCircle, X, 
   ChevronRight, ChevronLeft, AlertTriangle, Loader2, PlayCircle, 
@@ -33,6 +33,8 @@ const TIPO_CARDS = [
 
 const SubirMod = ({ isOpen, onClose }) => {
   const { user } = useAuth();
+
+  const pasosDropdownRef = useRef(null);
   
   const [loading, setLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
@@ -73,6 +75,19 @@ const SubirMod = ({ isOpen, onClose }) => {
   const [selectedCreators, setSelectedCreators] = useState([]);
   const [imagenUrlError, setImagenUrlError] = useState(false);
 
+  const [openDropdowns, setOpenDropdowns] = useState({});
+
+  // Cierre de dropdowns al dar clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (pasosDropdownRef.current && !pasosDropdownRef.current.contains(event.target)) {
+        setOpenDropdowns(prev => ({ ...prev, pasos: false }));
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const isValidUrl = (url) => {
     if (!url) return true; // URLs vacías son válidas (opcional)
     try {
@@ -84,41 +99,25 @@ const SubirMod = ({ isOpen, onClose }) => {
   };
 
   const canNavigateToStep = (targetStep) => {
-    // Validar paso 0 (Nombre)
-    if (targetStep > 0 && !formData.titulo.trim()) {
-      return false;
-    }
-    
-    // Validar paso 2 (Creadores)
-    if (targetStep > 2 && selectedCreators.length === 0) {
-      return false;
-    }
-    
-    // Validar paso 4 (Multimedia)
-    if (targetStep > 4 && !formData.imagen.trim()) {
-      return false;
-    }
-    
+    if (targetStep > 0 && !formData.titulo.trim()) return false;
+    if (targetStep > 2 && selectedCreators.length === 0) return false;
+    if (targetStep > 4 && !formData.imagen.trim()) return false;
     return true;
   };
 
   const handleStepClick = (index) => {
-    // Validar y mostrar errores si es necesario
     if (index > 0 && !formData.titulo.trim()) {
       setErrors(prev => ({ ...prev, titulo: true }));
       return;
     }
-    
     if (index > 2 && selectedCreators.length === 0) {
       setErrors(prev => ({ ...prev, creadores: true }));
       return;
     }
-    
     if (index > 4 && !formData.imagen.trim()) {
       setErrors(prev => ({ ...prev, imagen: true }));
       return;
     }
-    
     setCurrentStep(index);
   };
 
@@ -133,6 +132,8 @@ const SubirMod = ({ isOpen, onClose }) => {
     { id: 'resumen', label: 'Finalizar', icon: CheckCircle },
   ];
 
+  const CurrentStepIcon = steps[currentStep].icon;
+  
   // Bloqueo estricto del scroll en el cuerpo y documento
   useEffect(() => {
     if (isOpen) {
@@ -361,7 +362,7 @@ const SubirMod = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return createPortal(
-    <div className="fixed p-2 md:p-4 inset-0 h-screen w-screen bg-black/80 backdrop-blur-sm flex items-center justify-center z-[99999] overflow-hidden animate-fade-in-up" style={{ animationDuration: '200ms' }}>
+    <div className="fixed p-2 md:p-4 inset-0 h-screen h-[100dvh] w-screen bg-black/80 backdrop-blur-sm flex items-center justify-center z-[99999] overflow-hidden animate-fade-in-up" style={{ animationDuration: '200ms' }}>
       <div className="w-full max-w-5xl h-full flex flex-col bg-white dark:bg-dark-bg rounded-2xl overflow-hidden animate-fade-in-up" style={{ animationDuration: '200ms' }}>
         
         {/* HEADER SIMPLE */}
@@ -378,8 +379,66 @@ const SubirMod = ({ isOpen, onClose }) => {
             </button>
           </div>
           
+          <div className="sm:hidden w-full relative mb-1" ref={pasosDropdownRef}>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  setOpenDropdowns(prev => ({
+                    ...prev,
+                    pasos: !prev.pasos,
+                    tipo: false
+                  }));
+                }}
+                className="w-full pl-3 pr-8 py-2.5 h-10 text-sm bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-transparent rounded-xl outline-none appearance-none cursor-pointer transition-all font-medium text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 text-left flex items-center gap-2.5"
+              >
+                <CurrentStepIcon size={18} className="text-primary-600 dark:text-primary-400 shrink-0" strokeWidth={2.5} />
+                <span className="truncate block font-bold">
+                  {currentStep + 1}. {steps[currentStep].label}
+                </span>
+              </button>
+              <ChevronDown size={16} className={clsx("absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none transition-transform duration-200", openDropdowns.pasos && "rotate-180")} />
+
+              {openDropdowns.pasos && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 rounded-xl shadow-lg z-50 p-1 max-h-60 overflow-y-auto custom-scrollbar">
+                  <div className="flex flex-col gap-0.5">
+                    {steps.map((step, idx) => {
+                      const StepIconComp = step.icon;
+                      const isLocked = !canNavigateToStep(idx) && idx > currentStep;
+                      const isCurrent = currentStep === idx;
+
+                      return (
+                        <button
+                          key={step.id}
+                          type="button"
+                          disabled={isLocked}
+                          onClick={() => handleStepClick(idx)}
+                          className={clsx(
+                            "w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-between",
+                            isCurrent
+                              ? "text-gray-800 dark:text-white bg-gray-200 dark:bg-gray-700 font-semibold"
+                              : isLocked
+                                ? "text-gray-400 dark:text-gray-600 cursor-not-allowed opacity-50"
+                                : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                          )}
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <StepIconComp size={16} strokeWidth={isCurrent ? 2.5 : 2} />
+                            <span>{idx + 1}. {step.label}</span>
+                          </div>
+                          {isLocked && <Lock size={14} className="text-gray-400 dark:text-gray-600" />}
+                          {idx < currentStep && <Check size={14} className="text-green-500" strokeWidth={3} />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Tabs de navegación */}
-          <div className="flex w-full overflow-x-auto scrollbar-hide scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
+          <div className="hidden sm:flex w-full overflow-x-auto scrollbar-hide scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
             {steps.map((step, index) => {
               const StepIcon = step.icon;
               const hasError = 
@@ -434,10 +493,10 @@ const SubirMod = ({ isOpen, onClose }) => {
                   placeholder="Ej: Mi Nuevo Super Mod..." 
                   className={clsx(
                     "w-full px-4 py-3 text-base md:text-lg bg-white dark:bg-[#191B1E] border rounded-2xl outline-none transition-all duration-300 shadow-sm font-medium",
-                    errors.titulo ? "border-red-500 focus:ring-2 focus:ring-red-500" : "border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-primary-500 dark:text-white"
+                    errors.titulo ? "border-red-500 focus:ring-1 focus:ring-red-500" : "border-gray-300 dark:border-transparent focus:ring-1 focus:ring-primary-500 dark:text-white"
                   )} 
                 />
-                {errors.titulo && <p className="text-xs text-red-500 font-semibold">El nombre del mod es obligatorio.</p>}
+                {errors.titulo && <p className="text-center md:text-left text-xs text-red-500 font-semibold">El nombre del mod es obligatorio.</p>}
               </div>
             </div>
           )}
@@ -460,10 +519,10 @@ const SubirMod = ({ isOpen, onClose }) => {
                       type="button"
                       onClick={() => setFormData(prev => ({ ...prev, tipo: card.id }))}
                       className={clsx(
-                        "p-4 rounded-2xl border text-left transition-all duration-200 flex items-start gap-3.5 relative overflow-hidden group",
+                        "p-4 rounded-2xl border text-left transition-all duration-300 flex items-start gap-3.5 relative overflow-hidden group",
                         isSelected 
-                          ? "border-primary-500 bg-primary-50/50 dark:bg-primary-950/20 ring-2 ring-primary-500/50 shadow-md" 
-                          : "border-gray-200 dark:border-gray-800 bg-white dark:bg-[#191B1E] hover:border-gray-300 dark:hover:border-gray-700"
+                          ? "border-primary-500 bg-primary-300/20 dark:bg-primary-600/20 ring-1 ring-primary-500 shadow-md" 
+                          : "border-gray-300 dark:border-transparent bg-white dark:bg-[#191B1E] hover:bg-gray-50 dark:hover:bg-[#232529]"
                       )}
                     >
                       <div className={clsx("w-10 h-10 rounded-xl flex items-center justify-center text-white shrink-0 bg-gradient-to-br shadow-sm", card.color)}>
