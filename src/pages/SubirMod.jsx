@@ -362,7 +362,7 @@ const SubirMod = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return createPortal(
-    <div className="fixed p-2 md:p-4 inset-0 h-screen h-[100dvh] w-screen bg-black/80 backdrop-blur-sm flex items-center justify-center z-[99999] overflow-hidden animate-fade-in-up" style={{ animationDuration: '200ms' }}>
+    <div className="fixed p-2 md:p-4 inset-0 h-[100dvh] w-screen bg-black/80 backdrop-blur-sm flex items-center justify-center z-[99999] overflow-hidden animate-fade-in-up" style={{ animationDuration: '200ms' }}>
       <div className="w-full max-w-5xl h-full flex flex-col bg-white dark:bg-dark-bg rounded-2xl overflow-hidden animate-fade-in-up" style={{ animationDuration: '200ms' }}>
         
         {/* HEADER SIMPLE */}
