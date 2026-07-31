@@ -1,38 +1,23 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
 import { 
   Save, Plus, Trash2, Image as ImageIcon, Tag, User, CheckCircle, X, 
-  ChevronRight, ChevronLeft, AlertTriangle, PenTool, Loader2, PlayCircle, 
+  ChevronRight, ChevronLeft, AlertTriangle, Loader2, PlayCircle, 
   ChevronDown, FileText, Upload, Link as LinkIcon, Lock, Globe, Eye,
-  Sparkles, Check, Edit3, Gamepad2, Map, Boxes, Package, Wrench, Shield
+  Sparkles, Check, Gamepad2, Map, Boxes, Package, Wrench, Edit3
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { 
-  createContent, 
-  getContentById, 
-  updateContent, 
-  searchUsers, 
-  getUserPublicProfile,
-  getUserByUsername
+  createContent
 } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import SimpleEditor from "../components/SimpleEditor";
 import AvatarRenderer from '../components/AvatarRenderer';
+import CreatorsInput from '../components/CreatorsInput';
+import TagsInput from '../components/TagsInput';
+import DownloadsInput from '../components/DownloadsInput';
+import GalleryInput from '../components/GalleryInput';
 import { encryptionService, initializeEncryption } from '../services/encryption';
 import { createPortal } from 'react-dom';
-
-// --- HELPERS ---
-const getYouTubeId = (url) => {
-    if (!url) return null;
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-    const match = url.match(regExp);
-    return (match && match[2].length === 11) ? match[2] : null;
-};
-
-const isVideo = (url) => {
-    if (!url) return false;
-    return url.match(/\.(mp4|webm|ogg|mov)$/i);
-};
 
 const DOWNLOAD_LABELS = ["API 9 (1.7.44+)", "API 8 (1.7.20+)", "API 7 (1.7.5+)", "API 6 (1.6.4+)", "API 4 (1.4.150+)"];
 const RECOMMENDED_TAGS = ["api 9", "api 8", "api 7", "api 6", "api 4", "pvp", "texturas", "utilidad"];
@@ -46,17 +31,10 @@ const TIPO_CARDS = [
   { id: 'paquete', title: 'Paquete Texturas', desc: 'Interfaces, audios o texturas HD', icon: Package, color: 'from-cyan-500 to-blue-600' }
 ];
 
-const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
+const SubirMod = ({ isOpen, onClose }) => {
   const { user } = useAuth();
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const searchRef = useRef(null);
   
-  const editId = propEditId || searchParams.get('edit'); 
-  const isEditing = !!editId;
-
   const [loading, setLoading] = useState(false);
-  const [fetching, setFetching] = useState(!!editId);
   const [currentStep, setCurrentStep] = useState(0);
   const [encryptionKey, setEncryptionKey] = useState(null);
   const [isEncryptionReady, setIsEncryptionReady] = useState(false);
@@ -92,23 +70,67 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
 
   const [initialFormData, setInitialFormData] = useState(null);
   const [hasChanges, setHasChanges] = useState(false);
-  const [tagInput, setTagInput] = useState('');
-  const [creatorInput, setCreatorInput] = useState('');
   const [selectedCreators, setSelectedCreators] = useState([]);
-  const [userSuggestions, setUserSuggestions] = useState([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [isSearching, setIsSearching] = useState(false);
-  const [originalEstado, setOriginalEstado] = useState(null);
+  const [imagenUrlError, setImagenUrlError] = useState(false);
+
+  const isValidUrl = (url) => {
+    if (!url) return true; // URLs vacías son válidas (opcional)
+    try {
+      const urlObj = new URL(url);
+      return urlObj.protocol === 'http:' || urlObj.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  };
+
+  const canNavigateToStep = (targetStep) => {
+    // Validar paso 0 (Nombre)
+    if (targetStep > 0 && !formData.titulo.trim()) {
+      return false;
+    }
+    
+    // Validar paso 2 (Creadores)
+    if (targetStep > 2 && selectedCreators.length === 0) {
+      return false;
+    }
+    
+    // Validar paso 4 (Multimedia)
+    if (targetStep > 4 && !formData.imagen.trim()) {
+      return false;
+    }
+    
+    return true;
+  };
+
+  const handleStepClick = (index) => {
+    // Validar y mostrar errores si es necesario
+    if (index > 0 && !formData.titulo.trim()) {
+      setErrors(prev => ({ ...prev, titulo: true }));
+      return;
+    }
+    
+    if (index > 2 && selectedCreators.length === 0) {
+      setErrors(prev => ({ ...prev, creadores: true }));
+      return;
+    }
+    
+    if (index > 4 && !formData.imagen.trim()) {
+      setErrors(prev => ({ ...prev, imagen: true }));
+      return;
+    }
+    
+    setCurrentStep(index);
+  };
 
   const steps = [
-    { id: 'titulo', label: '1. Nombre' },
-    { id: 'tipo', label: '2. Categoría' },
-    { id: 'creadores', label: '3. Creadores' },
-    { id: 'descripcion', label: '4. Detalles' },
-    { id: 'imagenes', label: '5. Multimedia' },
-    { id: 'descargas', label: '6. Archivos' },
-    { id: 'visibilidad', label: '7. Privacidad' },
-    { id: 'resumen', label: '8. Finalizar' },
+    { id: 'titulo', label: 'Nombre', icon: FileText },
+    { id: 'tipo', label: 'Categoría', icon: Gamepad2 },
+    { id: 'creadores', label: 'Creadores', icon: User },
+    { id: 'descripcion', label: 'Detalles', icon: Edit3 },
+    { id: 'imagenes', label: 'Multimedia', icon: ImageIcon },
+    { id: 'descargas', label: 'Archivos', icon: Upload },
+    { id: 'visibilidad', label: 'Privacidad', icon: Globe },
+    { id: 'resumen', label: 'Finalizar', icon: CheckCircle },
   ];
 
   // Bloqueo estricto del scroll en el cuerpo y documento
@@ -137,11 +159,8 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
       setInitialFormData(null);
       setHasChanges(false);
       setSelectedCreators([]);
-      setTagInput('');
-      setCreatorInput('');
       setErrors({ titulo: false, imagen: false, creadores: false });
       setCreatedContentId(null);
-      setOriginalEstado(null);
     }
     return () => {
       document.body.style.overflow = 'unset';
@@ -169,56 +188,9 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
   }, []);
 
   useEffect(() => {
-    const loadDataForEdit = async () => {
-      if (!isEditing) return;
-      try {
-        const data = await getContentById(editId, user?.id, user?.role);
-        if (data) {
-          setOriginalEstado(data.estado || data.status || 'revision');
-          
-          if (data.creadores && Array.isArray(data.creadores)) {
-             const enrichedCreators = await Promise.all(data.creadores.map(async (creator) => {
-                let profile = null;
-                if (creator.uid) { try { profile = await getUserPublicProfile(creator.uid); } catch (err) { } } 
-                else if (creator.nombre) { try { profile = await getUserByUsername(creator.nombre); } catch (err) { } }
-                return profile ? { nombre: profile.nombre, imagen: profile.imagen, uid: profile.uid } : { nombre: creator.nombre || "Desconocido", imagen: creator.imagen || null, uid: null };
-             }));
-             setSelectedCreators(enrichedCreators.filter(c => c && c.nombre));
-          }
-
-          const cleanAporteId = data.aporte && typeof data.aporte === 'object' ? data.aporte.uid || data.aporte.id : data.aporte;
-
-          const newFormData = {
-            titulo: data.titulo || '',
-            descripcion: data.descripcion || '',
-            tipo: data.tipo || 'mod',
-            imagen: data.imagen || '',
-            aporte: cleanAporteId || user?.id || '', 
-            creado: data.creado ? new Date(data.creado).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-            estado: data.estado || data.status || 'borrador',
-            visibilidad: data.visibilidad || 'publico', 
-            tags: data.tags ? data.tags.filter(t => t !== data.tipo) : [],
-            galeria: data.galeria && Array.isArray(data.galeria) ? data.galeria : [], 
-            descargas: data.descargas && data.descargas.length > 0 ? data.descargas.map(d => ({ nombre: d.label || '', url: d.url || '' })) : [{ nombre: '', url: '' }],
-          };
-          
-          setFormData(newFormData);
-          setInitialFormData(JSON.parse(JSON.stringify(newFormData)));
-        } else { alert("No se encontró el contenido"); navigate('/admin'); }
-      } catch (error) { console.error(error); } finally { setFetching(false); }
-    };
-    loadDataForEdit();
-  }, [editId, isEditing, navigate, user?.id]);
-
-  useEffect(() => {
-    if (!initialFormData) {
-      const hasData = formData.titulo || formData.descripcion || formData.imagen || formData.tags.length > 0 || formData.galeria.length > 0 || formData.descargas.some(d => d.url) || selectedCreators.length > 0;
-      setHasChanges(hasData);
-    } else {
-      const formDataChanged = JSON.stringify(formData) !== JSON.stringify(initialFormData);
-      setHasChanges(formDataChanged);
-    }
-  }, [formData, selectedCreators, initialFormData]);
+    const hasData = formData.titulo || formData.descripcion || formData.imagen || formData.tags.length > 0 || formData.galeria.length > 0 || formData.descargas.some(d => d.url) || selectedCreators.length > 0;
+    setHasChanges(hasData);
+  }, [formData, selectedCreators]);
 
   useEffect(() => {
     if (formData.titulo) setErrors(prev => ({ ...prev, titulo: false }));
@@ -232,9 +204,9 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
         isOpen: true,
         type: 'warning',
         title: 'Cambios sin guardar',
-        message: 'Tienes modificaciones en el formulario. ¿Qué deseas hacer antes de salir?',
+        message: 'Tienes modificaciones pendientes. ¿Qué deseas hacer antes de salir?',
         showCancel: true,
-        confirmText: 'Guardar borrador y salir',
+        confirmText: 'Guardar como borrador y salir',
         neutralText: 'Salir sin guardar',
         cancelText: 'Cancelar',
         onConfirm: () => {
@@ -252,68 +224,17 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
     }
   };
 
-  useEffect(() => {
-    const handleClickOutside = (event) => { if (searchRef.current && !searchRef.current.contains(event.target)) setShowSuggestions(false); };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleDescriptionChange = (htmlContent) => setFormData(prev => ({ ...prev, descripcion: htmlContent }));
-
-  const handleAddTag = () => {
-    const cleanTag = tagInput.trim().toLowerCase();
-    if (cleanTag && !formData.tags.includes(cleanTag) && formData.tags.length < 10) {
-        setFormData(prev => ({ ...prev, tags: [...prev.tags, cleanTag] }));
-        setTagInput('');
-    } else if (formData.tags.length >= 10) { setTagInput(''); }
-  };
-  const handleRemoveTag = (tagToRemove) => setFormData(prev => ({ ...prev, tags: prev.tags.filter(tag => tag !== tagToRemove) }));
-  const addTagDirect = (tag) => { if (!formData.tags.includes(tag.toLowerCase()) && formData.tags.length < 10) { setFormData(prev => ({ ...prev, tags: [...prev.tags, tag.toLowerCase()] })); } };
-
-  const handleAddGalleryImage = () => setFormData(prev => ({ ...prev, galeria: [...prev.galeria, ''] }));
-  const handleGalleryImageChange = (index, value) => {
-    const newGaleria = [...formData.galeria];
-    newGaleria[index] = value;
-    setFormData(prev => ({ ...prev, galeria: newGaleria }));
-  };
-  const handleRemoveGalleryImage = (index) => setFormData(prev => ({ ...prev, galeria: prev.galeria.filter((_, i) => i !== index) }));
-
-  const handleAddDownload = () => setFormData(prev => ({ ...prev, descargas: [...prev.descargas, { nombre: '', url: '' }] }));
-  const handleDownloadChange = (index, field, value) => {
-    const newDescargas = [...formData.descargas];
-    newDescargas[index][field] = value;
-    setFormData(prev => ({ ...prev, descargas: newDescargas }));
-  };
-  const handleRemoveDownload = (index) => setFormData(prev => ({ ...prev, descargas: prev.descargas.filter((_, i) => i !== index) }));
-
-  useEffect(() => {
-    if (creatorInput.length < 2) { setUserSuggestions([]); setShowSuggestions(false); return; }
-    const timerId = setTimeout(async () => {
-      setIsSearching(true);
-      try {
-        const results = await searchUsers(creatorInput);
-        setUserSuggestions(results.filter(u => !selectedCreators.some(sel => sel.uid === u.uid)));
-        setShowSuggestions(true);
-      } catch (err) { console.error(err); } finally { setIsSearching(false); }
-    }, 500);
-    return () => clearTimeout(timerId);
-  }, [creatorInput, selectedCreators]);
-
-  const handleCreatorSearch = (e) => setCreatorInput(e.target.value);
-  const addUserCreator = (user) => { setSelectedCreators([...selectedCreators, user]); setCreatorInput(''); setShowSuggestions(false); };
-  const addTextCreator = (e) => {
-    if (e.key === 'Enter' && creatorInput.trim()) {
-      e.preventDefault();
-      setSelectedCreators([...selectedCreators, { nombre: creatorInput.trim(), imagen: null, uid: null }]);
-      setCreatorInput(''); setShowSuggestions(false);
+    
+    // Validar URL de imagen
+    if (name === 'imagen') {
+      setImagenUrlError(!isValidUrl(value));
     }
   };
-  const removeCreator = (index) => { const newCreators = [...selectedCreators]; newCreators.splice(index, 1); setSelectedCreators(newCreators); };
+
+  const handleDescriptionChange = (value) => setFormData(prev => ({ ...prev, descripcion: value }));
 
   const handleNextStep = () => {
     if (currentStep === 0 && !formData.titulo.trim()) {
@@ -401,13 +322,8 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
       };
 
       let result;
-      if (isEditing) {
-        result = await updateContent(editId, payload);
-        setCreatedContentId(editId);
-      } else {
-        result = await createContent(payload, false);
-        setCreatedContentId(result?.id || result);
-      }
+      result = await createContent(payload, false);
+      setCreatedContentId(result?.id || result);
 
       const isDraft = action === 'draft';
       const isPublished = finalEstado === 'aceptado';
@@ -424,12 +340,10 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
         onConfirm: () => {
           closeModal();
           if (onClose) onClose();
-          if (createdContentId) navigate(`/mod/${createdContentId}`);
         },
         onCancel: () => {
           closeModal();
           if (onClose) onClose();
-          navigate(user.role === 'admin' ? '/admin' : '/mis-mods');
         },
         onSecondary: isPublished ? () => {
           closeModal();
@@ -446,41 +360,66 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
 
   if (!isOpen) return null;
 
-  if (fetching) return createPortal(
-    <div className="fixed inset-0 bg-white dark:bg-[#1e1e1e] flex items-center justify-center z-[99999]">
-      <Loader2 className="animate-spin text-primary-600" size={48} />
-    </div>,
-    document.body
-  );
-
   return createPortal(
-    <div className="fixed inset-0 h-screen w-screen bg-black flex flex-col z-[99999] overflow-hidden animate-fade-in">
-      
-      {/* HEADER SIMPLE */}
-      <div className="flex-shrink-0 bg-white dark:bg-[#1e1e1e] border-b border-gray-200 dark:border-gray-800 px-4 py-3">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className={clsx("w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-md shrink-0", isEditing ? "bg-blue-600" : "bg-primary-600")}>
-              {isEditing ? <PenTool size={18} strokeWidth={2.5} /> : <Sparkles size={18} strokeWidth={2.5} />}
-            </div>
-            <h1 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white">
-              {isEditing ? "Editar Publicación" : "Publicar Nuevo Mod"}
+    <div className="fixed p-2 md:p-4 inset-0 h-screen w-screen bg-black/80 backdrop-blur-sm flex items-center justify-center z-[99999] overflow-hidden animate-fade-in-up" style={{ animationDuration: '200ms' }}>
+      <div className="w-full max-w-5xl h-full flex flex-col bg-white dark:bg-dark-bg rounded-2xl overflow-hidden animate-fade-in-up" style={{ animationDuration: '200ms' }}>
+        
+        {/* HEADER SIMPLE */}
+        <div className="flex-shrink-0 bg-white dark:bg-dark-bg border-b border-gray-200 dark:border-gray-800 px-2 md:px-4 pt-3">
+          <div className="flex items-center justify-between mb-3">
+            <h1 className="flex text-xl md:text-2xl font-bold text-gray-800 dark:text-white items-center gap-3">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-sm text-white bg-gradient-to-br from-primary-500 to-primary-600">
+                  <Upload size={20} strokeWidth={2.5} />
+              </div>
+              Publicar Nuevo Mod
             </h1>
+            <button type="button" onClick={handleClose} className="p-2 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+              <X size={22} />
+            </button>
           </div>
-          <button type="button" onClick={handleClose} className="p-2 rounded-xl text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-            <X size={20} />
-          </button>
+          
+          {/* Tabs de navegación */}
+          <div className="flex w-full">
+            {steps.map((step, index) => {
+              const StepIcon = step.icon;
+              const hasError = 
+                (step.id === 'titulo' && errors.titulo) ||
+                (step.id === 'imagenes' && errors.imagen) ||
+                (step.id === 'creadores' && errors.creadores);
+              const isLocked = !canNavigateToStep(index) && index > currentStep;
+              return (
+                <button
+                  key={step.id}
+                  type="button"
+                  onClick={() => handleStepClick(index)}
+                  disabled={isLocked}
+                  className={clsx(
+                    "flex-1 px-3 py-2 text-xs font-medium transition-all whitespace-nowrap flex flex-col items-center justify-center gap-2 border-b-2",
+                    currentStep === index
+                      ? "text-primary-600 dark:text-primary-400 border-primary-500 font-semibold"
+                      : hasError
+                        ? "text-red-500 border-red-500"
+                        : isLocked
+                          ? "text-gray-400 dark:text-gray-600 border-transparent cursor-not-allowed opacity-50"
+                          : "text-gray-500 dark:text-gray-400 border-transparent hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer"
+                  )}
+                >
+                  <StepIcon size={20} strokeWidth={currentStep === index ? 2.0 : 1.5} />
+                  {step.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
 
-      {/* CONTENIDO PRINCIPAL POR PASO */}
-      <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar bg-white dark:bg-dark-bg">
-        <div className="max-w-2xl mx-auto my-auto">
+
+        {/* CONTENIDO PRINCIPAL POR PASO */}
+        <div className="flex-1 p-2 md:p-4 overflow-y-auto custom-scrollbar bg-white dark:bg-dark-bg">
           
           {/* PASO 1: NOMBRE */}
           {currentStep === 0 && (
             <div className="space-y-4 animate-fade-in">
-              <div className="text-center md:text-left mb-6">
+              <div className="text-center md:text-left mb-4">
                 <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-1">¿Cómo se llama tu proyecto?</h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400">Ingresa un título claro y llamativo para que la comunidad lo identifique rápidamente.</p>
               </div>
@@ -554,49 +493,12 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
                 <p className="text-sm text-gray-500 dark:text-gray-400">Añade a los usuarios que participaron o crearon este mod.</p>
               </div>
 
-              <div className="relative" ref={searchRef}>
-                <div className={clsx(
-                  "p-2 rounded-2xl border flex flex-wrap gap-2 shadow-sm items-center transition-all min-h-[56px]",
-                  errors.creadores ? "border-red-500 bg-red-50/10" : "bg-white dark:bg-[#191B1E] border-gray-300 dark:border-gray-700 focus-within:ring-2 focus-within:ring-primary-500"
-                )}>
-                  {selectedCreators.map((creator, idx) => (
-                    <div key={idx} className="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-800 pl-1.5 pr-2 py-1 rounded-xl border border-gray-200 dark:border-gray-700">
-                      <div className="w-5 h-5 rounded-full overflow-hidden bg-gray-300 shrink-0">
-                        <AvatarRenderer avatar={creator.imagen} name={creator.nombre} />
-                      </div>
-                      <span className="text-xs font-bold text-gray-800 dark:text-gray-200">{creator.nombre}</span>
-                      <button type="button" onClick={() => removeCreator(idx)} className="text-gray-400 hover:text-red-500 p-0.5"><X size={12} /></button>
-                    </div>
-                  ))}
-                  <input 
-                    type="text" 
-                    value={creatorInput} 
-                    onChange={handleCreatorSearch} 
-                    onKeyDown={addTextCreator} 
-                    placeholder="Buscar usuario..." 
-                    className="flex-1 bg-transparent outline-none text-sm dark:text-white min-w-[140px] px-2 py-1" 
-                  />
-                </div>
-
-                {showSuggestions && creatorInput.length > 1 && (
-                  <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#252525] rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden max-h-48 overflow-y-auto">
-                    {userSuggestions.length > 0 ? (
-                      <ul className="divide-y divide-gray-100 dark:divide-gray-800">
-                        {userSuggestions.map((u) => (
-                          <li key={u.uid}>
-                            <button type="button" onClick={() => addUserCreator(u)} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-primary-50 dark:hover:bg-primary-950/30 text-left transition-colors">
-                              <div className="w-7 h-7 rounded-full overflow-hidden bg-gray-200 shrink-0">
-                                <AvatarRenderer avatar={u.imagen} name={u.nombre} />
-                              </div>
-                              <span className="text-xs font-bold text-gray-800 dark:text-gray-200">{u.nombre}</span>
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (!isSearching && <div className="p-3 text-center text-xs text-gray-400">Presiona <b>Enter</b> para agregarlo como creador externo.</div>)}
-                  </div>
-                )}
-              </div>
+              <CreatorsInput
+                creators={selectedCreators}
+                onChange={setSelectedCreators}
+                error={errors.creadores}
+                placeholder="Buscar usuario..."
+              />
             </div>
           )}
 
@@ -623,77 +525,45 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
               {/* Imagen Principal */}
               <div className="space-y-2">
                 <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Imagen de Portada *</label>
-                <div className="flex gap-2 items-center">
-                  <input 
-                    type="url" 
-                    name="imagen" 
-                    value={formData.imagen} 
-                    onChange={handleChange} 
-                    placeholder="https://i.imgur.com/tu-imagen.png" 
-                    className={clsx(
-                      "flex-1 px-4 py-2.5 text-sm bg-white dark:bg-[#191B1E] border rounded-xl outline-none dark:text-white",
-                      errors.imagen ? "border-red-500" : "border-gray-300 dark:border-gray-700"
-                    )}
-                  />
+                <div className="w-full aspect-video rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-800 bg-gray-100 dark:bg-gray-900">
+                  {formData.imagen ? (
+                    <img 
+                      src={formData.imagen} 
+                      alt="Portada" 
+                      className="w-full h-full object-cover" 
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.parentElement.innerHTML = '<div class="w-full h-full flex items-center justify-center text-gray-400 text-xs">Error al cargar imagen</div>';
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
+                      URL de portada vacía
+                    </div>
+                  )}
                 </div>
-                {formData.imagen && (
-                  <div className="w-full aspect-video max-h-48 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-800 bg-black">
-                    <img src={formData.imagen} alt="Portada" className="w-full h-full object-cover" onError={(e) => e.target.style.display = 'none'} />
-                  </div>
+                <input 
+                  type="url" 
+                  name="imagen" 
+                  value={formData.imagen} 
+                  onChange={handleChange} 
+                  placeholder="https://i.imgur.com/tu-imagen.png" 
+                  className={clsx(
+                    "w-full px-4 py-2.5 text-sm bg-white dark:bg-[#191B1E] border rounded-xl outline-none dark:text-white",
+                    errors.imagen ? "border-red-500" : imagenUrlError ? "border-red-500" : "border-gray-300 dark:border-gray-700"
+                  )}
+                />
+                {imagenUrlError && formData.imagen && (
+                  <span className="text-xs text-red-500">URL inválida</span>
                 )}
               </div>
 
               {/* Galería Adicional */}
-              <div className="space-y-3 pt-3 border-t border-gray-100 dark:border-gray-800">
-                <div className="flex justify-between items-center">
-                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Imágenes / Videos Adicionales</label>
-                  <button type="button" onClick={handleAddGalleryImage} className="text-xs font-bold text-primary-600 dark:text-primary-400 hover:underline flex items-center gap-1"><Plus size={14} /> Añadir URL</button>
-                </div>
-                {formData.galeria.map((url, idx) => {
-                  const youtubeId = getYouTubeId(url);
-                  const isVideoFile = isVideo(url);
-                  return (
-                    <div key={idx} className="space-y-2">
-                      <div className="flex gap-2">
-                        <input 
-                          type="url" 
-                          value={url} 
-                          onChange={(e) => handleGalleryImageChange(idx, e.target.value)} 
-                          placeholder="URL de imagen o YouTube..." 
-                          className="flex-1 px-3 py-2 text-xs bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 rounded-xl outline-none dark:text-white"
-                        />
-                        <button type="button" onClick={() => handleRemoveGalleryImage(idx)} className="p-2 text-gray-400 hover:text-red-500"><Trash2 size={16} /></button>
-                      </div>
-                      {url && (
-                        <div className="w-full aspect-video max-h-40 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-800 bg-black">
-                          {youtubeId ? (
-                            <iframe 
-                              src={`https://www.youtube.com/embed/${youtubeId}`} 
-                              className="w-full h-full"
-                              allowFullScreen
-                              title={`Video ${idx + 1}`}
-                            />
-                          ) : isVideoFile ? (
-                            <video controls className="w-full h-full object-cover">
-                              <source src={url} />
-                            </video>
-                          ) : (
-                            <img 
-                              src={url} 
-                              alt={`Galería ${idx + 1}`} 
-                              className="w-full h-full object-cover" 
-                              onError={(e) => {
-                                e.target.style.display = 'none';
-                                e.target.parentElement.innerHTML = '<div class="w-full h-full flex items-center justify-center text-gray-500 text-xs">Error al cargar imagen</div>';
-                              }}
-                            />
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+              <GalleryInput
+                gallery={formData.galeria}
+                onChange={(galeria) => setFormData(prev => ({ ...prev, galeria }))}
+                layout="inline"
+              />
             </div>
           )}
 
@@ -706,59 +576,24 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
               </div>
 
               {/* Enlaces de descarga */}
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Enlaces de Descarga</span>
-                  <button type="button" onClick={handleAddDownload} className="text-xs font-bold text-primary-600 dark:text-primary-400 hover:underline flex items-center gap-1"><Plus size={14} /> Añadir enlace</button>
-                </div>
-
-                {formData.descargas.map((d, idx) => (
-                  <div key={idx} className="flex flex-col sm:flex-row gap-2 bg-gray-50 dark:bg-[#191B1E] p-3 rounded-2xl border border-gray-200 dark:border-gray-800">
-                    <input 
-                      type="text" 
-                      value={d.nombre} 
-                      onChange={(e) => handleDownloadChange(idx, 'nombre', e.target.value)} 
-                      placeholder="Etiqueta (Ej: API 9, Mediafire...)" 
-                      className="w-full sm:w-1/3 px-3 py-2 text-xs bg-white dark:bg-[#222] border border-gray-300 dark:border-gray-700 rounded-xl outline-none dark:text-white"
-                    />
-                    <input 
-                      type="url" 
-                      value={d.url} 
-                      onChange={(e) => handleDownloadChange(idx, 'url', e.target.value)} 
-                      placeholder="https://..." 
-                      className="flex-1 px-3 py-2 text-xs bg-white dark:bg-[#222] border border-gray-300 dark:border-gray-700 rounded-xl outline-none dark:text-white"
-                    />
-                    {formData.descargas.length > 1 && (
-                      <button type="button" onClick={() => handleRemoveDownload(idx)} className="p-2 text-gray-400 hover:text-red-500"><Trash2 size={16} /></button>
-                    )}
-                  </div>
-                ))}
-              </div>
+              <DownloadsInput
+                downloads={formData.descargas.map(d => ({ 
+                  presetLabel: d.nombre && DOWNLOAD_LABELS.includes(d.nombre) ? d.nombre : 'Personalizado', 
+                  label: d.nombre && DOWNLOAD_LABELS.includes(d.nombre) ? d.nombre : '', 
+                  url: d.url 
+                }))}
+                onChange={(newDownloads) => setFormData(prev => ({ ...prev, descargas: newDownloads.map(d => ({ nombre: d.label, url: d.url })) }))}
+                presets={DOWNLOAD_LABELS}
+                defaultPreset={DOWNLOAD_LABELS[0]}
+              />
 
               {/* Tags */}
-              <div className="space-y-2 pt-4 border-t border-gray-100 dark:border-gray-800">
-                <span className="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Etiquetas</span>
-                <div className="flex gap-2">
-                  <input 
-                    type="text" 
-                    value={tagInput} 
-                    onChange={(e) => setTagInput(e.target.value)} 
-                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
-                    placeholder="Escribe un tag y presiona Enter..." 
-                    className="flex-1 px-3 py-2 text-xs bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 rounded-xl outline-none dark:text-white"
-                  />
-                  <button type="button" onClick={handleAddTag} className="px-4 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-xs font-bold"><Plus size={16} /></button>
-                </div>
-
-                <div className="flex flex-wrap gap-1.5 pt-2">
-                  {formData.tags.map((t, idx) => (
-                    <span key={idx} className="px-2.5 py-1 bg-gray-100 dark:bg-gray-800 rounded-lg text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1">
-                      #{t}
-                      <button type="button" onClick={() => handleRemoveTag(t)} className="hover:text-red-500"><X size={12} /></button>
-                    </span>
-                  ))}
-                </div>
-              </div>
+              <TagsInput
+                tags={[formData.tipo, ...formData.tags.filter(tag => tag !== formData.tipo)]}
+                onChange={(tags) => setFormData(prev => ({ ...prev, tags: tags.filter(tag => tag !== formData.tipo) }))}
+                recommendedTags={RECOMMENDED_TAGS}
+                fixedTags={[formData.tipo]}
+              />
             </div>
           )}
 
@@ -789,12 +624,12 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
                       )}
                     >
                       <div className="flex justify-between items-center">
-                        <span className="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-2">
+                        <span className="font-bold text-lg text-gray-900 dark:text-white flex items-center gap-2">
                           <IconComp size={16} /> {opt.title}
                         </span>
                         {isSelected && <Check size={16} className="text-primary-600" />}
                       </div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{opt.desc}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">{opt.desc}</p>
                     </button>
                   );
                 })}
@@ -804,7 +639,7 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
 
           {/* PASO 8: RESUMEN Y FINALIZAR (LISTADO DE MODIFICACIONES Y EDICIÓN RÁPIDA) */}
           {currentStep === 7 && (
-            <div className="space-y-5 animate-fade-in">
+            <div className="space-y-4 animate-fade-in">
               <div className="text-center md:text-left mb-4">
                 <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-1">Resumen de la Publicación</h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400">Revisa la lista de modificaciones y presiona publicar si todo está correcto.</p>
@@ -827,9 +662,7 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
                 <div className="flex justify-between items-center pb-3 border-b border-gray-100 dark:border-gray-800">
                   <div>
                     <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Categoría</span>
-                    <span className="inline-block mt-0.5 px-2 py-0.5 rounded bg-primary-100 dark:bg-primary-950/50 text-primary-600 dark:text-primary-400 text-[10px] font-extrabold uppercase">
-                      {formData.tipo}
-                    </span>
+                    <h3 className="text-sm font-bold text-gray-900 dark:text-white capitalize">{formData.tipo || 'Sin categoría'}</h3>
                   </div>
                   <button type="button" onClick={() => setCurrentStep(1)} className="p-2 text-primary-600 dark:text-primary-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors" title="Editar categoría">
                     <Edit3 size={16} />
@@ -840,7 +673,7 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
                 <div className="flex justify-between items-center pb-3 border-b border-gray-100 dark:border-gray-800">
                   <div>
                     <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Creadores</span>
-                    <p className="text-xs font-semibold text-gray-800 dark:text-gray-200 mt-0.5">
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mt-0.5">
                       {selectedCreators.map(c => c.nombre).join(', ') || 'Sin creadores asignados'}
                     </p>
                   </div>
@@ -853,7 +686,7 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
                 <div className="flex justify-between items-center pb-3 border-b border-gray-100 dark:border-gray-800">
                   <div>
                     <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Multimedia</span>
-                    <p className="text-xs font-semibold text-gray-800 dark:text-gray-200 mt-0.5">
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mt-0.5">
                       Portada: {formData.imagen ? 'Configurada' : 'Falta configurar'} • Galería: {formData.galeria.length} elementos
                     </p>
                   </div>
@@ -866,7 +699,7 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
                 <div className="flex justify-between items-center pb-3 border-b border-gray-100 dark:border-gray-800">
                   <div>
                     <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Descargas & Tags</span>
-                    <p className="text-xs font-semibold text-gray-800 dark:text-gray-200 mt-0.5">
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mt-0.5">
                       {formData.descargas.filter(d => d.url).length} enlaces directos • {formData.tags.length} etiquetas
                     </p>
                   </div>
@@ -879,7 +712,7 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
                 <div className="flex justify-between items-center">
                   <div>
                     <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Visibilidad</span>
-                    <p className="text-xs font-bold text-gray-800 dark:text-gray-200 capitalize mt-0.5">
+                    <p className="text-sm font-bold text-gray-800 dark:text-gray-200 capitalize mt-0.5">
                       {formData.visibilidad}
                     </p>
                   </div>
@@ -891,66 +724,66 @@ const SubirMod = ({ isOpen, onClose, editId: propEditId }) => {
               </div>
             </div>
           )}
-
         </div>
-      </div>
 
-      {/* FOOTER FIJO CON NAVEGACIÓN Y BOTONES DE ACCIÓN */}
-      <div className="flex-shrink-0 bg-white dark:bg-[#1e1e1e] border-t border-gray-200 dark:border-gray-800 px-4 py-3">
-        <div className="max-w-4xl mx-auto flex gap-3 justify-between items-center">
-          <button 
-            type="button" 
-            onClick={handlePrevStep} 
-            disabled={currentStep === 0} 
-            className="px-4 py-2 bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-white rounded-xl text-sm font-bold flex items-center gap-1 shadow-sm disabled:opacity-30 disabled:cursor-not-allowed"
-          >
-            <ChevronLeft size={16} /> Anterior
-          </button>
-          
-          <div className="flex gap-2">
-            {currentStep < steps.length - 1 ? (
-              <button 
-                type="button" 
-                onClick={handleNextStep} 
-                className="px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-bold flex items-center gap-1.5 shadow-sm transition-colors"
-              >
-                Siguiente <ChevronRight size={16} />
-              </button>
-            ) : (
-              <>
-                {user?.role === 'admin' ? (
-                  <button 
-                    type="button" 
-                    onClick={() => handleSubmitForm('publish')} 
-                    disabled={loading || !isEncryptionReady} 
-                    className="px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-bold flex items-center gap-1.5 shadow-sm disabled:opacity-50 transition-colors"
-                  >
-                    {loading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />} Publicar Mod
-                  </button>
-                ) : (
-                  <>
+        {/* FOOTER FIJO CON NAVEGACIÓN Y BOTONES DE ACCIÓN */}
+        <div className="flex-shrink-0 bg-white dark:bg-dark-bg border-t border-gray-200 dark:border-gray-800 px-4 py-3">
+          <div className="flex gap-3 justify-between items-center">
+            <button 
+              type="button" 
+              onClick={handlePrevStep} 
+              disabled={currentStep === 0} 
+              className="px-4 py-2 bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-white rounded-xl text-sm font-bold flex items-center gap-1 shadow-sm disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              <ChevronLeft size={16} /> Anterior
+            </button>
+            
+            <div className="flex gap-2">
+              {currentStep < steps.length - 1 ? (
+                <button 
+                  type="button" 
+                  onClick={handleNextStep} 
+                  className="px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-bold flex items-center gap-1.5 shadow-sm transition-colors"
+                >
+                  Siguiente <ChevronRight size={16} />
+                </button>
+              ) : (
+                <>
+                  {user?.role === 'admin' ? (
                     <button 
                       type="button" 
-                      onClick={() => handleSubmitForm('draft')} 
+                      onClick={() => handleSubmitForm('publish')} 
                       disabled={loading || !isEncryptionReady} 
-                      className="px-4 py-2 bg-gray-100 dark:bg-[#191B1E] text-gray-700 dark:text-gray-200 font-bold text-sm rounded-xl hover:bg-gray-200 dark:hover:bg-gray-800 transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+                      className="px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-bold flex items-center gap-1.5 shadow-sm disabled:opacity-50 transition-colors"
                     >
-                      <FileText size={16} /> Borrador
+                      {loading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />} Publicar Mod
                     </button>
-                    <button 
-                      type="button" 
-                      onClick={() => handleSubmitForm('pending')} 
-                      disabled={loading || !isEncryptionReady} 
-                      className="px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white font-bold text-sm rounded-xl transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50"
-                    >
-                      {loading ? <Loader2 className="animate-spin" size={16} /> : <Upload size={16} />} Publicar
-                    </button>
-                  </>
-                )}
-              </>
-            )}
+                  ) : (
+                    <>
+                      <button 
+                        type="button" 
+                        onClick={() => handleSubmitForm('draft')} 
+                        disabled={loading || !isEncryptionReady} 
+                        className="px-4 py-2 bg-gray-100 dark:bg-[#191B1E] text-gray-700 dark:text-gray-200 font-bold text-sm rounded-xl hover:bg-gray-200 dark:hover:bg-gray-800 transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+                      >
+                        <FileText size={16} /> Borrador
+                      </button>
+                      <button 
+                        type="button" 
+                        onClick={() => handleSubmitForm('pending')} 
+                        disabled={loading || !isEncryptionReady} 
+                        className="px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white font-bold text-sm rounded-xl transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+                      >
+                        {loading ? <Loader2 className="animate-spin" size={16} /> : <Upload size={16} />} Publicar
+                      </button>
+                    </>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         </div>
+
       </div>
 
       {/* CUSTOM MODAL - MISMO ESTILO QUE LA PÁGINA */}

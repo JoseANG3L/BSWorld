@@ -57,10 +57,7 @@ const CreatorCard = ({ username, avatar, banner, role, createdat }) => {
           
           {/* Avatar con Renderer */}
           <div className="w-20 h-20 rounded-full border-4 border-white dark:border-[#1e1e1e] shadow-md overflow-hidden bg-gray-200 dark:bg-[#191B1E]">
-             <AvatarRenderer 
-                avatar={avatar} 
-                name={username} 
-             />
+             <AvatarRenderer avatar={avatar} name={username} />
           </div>
           
           {/* Icono de flecha */}

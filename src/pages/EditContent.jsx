@@ -5,6 +5,10 @@ import { getContentById, updateContent, searchUsers, getUserPublicProfile, getUs
 import { useAuth } from '../context/AuthContext';
 import SimpleEditor from "../components/SimpleEditor";
 import AvatarRenderer from '../components/AvatarRenderer';
+import CreatorsInput from '../components/CreatorsInput';
+import TagsInput from '../components/TagsInput';
+import DownloadsInput from '../components/DownloadsInput';
+import GalleryInput from '../components/GalleryInput';
 import { encryptionService, initializeEncryption } from '../services/encryption';
 import { clsx } from 'clsx';
 
@@ -12,13 +16,11 @@ const EditContent = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const searchRef = useRef(null);
   
   // Refs para dropdowns
   const tipoDropdownRef = useRef(null);
   const visibilidadDropdownRef = useRef(null);
   const estadoDropdownRef = useRef(null);
-  const versionDropdownRefs = useRef([]);
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -41,23 +43,19 @@ const EditContent = () => {
     visibilidad: 'publico',
     estado: 'borrador',
     creado: new Date().toISOString().split('T')[0],
-    tags: [],
+    tags: ['mod'],
     galeria: [],
     descargas: [
       { presetLabel: 'API 9 (1.7.44+)', label: 'API 9 (1.7.44+)', url: '' },
       { presetLabel: 'API 8 (1.7.20+)', label: 'API 8 (1.7.20+)', url: '' },
       { presetLabel: 'API 7 (1.7.42)', label: 'API 7 (1.7.42)', url: '' },
-      { presetLabel: 'API 6 (1.7.41)', label: 'API 6 (1.7.41)', url: '' }
+      { presetLabel: 'API 6 (1.7.41)', label: 'API 6 (1.7.41)', url: '' },
+      { presetLabel: 'API 4 (1.4.150+)', label: 'API 4 (1.4.150+)', url: '' },
+      { presetLabel: 'Personalizado', label: 'Mi URL personalizada', url: '' }
     ]
   });
 
-  const [tagInput, setTagInput] = useState('');
-  const [creatorInput, setCreatorInput] = useState('');
   const [selectedCreators, setSelectedCreators] = useState([]);
-  const [userSuggestions, setUserSuggestions] = useState([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [isSearching, setIsSearching] = useState(false);
-  const [galleryMediaTypes, setGalleryMediaTypes] = useState({});
   
   // Estados para dropdowns personalizados
   const [openDropdowns, setOpenDropdowns] = useState({});
@@ -74,11 +72,6 @@ const EditContent = () => {
       if (estadoDropdownRef.current && !estadoDropdownRef.current.contains(event.target)) {
         setOpenDropdowns(prev => ({ ...prev, estado: false }));
       }
-      versionDropdownRefs.current.forEach((ref, index) => {
-        if (ref && !ref.contains(event.target)) {
-          setOpenDropdowns(prev => ({ ...prev, [`version-${index}`]: false }));
-        }
-      });
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -147,7 +140,7 @@ const EditContent = () => {
           galeria: data.galeria && Array.isArray(data.galeria) ? data.galeria : [],
           descargas: data.descargas && data.descargas.length > 0 
             ? data.descargas.map(d => {
-                const presetLabels = ['API 9 (1.7.44+)', 'API 8 (1.7.20+)', 'API 7 (1.7.42)', 'API 6 (1.7.41)'];
+                const presetLabels = ['API 9 (1.7.44+)', 'API 8 (1.7.20+)', 'API 7 (1.7.5+)', 'API 6 (1.6.4+)', 'API 4 (1.4.150+)', 'API 4 (1.4.150+)', 'Personalizado'];
                 const isPreset = presetLabels.includes(d.label);
                 return { 
                   presetLabel: isPreset ? d.label : 'Personalizado', 
@@ -160,7 +153,8 @@ const EditContent = () => {
                 { presetLabel: 'API 8 (1.7.20+)', label: 'API 8 (1.7.20+)', url: '' },
                 { presetLabel: 'API 7 (1.7.5+)', label: 'API 7 (1.7.5+)', url: '' },
                 { presetLabel: 'API 6 (1.6.4+)', label: 'API 6 (1.6.4+)', url: '' },
-                { presetLabel: 'API 4 (1.4.150+)', label: 'API 4 (1.4.150+)', url: '' }
+                { presetLabel: 'API 4 (1.4.150+)', label: 'API 4 (1.4.150+)', url: '' },
+                { presetLabel: 'Personalizado', label: 'Mi URL personalizada', url: '' }
               ]
         });
       } catch (err) {
@@ -176,111 +170,20 @@ const EditContent = () => {
     }
   }, [id, user?.id, user?.role]);
 
-  // Click outside para sugerencias
-  useEffect(() => {
-    const handleClickOutside = (event) => { 
-      if (searchRef.current && !searchRef.current.contains(event.target)) setShowSuggestions(false); 
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  // Búsqueda de creadores con debounce
-  useEffect(() => {
-    if (creatorInput.length < 2) { setUserSuggestions([]); setShowSuggestions(false); return; }
-    const timerId = setTimeout(async () => {
-      setIsSearching(true);
-      try {
-        const results = await searchUsers(creatorInput);
-        setUserSuggestions(results.filter(u => !selectedCreators.some(sel => sel.uid === u.uid)));
-        setShowSuggestions(true);
-      } catch (err) { console.error(err); } finally { setIsSearching(false); }
-    }, 500);
-    return () => clearTimeout(timerId);
-  }, [creatorInput, selectedCreators]);
-
   // Handlers
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    if (name === 'tipo') {
+      setFormData(prev => {
+        const currentTags = prev.tags.filter(t => !['mod', 'mapa', 'personaje', 'minijuego', 'modpack', 'paquete'].includes(t));
+        return { ...prev, [name]: value, tags: [value, ...currentTags] };
+      });
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleDescriptionChange = (htmlContent) => setFormData(prev => ({ ...prev, descripcion: htmlContent }));
-
-  const handleAddTag = () => {
-    const cleanTag = tagInput.trim().toLowerCase();
-    if (cleanTag && !formData.tags.includes(cleanTag) && formData.tags.length < 10) {
-      setFormData(prev => ({ ...prev, tags: [...prev.tags, cleanTag] }));
-      setTagInput('');
-    }
-  };
-
-  const handleRemoveTag = (tagToRemove) => setFormData(prev => ({ ...prev, tags: prev.tags.filter(tag => tag !== tagToRemove) }));
-
-  const handleAddGalleryImage = () => setFormData(prev => ({ ...prev, galeria: [...prev.galeria, ''] }));
-
-  const getYoutubeId = (url) => {
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-    const match = url.match(regExp);
-    return (match && match[2].length === 11) ? match[2] : null;
-  };
-
-  const handleGalleryImageChange = (index, value) => {
-    const newGaleria = [...formData.galeria];
-    newGaleria[index] = value;
-    setFormData(prev => ({ ...prev, galeria: newGaleria }));
-    
-    // Detectar tipo de media
-    const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv', '.m4v', '.wmv', '.flv'];
-    const isVideo = videoExtensions.some(ext => value.toLowerCase().endsWith(ext));
-    
-    // Detectar YouTube
-    const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+/;
-    const isYoutube = youtubeRegex.test(value);
-    
-    setGalleryMediaTypes(prev => ({ ...prev, [index]: isYoutube ? 'youtube' : (isVideo ? 'video' : 'image') }));
-  };
-
-  const handleRemoveGalleryImage = (index) => setFormData(prev => ({ ...prev, galeria: prev.galeria.filter((_, i) => i !== index) }));
-
-  const handleAddDownload = () => setFormData(prev => ({...prev, descargas: [...prev.descargas, { presetLabel: 'API 9 (1.7.44+)', label: 'API 9 (1.7.44+)', url: '' }] }));
-
-  const handleDownloadChange = (index, field, value) => {
-    const newDescargas = [...formData.descargas];
-    newDescargas[index][field] = value;
-    
-    // Si cambia presetLabel y no es Personalizado, actualizar label automáticamente
-    if (field === 'presetLabel' && value !== 'Personalizado') {
-      newDescargas[index].label = value;
-    }
-    
-    setFormData(prev => ({ ...prev, descargas: newDescargas }));
-  };
-
-  const handleRemoveDownload = (index) => setFormData(prev => ({ ...prev, descargas: prev.descargas.filter((_, i) => i !== index) }));
-
-  const handleCreatorSearch = (e) => setCreatorInput(e.target.value);
-
-  const addUserCreator = (user) => { 
-    setSelectedCreators([...selectedCreators, user]); 
-    setCreatorInput(''); 
-    setShowSuggestions(false); 
-  };
-
-  const addTextCreator = (e) => {
-    if (e.key === 'Enter' && creatorInput.trim()) {
-      e.preventDefault();
-      setSelectedCreators([...selectedCreators, { nombre: creatorInput.trim(), imagen: null, uid: null }]);
-      setCreatorInput(''); 
-      setShowSuggestions(false);
-    }
-  };
-
-  const removeCreator = (index) => { 
-    const newCreators = [...selectedCreators]; 
-    newCreators.splice(index, 1); 
-    setSelectedCreators(newCreators); 
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -442,8 +345,9 @@ const EditContent = () => {
                 value={formData.titulo}
                 onChange={handleChange}
                 className={clsx(
-                  "w-full px-4 py-2.5 text-sm bg-white dark:bg-[#191B1E] border rounded-xl outline-none dark:text-white",
-                  errors.titulo ? "border-red-500" : "border-gray-300 dark:border-gray-700"
+                  "w-full px-4 py-2.5 text-sm bg-white dark:bg-[#191B1E] shadow-sm border rounded-xl outline-none dark:text-white transition-all duration-300",
+                  errors.titulo ? "border-red-500" : "border-gray-300 dark:border-gray-700",
+                  "focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
                 )}
                 required
               />
@@ -462,201 +366,29 @@ const EditContent = () => {
 
             {/* Creadores */}
             <div className="space-y-2">
-              <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Creadores *</label>
-              <div ref={searchRef} className="relative">
-                <div className={clsx(
-                  "p-2 rounded-2xl border flex flex-wrap gap-2 shadow-sm items-center transition-all",
-                  errors.creadores ? "border-red-500 bg-red-50/10" : "bg-white dark:bg-[#191B1E] border-gray-300 dark:border-gray-700 focus-within:ring-2 focus-within:ring-primary-500"
-                )}>
-                  {selectedCreators.map((creator, idx) => (
-                    <div key={idx} className="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-800 pl-1.5 pr-2 py-1 rounded-xl border border-gray-200 dark:border-gray-700">
-                      <div className="w-5 h-5 rounded-full overflow-hidden bg-gray-300 shrink-0">
-                        <AvatarRenderer avatar={creator.imagen} name={creator.nombre} size={20} className="rounded-full" />
-                      </div>
-                      <span className="text-xs font-bold text-gray-800 dark:text-gray-200">{creator.nombre}</span>
-                      <button type="button" onClick={() => removeCreator(idx)} className="text-gray-400 hover:text-red-500 p-0.5"><X size={12} /></button>
-                    </div>
-                  ))}
-                  <input 
-                    type="text" 
-                    value={creatorInput} 
-                    onChange={handleCreatorSearch} 
-                    onKeyDown={addTextCreator} 
-                    placeholder="Buscar usuario..." 
-                    className="flex-1 bg-transparent outline-none text-sm dark:text-white min-w-[140px] px-2 py-1" 
-                  />
-                </div>
-
-                {showSuggestions && creatorInput.length > 1 && (
-                  <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#252525] rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden max-h-48 overflow-y-auto">
-                    {userSuggestions.length > 0 ? (
-                      <ul className="divide-y divide-gray-100 dark:divide-gray-800">
-                        {userSuggestions.map((u) => (
-                          <li key={u.uid}>
-                            <button type="button" onClick={() => addUserCreator(u)} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-primary-50 dark:hover:bg-primary-950/30 text-left transition-colors">
-                              <div className="w-7 h-7 rounded-full overflow-hidden bg-gray-200 shrink-0">
-                                <AvatarRenderer username={u.username} avatarUrl={u.imagen} size={28} className="rounded-full" />
-                              </div>
-                              <span className="text-xs font-bold text-gray-800 dark:text-gray-200">{u.nombre || u.username}</span>
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (!isSearching && <div className="p-3 text-center text-xs text-gray-400">Presiona <b>Enter</b> para agregarlo como creador externo.</div>)}
-                  </div>
-                )}
-              </div>
+              <CreatorsInput
+                creators={selectedCreators}
+                onChange={setSelectedCreators}
+                error={errors.creadores}
+                placeholder="Buscar usuario..."
+              />
               {errors.creadores && <p className="text-xs text-red-500 font-semibold">Debes agregar al menos un creador.</p>}
             </div>
 
-            {/* Descargas */}
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Descargas</label>
-                <button
-                  type="button"
-                  onClick={handleAddDownload}
-                  className="text-sm font-bold text-primary-600 dark:text-primary-400 hover:underline"
-                >
-                  + Agregar
-                </button>
-              </div>
-              
-              <div className="space-y-2">
-                {formData.descargas.map((download, index) => (
-                  <div key={index} className="flex items-center gap-1">
-                    {/* Selector de preset */}
-                    <div className="relative w-36" ref={(el) => versionDropdownRefs.current[index] = el}>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setOpenDropdowns(prev => ({
-                            ...prev,
-                            [`version-${index}`]: !prev[`version-${index}`],
-                            tipo: false,
-                            visibilidad: false,
-                            estado: false
-                          }));
-                        }}
-                        className="w-full pl-3 pr-8 py-2 text-sm bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 rounded-xl outline-none appearance-none cursor-pointer transition-all font-medium text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 text-left"
-                      >
-                        <span className="truncate block">{download.presetLabel}</span>
-                      </button>
-                      <ChevronDown size={14} className={clsx("absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none transition-transform duration-200", openDropdowns[`version-${index}`] && "rotate-180")} />
-                      
-                      {openDropdowns[`version-${index}`] && (
-                        <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 rounded-xl shadow-lg z-50 p-1">
-                          <div className="flex flex-col gap-0.5">
-                            {['API 9 (1.7.44+)', 'API 8 (1.7.20+)', 'API 7 (1.7.42)', 'API 6 (1.7.41)', 'Personalizado'].map((preset) => (
-                              <button
-                                key={preset}
-                                type="button"
-                                onClick={() => {
-                                  handleDownloadChange(index, 'presetLabel', preset);
-                                  setOpenDropdowns(prev => ({ ...prev, [`version-${index}`]: false }));
-                                }}
-                                className={clsx(
-                                  "w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                                  download.presetLabel === preset
-                                    ? "text-gray-800 dark:text-white bg-gray-200 dark:bg-gray-700 font-semibold"
-                                    : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                )}
-                              >
-                                {preset}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Label editable (solo si es Personalizado) */}
-                    {download.presetLabel === 'Personalizado' && (
-                      <input
-                        type="text"
-                        value={download.label}
-                        onChange={(e) => handleDownloadChange(index, 'label', e.target.value)}
-                        placeholder="Etiqueta personalizada"
-                        className="w-38 px-3 py-2 text-sm bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 rounded-xl outline-none dark:text-white"
-                      />
-                    )}
-
-                    {/* URL */}
-                    <input
-                      type="text"
-                      value={download.url}
-                      onChange={(e) => handleDownloadChange(index, 'url', e.target.value)}
-                      placeholder="URL de descarga"
-                      className="flex-1 px-4 py-2 text-sm bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 rounded-xl outline-none dark:text-white"
-                    />
-
-                    {/* Botón eliminar */}
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveDownload(index)}
-                      className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-
             {/* Tags */}
-            <div className="space-y-2">
-              <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Tags</label>
-              
-              {/* Input inline con tags */}
-              <div className="p-2 rounded-2xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#191B1E] flex flex-wrap gap-2 shadow-sm items-center transition-all min-h-[56px] focus-within:ring-2 focus-within:ring-primary-500">
-                {formData.tags.map((tag, index) => (
-                  <span key={index} className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-500/10 border border-primary-500 text-primary-600 dark:text-primary-400 rounded-lg text-sm font-bold">
-                    {tag}
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveTag(tag)}
-                      className="ml-1 text-primary-600 dark:text-primary-400 hover:text-primary-800"
-                    >
-                      <X size={12} />
-                    </button>
-                  </span>
-                ))}
-                <input
-                  type="text"
-                  value={tagInput}
-                  onChange={(e) => setTagInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
-                  placeholder="Escribe y presiona Enter..."
-                  className="flex-1 bg-transparent outline-none text-sm dark:text-white min-w-[140px] px-2 py-1"
-                />
-              </div>
+            <TagsInput
+              tags={formData.tags}
+              onChange={(tags) => setFormData(prev => ({ ...prev, tags }))}
+              fixedTags={[formData.tipo]}
+            />
 
-              {/* Tags recomendados */}
-              <div className="space-y-2">
-                <span className="text-xs text-gray-500 dark:text-gray-400 font-semibold">Tags recomendados:</span>
-                <div className="flex flex-wrap gap-2">
-                  {['pvp', 'pve', 'survival', 'adventure', 'creative', 'minigame', 'multiplayer', 'singleplayer'].map((recommendedTag) => (
-                    <button
-                      key={recommendedTag}
-                      type="button"
-                      onClick={() => {
-                        if (!formData.tags.includes(recommendedTag) && formData.tags.length < 10) {
-                          setFormData(prev => ({ ...prev, tags: [...prev.tags, recommendedTag] }));
-                        }
-                      }}
-                      className={clsx(
-                        "px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors",
-                        formData.tags.includes(recommendedTag)
-                          ? "bg-primary-600 text-white cursor-default"
-                          : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
-                      )}
-                    >
-                      {recommendedTag}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
+            {/* Descargas */}
+            <DownloadsInput
+              downloads={formData.descargas}
+              onChange={(descargas) => setFormData(prev => ({ ...prev, descargas }))}
+            />
+
+            
           </div>
 
           {/* Columna Derecha */}
@@ -686,90 +418,10 @@ const EditContent = () => {
             </div>
 
             {/* Galería */}
-            <div className="space-y-3 pt-3 border-t border-gray-100 dark:border-gray-800">
-              <div className="flex justify-between items-center">
-                <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Galería</label>
-                <button
-                  type="button"
-                  onClick={handleAddGalleryImage}
-                  className="text-xs font-bold text-primary-600 dark:text-primary-400 hover:underline"
-                >
-                  + Agregar
-                </button>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                {formData.galeria.map((url, index) => (
-                  <div key={index} className="relative group w-full">
-                    {url ? (
-                      <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-800">
-                        {galleryMediaTypes[index] === 'youtube' ? (
-                          <iframe
-                            src={`https://www.youtube.com/embed/${getYoutubeId(url)}`}
-                            title={`Galería ${index}`}
-                            className="w-full h-full"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                          />
-                        ) : galleryMediaTypes[index] === 'video' ? (
-                          <video
-                            src={url}
-                            alt={`Galería ${index}`}
-                            className="w-full h-full object-cover"
-                            controls
-                            preload="metadata"
-                            onError={(e) => {
-                              console.error('Error cargando video:', url, e);
-                              e.target.style.display = 'none';
-                              setGalleryMediaTypes(prev => ({ ...prev, [index]: 'image' }));
-                            }}
-                          />
-                        ) : (
-                          <img
-                            src={url}
-                            alt={`Galería ${index}`}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              console.error('Error cargando imagen:', url, e);
-                              e.target.style.display = 'none';
-                              // Intentar como video si falla la imagen
-                              const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv', '.m4v', '.wmv', '.flv'];
-                              const isVideo = videoExtensions.some(ext => url.toLowerCase().endsWith(ext));
-                              const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+/;
-                              const isYoutube = youtubeRegex.test(url);
-                              if (isVideo) {
-                                setGalleryMediaTypes(prev => ({ ...prev, [index]: 'video' }));
-                              } else if (isYoutube) {
-                                setGalleryMediaTypes(prev => ({ ...prev, [index]: 'youtube' }));
-                              }
-                            }}
-                          />
-                        )}
-                      </div>
-                    ) : (
-                      <div className="w-full aspect-video rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-700 flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-                        <span className="text-xs text-gray-400">URL vacía</span>
-                      </div>
-                    )}
-                    <div className="mt-2 flex gap-2 w-full">
-                      <input
-                        type="text"
-                        value={url}
-                        onChange={(e) => handleGalleryImageChange(index, e.target.value)}
-                        placeholder="URL de imagen, video o YouTube..."
-                        className="flex-1 px-3 py-2 text-xs rounded-lg bg-white dark:bg-[#191B1E] border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 dark:text-white min-w-0"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveGalleryImage(index)}
-                        className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors flex-shrink-0"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <GalleryInput
+              gallery={formData.galeria}
+              onChange={(galeria) => setFormData(prev => ({ ...prev, galeria }))}
+            />
 
             {/* Tipo/Categoría */}
             <div className="space-y-2">

@@ -233,10 +233,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
               <div className="flex gap-2">
                 <div className="relative w-9 h-9 rounded-full bg-gradient-to-tr from-primary-600 to-primary-900 shadow-sm shrink-0">
                   <div className="w-full h-full rounded-full overflow-hidden bg-white dark:bg-[#191B1E]">
-                    <AvatarRenderer 
-                      avatar={user.avatar} 
-                      name={user.username} 
-                    />
+                    <AvatarRenderer avatar={user.avatar} name={user.username} />
                   </div>
                 </div>
                 
