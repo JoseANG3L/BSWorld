@@ -371,15 +371,15 @@ const SubirMod = ({ isOpen, onClose }) => {
               <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-sm text-white bg-gradient-to-br from-primary-500 to-primary-600">
                   <Upload size={20} strokeWidth={2.5} />
               </div>
-              Publicar Nuevo Mod
+              Nuevo Mod
             </h1>
-            <button type="button" onClick={handleClose} className="p-2 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+            <button type="button" onClick={handleClose} className="p-2 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
               <X size={22} />
             </button>
           </div>
           
           {/* Tabs de navegación */}
-          <div className="flex w-full">
+          <div className="flex w-full overflow-x-auto scrollbar-hide scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
             {steps.map((step, index) => {
               const StepIcon = step.icon;
               const hasError = 
@@ -420,7 +420,7 @@ const SubirMod = ({ isOpen, onClose }) => {
           {currentStep === 0 && (
             <div className="space-y-4 animate-fade-in">
               <div className="text-center md:text-left mb-4">
-                <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-1">¿Cómo se llama tu proyecto?</h2>
+                <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-1">¿Cómo se llama tu mod?</h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400">Ingresa un título claro y llamativo para que la comunidad lo identifique rápidamente.</p>
               </div>
 
@@ -431,9 +431,9 @@ const SubirMod = ({ isOpen, onClose }) => {
                   value={formData.titulo} 
                   onChange={handleChange} 
                   autoFocus
-                  placeholder="Ej: Super Mod Pack 2026..." 
+                  placeholder="Ej: Mi Nuevo Super Mod..." 
                   className={clsx(
-                    "w-full px-4 py-3.5 text-base md:text-lg bg-white dark:bg-[#191B1E] border rounded-2xl outline-none transition-all shadow-sm font-medium",
+                    "w-full px-4 py-3 text-base md:text-lg bg-white dark:bg-[#191B1E] border rounded-2xl outline-none transition-all duration-300 shadow-sm font-medium",
                     errors.titulo ? "border-red-500 focus:ring-2 focus:ring-red-500" : "border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-primary-500 dark:text-white"
                   )} 
                 />
