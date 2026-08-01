@@ -20,7 +20,7 @@ import { encryptionService, initializeEncryption } from '../services/encryption'
 import { createPortal } from 'react-dom';
 
 const DOWNLOAD_LABELS = ["API 9 (1.7.44+)", "API 8 (1.7.20+)", "API 7 (1.7.5+)", "API 6 (1.6.4+)", "API 4 (1.4.150+)"];
-const RECOMMENDED_TAGS = ["api 9", "api 8", "api 7", "api 6", "api 4", "pvp", "texturas", "utilidad"];
+const RECOMMENDED_TAGS = ["api 9", "api 8", "api 7", "api 6", "api 4", "divertido", "multijugador", "pvp"];
 
 const TIPO_CARDS = [
   { id: 'mod', title: 'Complemento', desc: 'Scripts Python y modificaciones de código', icon: Wrench, color: 'from-blue-500 to-indigo-600' },
@@ -67,10 +67,9 @@ const SubirMod = ({ isOpen, onClose }) => {
     aporte: user?.id || '', 
     tags: [],
     galeria: [], 
-    descargas: [{ nombre: '', url: '' }]
+    descargas: [{ presetLabel: 'API 9 (1.7.44+)', label: 'API 9 (1.7.44+)', url: '' }]
   });
 
-  const [initialFormData, setInitialFormData] = useState(null);
   const [hasChanges, setHasChanges] = useState(false);
   const [selectedCreators, setSelectedCreators] = useState([]);
   const [imagenUrlError, setImagenUrlError] = useState(false);
@@ -146,7 +145,6 @@ const SubirMod = ({ isOpen, onClose }) => {
     } else {
       document.body.style.overflow = 'unset';
       document.documentElement.style.overflow = 'unset';
-      // Reiniciar formulario al cerrar
       setCurrentStep(0);
       setFormData({
         titulo: '',
@@ -159,9 +157,8 @@ const SubirMod = ({ isOpen, onClose }) => {
         aporte: user?.id || '',
         tags: [],
         galeria: [],
-        descargas: [{ nombre: '', url: '' }]
+        descargas: []
       });
-      setInitialFormData(null);
       setHasChanges(false);
       setSelectedCreators([]);
       setErrors({ titulo: false, imagen: false, creadores: false });
@@ -172,10 +169,6 @@ const SubirMod = ({ isOpen, onClose }) => {
       document.documentElement.style.overflow = 'unset';
     };
   }, [isOpen, user?.id, user?.uid]);
-
-  const getProgress = () => {
-    return Math.round(((currentStep + 1) / steps.length) * 100);
-  };
 
   useEffect(() => {
     let isMounted = true;
@@ -233,7 +226,6 @@ const SubirMod = ({ isOpen, onClose }) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     
-    // Validar URL de imagen
     if (name === 'imagen') {
       setImagenUrlError(!isValidUrl(value));
     }
@@ -289,15 +281,13 @@ const SubirMod = ({ isOpen, onClose }) => {
       let finalEstado;
       
       if (user.role === 'admin') {
-        // Admin puede establecer el estado directamente
         if (action === 'draft') finalEstado = 'borrador';
         else if (action === 'publish') finalEstado = 'aceptado';
         else finalEstado = formData.estado || 'revision';
       } else {
-        // Usuarios no admin
-        if (action === 'draft') finalEstado = 'borrador'; // Borrador tiene su propio estado
-        else if (formData.visibilidad === 'privado') finalEstado = 'aceptado'; // Contenido privado no requiere revisión
-        else finalEstado = 'revision'; // Cualquier edición/envío público va a revisión
+        if (action === 'draft') finalEstado = 'borrador';
+        else if (formData.visibilidad === 'privado') finalEstado = 'aceptado';
+        else finalEstado = 'revision';
       }
 
       let processedDescargas = formData.descargas.filter(d => d.url !== '');
@@ -326,8 +316,7 @@ const SubirMod = ({ isOpen, onClose }) => {
         visibilidad: formData.visibilidad
       };
 
-      let result;
-      result = await createContent(payload, false);
+      let result = await createContent(payload, false);
       setCreatedContentId(result?.id || result);
 
       const isDraft = action === 'draft';
@@ -609,22 +598,19 @@ const SubirMod = ({ isOpen, onClose }) => {
 
               {/* Enlaces de descarga */}
               <DownloadsInput
-                downloads={formData.descargas.map(d => ({ 
-                  presetLabel: d.nombre && DOWNLOAD_LABELS.includes(d.nombre) ? d.nombre : 'Personalizado', 
-                  label: d.nombre && DOWNLOAD_LABELS.includes(d.nombre) ? d.nombre : '', 
-                  url: d.url 
+                onChange={(newDownloads) => setFormData(prev => ({ 
+                  ...prev, 
+                  descargas: newDownloads.map(d => ({ nombre: d.label, url: d.url })) 
                 }))}
-                onChange={(newDownloads) => setFormData(prev => ({ ...prev, descargas: newDownloads.map(d => ({ nombre: d.label, url: d.url })) }))}
-                presets={DOWNLOAD_LABELS}
-                defaultPreset={DOWNLOAD_LABELS[0]}
+                withBorder={false}
               />
 
               {/* Tags */}
               <TagsInput
                 tags={[formData.tipo, ...formData.tags.filter(tag => tag !== formData.tipo)]}
                 onChange={(tags) => setFormData(prev => ({ ...prev, tags: tags.filter(tag => tag !== formData.tipo) }))}
-                recommendedTags={RECOMMENDED_TAGS}
                 fixedTags={[formData.tipo]}
+                withBorder={false}
               />
             </div>
           )}

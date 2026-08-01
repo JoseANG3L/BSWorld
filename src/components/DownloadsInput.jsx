@@ -5,17 +5,24 @@ import { ChevronDown, Trash2 } from 'lucide-react';
 const DownloadsInput = ({ 
   downloads = [], 
   onChange,
-  presets = ['API 9 (1.7.44+)', 'API 8 (1.7.20+)', 'API 7 (1.7.42)', 'API 6 (1.7.41)'],
+  presets = ['API 9 (1.7.44+)', 'API 8 (1.7.20+)', 'API 7 (1.7.5+)', 'API 6 (1.6.4+)', 'API 4 (1.4.150+)'],
   defaultPreset = 'API 9 (1.7.44+)',
   customLabel = 'Personalizado',
-  customPlaceholder = 'Mi URL personalizada'
+  customPlaceholder = 'Mi URL personalizada',
+  withBorder = true
 }) => {
+  const [internalDownloads, setInternalDownloads] = useState([
+    { presetLabel: defaultPreset, label: defaultPreset, url: '' }
+  ]);
+
   const [openDropdowns, setOpenDropdowns] = useState({});
   const [urlErrors, setUrlErrors] = useState({});
   const versionDropdownRefs = useRef([]);
 
+  const activeDownloads = downloads && downloads.length > 0 ? downloads : internalDownloads;
+
   const isValidUrl = (url) => {
-    if (!url) return true; // URLs vacías son válidas (opcional)
+    if (!url) return true;
     try {
       const urlObj = new URL(url);
       return urlObj.protocol === 'http:' || urlObj.protocol === 'https:';
@@ -24,35 +31,59 @@ const DownloadsInput = ({
     }
   };
 
+  const updateDownloads = (newDownloads) => {
+    setInternalDownloads(newDownloads);
+    if (onChange) {
+      onChange(newDownloads);
+    }
+  };
+
   const handleAddDownload = () => {
-    onChange([...downloads, { presetLabel: defaultPreset, label: defaultPreset, url: '' }]);
+    const preset = defaultPreset || presets[0] || 'API 9 (1.7.44+)';
+    const newEntry = { presetLabel: preset, label: preset, url: '' };
+    updateDownloads([...activeDownloads, newEntry]);
   };
 
   const handleDownloadChange = (index, field, value) => {
-    const newDownloads = [...downloads];
-    newDownloads[index][field] = value;
-    
-    // Si cambia presetLabel y no es Personalizado, actualizar label automáticamente
-    if (field === 'presetLabel' && value !== customLabel) {
-      newDownloads[index].label = value;
-    } else if (field === 'presetLabel' && value === customLabel) {
-      // Si es Personalizado, asegurarse de que label tenga un valor vacío para mostrar el input
-      newDownloads[index].label = '';
-    }
-    
-    // Validar URL si cambia el campo url
+    const newDownloads = activeDownloads.map((item, i) => {
+      if (i !== index) return item;
+
+      const updatedItem = { ...item };
+
+      if (field === 'presetLabel') {
+        updatedItem.presetLabel = value;
+        if (value !== customLabel) {
+          updatedItem.label = value;
+        } else {
+          updatedItem.label = item.label && !presets.includes(item.label) ? item.label : '';
+        }
+      } else if (field === 'label') {
+        updatedItem.label = value;
+        if (presets.includes(value)) {
+          updatedItem.presetLabel = value;
+        } else {
+          updatedItem.presetLabel = customLabel;
+        }
+      } else if (field === 'url') {
+        updatedItem.url = value;
+      }
+
+      return updatedItem;
+    });
+
     if (field === 'url') {
       setUrlErrors(prev => ({
         ...prev,
         [index]: !isValidUrl(value)
       }));
     }
-    
-    onChange(newDownloads);
+
+    updateDownloads(newDownloads);
   };
 
   const handleRemoveDownload = (index) => {
-    onChange(downloads.filter((_, i) => i !== index));
+    const filtered = activeDownloads.filter((_, i) => i !== index);
+    updateDownloads(filtered);
   };
 
   const toggleDropdown = (index) => {
@@ -62,7 +93,6 @@ const DownloadsInput = ({
     }));
   };
 
-  // Click outside para cerrar dropdowns
   useEffect(() => {
     const handleClickOutside = (event) => {
       versionDropdownRefs.current.forEach((ref, index) => {
@@ -88,88 +118,96 @@ const DownloadsInput = ({
         </button>
       </div>
       
-      <div className="space-y-2">
-        {downloads.map((download, index) => (
-          <div key={index} className="flex items-center gap-1">
-            {/* Selector de preset */}
-            <div className="relative min-w-40 w-40" ref={(el) => versionDropdownRefs.current[index] = el}>
+      <div className="space-y-3 md:space-y-2">
+        {activeDownloads.map((download, index) => {
+          const currentLabel = download.label || download.nombre || '';
+          const currentPreset = download.presetLabel || (presets.includes(currentLabel) ? currentLabel : customLabel);
+          const isCustom = currentPreset === customLabel || (!presets.includes(currentPreset) && !presets.includes(currentLabel));
+          
+          return (
+            <div key={`download-item-${index}`} className="flex flex-col md:flex-row items-center gap-1">
+              {/* Selector de preset */}
+              <div className="relative w-full md:min-w-40 md:max-w-40" ref={(el) => versionDropdownRefs.current[index] = el}>
+                <button
+                  type="button"
+                  onClick={() => toggleDropdown(index)}
+                  className={clsx("w-full pl-3 pr-8 py-2 text-sm bg-white dark:bg-[#1D1F23] border border-gray-300 rounded-xl outline-none appearance-none cursor-pointer transition-all font-medium text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 text-left", withBorder ? "dark:border-gray-700" : "dark:border-transparent")}
+                >
+                  <span className="truncate block">
+                    {isCustom ? customLabel : (download.presetLabel || defaultPreset)}
+                  </span>
+                </button>
+                <ChevronDown 
+                  size={14} 
+                  className={clsx(
+                    "absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none transition-transform duration-200",
+                    openDropdowns[`version-${index}`] && "rotate-180"
+                  )} 
+                />
+                
+                {openDropdowns[`version-${index}`] && (
+                  <div className={clsx("absolute top-full left-0 right-0 mt-1 bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-gray-700 rounded-xl shadow-lg z-50 p-1", withBorder ? "dark:border-gray-700" : "dark:border-transparent")}>
+                    <div className="flex flex-col gap-0.5">
+                      {[...presets, customLabel].map((preset) => {
+                        const isSelected = preset === customLabel ? isCustom : (currentPreset === preset && !isCustom);
+                        return (
+                          <button
+                            key={preset}
+                            type="button"
+                            onClick={() => {
+                              handleDownloadChange(index, 'presetLabel', preset);
+                              setOpenDropdowns(prev => ({ ...prev, [`version-${index}`]: false }));
+                            }}
+                            className={clsx(
+                              "w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                              isSelected
+                                ? "text-gray-800 dark:text-white bg-gray-200 dark:bg-gray-700 font-semibold"
+                                : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                            )}
+                          >
+                            {preset}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Label editable (solo si es Personalizado) */}
+              {isCustom && (
+                <input
+                  type="text"
+                  value={download.label || ''}
+                  onChange={(e) => handleDownloadChange(index, 'label', e.target.value)}
+                  placeholder={customPlaceholder}
+                  className={clsx("w-full md:min-w-42 md:max-w-42 px-3 py-2 text-sm bg-white dark:bg-[#1D1F23] transition-all duration-300 border border-gray-300 rounded-xl outline-none dark:text-white focus:ring-1 focus:ring-primary-500 focus:border-primary-500 shadow-sm", withBorder ? "dark:border-gray-700" : "dark:border-transparent")}
+                />
+              )}
+
+              {/* URL */}
+              <input
+                type="url"
+                value={download.url || ''}
+                onChange={(e) => handleDownloadChange(index, 'url', e.target.value)}
+                placeholder="URL de descarga"
+                className={clsx(
+                  "w-full px-4 py-2 text-sm bg-white dark:bg-[#1D1F23] transition-all duration-300 border rounded-xl outline-none dark:text-white shadow-sm",
+                  urlErrors[index] ? "border-red-500 dark:border-red-500 focus:ring-1 focus:ring-red-500 dark:focus:ring-red-500" : withBorder ? "border-gray-300 dark:border-gray-700 focus:ring-1 focus:ring-primary-500 dark:focus:ring-primary-500" : "border-gray-300 dark:border-transparent focus:ring-1 focus:ring-primary-500 dark:focus:ring-primary-500"
+                )}
+              />
+
+              {/* Botón eliminar */}
               <button
                 type="button"
-                onClick={() => toggleDropdown(index)}
-                className="w-full pl-3 pr-8 py-2 text-sm bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-gray-700 rounded-xl outline-none appearance-none cursor-pointer transition-all font-medium text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 text-left"
+                onClick={() => handleRemoveDownload(index)}
+                className="w-full md:w-auto flex items-center justify-center p-2.5 text-red-600 bg-red-50 hover:bg-red-100 dark:text-red-500 dark:bg-red-900/20 dark:hover:bg-red-900/40 rounded-lg shadow-sm transition-colors"
               >
-                <span className="truncate block">{download.presetLabel}</span>
+                <Trash2 size={16} />
               </button>
-              <ChevronDown 
-                size={14} 
-                className={clsx(
-                  "absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none transition-transform duration-200",
-                  openDropdowns[`version-${index}`] && "rotate-180"
-                )} 
-              />
-              
-              {openDropdowns[`version-${index}`] && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-gray-700 rounded-xl shadow-lg z-50 p-1">
-                  <div className="flex flex-col gap-0.5">
-                    {[...presets, customLabel].map((preset) => (
-                      <button
-                        key={preset}
-                        type="button"
-                        onClick={() => {
-                          handleDownloadChange(index, 'presetLabel', preset);
-                          setOpenDropdowns(prev => ({ ...prev, [`version-${index}`]: false }));
-                        }}
-                        className={clsx(
-                          "w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                          download.presetLabel === preset
-                            ? "text-gray-800 dark:text-white bg-gray-200 dark:bg-gray-700 font-semibold"
-                            : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                        )}
-                      >
-                        {preset}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
-
-            {/* Label editable (solo si es Personalizado) */}
-            {download.presetLabel === customLabel && (
-              <input
-                type="text"
-                value={download.label || ''}
-                onChange={(e) => handleDownloadChange(index, 'label', e.target.value)}
-                placeholder={customPlaceholder}
-                className="min-w-42 w-42 px-3 py-2 text-sm bg-white dark:bg-[#1D1F23] transition-all duration-300 border border-gray-300 dark:border-gray-700 rounded-xl outline-none dark:text-white focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
-              />
-            )}
-
-            {/* URL */}
-            <input
-              type="url"
-              value={download.url}
-              onChange={(e) => handleDownloadChange(index, 'url', e.target.value)}
-              placeholder="URL de descarga"
-              className={clsx(
-                "w-full px-4 py-2 text-sm bg-white dark:bg-[#1D1F23] transition-all duration-300 border rounded-xl outline-none dark:text-white focus:ring-1 focus:ring-primary-500",
-                urlErrors[index] ? "border-red-500 focus:border-red-500" : "border-gray-300 dark:border-gray-700 focus:border-primary-500"
-              )}
-            />
-            {urlErrors[index] && download.url && (
-              <span className="text-xs text-red-500">URL inválida</span>
-            )}
-
-            {/* Botón eliminar */}
-            <button
-              type="button"
-              onClick={() => handleRemoveDownload(index)}
-              className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-            >
-              <Trash2 size={16} />
-            </button>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
