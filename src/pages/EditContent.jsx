@@ -38,21 +38,14 @@ const EditContent = () => {
   const [formData, setFormData] = useState({
     titulo: '',
     descripcion: '',
-    tipo: 'mod',
+    tipo: 'complemento',
     imagen: '',
     visibilidad: 'publico',
     estado: 'borrador',
     creado: new Date().toISOString().split('T')[0],
-    tags: ['mod'],
+    tags: ['complemento'],
     galeria: [],
-    descargas: [
-      { presetLabel: 'API 9 (1.7.44+)', label: 'API 9 (1.7.44+)', url: '' },
-      { presetLabel: 'API 8 (1.7.20+)', label: 'API 8 (1.7.20+)', url: '' },
-      { presetLabel: 'API 7 (1.7.42)', label: 'API 7 (1.7.42)', url: '' },
-      { presetLabel: 'API 6 (1.7.41)', label: 'API 6 (1.7.41)', url: '' },
-      { presetLabel: 'API 4 (1.4.150+)', label: 'API 4 (1.4.150+)', url: '' },
-      { presetLabel: 'Personalizado', label: 'Mi URL personalizada', url: '' }
-    ]
+    descargas: []
   });
 
   const [selectedCreators, setSelectedCreators] = useState([]);
@@ -131,12 +124,12 @@ const EditContent = () => {
         setFormData({
           titulo: data.titulo || '',
           descripcion: data.descripcion || '',
-          tipo: data.tipo || 'mod',
+          tipo: data.tipo || 'complemento',
           imagen: data.imagen || '',
           visibilidad: data.visibilidad || 'publico',
           estado: data.estado || data.status || 'borrador',
           creado: data.creado ? new Date(data.creado).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-          tags: data.tags ? data.tags.filter(t => t !== data.tipo) : [data.tipo || 'mod'],
+          tags: data.tags ? data.tags.filter(t => t !== data.tipo) : [data.tipo || 'complemento'],
           galeria: data.galeria && Array.isArray(data.galeria) ? data.galeria : [],
           descargas: data.descargas && data.descargas.length > 0 
             ? data.descargas.map(d => {
@@ -175,7 +168,7 @@ const EditContent = () => {
     const { name, value } = e.target;
     if (name === 'tipo') {
       setFormData(prev => {
-        const currentTags = prev.tags.filter(t => !['mod', 'mapa', 'personaje', 'minijuego', 'modpack', 'paquete'].includes(t));
+        const currentTags = prev.tags.filter(t => !['complemento', 'mapa', 'personaje', 'minijuego', 'modpack', 'paquete'].includes(t));
         return { ...prev, [name]: value, tags: [value, ...currentTags] };
       });
     } else {
@@ -428,7 +421,7 @@ const EditContent = () => {
                 {openDropdowns.tipo && (
                   <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-gray-700 rounded-xl shadow-lg z-50 p-1">
                     <div className="flex flex-col gap-0.5">
-                      {['mod', 'mapa', 'personaje', 'minijuego', 'modpack', 'paquete'].map((tipo) => (
+                      {['complemento', 'mapa', 'personaje', 'minijuego', 'modpack', 'paquete'].map((tipo) => (
                         <button
                           key={tipo}
                           type="button"

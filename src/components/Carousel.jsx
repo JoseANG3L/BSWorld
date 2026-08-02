@@ -112,7 +112,7 @@ const Carousel = ({ title, limit = 6, tipo = null, autoPlayInterval = 5000 }) =>
               {/* Categoría + Vistas en Fila */}
               <div className="flex items-center gap-2">
                 <span className="px-2.5 py-0.5 text-[9px] md:text-[10px] font-black uppercase tracking-wider text-white bg-primary-600 rounded-lg shadow-sm">
-                  {item.tipo || 'Mod'}
+                  {item.tipo || 'complemento'}
                 </span>
                 {/* <span className="flex items-center gap-1 text-[10px] md:text-xs font-bold text-white/70 bg-white/10 backdrop-blur-md px-2 py-0.5 rounded-lg border border-white/5">
                   <Eye size={12} className="text-primary-400" /> {formatNumber(item.vistas || 0)}

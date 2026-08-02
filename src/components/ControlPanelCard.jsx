@@ -81,7 +81,7 @@ const ControlPanelCard = ({
           <div className="flex items-start justify-between gap-2 mb-1">
             <div className="flex items-center gap-2">
               <span className="px-2 py-0.5 text-xs font-bold rounded-md bg-primary-100 dark:bg-primary-950/30 text-primary-700 dark:text-primary-400 capitalize">
-                {tipo || 'mod'}
+                {tipo || 'complemento'}
               </span>
               <span className={`px-2 py-0.5 text-xs font-bold rounded-md ${statusConfig.style}`}>
                 {statusConfig.label}

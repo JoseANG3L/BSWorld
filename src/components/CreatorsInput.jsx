@@ -9,7 +9,8 @@ const CreatorsInput = ({
   onChange, 
   error = false,
   placeholder = "Buscar usuario...",
-  allowExternal = true 
+  allowExternal = true,
+  withBorder = true
 }) => {
   const [input, setInput] = useState('');
   const [suggestions, setSuggestions] = useState([]);
@@ -81,10 +82,10 @@ const CreatorsInput = ({
     <div ref={searchRef} className="relative">
       <div className={clsx(
         "p-2 rounded-2xl border flex flex-wrap gap-2 shadow-sm items-center transition-all duration-300 bg-white dark:bg-[#1D1F23]",
-        error ? "border-red-500 focus-within:ring-1 focus-within:ring-red-500" : "border-gray-300 dark:border-gray-700 focus-within:ring-1 focus-within:ring-primary-500 focus-within:border-primary-500"
+        error ? "border-red-500 dark:border-red-500 focus-within:ring-1 focus-within:ring-red-500 focus-within:border-red-500" : withBorder ? "border-gray-300 dark:border-gray-700 focus-within:ring-1 focus-within:ring-primary-500 focus-within:border-primary-500" : "border-gray-300 dark:border-transparent focus-within:ring-1 focus-within:ring-primary-500 focus-within:border-primary-500"
       )}>
         {creators.map((creator, idx) => (
-          <div key={idx} className="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-800 shadow-sm border border-gray-300 dark:border-gray-700 pl-1.5 pr-2 py-1 rounded-xl group">
+          <div key={idx} className="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-700 shadow-sm border border-gray-300 dark:border-transparent pl-1.5 pr-2 py-1 rounded-xl group">
             <a
               href={`/u/${creator.nombre}`}
               target="_blank"

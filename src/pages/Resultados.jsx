@@ -63,7 +63,7 @@ const Resultados = () => {
     mapa: allResults.filter(i => i.tipo === 'mapa').length,
     minijuego: allResults.filter(i => i.tipo === 'minijuego').length,
     modpack: allResults.filter(i => i.tipo === 'modpack').length,
-    mod: allResults.filter(i => i.tipo === 'mod').length,
+    complemento: allResults.filter(i => i.tipo === 'complemento').length,
     paquete: allResults.filter(i => i.tipo === 'paquete').length,
     personaje: allResults.filter(i => i.tipo === 'personaje').length,
   };
@@ -73,7 +73,7 @@ const Resultados = () => {
     { id: 'mapa', label: 'Mapas', icon: Map, count: counts.mapa },
     { id: 'minijuego', label: 'Minijuegos', icon: Gamepad2, count: counts.minijuego },
     { id: 'modpack', label: 'Modpacks', icon: Boxes, count: counts.modpack },
-    { id: 'mod', label: 'Mods', icon: Wrench, count: counts.mod },
+    { id: 'complemento', label: 'Mods', icon: Wrench, count: counts.mod },
     { id: 'paquete', label: 'Paquetes', icon: Package, count: counts.paquete },
     { id: 'personaje', label: 'Personajes', icon: User, count: counts.personaje },
   ];
