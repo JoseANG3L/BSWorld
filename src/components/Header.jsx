@@ -232,7 +232,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
         {/* NOTIFICACIONES */}
         {user && (
           <div className="hidden md:block">
-            <NotificationBell userId={user.id} />
+            <NotificationBell />
           </div>
         )}
 

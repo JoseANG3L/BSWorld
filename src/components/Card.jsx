@@ -4,6 +4,7 @@ import { Download, Tag, ChevronDown, AlertCircle, Eye, User, ShieldCheck, Edit3,
 import { clsx } from 'clsx';
 import AvatarRenderer from './AvatarRenderer';
 import LikeButton from './LikeButton';
+import { useAuth } from '../context/AuthContext';
 // Importamos la función para obtener datos frescos
 import { registerDownload, getUserPublicProfile } from '../services/api'; 
 
@@ -170,6 +171,7 @@ const Card = ({
   handleDelete,
   isDeleting = false
 }) => {
+  const { user } = useAuth();
   const [isOpenDownload, setIsOpenDownload] = useState(false);
   const downloadRef = useRef(null);
   const [isOpenCredits, setIsOpenCredits] = useState(false);
@@ -202,7 +204,7 @@ const Card = ({
     localStorage.setItem(storageKey, now.toString());
     const nuevosDatos = localDescargas.map(d => d.url === url ? { ...d, count: (d.count || 0) + 1 } : d);
     setLocalDescargas(nuevosDatos);
-    await registerDownload(id, url);
+    await registerDownload(id, url, user?.id);
   };
 
   useEffect(() => {

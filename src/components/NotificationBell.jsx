@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Bell, CheckCircle, XCircle, Clock, Check, Loader2, Inbox } from 'lucide-react';
+import { Bell, CheckCircle, XCircle, Clock, Check, Loader2, Inbox, Heart, MessageCircle, Download, EyeOff, Eye, Globe, Lock } from 'lucide-react';
 import { clsx } from 'clsx';
-import { useAuth } from '../context/AuthContext';
-import { getUserNotifications, markNotificationAsRead } from '../services/api';
+import { useAuth, useNotifications } from '../context/AuthContext';
+import { getUserNotifications, markNotificationAsRead, invalidateNotificationsCache, getUserPublicProfile } from '../services/api';
+import AvatarRenderer from './AvatarRenderer';
 
 const getTimeAgo = (dateString) => {
   const date = new Date(dateString);
@@ -29,6 +30,7 @@ const getTimeAgo = (dateString) => {
 
 const NotificationBell = () => {
   const { user } = useAuth();
+  const { unreadCount, refreshNotifications } = useNotifications();
 
   // Usamos una función simulada para navigate en este entorno aislado
   const navigate = (path) => console.log(`Navegando a: ${path}`);
@@ -36,16 +38,20 @@ const NotificationBell = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [unreadNotifs, setUnreadNotifs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [actorCache, setActorCache] = useState({}); // Cache para información de actores
   const dropdownRef = useRef(null);
 
-  // Cargar notificaciones no leídas
+  // Cargar notificaciones no leídas para el panel
   const fetchUnread = async () => {
-    if (!user?.uid) return;
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
-      const data = await getUserNotifications(user.uid);
-      // Filtramos solo las que no han sido leídas
-      setUnreadNotifs(data.filter(n => !n.leida));
+      // Solo cargar las primeras 10 notificaciones no leídas para el panel
+      const data = await getUserNotifications(user.id, true, 10, 0, true);
+      setUnreadNotifs(data);
     } catch (error) {
       console.error("Error cargando notificaciones para el panel:", error);
     } finally {
@@ -56,11 +62,28 @@ const NotificationBell = () => {
   // Cargar al montar el componente y cuando el usuario cambie
   useEffect(() => {
     fetchUnread();
+  }, [user?.id]);
 
-    // Refrescar cada 1 minuto para mantener el número actualizado
-    const interval = setInterval(fetchUnread, 60000);
-    return () => clearInterval(interval);
-  }, [user]);
+  // Cargar información de actores cuando cambian las notificaciones no leídas
+  useEffect(() => {
+    const loadActorsInfo = async () => {
+      const actorIds = unreadNotifs.map(n => n.actorid).filter(Boolean);
+      const uniqueActorIds = [...new Set(actorIds)];
+      
+      for (const actorId of uniqueActorIds) {
+        if (!actorCache[actorId]) {
+          const info = await getUserPublicProfile(actorId);
+          if (info) {
+            setActorCache(prev => ({ ...prev, [actorId]: info }));
+          }
+        }
+      }
+    };
+    
+    if (unreadNotifs.length > 0) {
+      loadActorsInfo();
+    }
+  }, [unreadNotifs]);
 
   // Cerrar panel al hacer clic fuera de él
   useEffect(() => {
@@ -79,7 +102,9 @@ const NotificationBell = () => {
     try {
       // Actualización optimista: la quitamos del panel instantáneamente
       setUnreadNotifs(prev => prev.filter(n => n.id !== notifId));
-      await markNotificationAsRead(notifId);
+      await markNotificationAsRead(notifId, user?.uid);
+      invalidateNotificationsCache(user?.uid);
+      refreshNotifications(); // Refrescar el conteo global
     } catch (error) {
       console.error("Error al marcar como leída", error);
     }
@@ -91,7 +116,9 @@ const NotificationBell = () => {
 
     try {
       setUnreadNotifs(prev => prev.filter(n => n.id !== notif.id));
-      await markNotificationAsRead(notif.id);
+      await markNotificationAsRead(notif.id, user?.uid);
+      invalidateNotificationsCache(user?.uid);
+      refreshNotifications(); // Refrescar el conteo global
     } catch (error) {
       console.error(error);
     }
@@ -104,8 +131,64 @@ const NotificationBell = () => {
     }
   };
 
-  // Configuración visual según estado
-  const getStatusConfig = (status) => {
+  // Configuración visual según tipo de notificación
+  const getNotificationConfig = (notification) => {
+    // Prioridad para tipos de notificaciones de interacción
+    if (notification.type === 'like') {
+      return {
+        icon: Heart,
+        color: "text-red-500",
+        bg: "bg-red-100 dark:bg-red-900/30",
+        label: "Nuevo like"
+      };
+    }
+    
+    if (notification.type === 'comment') {
+      return {
+        icon: MessageCircle,
+        color: "text-blue-500",
+        bg: "bg-blue-100 dark:bg-blue-900/30",
+        label: "Nuevo comentario"
+      };
+    }
+    
+    if (notification.type === 'download') {
+      return {
+        icon: Download,
+        color: "text-green-500",
+        bg: "bg-green-100 dark:bg-green-900/30",
+        label: "Nueva descarga"
+      };
+    }
+    
+    if (notification.type === 'visibility') {
+      const visibility = notification.visibilidad;
+      if (visibility === 'publico') {
+        return {
+          icon: Globe,
+          color: "text-green-500",
+          bg: "bg-green-100 dark:bg-green-900/30",
+          label: "Visibilidad: Público"
+        };
+      } else if (visibility === 'privado') {
+        return {
+          icon: Lock,
+          color: "text-orange-500",
+          bg: "bg-orange-100 dark:bg-orange-900/30",
+          label: "Visibilidad: Privado"
+        };
+      } else {
+        return {
+          icon: Eye,
+          color: "text-blue-500",
+          bg: "bg-blue-100 dark:bg-blue-900/30",
+          label: "Visibilidad cambiada"
+        };
+      }
+    }
+    
+    // Configuración para notificaciones de estado del contenido
+    const status = notification.status || notification.estado;
     switch (status) {
       case 'published': // Público y sin cambios pendientes
         return { 
@@ -144,7 +227,7 @@ const NotificationBell = () => {
         };
       case 'inactive': // Deshabilitado (por el usuario o admin)
         return { 
-          icon: EyeOff, // Necesitarás importar EyeOff de lucide-react
+          icon: EyeOff,
           color: "text-gray-500", 
           bg: "bg-gray-100 dark:bg-[#1D1F23]", 
           label: "Inactivo" 
@@ -169,6 +252,7 @@ const NotificationBell = () => {
         onClick={() => {
           setIsOpen(!isOpen);
           if (!isOpen && unreadNotifs.length === 0) fetchUnread(); // Refrescar al abrir si está vacío
+          refreshNotifications(); // Refrescar conteo global al abrir
         }}
         className={clsx(
           "w-9 h-9 flex items-center justify-center border shadow-sm rounded-full transition-all text-sm",
@@ -178,9 +262,9 @@ const NotificationBell = () => {
       >
         <Bell size={18} strokeWidth={2.5} />
         {/* Badge numérico si hay > 0 */}
-        {unreadNotifs.length > 0 && (
+        {unreadCount > 0 && (
           <span className="absolute -top-1.5 -right-1.5 flex h-[20px] min-w-[20px] items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white border-2 border-white dark:border-[#121212] px-1">
-            {unreadNotifs.length > 99 ? '99+' : unreadNotifs.length}
+            {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
       </button>
@@ -194,8 +278,8 @@ const NotificationBell = () => {
             <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-300 flex items-center gap-2">
               Notificaciones
             </h3>
-            <span className="text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 rounded-full border border-blue-200 dark:border-blue-800">
-              {unreadNotifs.length}
+            <span className="text-xs font-bold text-gray-600 dark:text-gray-300">
+              {unreadCount}
             </span>
           </div>
 
@@ -205,8 +289,141 @@ const NotificationBell = () => {
               <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-gray-400" size={24} /></div>
             ) : unreadNotifs.length > 0 ? (
               unreadNotifs.slice(0, 10).map(notif => {
-                const config = getStatusConfig(notif.status);
+                const config = getNotificationConfig(notif);
                 const Icon = config.icon;
+                const actorInfo = actorCache[notif.actorid] || { nombre: notif.actorname, imagen: notif.actoravatar };
+
+                // Renderizado especial para comentarios
+                if (notif.type === 'comment') {
+                  const isReply = notif.parentid !== null;
+                  
+                  return (
+                    <div
+                      key={notif.id}
+                      onClick={() => handleNotifClick(notif)}
+                      className="flex gap-3 p-3 hover:bg-gray-50 dark:hover:bg-[#191B1E] transition-colors cursor-pointer group"
+                    >
+                      {/* Avatar del usuario */}
+                      <div className="shrink-0">
+                        <div className="w-10 h-10 rounded-full">
+                          <AvatarRenderer 
+                            avatar={actorInfo.imagen} 
+                            name={actorInfo.nombre} 
+                          />
+                        </div>
+                      </div>
+
+                      {/* Contenido del comentario */}
+                      <div className="flex-1 min-w-0">
+                        {/* Header: Nombre, tipo y tiempo */}
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-1.5">
+                            <h4 className="text-xs font-bold text-gray-900 dark:text-white">
+                              {actorInfo.nombre || 'Alguien'}
+                            </h4>
+                            <span className={clsx(
+                              "text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full",
+                              isReply 
+                                ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300" 
+                                : "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
+                            )}>
+                              {isReply ? 'Respuesta' : 'Comentario'}
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-gray-400">
+                            {getTimeAgo(notif.creado)}
+                          </span>
+                        </div>
+
+                        {/* Comentario */}
+                        <p className="text-xs text-gray-700 dark:text-gray-300 mb-1 line-clamp-2">
+                          "{notif.commenttext || '...'}"
+                        </p>
+
+                        {/* Información del contenido */}
+                        <div className="text-[10px] text-gray-500 dark:text-gray-400">
+                          {isReply ? 'respondió a tu comentario en' : 'comentó en'} tu {notif.modtype} <span className="text-primary-600 dark:text-primary-400">"{notif.modtitle}"</span>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={(e) => handleMarkAsRead(e, notif.id)}
+                        className="opacity-0 group-hover:opacity-100 p-1.5 h-fit text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-all shrink-0"
+                        title="Marcar como leída"
+                      >
+                        <Check size={16} />
+                      </button>
+                    </div>
+                  );
+                }
+                
+                // Renderizado especial para likes con avatar
+                if (notif.type === 'like') {
+                  return (
+                    <div
+                      key={notif.id}
+                      onClick={() => handleNotifClick(notif)}
+                      className="flex gap-3 p-3 hover:bg-gray-50 dark:hover:bg-[#191B1E] transition-colors cursor-pointer group"
+                    >
+                      {/* Avatar del usuario */}
+                      <div className="shrink-0">
+                        <div className="w-10 h-10 rounded-full">
+                          <AvatarRenderer 
+                            avatar={actorInfo.imagen} 
+                            name={actorInfo.nombre} 
+                          />
+                        </div>
+                      </div>
+
+                      {/* Contenido del like */}
+                      <div className="flex-1 min-w-0">
+                        {/* Header: Nombre y tiempo */}
+                        <div className="flex items-center justify-between mb-1">
+                          <h4 className="text-xs font-bold text-gray-900 dark:text-white">
+                            {actorInfo.nombre || 'Alguien'}
+                          </h4>
+                          <span className="text-[10px] text-gray-400">
+                            {getTimeAgo(notif.creado)}
+                          </span>
+                        </div>
+
+                        {/* Mensaje de like */}
+                        <p className="text-xs text-gray-700 dark:text-gray-300 mb-1">
+                          Le gustó tu {notif.modtype}
+                        </p>
+
+                        {/* Información del contenido */}
+                        <div className="text-[10px] text-gray-500 dark:text-gray-400">
+                          <span className="text-primary-600 dark:text-primary-400">"{notif.modtitle}"</span>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={(e) => handleMarkAsRead(e, notif.id)}
+                        className="opacity-0 group-hover:opacity-100 p-1.5 h-fit text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-all shrink-0"
+                        title="Marcar como leída"
+                      >
+                        <Check size={16} />
+                      </button>
+                    </div>
+                  );
+                }
+
+                // Renderizado normal para otros tipos
+                let message = '';
+                const actorName = actorInfo.nombre || 'Alguien';
+                
+                if (notif.type === 'like') {
+                  message = `A ${actorName} le gustó tu ${notif.modtype} "${notif.modtitle}"`;
+                } else if (notif.type === 'download') {
+                  message = `${actorName} descargó tu ${notif.modtype} "${notif.modtitle}"`;
+                } else if (notif.type === 'visibility') {
+                  const visibility = notif.visibilidad;
+                  const visibilityText = visibility === 'publico' ? 'público' : visibility === 'privado' ? 'privado' : 'cambiado';
+                  message = `Tu ${notif.modtype} "${notif.modtitle}" ahora es ${visibilityText}`;
+                } else {
+                  message = `Tu ${notif.modtype} "${notif.modtitle}" ha sido ${config.label.toLowerCase()}`;
+                }
 
                 return (
                   <div
@@ -220,7 +437,7 @@ const NotificationBell = () => {
 
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 pr-4 leading-tight">
-                        Tu {notif.modType} <span className="text-gray-900 dark:text-white font-bold">"{notif.modTitle}"</span> ha sido {config.label.toLowerCase()}.
+                        {message}
                       </p>
                       <p className="text-[10px] text-gray-500 mt-1 font-medium">
                         {getTimeAgo(notif.creado)}

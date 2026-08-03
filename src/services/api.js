@@ -4,6 +4,8 @@ import { v4 as uuidv4 } from 'uuid';
 // --- SISTEMA DE CACHÉ ---
 const userCache = {}; 
 const usernameMap = {};
+const notificationsCache = new Map(); // Cache para notificaciones
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutos de TTL para cache
 
 // ---------------------------------------------------------
 // 1-3. CONTENIDO (Obtención)
@@ -89,23 +91,35 @@ export const getUserContent = async (uid) => {
 export const updateContent = async (id, data) => {
   const { data: currentData } = await supabase
     .from('content')
-    .select('estado, aporte, titulo, tipo, imagen')
+    .select('estado, visibilidad, aporte, titulo, tipo, imagen')
     .eq('id', id)
     .single();
   
-  if (data.estado && currentData?.estado !== data.estado && (data.estado === 'published' || data.estado === 'rejected')) {
+  if (data.estado && currentData?.estado !== data.estado && (data.estado === 'published' || data.estado === 'rejected' || data.estado === 'pending')) {
     const uploaderUid = currentData.aporte?.uid;
     if (uploaderUid) {
-      await supabase.from('notifications').insert({
-        userId: uploaderUid,
-        modId: id,
-        modTitle: data.titulo || currentData.titulo,
-        modImage: data.imagen || currentData.imagen,
-        modType: data.tipo || currentData.tipo,
-        estado: data.estado,
-        creado: new Date().toISOString(),
-        leida: false
-      });
+      await createStatusNotification(
+        uploaderUid,
+        id,
+        data.titulo || currentData.titulo,
+        data.imagen || currentData.imagen,
+        data.tipo || currentData.tipo,
+        data.estado
+      );
+    }
+  }
+
+  if (data.visibilidad && currentData?.visibilidad !== data.visibilidad) {
+    const uploaderUid = currentData.aporte?.uid;
+    if (uploaderUid) {
+      await createVisibilityNotification(
+        uploaderUid,
+        id,
+        data.titulo || currentData.titulo,
+        data.imagen || currentData.imagen,
+        data.tipo || currentData.tipo,
+        data.visibilidad
+      );
     }
   }
 
@@ -142,11 +156,38 @@ export const registerView = async (contentId) => {
   await supabase.from('content').update({ vistas: (data?.vistas || 0) + 1 }).eq('id', contentId);
 };
 
-export const registerDownload = async (contentId, downloadUrl) => {
-  const { data } = await supabase.from('content').select('descargas').eq('id', contentId).single();
+export const registerDownload = async (contentId, downloadUrl, userId = null) => {
+  const { data } = await supabase.from('content').select('descargas, aporte, titulo, imagen, tipo').eq('id', contentId).single();
   if (data?.descargas) {
     const updated = data.descargas.map(d => d.url === downloadUrl ? { ...d, count: (d.count || 0) + 1 } : d);
     await supabase.from('content').update({ descargas: updated }).eq('id', contentId);
+    
+    // Crear notificación de descarga si hay un usuario autenticado
+    if (userId) {
+      await createDownloadNotificationForContent(userId, contentId, data);
+    }
+  }
+};
+
+// Función auxiliar para crear notificación de descarga
+const createDownloadNotificationForContent = async (actorId, contentId, content) => {
+  try {
+    const contentOwnerId = content.aporte?.uid || content.aporte;
+    
+    // No notificar al usuario si descarga su propio contenido
+    if (contentOwnerId === actorId) return;
+    
+    // Crear notificación (solo con actorId)
+    await createDownloadNotification(
+      contentOwnerId,
+      contentId,
+      content.titulo,
+      content.imagen,
+      content.tipo,
+      actorId
+    );
+  } catch (error) {
+    console.error("Error creando notificación de descarga:", error);
   }
 };
 
@@ -246,16 +287,181 @@ export const searchGlobalContent = async (searchTerm) => {
 };
 
 // --- NOTIFICACIONES ---
-export const getUserNotifications = async (userId) => {
+
+// ÍNDICES RECOMENDADOS PARA SUPABASE (ejecutar en SQL Editor):
+/*
+-- Índice compuesto para consultas principales de notificaciones
+CREATE INDEX IF NOT EXISTS idx_notifications_user_creado 
+ON notifications(userId, creado DESC);
+
+-- Índice para filtrar por leída/no leída
+CREATE INDEX IF NOT EXISTS idx_notifications_user_leida 
+ON notifications(userId, leida, creado DESC);
+
+-- Índice para consultas por tipo
+CREATE INDEX IF NOT EXISTS idx_notifications_type 
+ON notifications(type, creado DESC);
+
+-- Índice para contenido específico
+CREATE INDEX IF NOT EXISTS idx_notifications_mod 
+ON notifications(modId, creado DESC);
+
+-- Índice para actor (usuario que realizó la acción)
+CREATE INDEX IF NOT EXISTS idx_notifications_actor 
+ON notifications(actorId, creado DESC);
+*/
+
+// Función auxiliar para crear notificaciones de diferentes tipos
+export const createNotification = async (notificationData) => {
   try {
-    const { data, error } = await supabase
+    console.log("DEBUG: createNotification llamado con:", notificationData);
+    
+    // Mapear nombres de columnas a snake_case para coincidir con la base de datos
+    const dbData = {
+      userid: notificationData.userId,
+      modid: notificationData.modId,
+      modtitle: notificationData.modTitle,
+      modimage: notificationData.modImage,
+      modtype: notificationData.modType,
+      type: notificationData.type,
+      estado: notificationData.estado,
+      actorid: notificationData.actorId,
+      commenttext: notificationData.commentText,
+      visibilidad: notificationData.visibilidad,
+      creado: new Date().toISOString(),
+      leida: false
+    };
+    
+    const { error } = await supabase.from('notifications').insert(dbData);
+    
+    if (error) {
+      console.error("DEBUG: Error insertando notificación:", error);
+      throw error;
+    }
+    
+    console.log("DEBUG: Notificación insertada exitosamente");
+    return true;
+  } catch (error) {
+    console.error("Error creando notificación:", error);
+    throw error;
+  }
+};
+
+// Crear notificación de like
+export const createLikeNotification = async (contentOwnerId, contentId, contentTitle, contentImage, contentType, actorId) => {
+  return createNotification({
+    userId: contentOwnerId,
+    modId: contentId,
+    modTitle: contentTitle,
+    modImage: contentImage,
+    modType: contentType,
+    type: 'like',
+    actorId
+  });
+};
+
+// Crear notificación de comentario
+export const createCommentNotification = async (contentOwnerId, contentId, contentTitle, contentImage, contentType, actorId, commentText) => {
+  console.log("DEBUG: createCommentNotification llamado", { 
+    contentOwnerId, contentId, contentTitle, actorId, commentText 
+  });
+  
+  const result = await createNotification({
+    userId: contentOwnerId,
+    modId: contentId,
+    modTitle: contentTitle,
+    modImage: contentImage,
+    modType: contentType,
+    type: 'comment',
+    actorId,
+    commentText
+  });
+  
+  console.log("DEBUG: createCommentNotification resultado:", result);
+  return result;
+};
+
+// Crear notificación de descarga
+export const createDownloadNotification = async (contentOwnerId, contentId, contentTitle, contentImage, contentType, actorId) => {
+  return createNotification({
+    userId: contentOwnerId,
+    modId: contentId,
+    modTitle: contentTitle,
+    modImage: contentImage,
+    modType: contentType,
+    type: 'download',
+    actorId
+  });
+};
+
+// Crear notificación de cambio de estado (revisión, aceptado, rechazado)
+export const createStatusNotification = async (contentOwnerId, contentId, contentTitle, contentImage, contentType, newStatus) => {
+  return createNotification({
+    userId: contentOwnerId,
+    modId: contentId,
+    modTitle: contentTitle,
+    modImage: contentImage,
+    modType: contentType,
+    type: 'status',
+    estado: newStatus
+  });
+};
+
+// Crear notificación de cambio de visibilidad
+export const createVisibilityNotification = async (contentOwnerId, contentId, contentTitle, contentImage, contentType, newVisibility) => {
+  return createNotification({
+    userId: contentOwnerId,
+    modId: contentId,
+    modTitle: contentTitle,
+    modImage: contentImage,
+    modType: contentType,
+    type: 'visibility',
+    visibilidad: newVisibility
+  });
+};
+
+export const getUserNotifications = async (userId, onlyUnread = false, limit = 50, offset = 0, forceRefresh = false) => {
+  try {
+    console.log("DEBUG: getUserNotifications llamado", { userId, onlyUnread, limit, offset, forceRefresh });
+    
+    // Generar clave de cache
+    const cacheKey = `${userId}_${onlyUnread}_${limit}_${offset}`;
+    
+    // Verificar cache si no es forzado
+    if (!forceRefresh) {
+      const cached = notificationsCache.get(cacheKey);
+      if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+        console.log("DEBUG: Retornando datos del cache:", cached.data.length, "notificaciones");
+        return cached.data;
+      }
+    }
+    
+    let query = supabase
       .from('notifications')
       .select('*')
-      .eq('userId', userId)
-      .eq('leida', false)
-      .order('creado', { ascending: false });
+      .eq('userid', userId)
+      .order('creado', { ascending: false })
+      .range(offset, offset + limit - 1);
 
-    if (error) throw error;
+    if (onlyUnread) {
+      query = query.eq('leida', false);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error("DEBUG: Error en consulta de notificaciones:", error);
+      throw error;
+    }
+    
+    console.log("DEBUG: Notificaciones obtenidas de DB:", data?.length);
+    
+    // Guardar en cache
+    notificationsCache.set(cacheKey, {
+      data: data || [],
+      timestamp: Date.now()
+    });
+    
     return data || [];
   } catch (error) {
     console.error("Error al obtener notificaciones:", error);
@@ -263,7 +469,54 @@ export const getUserNotifications = async (userId) => {
   }
 };
 
-export const markNotificationAsRead = async (notificationId) => {
+export const getUnreadNotificationsCount = async (userId, forceRefresh = false) => {
+  try {
+    // Generar clave de cache
+    const cacheKey = `count_${userId}`;
+    
+    // Verificar cache si no es forzado
+    if (!forceRefresh) {
+      const cached = notificationsCache.get(cacheKey);
+      if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+        return cached.data;
+      }
+    }
+    
+    const { count, error } = await supabase
+      .from('notifications')
+      .select('*', { count: 'exact', head: true })
+      .eq('userid', userId)
+      .eq('leida', false);
+
+    if (error) throw error;
+    
+    const result = count || 0;
+    
+    // Guardar en cache
+    notificationsCache.set(cacheKey, {
+      data: result,
+      timestamp: Date.now()
+    });
+    
+    return result;
+  } catch (error) {
+    console.error("Error al obtener conteo de notificaciones no leídas:", error);
+    return 0;
+  }
+};
+
+// Invalidar cache de notificaciones para un usuario específico
+export const invalidateNotificationsCache = (userId) => {
+  const keysToDelete = [];
+  for (const key of notificationsCache.keys()) {
+    if (key.startsWith(userId)) {
+      keysToDelete.push(key);
+    }
+  }
+  keysToDelete.forEach(key => notificationsCache.delete(key));
+};
+
+export const markNotificationAsRead = async (notificationId, userId) => {
   try {
     const { error } = await supabase
       .from('notifications')
@@ -271,6 +524,12 @@ export const markNotificationAsRead = async (notificationId) => {
       .eq('id', notificationId);
       
     if (error) throw error;
+    
+    // Invalidar cache si se proporciona userId
+    if (userId) {
+      invalidateNotificationsCache(userId);
+    }
+    
     return true;
   } catch (error) {
     console.error("Error marcando notificación como leída:", error);
@@ -315,6 +574,8 @@ export const deleteNotification = async (notificationId) => {
     throw error;
   }
 };
+
+
 
 // --- SISTEMA DE FOLLOWS (SEGUIDORES/SIGUIENDO) ---
 export const followUser = async (followerId, followingId) => {
@@ -442,11 +703,46 @@ export const toggleLike = async (userId, contentId) => {
         });
 
       if (error) throw error;
+      
+      // Crear notificación al creador del contenido
+      await createLikeNotificationForContent(userId, contentId);
+      
       return true; // Like
     }
   } catch (error) {
     console.error("Error toggling like:", error);
     throw error;
+  }
+};
+
+// Función auxiliar para crear notificación de like
+const createLikeNotificationForContent = async (actorId, contentId) => {
+  try {
+    // Obtener información del contenido
+    const { data: content } = await supabase
+      .from('content')
+      .select('aporte, titulo, imagen, tipo')
+      .eq('id', contentId)
+      .single();
+    
+    if (!content) return;
+    
+    const contentOwnerId = content.aporte?.uid || content.aporte;
+    
+    // No notificar al usuario si le da like a su propio contenido
+    if (contentOwnerId === actorId) return;
+    
+    // Crear notificación (solo con actorId)
+    await createLikeNotification(
+      contentOwnerId,
+      contentId,
+      content.titulo,
+      content.imagen,
+      content.tipo,
+      actorId
+    );
+  } catch (error) {
+    console.error("Error creando notificación de like:", error);
   }
 };
 
@@ -502,13 +798,20 @@ export const getCommentsByContent = async (contentId) => {
   try {
     const { data, error } = await supabase
       .from('comments')
-      .select('*, users(username, avatar)')
+      .select('*, users(username, avatar), replies:comments(id)')
       .eq('content_id', contentId)
       .is('parent_id', null)
       .order('created_at', { ascending: false });
     
     if (error) throw error;
-    return data || [];
+    
+    // Agregar replies_count manualmente
+    const commentsWithCount = (data || []).map(comment => ({
+      ...comment,
+      replies_count: comment.replies?.length || 0
+    }));
+    
+    return commentsWithCount;
   } catch (error) {
     console.error("Error obteniendo comentarios:", error);
     return [];
@@ -533,6 +836,8 @@ export const getRepliesByComment = async (commentId) => {
 
 export const createComment = async (userId, contentId, text, parentId = null) => {
   try {
+    console.log("DEBUG: createComment llamado", { userId, contentId, text, parentId });
+    
     const { data, error } = await supabase
       .from('comments')
       .insert({
@@ -544,11 +849,98 @@ export const createComment = async (userId, contentId, text, parentId = null) =>
       .select()
       .single();
     
-    if (error) throw error;
+    if (error) {
+      console.error("DEBUG: Error insertando comentario:", error);
+      throw error;
+    }
+    
+    console.log("DEBUG: Comentario insertado:", data);
+    
+    // Crear notificación de comentario
+    await createCommentNotificationForContent(userId, contentId, text, parentId);
+    
     return data;
   } catch (error) {
     console.error("Error creando comentario:", error);
     throw error;
+  }
+};
+
+// Función auxiliar para crear notificación de comentario
+const createCommentNotificationForContent = async (actorId, contentId, commentText, parentId = null) => {
+  try {
+    console.log("DEBUG: Creando notificación de comentario", { actorId, contentId, commentText, parentId });
+    
+    // Obtener información del contenido
+    const { data: content } = await supabase
+      .from('content')
+      .select('aporte, titulo, imagen, tipo')
+      .eq('id', contentId)
+      .single();
+    
+    console.log("DEBUG: Contenido obtenido:", content);
+    console.log("DEBUG: Tipo de campo aporte:", typeof content.aporte, "Valor:", content.aporte);
+    
+    if (!content) {
+      console.log("DEBUG: No se encontró el contenido");
+      return;
+    }
+    
+    const contentOwnerId = content.aporte?.uid || content.aporte;
+    console.log("DEBUG: ID del dueño del contenido:", contentOwnerId);
+    console.log("DEBUG: ID del actor:", actorId);
+    console.log("DEBUG: ¿Son el mismo usuario?", contentOwnerId === actorId);
+    
+    // No notificar al usuario si comenta su propio contenido
+    if (contentOwnerId === actorId) {
+      console.log("DEBUG: Usuario comentando su propio contenido, no notificar");
+      return;
+    }
+    
+    // Si es una respuesta, notificar al dueño del comentario original
+    if (parentId) {
+      console.log("DEBUG: Es una respuesta a otro comentario");
+      const { data: parentComment } = await supabase
+        .from('comments')
+        .select('user_id')
+        .eq('id', parentId)
+        .single();
+      
+      if (parentComment && parentComment.user_id !== actorId) {
+        console.log("DEBUG: Notificando al dueño del comentario original:", parentComment.user_id);
+        await createCommentNotification(
+          parentComment.user_id,
+          contentId,
+          content.titulo,
+          content.imagen,
+          content.tipo,
+          actorId,
+          commentText
+        );
+        
+        invalidateNotificationsCache(parentComment.user_id);
+      }
+    } else {
+      // Notificar al dueño del contenido
+      console.log("DEBUG: Notificando al dueño del contenido:", contentOwnerId);
+      await createCommentNotification(
+        contentOwnerId,
+        contentId,
+        content.titulo,
+        content.imagen,
+        content.tipo,
+        actorId,
+        commentText
+      );
+      
+      // Invalidar cache para que el usuario vea la notificación inmediatamente
+      console.log("DEBUG: Invalidando cache para usuario:", contentOwnerId);
+      invalidateNotificationsCache(contentOwnerId);
+    }
+    
+    console.log("DEBUG: Notificación de comentario creada exitosamente");
+  } catch (error) {
+    console.error("Error creando notificación de comentario:", error);
   }
 };
 

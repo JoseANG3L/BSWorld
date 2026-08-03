@@ -68,7 +68,7 @@ const MobileBottomNav = () => {
         >
           {user ? (
             <div className="relative">
-              <NotificationBell userId={user.id} />
+              <NotificationBell />
             </div>
           ) : (
             <Bell size={20} strokeWidth={location.pathname === "/notificaciones" ? 2.5 : 2} />

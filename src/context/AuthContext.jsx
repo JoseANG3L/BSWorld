@@ -1,7 +1,9 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "../services/supabaseClient";
+import { getUnreadNotificationsCount, invalidateNotificationsCache } from "../services/api";
 
 const AuthContext = createContext();
+const NotificationsContext = createContext();
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -9,9 +11,19 @@ export const useAuth = () => {
   return context;
 };
 
+export const useNotifications = () => {
+  const context = useContext(NotificationsContext);
+  if (!context) throw new Error("useNotifications debe usarse dentro de un AuthProvider");
+  return context;
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  
+  // Estado global de notificaciones para evitar duplicados
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notifications, setNotifications] = useState([]);
 
   const signInWithProvider = async (provider) => {
     const { data, error } = await supabase.auth.signInWithOAuth({
@@ -187,9 +199,46 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Funciones de notificaciones globales
+  const fetchUnreadCount = async () => {
+    if (!user?.id) {
+      console.log("DEBUG: No hay usuario autenticado, contador = 0");
+      setUnreadCount(0);
+      return;
+    }
+    try {
+      console.log("DEBUG: Cargando conteo para usuario:", user.id, "username:", user.username);
+      invalidateNotificationsCache(user.id);
+      const count = await getUnreadNotificationsCount(user.id, true);
+      console.log("DEBUG: Conteo obtenido:", count, "para usuario:", user.id);
+      setUnreadCount(count);
+    } catch (error) {
+      console.error("Error cargando conteo de notificaciones:", error);
+    }
+  };
+
+  const refreshNotifications = () => {
+    console.log("DEBUG: refreshNotifications llamado, usuario actual:", user?.id, "username:", user?.username);
+    fetchUnreadCount();
+  };
+
+  // Cargar notificaciones cuando el usuario cambia
+  useEffect(() => {
+    if (user?.id) {
+      fetchUnreadCount();
+      // Refrescar cada 2 minutos
+      const interval = setInterval(fetchUnreadCount, 120000);
+      return () => clearInterval(interval);
+    } else {
+      setUnreadCount(0);
+    }
+  }, [user?.id]);
+
   return (
     <AuthContext.Provider value={{ user, login, signup, logout, loading, signInWithProvider, updateUserProfile }}>
-      {!loading && children}
+      <NotificationsContext.Provider value={{ unreadCount, notifications, setNotifications, refreshNotifications }}>
+        {!loading && children}
+      </NotificationsContext.Provider>
     </AuthContext.Provider>
   );
 };

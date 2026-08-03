@@ -507,7 +507,7 @@ const DetalleContenido = () => {
             if (lastDownloadTime && (now - parseInt(lastDownloadTime)) < COOLDOWN_TIME) return;
 
             localStorage.setItem(storageKey, now.toString());
-            await registerDownload(id, url);
+            await registerDownload(id, url, user?.id);
 
             setItem(prev => ({
                 ...prev,

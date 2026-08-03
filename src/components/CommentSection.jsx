@@ -116,7 +116,7 @@ const CommentCard = ({ comment, contentId, onCommentMutated, isReply = false }) 
   };
 
   const formattedDate = getRelativeTime(comment.created_at);
-  const hasReplies = (comment.replies_count > 0) || (replies.length > 0);
+  const hasReplies = comment.replies_count > 0;
 
   return (
     <div 
@@ -229,9 +229,14 @@ const CommentCard = ({ comment, contentId, onCommentMutated, isReply = false }) 
           </div>
 
           {/* Botón para mostrar / ocultar respuestas */}
-          {hasReplies && !showReplies && (
+          {hasReplies && (
             <button 
-              onClick={() => setShowReplies(!showReplies)} 
+              onClick={() => {
+                if (!showReplies) {
+                  loadReplies();
+                }
+                setShowReplies(!showReplies);
+              }} 
               className="flex items-center gap-1.5 ml-10 mt-1 text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-primary-500 dark:hover:text-primary-400 transition-colors"
             >
               <span>
@@ -285,21 +290,6 @@ const CommentCard = ({ comment, contentId, onCommentMutated, isReply = false }) 
               isReply={true} 
             />
           ))}
-
-          {hasReplies && showReplies && (
-            <button 
-              onClick={() => setShowReplies(!showReplies)} 
-              className="flex items-center gap-1.5 ml-10 mt-2 text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-primary-500 dark:hover:text-primary-400 transition-colors"
-            >
-              <span>
-                {showReplies 
-                  ? "Ocultar respuestas" 
-                  : `Ver ${comment.replies_count || replies.length} ${comment.replies_count === 1 || replies.length === 1 ? 'respuesta' : 'respuestas'}`
-                }
-              </span>
-              {showReplies ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-            </button>
-          )}
         </div>
       )}
 
@@ -485,11 +475,11 @@ const CommentSection = ({ contentId }) => {
             ))}
           </div>
 
-          {/* Botón para expandir/colapsar en pantallas pequeñas */}
+          {/* Botón para expandir/colapsar */}
           {comments.length > 1 && (
             <button
               onClick={() => setCommentsExpanded(!commentsExpanded)}
-              className="lg:hidden w-full py-2 px-4 text-sm font-medium text-primary-600 dark:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors"
+              className="w-full py-2 px-4 text-sm font-medium text-primary-600 dark:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors"
             >
               {commentsExpanded ? `Ocultar ${comments.length - 1} comentarios` : `Ver ${comments.length - 1} comentarios más`}
             </button>
