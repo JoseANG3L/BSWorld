@@ -943,7 +943,7 @@ const ContentTable = ({
                           // onClick={() => openEditModal(item, 'categoria')}
                           // title="Clic para editar categoría"
                         >
-                          {item.tipo || 'mod'}
+                          {item.tipo || 'complemento'}
                         </span>
                       </td>
                     )}

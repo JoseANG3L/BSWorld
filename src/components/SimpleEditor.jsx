@@ -16,8 +16,9 @@ import {
   Type
 } from 'lucide-react';
 import MarkdownRenderer from './MarkdownRenderer';
+import { clsx } from 'clsx';
 
-const SimpleEditor = ({ value, onChange, placeholder }) => {
+const SimpleEditor = ({ value, onChange, placeholder, withBorder = true }) => {
   const [isPreview, setIsPreview] = useState(false);
   const textareaRef = useRef(null);
 
@@ -226,7 +227,7 @@ const SimpleEditor = ({ value, onChange, placeholder }) => {
   };
 
   return (
-    <div className="border border-gray-300 dark:border-gray-700 rounded-xl overflow-hidden bg-white dark:bg-[#1e1e1e] transition-all duration-300 focus-within:ring-1 focus-within:ring-primary-500">
+    <div className={clsx("border border-gray-300 rounded-xl overflow-hidden bg-white dark:bg-[#1e1e1e] transition-all duration-300 focus-within:ring-1 focus-within:ring-primary-500", withBorder ? "dark:border-gray-700" : "dark:border-transparent")}>
       
       {/* BARRA DE HERRAMIENTAS */}
       <div className="flex flex-wrap items-center justify-between px-2 bg-gray-50 dark:bg-[#1D1F23] border-b border-gray-200 dark:border-gray-700 gap-1">

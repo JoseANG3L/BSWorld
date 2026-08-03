@@ -39,7 +39,7 @@ const Mods = () => {
       searchKey="titulo"
       enableTypeFilter={true}
       typeKey="tipo"
-      customTypes={['mod', 'mapa', 'personaje', 'minijuego', 'modpack', 'paquete']}
+      customTypes={['complemento', 'mapa', 'personaje', 'minijuego', 'modpack', 'paquete']}
       renderItem={(item) => (
         <Card {...item} />
       )}

@@ -23,7 +23,7 @@ const DOWNLOAD_LABELS = ["API 9 (1.7.44+)", "API 8 (1.7.20+)", "API 7 (1.7.5+)",
 const RECOMMENDED_TAGS = ["api 9", "api 8", "api 7", "api 6", "api 4", "divertido", "multijugador", "pvp"];
 
 const TIPO_CARDS = [
-  { id: 'mod', title: 'Complemento', desc: 'Scripts Python y modificaciones de código', icon: Wrench, color: 'from-blue-500 to-indigo-600' },
+  { id: 'complemento', title: 'Complemento', desc: 'Scripts Python y modificaciones de código', icon: Wrench, color: 'from-blue-500 to-indigo-600' },
   { id: 'mapa', title: 'Mapa', desc: 'Escenarios y terrenos personalizados', icon: Map, color: 'from-emerald-500 to-teal-600' },
   { id: 'minijuego', title: 'Minijuego', desc: 'Modos de juego y nuevas reglas', icon: Gamepad2, color: 'from-amber-500 to-orange-600' },
   { id: 'modpack', title: 'Modpack', desc: 'Juego completo personalizado', icon: Boxes, color: 'from-red-500 to-rose-600' },
@@ -59,7 +59,7 @@ const SubirMod = ({ isOpen, onClose }) => {
   const [formData, setFormData] = useState({
     titulo: '',
     descripcion: '',
-    tipo: 'mod',
+    tipo: 'complemento',
     imagen: '',
     estado: 'borrador',
     visibilidad: 'publico',
@@ -149,7 +149,7 @@ const SubirMod = ({ isOpen, onClose }) => {
       setFormData({
         titulo: '',
         descripcion: '',
-        tipo: 'mod',
+        tipo: 'complemento',
         imagen: '',
         estado: 'borrador',
         visibilidad: 'publico',
@@ -551,6 +551,7 @@ const SubirMod = ({ isOpen, onClose }) => {
                 onChange={setSelectedCreators}
                 error={errors.creadores}
                 placeholder="Buscar usuario..."
+                withBorder={false}
               />
             </div>
           )}
@@ -563,7 +564,7 @@ const SubirMod = ({ isOpen, onClose }) => {
                 <p className="text-sm text-gray-500 dark:text-gray-400">Detalla las funciones, cómo instalarlo o los créditos extendidos.</p>
               </div>
 
-              <SimpleEditor value={formData.descripcion} onChange={handleDescriptionChange} />
+              <SimpleEditor value={formData.descripcion} onChange={handleDescriptionChange} withBorder={false} />
             </div>
           )}
 
