@@ -469,7 +469,7 @@ const CommentSection = ({ contentId }) => {
         </div>
       ) : comments.length > 0 ? (
         <>
-          <div className="flex flex-col gap-6 max-h-[600px] overflow-y-auto custom-scrollbar mt-1">
+          <div className="flex flex-col gap-6 mt-1">
             {comments.slice(0, commentsExpanded ? comments.length : 1).map((comment) => (
               <CommentCard key={comment.id} comment={comment} contentId={contentId} onCommentMutated={loadComments} />
             ))}

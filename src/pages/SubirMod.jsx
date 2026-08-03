@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Save, Plus, Trash2, Image as ImageIcon, Tag, User, CheckCircle, X, 
   ChevronRight, ChevronLeft, AlertTriangle, Loader2, PlayCircle, 
@@ -9,6 +10,7 @@ import { clsx } from 'clsx';
 import { 
   createContent
 } from '../services/api';
+import { supabase } from '../services/supabaseClient';
 import { useAuth } from '../context/AuthContext';
 import SimpleEditor from "../components/SimpleEditor";
 import AvatarRenderer from '../components/AvatarRenderer';
@@ -33,7 +35,8 @@ const TIPO_CARDS = [
 
 const SubirMod = ({ isOpen, onClose }) => {
   const { user } = useAuth();
-
+  const navigate = useNavigate();
+  
   const pasosDropdownRef = useRef(null);
   
   const [loading, setLoading] = useState(false);
@@ -317,10 +320,61 @@ const SubirMod = ({ isOpen, onClose }) => {
       };
 
       let result = await createContent(payload, false);
-      setCreatedContentId(result?.id || result);
+      const contentId = result?.id || result;
+      setCreatedContentId(contentId);
 
       const isDraft = action === 'draft';
       const isPublished = finalEstado === 'aceptado';
+
+      // Esperar y verificar que el contenido existe en Supabase
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      // Verificar que el contenido existe antes de mostrar el modal
+      let contentExists = false;
+      let retryCount = 0;
+      const maxRetries = 3;
+      
+      while (!contentExists && retryCount < maxRetries) {
+        try {
+          const { data: checkContent } = await supabase
+            .from('content')
+            .select('id')
+            .eq('id', contentId)
+            .single();
+          
+          if (checkContent) {
+            contentExists = true;
+          } else {
+            retryCount++;
+            if (retryCount < maxRetries) {
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+          }
+        } catch (error) {
+          retryCount++;
+          if (retryCount < maxRetries) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        }
+      }
+
+      if (!contentExists) {
+        setLoading(false);
+        setModal({
+          isOpen: true,
+          type: 'error',
+          title: 'Error de sincronización',
+          message: 'El contenido se guardó pero aún no está disponible. Por favor, espera unos segundos y verifica en "Mis mods".',
+          showCancel: false,
+          confirmText: 'Ir a mis mods',
+          onConfirm: () => {
+            closeModal();
+            navigate(user.role === 'admin' ? '/admin' : '/mis-mods');
+            if (onClose) onClose();
+          }
+        });
+        return;
+      }
 
       setModal({
         isOpen: true,
@@ -333,11 +387,19 @@ const SubirMod = ({ isOpen, onClose }) => {
         secondaryText: isPublished ? 'Guardar como borrador' : '',
         onConfirm: () => {
           closeModal();
+          // Navegar directamente sin esperar más, ya verificamos que existe
+          if (contentId) {
+            navigate(`/view/${contentId}`);
+          }
           if (onClose) onClose();
         },
         onCancel: () => {
           closeModal();
-          if (onClose) onClose();
+          // Esperar un momento para asegurar que el contenido se procesó correctamente
+          setTimeout(() => {
+            navigate(user.role === 'admin' ? '/admin' : '/mis-mods');
+            if (onClose) onClose();
+          }, 500);
         },
         onSecondary: isPublished ? () => {
           closeModal();

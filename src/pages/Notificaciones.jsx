@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
-  Bell, CheckCircle, XCircle, Loader2, ExternalLink, Check, 
-  Eye, Clock, Filter, Trash2, Inbox, EyeOff, AlertCircle, Heart, MessageCircle, Download, Globe, Lock, ArrowUpDown, ChevronDown
+  Bell, CheckCircle, XCircle, Loader2, 
+  Eye, Clock, Filter, Inbox, EyeOff, AlertCircle, Heart, MessageCircle, Download, Globe, Lock, ChevronDown, Search
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuth, useNotifications } from '../context/AuthContext';
-import { getUserNotifications, markNotificationAsRead, deleteNotification, invalidateNotificationsCache, getUserPublicProfile } from '../services/api';
+import { getUserNotifications, markNotificationAsRead, markNotificationAsUnread, deleteNotification, invalidateNotificationsCache, getUserPublicProfile } from '../services/api';
 import AvatarRenderer from '../components/AvatarRenderer';
 
 // --- UTILIDAD DE TIEMPO ---
@@ -29,9 +29,11 @@ const getTimeAgo = (dateString) => {
 const Notificaciones = () => {
   const { user } = useAuth();
   const { unreadCount, refreshNotifications } = useNotifications();
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
@@ -103,6 +105,10 @@ const Notificaciones = () => {
     
     // Configuración para notificaciones de estado del contenido
     const status = notification.status || notification.estado;
+    const isAdmin = user?.role === 'admin';
+    const modType = notification.modtype || 'mod';
+    const modTitle = notification.modtitle || 'contenido';
+    
     switch (status) {
       case 'published':
         return { 
@@ -110,7 +116,7 @@ const Notificaciones = () => {
           color: "text-green-500", 
           bg: "bg-green-100 dark:bg-green-900/30", 
           label: "Publicado",
-          desc: "Tu aporte ya es visible para la comunidad."
+          desc: isAdmin ? `El ${modType} "${modTitle}" ha sido publicado.` : "Tu aporte ya es visible para la comunidad."
         };
       case 'published_editing':
         return { 
@@ -118,15 +124,15 @@ const Notificaciones = () => {
           color: "text-blue-500", 
           bg: "bg-blue-100 dark:bg-blue-900/30", 
           label: "Publicado (En revisión)",
-          desc: "La versión anterior sigue pública mientras revisamos tus nuevos cambios."
+          desc: isAdmin ? `El ${modType} "${modTitle}" está en revisión con versión pública.` : "La versión anterior sigue pública mientras revisamos tus nuevos cambios."
         };
       case 'pending':
         return { 
           icon: Loader2, 
           color: "text-yellow-600", 
           bg: "bg-yellow-100 dark:bg-yellow-900/30", 
-          label: "En revisión",
-          desc: "Tu envío está pendiente de revisión."
+          label: isAdmin ? "Pendiente de revisión" : "En revisión",
+          desc: isAdmin ? `Tienes un ${modType} pendiente de revisión: "${modTitle}"` : `Tu ${modType} "${modTitle}" se ha enviado para revisión.`
         };
       case 'rejected':
         return { 
@@ -134,7 +140,7 @@ const Notificaciones = () => {
           color: "text-red-500", 
           bg: "bg-red-100 dark:bg-red-900/30", 
           label: "Rechazado",
-          desc: "No cumple con las normas. Haz clic para ver detalles y corregir."
+          desc: isAdmin ? `El ${modType} "${modTitle}" ha sido rechazado.` : "No cumple con las normas. Haz clic para ver detalles y corregir."
         };
       case 'inactive':
         return { 
@@ -142,7 +148,7 @@ const Notificaciones = () => {
           color: "text-gray-500", 
           bg: "bg-gray-100 dark:bg-[#1D1F23]", 
           label: "Inactivo",
-          desc: "Este contenido ha sido pausado y no es visible."
+          desc: isAdmin ? `El ${modType} "${modTitle}" ha sido pausado.` : "Este contenido ha sido pausado y no es visible."
         };
       default:
         return { 
@@ -243,6 +249,35 @@ const Notificaciones = () => {
     }
   };
 
+  // Marcar todas como no leídas
+  const handleMarkAllAsUnread = async () => {
+    if (!user?.id) return;
+    try {
+      setNotifications(prev => prev.map(n => ({ ...n, leida: false })));
+      
+      // Marcar cada notificación individualmente
+      const readIds = notifications.filter(n => n.leida).map(n => n.id);
+      await Promise.all(readIds.map(id => markNotificationAsUnread(id, user?.id)));
+      invalidateNotificationsCache(user?.id);
+      refreshNotifications(); // Refrescar conteo global
+    } catch (error) {
+      console.error("Error marcando todas como no leídas:", error);
+    }
+  };
+
+  // Marcar como no leída (individual)
+  const handleMarkAsUnread = async (notifId) => {
+    if (!user?.id) return;
+    try {
+      setNotifications(prev => prev.map(n => n.id === notifId ? { ...n, leida: false } : n));
+      await markNotificationAsUnread(notifId, user?.id);
+      invalidateNotificationsCache(user?.id);
+      refreshNotifications(); // Refrescar conteo global
+    } catch (error) {
+      console.error("Error marcando como no leída:", error);
+    }
+  };
+
   // Cierre del dropdown al dar clic afuera
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -255,8 +290,24 @@ const Notificaciones = () => {
   }, []);
 
   const filteredNotifs = notifications.filter(n => {
+    // Filtro por estado
     if (filter === 'unread') return !n.leida;
     if (filter === 'read') return n.leida;
+    
+    // Filtro por búsqueda
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      const contentTitle = (n.modtitle || '').toLowerCase();
+      const actorName = (n.actorname || '').toLowerCase();
+      const commentText = (n.commenttext || '').toLowerCase();
+      const notifType = (n.type || '').toLowerCase();
+      
+      return contentTitle.includes(searchLower) || 
+             actorName.includes(searchLower) || 
+             commentText.includes(searchLower) ||
+             notifType.includes(searchLower);
+    }
+    
     return true;
   });
 
@@ -313,21 +364,22 @@ const Notificaciones = () => {
     
     // Renderizado especial para comentarios con avatar
     if (notif.type === 'comment') {
-      const isReply = notif.parentid !== null;
+      const isReply = !!notif.parentid;
       
       return (
         <div 
           key={notif.id}
+          onClick={() => navigate(`/view/${notif.modid}`)}
           className={clsx(
-            "group relative flex gap-4 p-5 rounded-3xl border transition-all duration-300",
+            "group relative flex gap-3 p-3 rounded-xl border cursor-pointer shadow-sm",
             !notif.leida 
-              ? "bg-white dark:bg-[#1e1e1e] border-primary-200 dark:border-primary-900/40 shadow-md shadow-primary-500/5" 
-              : "bg-gray-50/40 dark:bg-[#151515] border-gray-200 dark:border-gray-800 opacity-90"
+              ? "bg-white dark:bg-[#1e1e1e] border border-gray-300 dark:border-transparent hover:bg-gray-50 dark:hover:bg-[#282828]" 
+              : "bg-gray-50/40 dark:bg-[#151515] border-gray-200 dark:border-gray-800 opacity-90 hover:bg-gray-100 dark:hover:bg-[#1a1a1a]"
           )}
         >
           {/* AVATAR DEL USUARIO */}
           <div className="shrink-0">
-            <div className="w-12 h-12 rounded-full">
+            <div className="w-10 h-10 rounded-full">
               <AvatarRenderer 
                 avatar={actorInfo.imagen} 
                 name={actorInfo.nombre} 
@@ -337,65 +389,47 @@ const Notificaciones = () => {
 
           {/* CONTENIDO DEL COMENTARIO */}
           <div className="flex-1 min-w-0">
-            {/* HEADER: Nombre, tipo y tiempo */}
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <h4 className="text-sm font-bold text-gray-900 dark:text-white">
-                  {actorInfo.nombre || 'Alguien'}
-                </h4>
-                <span className={clsx(
-                  "text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full",
-                  isReply 
-                    ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300" 
-                    : "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
-                )}>
-                  {isReply ? 'Respuesta' : 'Comentario'}
-                </span>
-              </div>
-              <span className="text-xs text-gray-400 flex items-center gap-1">
-                <Clock size={12} /> {getTimeAgo(notif.creado)}
-              </span>
-            </div>
-
-            {/* COMENTARIO */}
-            <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
-              {notif.commenttext || '...'}
-            </p>
-
-            {/* INFORMACIÓN DEL CONTENIDO */}
-            <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-              <span>{isReply ? 'respondió a tu comentario en' : 'comentó en'} tu {notif.modtype}</span>
-              <span className="text-primary-600 dark:text-primary-400 font-medium">
-                "{notif.modtitle}"
-              </span>
-            </div>
-
-            {/* ACCIONES */}
-            <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100 dark:border-gray-800">
-              <Link 
-                to={`/view/${notif.modid}`}
-                className="text-xs font-bold text-primary-600 dark:text-primary-400 hover:underline"
-              >
-                {isReply ? 'Ver respuesta' : 'Ver comentario'}
-              </Link>
-              <span className="text-gray-300">•</span>
-              {!notif.leida && (
-                <button 
-                  onClick={() => handleMarkAsRead(notif.id)}
-                  className="text-xs font-bold text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+            {/* HEADER: Nombre */}
+            <div className="flex items-center justify-between mb-1">
+              <h4 className="text-xs font-bold text-gray-900 dark:text-white">
+                {actorInfo.nombre || 'Alguien'}
+              </h4>
+              {/* Botón marcar como no leída */}
+              {notif.leida && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleMarkAsUnread(notif.id);
+                  }}
+                  className="text-xs text-blue-500 hover:text-blue-700 font-medium"
+                  title="Marcar como no leída"
                 >
-                  Marcar como leída
+                  Marcar como no leída
                 </button>
               )}
-              <span className="text-gray-300">•</span>
-              <button 
-                onClick={() => handleDelete(notif.id)}
-                className="text-xs font-bold text-red-500 hover:text-red-700"
-              >
-                Eliminar
-              </button>
             </div>
+
+            {/* COMENTARIO O RESPUESTA */}
+            <p className="text-xs text-gray-700 dark:text-gray-300 line-clamp-2">
+              {isReply ? `Respuesta: "${notif.commenttext || '...'}"` : `"${notif.commenttext || '...'}"`}
+            </p>
+
+            {/* TIEMPO */}
+            <span className="text-[10px] text-gray-400">
+              {getTimeAgo(notif.creado)}
+            </span>
           </div>
+
+          {/* IMAGEN DEL CONTENIDO */}
+          {notif.modimage && (
+            <div className="relative h-20 aspect-video shrink-0">
+              <img 
+                src={notif.modimage} 
+                alt={notif.modtitle}
+                className="w-full h-full rounded-lg object-cover"
+              />
+            </div>
+          )}
         </div>
       );
     }
@@ -405,8 +439,9 @@ const Notificaciones = () => {
       return (
         <div 
           key={notif.id}
+          onClick={() => navigate(`/view/${notif.modid}`)}
           className={clsx(
-            "group relative flex gap-4 p-5 rounded-3xl border transition-all duration-300",
+            "group relative flex gap-3 p-3 rounded-xl border transition-all duration-300 cursor-pointer",
             !notif.leida 
               ? "bg-white dark:bg-[#1e1e1e] border-primary-200 dark:border-primary-900/40 shadow-md shadow-primary-500/5" 
               : "bg-gray-50/40 dark:bg-[#151515] border-gray-200 dark:border-gray-800 opacity-90"
@@ -414,7 +449,7 @@ const Notificaciones = () => {
         >
           {/* AVATAR DEL USUARIO */}
           <div className="shrink-0">
-            <div className="w-12 h-12 rounded-full">
+            <div className="w-10 h-10 rounded-full">
               <AvatarRenderer 
                 avatar={actorInfo.imagen} 
                 name={actorInfo.nombre} 
@@ -424,54 +459,47 @@ const Notificaciones = () => {
 
           {/* CONTENIDO DEL LIKE */}
           <div className="flex-1 min-w-0">
-            {/* HEADER: Nombre y tiempo */}
-            <div className="flex items-center justify-between mb-2">
-              <h4 className="text-sm font-bold text-gray-900 dark:text-white">
+            {/* HEADER: Nombre */}
+            <div className="flex items-center justify-between mb-1">
+              <h4 className="text-xs font-bold text-gray-900 dark:text-white">
                 {actorInfo.nombre || 'Alguien'}
               </h4>
-              <span className="text-xs text-gray-400 flex items-center gap-1">
-                <Clock size={12} /> {getTimeAgo(notif.creado)}
-              </span>
+              {/* Botón marcar como no leída */}
+              {notif.leida && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleMarkAsUnread(notif.id);
+                  }}
+                  className="text-[10px] text-blue-500 hover:text-blue-700 font-medium"
+                  title="Marcar como no leída"
+                >
+                  Marcar como no leída
+                </button>
+              )}
             </div>
 
             {/* MENSAJE DE LIKE */}
-            <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+            <p className="text-xs text-gray-700 dark:text-gray-300 mb-1">
               Le gustó tu {notif.modtype}
             </p>
 
-            {/* INFORMACIÓN DEL CONTENIDO */}
-            <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-              <span className="text-primary-600 dark:text-primary-400 font-medium">
-                "{notif.modtitle}"
-              </span>
-            </div>
-
-            {/* ACCIONES */}
-            <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100 dark:border-gray-800">
-              <Link 
-                to={`/view/${notif.modid}`}
-                className="text-xs font-bold text-primary-600 dark:text-primary-400 hover:underline"
-              >
-                Ver {notif.modtype}
-              </Link>
-              <span className="text-gray-300">•</span>
-              {!notif.leida && (
-                <button 
-                  onClick={() => handleMarkAsRead(notif.id)}
-                  className="text-xs font-bold text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-                >
-                  Marcar como leída
-                </button>
-              )}
-              <span className="text-gray-300">•</span>
-              <button 
-                onClick={() => handleDelete(notif.id)}
-                className="text-xs font-bold text-red-500 hover:text-red-700"
-              >
-                Eliminar
-              </button>
-            </div>
+            {/* TIEMPO */}
+            <span className="text-[10px] text-gray-400">
+              {getTimeAgo(notif.creado)}
+            </span>
           </div>
+
+          {/* IMAGEN DEL CONTENIDO */}
+          {notif.modimage && (
+            <div className="relative h-20 aspect-video shrink-0">
+              <img 
+                src={notif.modimage} 
+                alt={notif.modtitle}
+                className="w-full h-full rounded-lg object-cover"
+              />
+            </div>
+          )}
         </div>
       );
     }
@@ -480,79 +508,85 @@ const Notificaciones = () => {
     return (
       <div 
         key={notif.id}
+        onClick={() => {
+          // Para administradores, siempre navegar a ver el contenido
+          if (user?.role === 'admin') {
+            navigate(`/view/${notif.modid}`);
+          } else {
+            // Para usuarios normales, navegar según el estado
+            if (notif.status === 'published' || notif.status === 'published_editing') {
+              navigate(`/view/${notif.modid}`);
+            } else {
+              navigate(`/subir?edit=${notif.modid}`);
+            }
+          }
+        }}
         className={clsx(
-          "group relative flex flex-col md:flex-row md:items-center gap-5 p-5 rounded-3xl border transition-all duration-300",
+          "group relative flex gap-3 p-3 rounded-xl border transition-all duration-300 cursor-pointer",
           !notif.leida 
             ? "bg-white dark:bg-[#1e1e1e] border-primary-200 dark:border-primary-900/40 shadow-md shadow-primary-500/5" 
             : "bg-gray-50/40 dark:bg-[#151515] border-gray-200 dark:border-gray-800 opacity-90"
         )}
       >
-        {/* ICONO Y ESTADO */}
-        <div className="flex md:flex-col items-center gap-3">
-          <div className={clsx("p-4 rounded-2xl shrink-0 shadow-inner", config.bg, config.color)}>
-            <StatusIcon size={26} className={notif.status === 'pending' ? 'animate-pulse' : ''} />
-          </div>
-          <div className="md:hidden flex flex-col">
-             <span className={clsx("text-[10px] font-black uppercase tracking-widest", config.color)}>{config.label}</span>
-             <span className="text-[10px] text-gray-400">{getTimeAgo(notif.creado)}</span>
+        {/* ICONO */}
+        <div className="shrink-0">
+          <div className={clsx("p-2 rounded-lg shrink-0", config.bg, config.color)}>
+            <StatusIcon size={18} className={notif.status === 'pending' ? 'animate-pulse' : ''} />
           </div>
         </div>
 
         {/* CONTENIDO */}
         <div className="flex-1 min-w-0">
-          <div className="hidden md:flex items-center gap-3 mb-1.5">
-            <span className={clsx("text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg border", config.bg, config.color, "border-current/10")}>
+          {/* HEADER: Tipo */}
+          <div className="flex items-center justify-between mb-1">
+            <span className={clsx("text-[10px] font-black uppercase tracking-wider", config.color)}>
               {config.label}
             </span>
-            <span className="text-[11px] text-gray-400 font-bold flex items-center gap-1">
-              <Clock size={12} /> {getTimeAgo(notif.creado)}
-            </span>
-          </div>
-          <h3 className="text-base md:text-lg font-bold text-gray-800 dark:text-gray-100 leading-tight">
-            {title} <span className="text-primary-600 dark:text-primary-400">"{notif.modtitle}"</span>
-          </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium italic">
-            {description}
-          </p>
-        </div>
-
-        {/* ACCIONES */}
-        <div className="flex items-center gap-3 mt-4 md:mt-0 pt-4 md:pt-0 border-t md:border-t-0 border-gray-100 dark:border-gray-800">
-          <Link 
-            to={(notif.status === 'published' || notif.status === 'published_editing') ? `/view/${notif.modid}` : `/subir?edit=${notif.modid}`}
-            className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-gray-900 dark:bg-primary-600 hover:bg-black dark:hover:bg-primary-700 text-white text-xs font-black rounded-2xl transition-all active:scale-95"
-          >
-            {(notif.status === 'published' || notif.status === 'published_editing') ? 'ABRIR' : 'GESTIONAR'}
-            <ExternalLink size={14} />
-          </Link>
-
-          <div className="flex gap-2">
-            {!notif.leida && (
-              <button 
-                onClick={() => handleMarkAsRead(notif.id)}
-                className="p-3 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 border border-primary-100 dark:border-primary-900/40 rounded-2xl transition-all"
-                title="Marcar como leída"
+            {/* Botón marcar como no leída */}
+            {notif.leida && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleMarkAsUnread(notif.id);
+                }}
+                className="text-[10px] text-blue-500 hover:text-blue-700 font-medium"
+                title="Marcar como no leída"
               >
-                <Check size={20} />
+                Marcar como no leída
               </button>
             )}
-            <button 
-              onClick={() => handleDelete(notif.id)}
-              className="p-3 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 border border-transparent hover:border-red-100 rounded-2xl transition-all"
-            >
-              <Trash2 size={20} />
-            </button>
           </div>
+
+          {/* TÍTULO */}
+          <h3 className="text-xs font-bold text-gray-800 dark:text-gray-100 leading-tight line-clamp-1">
+            {title} <span className="text-primary-600 dark:text-primary-400">"{notif.modtitle}"</span>
+          </h3>
+
+          {/* TIEMPO */}
+          <span className="text-[10px] text-gray-400">
+            {getTimeAgo(notif.creado)}
+          </span>
         </div>
+
+        {/* IMAGEN DEL CONTENIDO */}
+        {notif.modimage && (
+          <div className="relative h-20 aspect-video shrink-0">
+            <img 
+              src={notif.modimage} 
+              alt={notif.modtitle}
+              className="w-full h-full rounded-lg object-cover"
+            />
+          </div>
+        )}
       </div>
     );
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8 animate-fade-in-up font-sans">
+    <div className="flex flex-col p-2 md:p-4 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
       
       {/* HEADER */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-2 md:mb-6">
 
         <h1 className="flex text-xl md:text-2xl font-bold text-gray-800 dark:text-white items-center gap-3">
           <div className={clsx("w-9 h-9 rounded-xl flex items-center justify-center shadow-sm text-white", `bg-gradient-to-br from-blue-500 to-cyan-500`)}>
@@ -560,58 +594,81 @@ const Notificaciones = () => {
           </div>
           Notificaciones
         </h1>
-
-        {/* SELECTOR DE FILTROS Y ACCIONES */}
-        <div className="flex items-center gap-3">
-          <div className="relative w-full md:w-auto" ref={filterDropdownRef}>
-            <div className="relative w-full md:w-56 lg:w-64">
-              <Filter size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <button
-                type="button"
-                onClick={() => setIsFilterDropdownOpen(!isFilterDropdownOpen)}
-                className="w-full pl-10 pr-10 py-2.5 h-10 rounded-xl bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none appearance-none cursor-pointer transition-all text-sm font-medium text-left"
-              >
-                <span className="truncate block">
-                  {filter === 'all' ? 'Todas las notificaciones' : filter === 'unread' ? 'No leídas' : 'Leídas'}
-                </span>
-              </button>
-              <ChevronDown size={16} className={clsx("absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none transition-transform duration-200", isFilterDropdownOpen && "rotate-180")} />
-            </div>
-
-            {isFilterDropdownOpen && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent rounded-xl shadow-lg z-50 p-1">
-                <div className="flex flex-col gap-0.5">
-                  {[
-                    { val: 'all', label: 'Todas las notificaciones' },
-                    { val: 'unread', label: 'No leídas' },
-                    { val: 'read', label: 'Leídas' }
-                  ].map((opt) => (
-                    <button
-                      key={opt.val}
-                      type="button"
-                      onClick={() => { setFilter(opt.val); setIsFilterDropdownOpen(false); }}
-                      className={clsx(
-                        "w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                        filter === opt.val 
-                          ? "text-gray-800 dark:text-white bg-gray-200 dark:bg-gray-700 font-semibold" 
-                          : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                      )}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
           
-          {unreadCount > 0 && (
+        <div className="flex gap-2">
+          {notifications.filter(n => !n.leida).length > 0 && (
             <button
               onClick={handleMarkAllAsRead}
-              className="px-4 py-2.5 rounded-xl text-xs font-bold transition-all uppercase tracking-wider bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-900/50 border border-green-200 dark:border-green-800"
+              className="px-4 py-2 rounded-xl text-xs font-bold transition-all bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-900/50 border border-green-200 dark:border-green-800"
             >
               Marcar todas como leídas
             </button>
+          )}
+          {notifications.filter(n => n.leida).length > 0 && (
+            <button
+              onClick={handleMarkAllAsUnread}
+              className="px-4 py-2 rounded-xl text-xs font-bold transition-all bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-800"
+            >
+              Marcar todas como no leídas
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* BARRA DE FILTROS */}
+      <div className="mb-6 flex flex-row gap-3 items-center">
+        {/* Búsqueda */}
+        <div className="relative w-full md:flex-1">
+          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input 
+            type="text" 
+            placeholder="Buscar notificaciones..." 
+            value={searchTerm} 
+            onChange={(e) => setSearchTerm(e.target.value)} 
+            className="w-full pl-10 pr-4 py-2.5 h-10 rounded-xl bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all text-sm" 
+          />
+        </div>
+
+        {/* Filtro de estado */}
+        <div className="hidden md:block relative w-full md:w-auto" ref={filterDropdownRef}>
+          <div className="relative w-full md:w-56 lg:w-64">
+            <Filter size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <button
+              type="button"
+              onClick={() => setIsFilterDropdownOpen(!isFilterDropdownOpen)}
+              className="w-full pl-10 pr-10 py-2.5 h-10 rounded-xl bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none appearance-none cursor-pointer transition-all text-sm font-medium text-left"
+            >
+              <span className="truncate block">
+                {filter === 'all' ? 'Todas las notificaciones' : filter === 'unread' ? 'No leídas' : 'Leídas'}
+              </span>
+            </button>
+            <ChevronDown size={16} className={clsx("absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none transition-transform duration-200", isFilterDropdownOpen && "rotate-180")} />
+          </div>
+
+          {isFilterDropdownOpen && (
+            <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent rounded-xl shadow-lg z-50 p-1">
+              <div className="flex flex-col gap-0.5">
+                {[
+                  { val: 'all', label: 'Todas las notificaciones' },
+                  { val: 'unread', label: 'No leídas' },
+                  { val: 'read', label: 'Leídas' }
+                ].map((opt) => (
+                  <button
+                    key={opt.val}
+                    type="button"
+                    onClick={() => { setFilter(opt.val); setIsFilterDropdownOpen(false); }}
+                    className={clsx(
+                      "w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                      filter === opt.val 
+                        ? "text-gray-800 dark:text-white bg-gray-200 dark:bg-gray-700 font-semibold" 
+                        : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           )}
         </div>
       </div>

@@ -123,9 +123,9 @@ const NotificationBell = () => {
       console.error(error);
     }
 
-    // Navegación contextual
-    if (notif.status === 'active' || notif.status === 'published') {
-      navigate(`/view/${notif.modId}`);
+    // Navegación al contenido
+    if (notif.modid) {
+      navigate(`/view/${notif.modid}`);
     } else {
       navigate(`/subir?edit=${notif.modId}`);
     }
@@ -271,16 +271,13 @@ const NotificationBell = () => {
 
       {/* PANEL FLOTANTE */}
       {isOpen && (
-        <div className="fixed md:absolute top-full right-0 mt-1 mx-3 md:mx-0 md:mt-3 w-100 md:w-80 sm:w-96 bg-white dark:bg-[#1e1e1e] border border-gray-300 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden flex flex-col animate-fade-in-up origin-top-right" style={{ animationDuration: '200ms' }}>
+        <div className="fixed md:absolute top-full right-0 mt-1 mx-3 md:mx-0 md:mt-3 w-100 md:w-96 bg-white dark:bg-[#1e1e1e] border border-gray-300 dark:border-transparent rounded-xl shadow-xl z-50 overflow-hidden flex flex-col animate-fade-in-up origin-top-right" style={{ animationDuration: '200ms' }}>
 
           {/* Header del Panel */}
-          <div className="flex items-center justify-between px-3 py-2.5 border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50">
+          <div className="flex items-center justify-between px-3 py-2.5 border-b border-gray-100 dark:border-gray-800">
             <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-300 flex items-center gap-2">
               Notificaciones
             </h3>
-            <span className="text-xs font-bold text-gray-600 dark:text-gray-300">
-              {unreadCount}
-            </span>
           </div>
 
           {/* Cuerpo del Panel (Lista) */}
@@ -295,13 +292,15 @@ const NotificationBell = () => {
 
                 // Renderizado especial para comentarios
                 if (notif.type === 'comment') {
-                  const isReply = notif.parentid !== null;
+                  const isReply = !!notif.parentid;
+                  
+                  console.log("DEBUG: Comentario - parentid:", notif.parentid, "isReply:", isReply);
                   
                   return (
                     <div
                       key={notif.id}
                       onClick={() => handleNotifClick(notif)}
-                      className="flex gap-3 p-3 hover:bg-gray-50 dark:hover:bg-[#191B1E] transition-colors cursor-pointer group"
+                      className="flex gap-3 p-3 hover:bg-gray-50 dark:hover:bg-[#313131] transition-colors cursor-pointer group"
                     >
                       {/* Avatar del usuario */}
                       <div className="shrink-0">
@@ -315,44 +314,33 @@ const NotificationBell = () => {
 
                       {/* Contenido del comentario */}
                       <div className="flex-1 min-w-0">
-                        {/* Header: Nombre, tipo y tiempo */}
+                        {/* Header: Nombre y tiempo */}
                         <div className="flex items-center justify-between mb-1">
-                          <div className="flex items-center gap-1.5">
-                            <h4 className="text-xs font-bold text-gray-900 dark:text-white">
-                              {actorInfo.nombre || 'Alguien'}
-                            </h4>
-                            <span className={clsx(
-                              "text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full",
-                              isReply 
-                                ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300" 
-                                : "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
-                            )}>
-                              {isReply ? 'Respuesta' : 'Comentario'}
-                            </span>
-                          </div>
-                          <span className="text-[10px] text-gray-400">
-                            {getTimeAgo(notif.creado)}
-                          </span>
+                          <h4 className="text-xs font-bold text-gray-900 dark:text-white">
+                            {actorInfo.nombre || 'Alguien'}
+                          </h4>
                         </div>
 
-                        {/* Comentario */}
-                        <p className="text-xs text-gray-700 dark:text-gray-300 mb-1 line-clamp-2">
-                          "{notif.commenttext || '...'}"
+                        {/* Comentario o Respuesta */}
+                        <p className="text-xs text-gray-700 dark:text-gray-300 line-clamp-2">
+                          {isReply ? `Respuesta: "${notif.commenttext || '...'}"` : `"${notif.commenttext || '...'}"`}
                         </p>
 
-                        {/* Información del contenido */}
-                        <div className="text-[10px] text-gray-500 dark:text-gray-400">
-                          {isReply ? 'respondió a tu comentario en' : 'comentó en'} tu {notif.modtype} <span className="text-primary-600 dark:text-primary-400">"{notif.modtitle}"</span>
-                        </div>
+                        <span className="text-[10px] text-gray-400">
+                          {getTimeAgo(notif.creado)}
+                        </span>
                       </div>
 
-                      <button
-                        onClick={(e) => handleMarkAsRead(e, notif.id)}
-                        className="opacity-0 group-hover:opacity-100 p-1.5 h-fit text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-all shrink-0"
-                        title="Marcar como leída"
-                      >
-                        <Check size={16} />
-                      </button>
+                      {/* Imagen del contenido */}
+                      {notif.modimage && (
+                        <div className="relative h-14 aspect-video shrink-0">
+                          <img 
+                            src={notif.modimage} 
+                            alt={notif.modtitle}
+                            className="w-full h-full rounded-lg object-cover"
+                          />
+                        </div>
+                      )}
                     </div>
                   );
                 }
@@ -363,7 +351,7 @@ const NotificationBell = () => {
                     <div
                       key={notif.id}
                       onClick={() => handleNotifClick(notif)}
-                      className="flex gap-3 p-3 hover:bg-gray-50 dark:hover:bg-[#191B1E] transition-colors cursor-pointer group"
+                      className="flex gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer group"
                     >
                       {/* Avatar del usuario */}
                       <div className="shrink-0">
@@ -398,13 +386,16 @@ const NotificationBell = () => {
                         </div>
                       </div>
 
-                      <button
-                        onClick={(e) => handleMarkAsRead(e, notif.id)}
-                        className="opacity-0 group-hover:opacity-100 p-1.5 h-fit text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-all shrink-0"
-                        title="Marcar como leída"
-                      >
-                        <Check size={16} />
-                      </button>
+                      {/* Imagen del contenido */}
+                      {notif.modimage && (
+                        <div className="shrink-0">
+                          <img 
+                            src={notif.modimage} 
+                            alt={notif.modtitle}
+                            className="w-12 h-12 rounded-lg object-cover"
+                          />
+                        </div>
+                      )}
                     </div>
                   );
                 }

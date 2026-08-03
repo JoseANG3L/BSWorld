@@ -106,6 +106,17 @@ export const updateContent = async (id, data) => {
         data.tipo || currentData.tipo,
         data.estado
       );
+      
+      // Si el estado es 'pending' o 'revision', notificar a los administradores
+      if (data.estado === 'pending' || data.estado === 'revision') {
+        await createAdminReviewNotification(
+          id,
+          data.titulo || currentData.titulo,
+          data.imagen || currentData.imagen,
+          data.tipo || currentData.tipo,
+          uploaderUid
+        );
+      }
     }
   }
 
@@ -143,6 +154,31 @@ export const createContent = async (data, isUserSubmission = false) => {
   const payload = { ...data, id: newId, creado: data.creado || new Date().toISOString(), estado: finalStatus, vistas: 0 };
   const { error } = await supabase.from('content').insert(payload);
   if (error) throw error;
+  
+  // Notificar al usuario que subió el contenido si está en revisión
+  if (finalStatus === 'pending' || finalStatus === 'revision') {
+    const uploaderUid = data.aporte?.uid || data.aporte;
+    if (uploaderUid) {
+      await createStatusNotification(
+        uploaderUid,
+        newId,
+        data.titulo,
+        data.imagen,
+        data.tipo,
+        finalStatus
+      );
+      
+      // Notificar a los administradores sobre el contenido pendiente de revisión
+      await createAdminReviewNotification(
+        newId,
+        data.titulo,
+        data.imagen,
+        data.tipo,
+        uploaderUid
+      );
+    }
+  }
+  
   return newId;
 };
 
@@ -327,6 +363,7 @@ export const createNotification = async (notificationData) => {
       estado: notificationData.estado,
       actorid: notificationData.actorId,
       commenttext: notificationData.commentText,
+      parentid: notificationData.parentId,
       visibilidad: notificationData.visibilidad,
       creado: new Date().toISOString(),
       leida: false
@@ -361,9 +398,9 @@ export const createLikeNotification = async (contentOwnerId, contentId, contentT
 };
 
 // Crear notificación de comentario
-export const createCommentNotification = async (contentOwnerId, contentId, contentTitle, contentImage, contentType, actorId, commentText) => {
+export const createCommentNotification = async (contentOwnerId, contentId, contentTitle, contentImage, contentType, actorId, commentText, parentId = null) => {
   console.log("DEBUG: createCommentNotification llamado", { 
-    contentOwnerId, contentId, contentTitle, actorId, commentText 
+    contentOwnerId, contentId, contentTitle, actorId, commentText, parentId 
   });
   
   const result = await createNotification({
@@ -374,7 +411,8 @@ export const createCommentNotification = async (contentOwnerId, contentId, conte
     modType: contentType,
     type: 'comment',
     actorId,
-    commentText
+    commentText,
+    parentId
   });
   
   console.log("DEBUG: createCommentNotification resultado:", result);
@@ -405,6 +443,49 @@ export const createStatusNotification = async (contentOwnerId, contentId, conten
     type: 'status',
     estado: newStatus
   });
+};
+
+// Crear notificación para administradores sobre contenido pendiente de revisión
+export const createAdminReviewNotification = async (contentId, contentTitle, contentImage, contentType, contentOwnerId) => {
+  try {
+    // Obtener usuarios con rol de administrador
+    const { data: admins, error } = await supabase
+      .from('users')
+      .select('id')
+      .eq('role', 'admin');
+    
+    if (error) {
+      console.error("Error obteniendo administradores:", error);
+      return;
+    }
+    
+    // Si no hay administradores, no hacer nada
+    if (!admins || admins.length === 0) {
+      console.log("No hay administradores configurados para notificaciones de revisión");
+      return;
+    }
+    
+    // Notificar a cada administrador
+    for (const admin of admins) {
+      await createNotification({
+        userId: admin.id,
+        modId: contentId,
+        modTitle: contentTitle,
+        modImage: contentImage,
+        modType: contentType,
+        type: 'status',
+        estado: 'pending',
+        actorId: contentOwnerId // Para saber quién envió el contenido
+      });
+    }
+    
+    // Invalidar cache de los administradores
+    for (const admin of admins) {
+      invalidateNotificationsCache(admin.id);
+    }
+  } catch (error) {
+    console.error("Error creando notificaciones de revisión para administradores:", error);
+  }
 };
 
 // Crear notificación de cambio de visibilidad
@@ -533,6 +614,27 @@ export const markNotificationAsRead = async (notificationId, userId) => {
     return true;
   } catch (error) {
     console.error("Error marcando notificación como leída:", error);
+    throw error;
+  }
+};
+
+export const markNotificationAsUnread = async (notificationId, userId) => {
+  try {
+    const { error } = await supabase
+      .from('notifications')
+      .update({ leida: false })
+      .eq('id', notificationId);
+      
+    if (error) throw error;
+    
+    // Invalidar cache si se proporciona userId
+    if (userId) {
+      invalidateNotificationsCache(userId);
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("Error marcando notificación como no leída:", error);
     throw error;
   }
 };
@@ -915,7 +1017,8 @@ const createCommentNotificationForContent = async (actorId, contentId, commentTe
           content.imagen,
           content.tipo,
           actorId,
-          commentText
+          commentText,
+          parentId // Pasar el parentId para respuestas
         );
         
         invalidateNotificationsCache(parentComment.user_id);
@@ -930,7 +1033,8 @@ const createCommentNotificationForContent = async (actorId, contentId, commentTe
         content.imagen,
         content.tipo,
         actorId,
-        commentText
+        commentText,
+        null // parentId es null para comentarios directos
       );
       
       // Invalidar cache para que el usuario vea la notificación inmediatamente

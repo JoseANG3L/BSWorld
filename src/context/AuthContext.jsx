@@ -189,7 +189,7 @@ export const AuthProvider = ({ children }) => {
       }
     }
 
-    setUser({ ...authUser, ...data });
+    setUser({ ...authUser, ...data, role: data?.role || 'user' });
   };
 
   // Auxiliar para remover los parámetros molestos de Google (#access_token=...)
