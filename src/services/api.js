@@ -17,6 +17,7 @@ export const getContentByType = async (tipo) => {
     .eq('tipo', tipo)
     .eq('estado', 'aceptado')
     .eq('visibilidad', 'publico')
+    .is('parent_id', null)
     .order('creado', { ascending: false });
   if (error) throw error;
   return data;
@@ -28,6 +29,7 @@ export const getPublicContent = async () => {
     .select('*')
     .eq('estado', 'aceptado')
     .eq('visibilidad', 'publico')
+    .is('parent_id', null)
     .order('creado', { ascending: false });
   return error ? [] : data;
 };
@@ -49,10 +51,17 @@ export const getContentById = async (id, userId = null, userRole = null) => {
     const visibilidad = data.visibilidad || 'publico';
     const estado = data.estado || data.status;
     const ownerId = data.aporte?.uid || data.aporte;
+    const isRevision = data.parent_id !== null;
     
-    // Admin puede ver todo el contenido
+    // Admin puede ver todo el contenido incluyendo revisiones
     if (userRole === 'admin') {
       return data;
+    }
+    
+    // Si es una revisión, solo el dueño o admin pueden verla
+    if (isRevision) {
+      if (userId !== ownerId) return null;
+      return data; // El dueño puede ver su propia revisión
     }
     
     // Si es privado, solo el dueño puede verlo
@@ -95,8 +104,10 @@ export const updateContent = async (id, data) => {
     .eq('id', id)
     .single();
   
-  if (data.estado && currentData?.estado !== data.estado && (data.estado === 'published' || data.estado === 'rejected' || data.estado === 'pending')) {
-    const uploaderUid = currentData.aporte?.uid;
+  
+  if (data.estado && currentData?.estado !== data.estado && (data.estado === 'published' || data.estado === 'aceptado' || data.estado === 'rejected' || data.estado === 'rechazado' || data.estado === 'pending' || data.estado === 'revision')) {
+    // Handle both string and object aporte field
+    const uploaderUid = currentData.aporte?.uid || currentData.aporte;
     if (uploaderUid) {
       await createStatusNotification(
         uploaderUid,
@@ -121,7 +132,8 @@ export const updateContent = async (id, data) => {
   }
 
   if (data.visibilidad && currentData?.visibilidad !== data.visibilidad) {
-    const uploaderUid = currentData.aporte?.uid;
+    // Handle both string and object aporte field
+    const uploaderUid = currentData.aporte?.uid || currentData.aporte;
     if (uploaderUid) {
       await createVisibilityNotification(
         uploaderUid,
@@ -141,6 +153,220 @@ export const updateContent = async (id, data) => {
   if (error) throw error;
 };
 
+// --- SISTEMA DE VERSIONES/REVISIONES ---
+
+// Crear una revisión de contenido existente
+export const createRevision = async (originalId, data, userId) => {
+  try {
+    // Obtener el contenido original
+    const { data: original, error: fetchError } = await supabase
+      .from('content')
+      .select('*')
+      .eq('id', originalId)
+      .single();
+    
+    if (fetchError || !original) {
+      throw new Error('No se encontró el contenido original');
+    }
+    
+    // Verificar que el usuario es el dueño
+    const ownerId = original.aporte?.uid || original.aporte;
+    if (userId !== ownerId) {
+      throw new Error('No tienes permiso para editar este contenido');
+    }
+    
+    // Crear la revisión con los cambios
+    const revisionId = uuidv4();
+    const revisionData = {
+      ...original,
+      ...data,
+      id: revisionId,
+      parent_id: originalId,
+      estado: 'revision',
+      creado: new Date().toISOString(),
+      actualizado: new Date().toISOString(),
+      vistas: 0, // Reset stats for revision
+      likes_count: 0
+    };
+    
+    const { error: insertError } = await supabase
+      .from('content')
+      .insert(revisionData);
+    
+    if (insertError) throw insertError;
+    
+    // Notificar a administradores sobre la revisión
+    try {
+      await createAdminReviewNotification(
+        revisionId,
+        data.titulo || original.titulo,
+        data.imagen || original.imagen,
+        data.tipo || original.tipo,
+        userId
+      );
+    } catch (notificationError) {
+      console.error('Error creando notificación de revisión:', notificationError);
+      // No fallar la revisión si la notificación falla
+    }
+    
+    return revisionId;
+  } catch (error) {
+    console.error('Error creando revisión:', error);
+    throw error;
+  }
+};
+
+// Aprobar una revisión y fusionarla con el original
+export const approveRevision = async (revisionId) => {
+  try {
+    // Obtener la revisión
+    const { data: revision, error: revisionError } = await supabase
+      .from('content')
+      .select('*')
+      .eq('id', revisionId)
+      .single();
+    
+    if (revisionError || !revision) {
+      throw new Error('No se encontró la revisión');
+    }
+    
+    if (!revision.parent_id) {
+      throw new Error('Esta no es una revisión');
+    }
+    
+    const originalId = revision.parent_id;
+    
+    // Actualizar el contenido original con los datos de la revisión
+    const { error: updateError } = await supabase
+      .from('content')
+      .update({
+        titulo: revision.titulo,
+        descripcion: revision.descripcion,
+        tipo: revision.tipo,
+        imagen: revision.imagen,
+        galeria: revision.galeria,
+        creadores: revision.creadores,
+        tags: revision.tags,
+        descargas: revision.descargas,
+        visibilidad: revision.visibilidad,
+        estado: 'aceptado',
+        actualizado: new Date().toISOString()
+      })
+      .eq('id', originalId);
+    
+    if (updateError) throw updateError;
+    
+    // Eliminar la revisión
+    const { error: deleteError } = await supabase
+      .from('content')
+      .delete()
+      .eq('id', revisionId);
+    
+    if (deleteError) throw deleteError;
+    
+    // Notificar al creador que la revisión fue aprobada
+    const ownerId = revision.aporte?.uid || revision.aporte;
+    if (ownerId) {
+      await createStatusNotification(
+        ownerId,
+        originalId,
+        revision.titulo,
+        revision.imagen,
+        revision.tipo,
+        'aceptado'
+      );
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error aprobando revisión:', error);
+    throw error;
+  }
+};
+
+// Rechazar una revisión
+export const rejectRevision = async (revisionId, reason = '') => {
+  try {
+    // Obtener la revisión
+    const { data: revision, error: revisionError } = await supabase
+      .from('content')
+      .select('*')
+      .eq('id', revisionId)
+      .single();
+    
+    if (revisionError || !revision) {
+      throw new Error('No se encontró la revisión');
+    }
+    
+    if (!revision.parent_id) {
+      throw new Error('Esta no es una revisión');
+    }
+    
+    const originalId = revision.parent_id;
+    
+    // Eliminar la revisión
+    const { error: deleteError } = await supabase
+      .from('content')
+      .delete()
+      .eq('id', revisionId);
+    
+    if (deleteError) throw deleteError;
+    
+    // Notificar al creador que la revisión fue rechazada
+    const ownerId = revision.aporte?.uid || revision.aporte;
+    if (ownerId) {
+      await createStatusNotification(
+        ownerId,
+        originalId,
+        revision.titulo,
+        revision.imagen,
+        revision.tipo,
+        'rechazado'
+      );
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error rechazando revisión:', error);
+    throw error;
+  }
+};
+
+// Obtener revisiones pendientes para administradores
+export const getPendingRevisions = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('content')
+      .select('*')
+      .eq('estado', 'revision')
+      .not('parent_id', 'is', null)
+      .order('creado', { ascending: false });
+    
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error obteniendo revisiones pendientes:', error);
+    return [];
+  }
+};
+
+// Obtener revisiones de un contenido específico
+export const getContentRevisions = async (originalId) => {
+  try {
+    const { data, error } = await supabase
+      .from('content')
+      .select('*')
+      .eq('parent_id', originalId)
+      .order('creado', { ascending: false });
+    
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error obteniendo revisiones del contenido:', error);
+    return [];
+  }
+};
+
 export const deleteContent = async (id) => {
   const { error } = await supabase.from('content').delete().eq('id', id);
   if (error) throw error;
@@ -148,7 +374,7 @@ export const deleteContent = async (id) => {
 };
 
 export const createContent = async (data, isUserSubmission = false) => {
-  const finalStatus = isUserSubmission ? 'pending' : (data.estado || 'published');
+  const finalStatus = isUserSubmission ? 'revision' : (data.estado || 'aceptado');
   const newId = uuidv4();
 
   const payload = { ...data, id: newId, creado: data.creado || new Date().toISOString(), estado: finalStatus, vistas: 0 };
@@ -156,7 +382,7 @@ export const createContent = async (data, isUserSubmission = false) => {
   if (error) throw error;
   
   // Notificar al usuario que subió el contenido si está en revisión
-  if (finalStatus === 'pending' || finalStatus === 'revision') {
+  if (finalStatus === 'revision' || finalStatus === 'pending') {
     const uploaderUid = data.aporte?.uid || data.aporte;
     if (uploaderUid) {
       await createStatusNotification(
@@ -229,7 +455,7 @@ const createDownloadNotificationForContent = async (actorId, contentId, content)
 
 export const getGlobalStats = async () => {
   const { count: usersCount } = await supabase.from('users').select('*', { count: 'exact', head: true });
-  const { data: content } = await supabase.from('content').select('descargas, estado').eq('estado', 'aceptado').eq('visibilidad', 'publico');
+  const { data: content } = await supabase.from('content').select('descargas, estado').eq('estado', 'aceptado').eq('visibilidad', 'publico').is('parent_id', null);
   
   let totalDownloads = 0;
   content.forEach(c => {
@@ -316,6 +542,7 @@ export const searchGlobalContent = async (searchTerm) => {
     .select('*')
     .eq('estado', 'aceptado')
     .eq('visibilidad', 'publico')
+    .is('parent_id', null)
     .or(`titulo.ilike.%${term}%,tags.cs.{${term}}`);
 
   if (error) return [];
@@ -350,7 +577,6 @@ ON notifications(actorId, creado DESC);
 // Función auxiliar para crear notificaciones de diferentes tipos
 export const createNotification = async (notificationData) => {
   try {
-    console.log("DEBUG: createNotification llamado con:", notificationData);
     
     // Mapear nombres de columnas a snake_case para coincidir con la base de datos
     const dbData = {
@@ -372,14 +598,11 @@ export const createNotification = async (notificationData) => {
     const { error } = await supabase.from('notifications').insert(dbData);
     
     if (error) {
-      console.error("DEBUG: Error insertando notificación:", error);
       throw error;
     }
     
-    console.log("DEBUG: Notificación insertada exitosamente");
     return true;
   } catch (error) {
-    console.error("Error creando notificación:", error);
     throw error;
   }
 };
@@ -399,9 +622,6 @@ export const createLikeNotification = async (contentOwnerId, contentId, contentT
 
 // Crear notificación de comentario
 export const createCommentNotification = async (contentOwnerId, contentId, contentTitle, contentImage, contentType, actorId, commentText, parentId = null) => {
-  console.log("DEBUG: createCommentNotification llamado", { 
-    contentOwnerId, contentId, contentTitle, actorId, commentText, parentId 
-  });
   
   const result = await createNotification({
     userId: contentOwnerId,
@@ -415,7 +635,6 @@ export const createCommentNotification = async (contentOwnerId, contentId, conte
     parentId
   });
   
-  console.log("DEBUG: createCommentNotification resultado:", result);
   return result;
 };
 
@@ -448,6 +667,8 @@ export const createStatusNotification = async (contentOwnerId, contentId, conten
 // Crear notificación para administradores sobre contenido pendiente de revisión
 export const createAdminReviewNotification = async (contentId, contentTitle, contentImage, contentType, contentOwnerId) => {
   try {
+    console.log("DEBUG: Creando notificación de revisión para admins", { contentId, contentTitle, contentOwnerId });
+    
     // Obtener usuarios con rol de administrador
     const { data: admins, error } = await supabase
       .from('users')
@@ -459,6 +680,8 @@ export const createAdminReviewNotification = async (contentId, contentTitle, con
       return;
     }
     
+    console.log("DEBUG: Administradores encontrados:", admins?.length || 0);
+    
     // Si no hay administradores, no hacer nada
     if (!admins || admins.length === 0) {
       console.log("No hay administradores configurados para notificaciones de revisión");
@@ -467,6 +690,7 @@ export const createAdminReviewNotification = async (contentId, contentTitle, con
     
     // Notificar a cada administrador
     for (const admin of admins) {
+      console.log("DEBUG: Enviando notificación a admin:", admin.id);
       await createNotification({
         userId: admin.id,
         modId: contentId,
@@ -483,6 +707,8 @@ export const createAdminReviewNotification = async (contentId, contentTitle, con
     for (const admin of admins) {
       invalidateNotificationsCache(admin.id);
     }
+    
+    console.log("DEBUG: Notificaciones de revisión enviadas exitosamente");
   } catch (error) {
     console.error("Error creando notificaciones de revisión para administradores:", error);
   }
@@ -503,7 +729,6 @@ export const createVisibilityNotification = async (contentOwnerId, contentId, co
 
 export const getUserNotifications = async (userId, onlyUnread = false, limit = 50, offset = 0, forceRefresh = false) => {
   try {
-    console.log("DEBUG: getUserNotifications llamado", { userId, onlyUnread, limit, offset, forceRefresh });
     
     // Generar clave de cache
     const cacheKey = `${userId}_${onlyUnread}_${limit}_${offset}`;
@@ -512,7 +737,6 @@ export const getUserNotifications = async (userId, onlyUnread = false, limit = 5
     if (!forceRefresh) {
       const cached = notificationsCache.get(cacheKey);
       if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-        console.log("DEBUG: Retornando datos del cache:", cached.data.length, "notificaciones");
         return cached.data;
       }
     }
@@ -531,11 +755,8 @@ export const getUserNotifications = async (userId, onlyUnread = false, limit = 5
     const { data, error } = await query;
 
     if (error) {
-      console.error("DEBUG: Error en consulta de notificaciones:", error);
       throw error;
     }
-    
-    console.log("DEBUG: Notificaciones obtenidas de DB:", data?.length);
     
     // Guardar en cache
     notificationsCache.set(cacheKey, {
@@ -545,7 +766,6 @@ export const getUserNotifications = async (userId, onlyUnread = false, limit = 5
     
     return data || [];
   } catch (error) {
-    console.error("Error al obtener notificaciones:", error);
     return [];
   }
 };
@@ -648,7 +868,8 @@ export const getContentByCreator = async (creatorName) => {
       .select('*')
       .contains('creadores', JSON.stringify([{ nombre: creatorName }]))
       .eq('estado', 'aceptado')
-      .eq('visibilidad', 'publico');
+      .eq('visibilidad', 'publico')
+      .is('parent_id', null);
 
     if (error) throw error;
     return data || [];
@@ -938,7 +1159,6 @@ export const getRepliesByComment = async (commentId) => {
 
 export const createComment = async (userId, contentId, text, parentId = null) => {
   try {
-    console.log("DEBUG: createComment llamado", { userId, contentId, text, parentId });
     
     const { data, error } = await supabase
       .from('comments')
@@ -952,11 +1172,8 @@ export const createComment = async (userId, contentId, text, parentId = null) =>
       .single();
     
     if (error) {
-      console.error("DEBUG: Error insertando comentario:", error);
       throw error;
     }
-    
-    console.log("DEBUG: Comentario insertado:", data);
     
     // Crear notificación de comentario
     await createCommentNotificationForContent(userId, contentId, text, parentId);
@@ -971,7 +1188,6 @@ export const createComment = async (userId, contentId, text, parentId = null) =>
 // Función auxiliar para crear notificación de comentario
 const createCommentNotificationForContent = async (actorId, contentId, commentText, parentId = null) => {
   try {
-    console.log("DEBUG: Creando notificación de comentario", { actorId, contentId, commentText, parentId });
     
     // Obtener información del contenido
     const { data: content } = await supabase
@@ -980,28 +1196,20 @@ const createCommentNotificationForContent = async (actorId, contentId, commentTe
       .eq('id', contentId)
       .single();
     
-    console.log("DEBUG: Contenido obtenido:", content);
-    console.log("DEBUG: Tipo de campo aporte:", typeof content.aporte, "Valor:", content.aporte);
     
     if (!content) {
-      console.log("DEBUG: No se encontró el contenido");
       return;
     }
     
     const contentOwnerId = content.aporte?.uid || content.aporte;
-    console.log("DEBUG: ID del dueño del contenido:", contentOwnerId);
-    console.log("DEBUG: ID del actor:", actorId);
-    console.log("DEBUG: ¿Son el mismo usuario?", contentOwnerId === actorId);
     
     // No notificar al usuario si comenta su propio contenido
     if (contentOwnerId === actorId) {
-      console.log("DEBUG: Usuario comentando su propio contenido, no notificar");
       return;
     }
     
     // Si es una respuesta, notificar al dueño del comentario original
     if (parentId) {
-      console.log("DEBUG: Es una respuesta a otro comentario");
       const { data: parentComment } = await supabase
         .from('comments')
         .select('user_id')
@@ -1009,7 +1217,6 @@ const createCommentNotificationForContent = async (actorId, contentId, commentTe
         .single();
       
       if (parentComment && parentComment.user_id !== actorId) {
-        console.log("DEBUG: Notificando al dueño del comentario original:", parentComment.user_id);
         await createCommentNotification(
           parentComment.user_id,
           contentId,
@@ -1025,7 +1232,6 @@ const createCommentNotificationForContent = async (actorId, contentId, commentTe
       }
     } else {
       // Notificar al dueño del contenido
-      console.log("DEBUG: Notificando al dueño del contenido:", contentOwnerId);
       await createCommentNotification(
         contentOwnerId,
         contentId,
@@ -1038,11 +1244,9 @@ const createCommentNotificationForContent = async (actorId, contentId, commentTe
       );
       
       // Invalidar cache para que el usuario vea la notificación inmediatamente
-      console.log("DEBUG: Invalidando cache para usuario:", contentOwnerId);
       invalidateNotificationsCache(contentOwnerId);
     }
     
-    console.log("DEBUG: Notificación de comentario creada exitosamente");
   } catch (error) {
     console.error("Error creando notificación de comentario:", error);
   }
@@ -1118,6 +1322,7 @@ export const getRecommendedContent = async (currentId, tipo, tags = [], limit = 
       .select('*')
       .eq('estado', 'aceptado')
       .eq('visibilidad', 'publico')
+      .is('parent_id', null)
       .neq('id', currentId)
       .order('likes_count', { ascending: false })
       .limit(limit);

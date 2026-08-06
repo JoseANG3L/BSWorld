@@ -294,8 +294,6 @@ const NotificationBell = () => {
                 if (notif.type === 'comment') {
                   const isReply = !!notif.parentid;
                   
-                  console.log("DEBUG: Comentario - parentid:", notif.parentid, "isReply:", isReply);
-                  
                   return (
                     <div
                       key={notif.id}
@@ -322,7 +320,7 @@ const NotificationBell = () => {
                         </div>
 
                         {/* Comentario o Respuesta */}
-                        <p className="text-xs text-gray-700 dark:text-gray-300 line-clamp-2">
+                        <p className="text-xs text-gray-700 dark:text-gray-300">
                           {isReply ? `Respuesta: "${notif.commenttext || '...'}"` : `"${notif.commenttext || '...'}"`}
                         </p>
 

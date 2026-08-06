@@ -202,15 +202,12 @@ export const AuthProvider = ({ children }) => {
   // Funciones de notificaciones globales
   const fetchUnreadCount = async () => {
     if (!user?.id) {
-      console.log("DEBUG: No hay usuario autenticado, contador = 0");
       setUnreadCount(0);
       return;
     }
     try {
-      console.log("DEBUG: Cargando conteo para usuario:", user.id, "username:", user.username);
       invalidateNotificationsCache(user.id);
       const count = await getUnreadNotificationsCount(user.id, true);
-      console.log("DEBUG: Conteo obtenido:", count, "para usuario:", user.id);
       setUnreadCount(count);
     } catch (error) {
       console.error("Error cargando conteo de notificaciones:", error);
@@ -218,7 +215,6 @@ export const AuthProvider = ({ children }) => {
   };
 
   const refreshNotifications = () => {
-    console.log("DEBUG: refreshNotifications llamado, usuario actual:", user?.id, "username:", user?.username);
     fetchUnreadCount();
   };
 

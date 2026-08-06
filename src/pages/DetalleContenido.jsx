@@ -6,10 +6,10 @@ import {
     Share2, ShieldCheck, MessageCircle, Facebook, Twitter, Eye,
     Image as ImageIcon, Layers, Loader2, ChevronLeft, ChevronRight, PlayCircle,
     Link as LinkIcon, Mail, Send, Check, Copy, Youtube, AlertCircle, Code,
-    Info, Lock, Unlock, Heart, X, Edit
+    Info, Lock, Unlock, Heart, X, Edit, GitCompare
 } from 'lucide-react';
 import { clsx } from 'clsx';
-import { getContentById, registerDownload, registerView, getUserPublicProfile, toggleLike, isLikedByUser, getRecommendedContent, updateContent } from '../services/api';
+import { getContentById, registerDownload, registerView, getUserPublicProfile, toggleLike, isLikedByUser, getRecommendedContent, updateContent, approveRevision, rejectRevision } from '../services/api';
 import AvatarRenderer from '../components/AvatarRenderer';
 import { useAuth } from '../context/AuthContext';
 import MarkdownRenderer from '../components/MarkdownRenderer';
@@ -17,6 +17,127 @@ import CommentSection from '../components/CommentSection';
 import { encryptionService, initializeEncryption } from '../services/encryption';
 import { createPortal } from 'react-dom';
 import Modal from '../components/Modal';
+
+// --- SUB-COMPONENTE: CAMPOS DE CONTENIDO PARA COMPARACIÓN ---
+const ContentFields = ({ content, original, showChanges = false }) => {
+    const hasChanged = (field, isArray = false) => {
+        if (!showChanges || !original) return false;
+        if (isArray) {
+            return JSON.stringify(content?.[field] || []) !== JSON.stringify(original?.[field] || []);
+        }
+        return content?.[field] !== original?.[field];
+    };
+
+    const getFieldClassName = (field, isArray = false) => {
+        if (!showChanges) return "bg-gray-50 dark:bg-[#1D1F23] rounded-xl p-3 border border-transparent";
+        return clsx(
+            "bg-gray-50 dark:bg-[#1D1F23] rounded-xl p-3 transition-all duration-300 border border-transparent",
+            hasChanged(field, isArray) 
+                ? "bg-blue-100 dark:bg-blue-900/20 border border-blue-400 dark:border-blue-500 shadow-md" 
+                : ""
+        );
+    };
+
+    const getTextClassName = (field) => {
+        if (!showChanges) return "text-gray-900 dark:text-white";
+        return clsx(
+            hasChanged(field) 
+                ? "text-blue-900 dark:text-blue-100" 
+                : "text-gray-900 dark:text-white"
+        );
+    };
+
+    return (
+        <div className="space-y-3">
+            <div className={getFieldClassName('imagen')}>
+                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 block">Imagen Principal</label>
+                {content?.imagen ? (
+                    <div className="relative w-full aspect-video rounded-lg overflow-hidden">
+                        <img 
+                            src={content.imagen} 
+                            alt="Imagen principal" 
+                            className="w-full h-full object-cover"
+                        />
+                    </div>
+                ) : (
+                    <span className="text-gray-400 dark:text-gray-500 text-sm">Sin imagen</span>
+                )}
+            </div>
+            
+            <div className={getFieldClassName('galeria', true)}>
+                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 block">Galería</label>
+                <div className="grid grid-cols-4 gap-2">
+                    {content?.galeria?.length > 0 ? (
+                        content.galeria.map((img, i) => (
+                            <div key={i} className="relative aspect-video rounded-lg overflow-hidden">
+                                <img 
+                                    src={img} 
+                                    alt={`Galería ${i + 1}`} 
+                                    className="w-full h-full object-cover"
+                                />
+                            </div>
+                        ))
+                    ) : (
+                        <span className="text-gray-400 dark:text-gray-500 text-sm col-span-4">Sin galería</span>
+                    )}
+                </div>
+            </div>
+            
+            <div className={getFieldClassName('titulo')}>
+                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">Título</label>
+                <p className={clsx("font-medium text-sm", getTextClassName('titulo'))}>{content?.titulo || '-'}</p>
+            </div>
+            
+            <div className={getFieldClassName('descripcion')}>
+                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">Descripción</label>
+                <div className={clsx("prose dark:prose-invert prose-xs max-h-32 overflow-y-auto", getTextClassName('descripcion'))}>
+                    <MarkdownRenderer content={content?.descripcion || ''} />
+                </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-2">
+                <div className={getFieldClassName('tipo')}>
+                    <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">Tipo</label>
+                    <p className={clsx("font-medium capitalize text-sm", getTextClassName('tipo'))}>{content?.tipo || '-'}</p>
+                </div>
+                <div className={getFieldClassName('visibilidad')}>
+                    <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">Visibilidad</label>
+                    <p className={clsx("font-medium capitalize text-sm", getTextClassName('visibilidad'))}>
+                        {content?.visibilidad === 'no-listado' ? 'No listado' : content?.visibilidad || '-'}
+                    </p>
+                </div>
+            </div>
+            
+            <div className={getFieldClassName('tags', true)}>
+                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">Tags</label>
+                <div className="flex flex-wrap gap-1.5">
+                    {content?.tags?.map((tag, i) => (
+                        <span key={i} className="px-2 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-xs font-medium">
+                            {tag}
+                        </span>
+                    )) || <span className="text-gray-400 dark:text-gray-500 text-xs">Sin tags</span>}
+                </div>
+            </div>
+            
+            <div className={getFieldClassName('descargas', true)}>
+                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">Descargas</label>
+                <div className="space-y-1.5">
+                    {content?.descargas?.map((d, i) => (
+                        <div key={i} className="flex items-center justify-between text-xs">
+                            <span className="text-gray-700 dark:text-gray-300 font-medium">{d.label}</span>
+                            <span className={clsx(
+                                "px-2 py-0.5 rounded text-xs font-semibold",
+                                d.url ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400" : "bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400"
+                            )}>
+                                {d.url ? '✓' : '-'}
+                            </span>
+                        </div>
+                    )) || <span className="text-gray-400 dark:text-gray-500 text-xs">Sin descargas</span>}
+                </div>
+            </div>
+        </div>
+    );
+};
 
 // --- SUB-COMPONENTE: AVATAR INTELIGENTE DE CREADOR ---
 const SmartCreatorAvatar = ({ creador, className = "w-10 h-10 md:w-11 md:h-11" }) => {
@@ -327,10 +448,15 @@ const DetalleContenido = () => {
         motivo: ''
     });
     const [acceptModal, setAcceptModal] = useState(false);
+    const [compareModal, setCompareModal] = useState({
+        isOpen: false,
+        original: null,
+        revision: null
+    });
 
     // 👇 BLOQUEO DE SCROLL EN EL BODY CUANDO EL MODAL ESTÁ ABIERTO
     useEffect(() => {
-        if (showCreatorsModal || showShareModal || showLoginModal) {
+        if (showCreatorsModal || showShareModal || showLoginModal || compareModal.isOpen) {
             document.body.style.overflow = 'hidden';
         } else {
             document.body.style.overflow = 'unset';
@@ -339,7 +465,7 @@ const DetalleContenido = () => {
         return () => {
             document.body.style.overflow = 'unset';
         };
-    }, [showCreatorsModal, showShareModal, showLoginModal]);
+    }, [showCreatorsModal, showShareModal, showLoginModal, compareModal.isOpen]);
 
     // 👇 VERIFICAR SI LA DESCRIPCIÓN DESBORDA EL CONTENEDOR
     useEffect(() => {
@@ -550,8 +676,21 @@ const DetalleContenido = () => {
     const handleAcceptConfirm = async () => {
         setUpdatingStatus(true);
         try {
-            await updateContent(id, { estado: 'aceptado' });
-            setItem(prev => ({ ...prev, estado: 'aceptado' }));
+            // Si es una revisión, usar approveRevision
+            if (item?.parent_id) {
+                await approveRevision(id);
+                // Recargar el contenido original
+                const originalData = await getContentById(item.parent_id, user?.id, user?.role);
+                setItem(originalData);
+                // Navegar al contenido original
+                navigate(`/view/${item.parent_id}`);
+            } else {
+                // Solo actualizar si el estado actual no es 'aceptado'
+                if (item?.estado !== 'aceptado') {
+                    await updateContent(id, { estado: 'aceptado' });
+                    setItem(prev => ({ ...prev, estado: 'aceptado' }));
+                }
+            }
             setAcceptModal(false);
         } catch (error) {
             console.error('Error al aceptar:', error);
@@ -565,6 +704,26 @@ const DetalleContenido = () => {
         setRejectModal({ isOpen: true, motivo: '' });
     };
 
+    const handleCompareClick = async () => {
+        if (!item?.parent_id) return;
+        
+        try {
+            const [originalData, revisionData] = await Promise.all([
+                getContentById(item.parent_id, user?.id, user?.role),
+                getContentById(item.id, user?.id, user?.role)
+            ]);
+            
+            setCompareModal({
+                isOpen: true,
+                original: originalData,
+                revision: revisionData
+            });
+        } catch (error) {
+            console.error('Error cargando datos para comparación:', error);
+            alert('Error al cargar los datos para comparación.');
+        }
+    };
+
     const handleRejectConfirm = async () => {
         if (!rejectModal.motivo.trim()) {
             alert('Por favor ingresa el motivo del rechazo.');
@@ -573,15 +732,25 @@ const DetalleContenido = () => {
 
         setUpdatingStatus(true);
         try {
-            await updateContent(id, { 
-                estado: 'rechazado',
-                mensaje_rechazo: rejectModal.motivo 
-            });
-            setItem(prev => ({ 
-                ...prev, 
-                estado: 'rechazado', 
-                mensaje_rechazo: rejectModal.motivo 
-            }));
+            // Si es una revisión, usar rejectRevision
+            if (item?.parent_id) {
+                await rejectRevision(id, rejectModal.motivo);
+                // Recargar el contenido original
+                const originalData = await getContentById(item.parent_id, user?.id, user?.role);
+                setItem(originalData);
+                // Navegar al contenido original
+                navigate(`/view/${item.parent_id}`);
+            } else {
+                await updateContent(id, { 
+                    estado: 'rechazado',
+                    mensaje_rechazo: rejectModal.motivo 
+                });
+                setItem(prev => ({ 
+                    ...prev, 
+                    estado: 'rechazado', 
+                    mensaje_rechazo: rejectModal.motivo 
+                }));
+            }
             setRejectModal({ isOpen: false, motivo: '' });
         } catch (error) {
             console.error('Error al rechazar:', error);
@@ -633,6 +802,15 @@ const DetalleContenido = () => {
                         </span>
                     </div>
                     <div className="flex items-center gap-2">
+                        {item?.parent_id && (
+                            <button 
+                                onClick={handleCompareClick}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-all active:scale-95"
+                            >
+                                <GitCompare size={16} />
+                                <span>Comparar</span>
+                            </button>
+                        )}
                         {estado !== 'aceptado' && (
                             <button 
                                 onClick={handleAcceptClick}
@@ -1190,6 +1368,63 @@ const DetalleContenido = () => {
                     confirmText="Aceptar"
                     cancelText="Cancelar"
                 />,
+                document.body
+            )}
+
+            {/* MODAL DE COMPARACIÓN DE VERSIONES */}
+            {compareModal.isOpen && createPortal(
+                <div className="fixed inset-0 z-[99999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-0 md:p-4 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
+                    <div className="bg-white dark:bg-dark-bg rounded-none md:rounded-2xl w-full md:max-w-5xl h-full overflow-hidden flex flex-col animate-fade-in-up" style={{ animationDuration: '200ms' }}>
+                        {/* Header */}
+                        <div className="p-2 md:p-4 border-b border-gray-200 dark:border-gray-800">
+                            <div className="flex items-center justify-between">
+                                <h1 className="flex text-xl md:text-2xl font-bold text-gray-800 dark:text-white items-center gap-3">
+                                    <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-sm text-white bg-gradient-to-br from-blue-500 to-purple-600">
+                                        <GitCompare size={20} strokeWidth={2.5} />
+                                    </div>
+                                    Comparar Versiones
+                                </h1>
+                                <button 
+                                    onClick={() => setCompareModal({ isOpen: false, original: null, revision: null })}
+                                    className="p-2 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                                >
+                                    <X size={22} />
+                                </button>
+                            </div>
+                        </div>
+                        
+                        {/* Content */}
+                        <div className="flex-1 overflow-y-auto p-2 md:p-4 bg-gray-50/50 dark:bg-[#0f0f0f]/50">
+                            <div className="flex gap-0">
+                                {/* Versión Original */}
+                                <div className="flex-1 pr-6">
+                                    <div className="flex items-center gap-3 pb-2 mb-2">
+                                        <div className="w-4 h-4 rounded-full bg-gradient-to-r from-green-400 to-emerald-500 shadow-md"></div>
+                                        <h3 className="font-bold text-gray-900 dark:text-white text-lg">Versión Original</h3>
+                                        <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-semibold rounded-full">Aceptada</span>
+                                    </div>
+                                    
+                                    <ContentFields content={compareModal.original} />
+                                </div>
+                                
+                                {/* Línea vertical divisoria */}
+                                <div className="w-px bg-gray-300 dark:bg-gray-700"></div>
+                                
+                                {/* Versión Revisión */}
+                                <div className="flex-1 pl-6">
+                                    <div className="flex items-center gap-3 pb-2 mb-2">
+                                        <div className="w-4 h-4 rounded-full bg-gradient-to-r from-blue-400 to-purple-500 shadow-md"></div>
+                                        <h3 className="font-bold text-gray-900 dark:text-white text-lg">Versión Revisión</h3>
+                                        <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-semibold rounded-full">Pendiente</span>
+                                    </div>
+                                    
+                                    <ContentFields content={compareModal.revision} original={compareModal.original} showChanges />
+                                </div>
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>,
                 document.body
             )}
 

@@ -2,12 +2,32 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
   Bell, CheckCircle, XCircle, Loader2, 
-  Eye, Clock, Filter, Inbox, EyeOff, AlertCircle, Heart, MessageCircle, Download, Globe, Lock, ChevronDown, Search
+  Eye, Clock, Filter, Inbox, EyeOff, AlertCircle, Heart, MessageCircle, Download, Globe, Lock, ChevronDown, Search,
+  Wrench, Map, Gamepad2, Boxes, Package, User
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuth, useNotifications } from '../context/AuthContext';
 import { getUserNotifications, markNotificationAsRead, markNotificationAsUnread, deleteNotification, invalidateNotificationsCache, getUserPublicProfile } from '../services/api';
 import AvatarRenderer from '../components/AvatarRenderer';
+
+// --- MAPEO DE ICONOS POR TIPO DE CONTENIDO ---
+const CONTENT_TYPE_ICONS = {
+  'complemento': Wrench,
+  'mapa': Map,
+  'minijuego': Gamepad2,
+  'modpack': Boxes,
+  'paquete': Package,
+  'personaje': User
+};
+
+const CONTENT_TYPE_COLORS = {
+  'complemento': 'from-blue-500 to-indigo-600',
+  'mapa': 'from-emerald-500 to-teal-600',
+  'minijuego': 'from-amber-500 to-orange-600',
+  'modpack': 'from-red-500 to-rose-600',
+  'paquete': 'from-cyan-500 to-blue-600',
+  'personaje': 'from-purple-500 to-pink-600'
+};
 
 // --- UTILIDAD DE TIEMPO ---
 const getTimeAgo = (dateString) => {
@@ -109,52 +129,77 @@ const Notificaciones = () => {
     const modType = notification.modtype || 'mod';
     const modTitle = notification.modtitle || 'contenido';
     
+    // Obtener icono específico según el tipo de contenido
+    const ContentTypeIcon = CONTENT_TYPE_ICONS[modType] || Package;
+    const contentTypeColor = CONTENT_TYPE_COLORS[modType] || 'from-gray-500 to-gray-600';
+    
+    // Colores según estado para el icono
+    const getStatusColor = (status) => {
+      if (status === 'published' || status === 'aceptado') return 'text-green-500';
+      if (status === 'published_editing' || status === 'aceptado_con_edicion') return 'text-blue-500';
+      if (status === 'pending' || status === 'revision') return 'text-yellow-600';
+      if (status === 'rejected' || status === 'rechazado') return 'text-red-500';
+      return 'text-gray-500';
+    };
+    
+    const getStatusBg = (status) => {
+      if (status === 'published' || status === 'aceptado') return 'bg-green-100 dark:bg-green-900/30';
+      if (status === 'published_editing' || status === 'aceptado_con_edicion') return 'bg-blue-100 dark:bg-blue-900/30';
+      if (status === 'pending' || status === 'revision') return 'bg-yellow-100 dark:bg-yellow-900/30';
+      if (status === 'rejected' || status === 'rechazado') return 'bg-red-100 dark:bg-red-900/30';
+      return 'bg-gray-100 dark:bg-[#1D1F23]';
+    };
+    
     switch (status) {
       case 'published':
+      case 'aceptado':
         return { 
-          icon: CheckCircle, 
-          color: "text-green-500", 
-          bg: "bg-green-100 dark:bg-green-900/30", 
+          icon: ContentTypeIcon, 
+          color: getStatusColor(status), 
+          bg: getStatusBg(status), 
           label: "Publicado",
           desc: isAdmin ? `El ${modType} "${modTitle}" ha sido publicado.` : "Tu aporte ya es visible para la comunidad."
         };
       case 'published_editing':
+      case 'aceptado_con_edicion':
         return { 
-          icon: Clock, 
-          color: "text-blue-500", 
-          bg: "bg-blue-100 dark:bg-blue-900/30", 
+          icon: ContentTypeIcon, 
+          color: getStatusColor(status), 
+          bg: getStatusBg(status), 
           label: "Publicado (En revisión)",
           desc: isAdmin ? `El ${modType} "${modTitle}" está en revisión con versión pública.` : "La versión anterior sigue pública mientras revisamos tus nuevos cambios."
         };
       case 'pending':
+      case 'revision':
         return { 
-          icon: Loader2, 
-          color: "text-yellow-600", 
-          bg: "bg-yellow-100 dark:bg-yellow-900/30", 
+          icon: ContentTypeIcon, 
+          color: getStatusColor(status), 
+          bg: getStatusBg(status), 
           label: isAdmin ? "Pendiente de revisión" : "En revisión",
-          desc: isAdmin ? `Tienes un ${modType} pendiente de revisión: "${modTitle}"` : `Tu ${modType} "${modTitle}" se ha enviado para revisión.`
+          desc: isAdmin ? `Tienes un ${modType} pendiente de revisión` : `Tu ${modType} "${modTitle}" se ha enviado para revisión.`
         };
       case 'rejected':
+      case 'rechazado':
         return { 
-          icon: XCircle, 
-          color: "text-red-500", 
-          bg: "bg-red-100 dark:bg-red-900/30", 
+          icon: ContentTypeIcon, 
+          color: getStatusColor(status), 
+          bg: getStatusBg(status), 
           label: "Rechazado",
           desc: isAdmin ? `El ${modType} "${modTitle}" ha sido rechazado.` : "No cumple con las normas. Haz clic para ver detalles y corregir."
         };
       case 'inactive':
         return { 
-          icon: EyeOff, 
-          color: "text-gray-500", 
-          bg: "bg-gray-100 dark:bg-[#1D1F23]", 
+          icon: ContentTypeIcon, 
+          color: getStatusColor(status), 
+          bg: getStatusBg(status), 
           label: "Inactivo",
           desc: isAdmin ? `El ${modType} "${modTitle}" ha sido pausado.` : "Este contenido ha sido pausado y no es visible."
         };
       default:
         return { 
-          icon: AlertCircle, 
-          color: "text-gray-500", 
-          bg: "bg-gray-100 dark:bg-[#1D1F23]", 
+          icon: ContentTypeIcon, 
+          color: getStatusColor(status), 
+          bg: getStatusBg(status), 
           label: "Aviso",
           desc: "Actualización de sistema."
         };
@@ -358,8 +403,11 @@ const Notificaciones = () => {
       title = `${actorInfo.nombre || 'Alguien'} descargó tu ${notif.modtype}`;
     } else if (notif.type === 'visibility') {
       title = `Visibilidad de tu ${notif.modtype} cambiada`;
+    } else if (notif.type === 'status') {
+      // Para notificaciones de status, usar la descripción de config que ya está personalizada por rol
+      title = '';
     } else {
-      title = `Tu ${notif.modtype} "${notif.modtitle}"`;
+      title = `Tu ${notif.modtype} "${notif.modtitle}" se ha enviado para revisión`;
     }
     
     // Renderizado especial para comentarios con avatar
@@ -369,7 +417,15 @@ const Notificaciones = () => {
       return (
         <div 
           key={notif.id}
-          onClick={() => navigate(`/view/${notif.modid}`)}
+          onClick={async () => {
+            // Marcar como leída antes de navegar
+            if (!notif.leida) {
+              await markNotificationAsRead(notif.id, user?.id);
+              invalidateNotificationsCache(user?.id);
+              refreshNotifications();
+            }
+            navigate(`/view/${notif.modid}`);
+          }}
           className={clsx(
             "group relative flex gap-3 p-3 rounded-xl border cursor-pointer shadow-sm",
             !notif.leida 
@@ -439,7 +495,15 @@ const Notificaciones = () => {
       return (
         <div 
           key={notif.id}
-          onClick={() => navigate(`/view/${notif.modid}`)}
+          onClick={async () => {
+            // Marcar como leída antes de navegar
+            if (!notif.leida) {
+              await markNotificationAsRead(notif.id, user?.id);
+              invalidateNotificationsCache(user?.id);
+              refreshNotifications();
+            }
+            navigate(`/view/${notif.modid}`);
+          }}
           className={clsx(
             "group relative flex gap-3 p-3 rounded-xl border transition-all duration-300 cursor-pointer",
             !notif.leida 
@@ -508,23 +572,20 @@ const Notificaciones = () => {
     return (
       <div 
         key={notif.id}
-        onClick={() => {
-          // Para administradores, siempre navegar a ver el contenido
-          if (user?.role === 'admin') {
-            navigate(`/view/${notif.modid}`);
-          } else {
-            // Para usuarios normales, navegar según el estado
-            if (notif.status === 'published' || notif.status === 'published_editing') {
-              navigate(`/view/${notif.modid}`);
-            } else {
-              navigate(`/subir?edit=${notif.modid}`);
-            }
+        onClick={async () => {
+          // Marcar como leída antes de navegar
+          if (!notif.leida) {
+            await markNotificationAsRead(notif.id, user?.id);
+            invalidateNotificationsCache(user?.id);
+            refreshNotifications();
           }
+          // Siempre navegar a vista del contenido
+          navigate(`/view/${notif.modid}`);
         }}
         className={clsx(
-          "group relative flex gap-3 p-3 rounded-xl border transition-all duration-300 cursor-pointer",
+          "group relative flex gap-3 p-3 rounded-xl border transition-all duration-300 cursor-pointer shadow-sm",
           !notif.leida 
-            ? "bg-white dark:bg-[#1e1e1e] border-primary-200 dark:border-primary-900/40 shadow-md shadow-primary-500/5" 
+            ? "bg-white dark:bg-[#1e1e1e] border-gray-200 dark:border-transparent" 
             : "bg-gray-50/40 dark:bg-[#151515] border-gray-200 dark:border-gray-800 opacity-90"
         )}
       >
@@ -557,9 +618,9 @@ const Notificaciones = () => {
             )}
           </div>
 
-          {/* TÍTULO */}
-          <h3 className="text-xs font-bold text-gray-800 dark:text-gray-100 leading-tight line-clamp-1">
-            {title} <span className="text-primary-600 dark:text-primary-400">"{notif.modtitle}"</span>
+          {/* TÍTULO/DESCRIPCIÓN */}
+          <h3 className="text-xs font-bold text-gray-800 dark:text-gray-100 leading-tight line-clamp-2">
+            {title || description}
           </h3>
 
           {/* TIEMPO */}
