@@ -480,7 +480,15 @@ export const getUserPublicProfile = async (uid) => {
       uid: data.id, 
       nombre: data.username, 
       imagen: data.avatar || null,
-      verificado: !!data.verificado
+      banner: data.banner || null,
+      verificado: !!data.verificado,
+      youtube: data.youtube || null,
+      twitter: data.twitter || null,
+      instagram: data.instagram || null,
+      linkedin: data.linkedin || null,
+      github: data.github || null,
+      discord: data.discord || null,
+      website: data.website || null
     };
     userCache[uid] = profile;
     return profile;
@@ -499,7 +507,19 @@ export const getUserByUsername = async (username) => {
     .maybeSingle();
 
   if (data && !error) {
-    const profile = { uid: data.id, nombre: data.username, imagen: data.avatar || null };
+    const profile = { 
+      uid: data.id, 
+      nombre: data.username, 
+      imagen: data.avatar || null, 
+      banner: data.banner || null,
+      youtube: data.youtube || null,
+      twitter: data.twitter || null,
+      instagram: data.instagram || null,
+      linkedin: data.linkedin || null,
+      github: data.github || null,
+      discord: data.discord || null,
+      website: data.website || null
+    };
     userCache[data.id] = profile;
     usernameMap[lowerUser] = data.id;
     return profile;

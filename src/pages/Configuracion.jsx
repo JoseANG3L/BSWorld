@@ -3,7 +3,8 @@ import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabaseClient'; // 1. Importación corregida
 import { 
   User, Camera, Save, Calendar, Shield, Loader2, CheckCircle, AlertCircle, 
-  Image as ImageIcon, Palette, LayoutGrid, Link as LinkIcon, Edit2 
+  Image as ImageIcon, Palette, LayoutGrid, Link as LinkIcon, Edit2,
+  Youtube, Twitter, Instagram, Linkedin, Github, Globe, MessageCircle
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { ICON_MAP } from '../components/AvatarRenderer';
@@ -38,9 +39,21 @@ const PRESET_COLORS = [
 const Configuracion = () => {
   const { user, updateUserProfile } = useAuth();
   
-  const [formData, setFormData] = useState({ username: '', avatar: '', banner: '' });
+  const [formData, setFormData] = useState({ 
+    username: '', 
+    avatar: '', 
+    banner: '',
+    youtube: '',
+    twitter: '',
+    instagram: '',
+    linkedin: '',
+    github: '',
+    discord: '',
+    website: ''
+  });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
+  const [showModal, setShowModal] = useState(false);
 
   const [bannerTab, setBannerTab] = useState('presets'); 
   const [avatarTab, setAvatarTab] = useState('url');
@@ -64,6 +77,13 @@ const Configuracion = () => {
         username: user.username || '',
         avatar: user.avatar || '',
         banner: user.banner || '',
+        youtube: user.youtube || '',
+        twitter: user.twitter || '',
+        instagram: user.instagram || '',
+        linkedin: user.linkedin || '',
+        github: user.github || '',
+        discord: user.discord || '',
+        website: user.website || ''
       });
       
       if (user.avatar && user.avatar.startsWith('design|')) {
@@ -235,7 +255,14 @@ const Configuracion = () => {
         .update({
           username: formData.username,
           avatar: formData.avatar,
-          banner: formData.banner
+          banner: formData.banner,
+          youtube: formData.youtube,
+          twitter: formData.twitter,
+          instagram: formData.instagram,
+          linkedin: formData.linkedin,
+          github: formData.github,
+          discord: formData.discord,
+          website: formData.website
         })
         .eq('id', user.id);
       
@@ -254,7 +281,7 @@ const Configuracion = () => {
         banner: formData.banner
       });
 
-      setMessage({ type: 'success', text: '¡Perfil actualizado correctamente!' });
+      setShowModal(true);
 
     } catch (error) {
       console.error('Profile update error:', error);
@@ -288,7 +315,7 @@ const Configuracion = () => {
   const isBannerUrl = formData.banner && (formData.banner.startsWith('http') || formData.banner.startsWith('data:image'));
 
   return (
-    <div className="w-full max-w-4xl mx-auto flex flex-col p-3 sm:p-4 md:p-6 lg:p-8 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
+    <div className="w-full max-w-4xl mx-auto flex flex-col p-2 md:p-4 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
 
       <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-4 md:mb-6">
         <h1 className="flex text-xl md:text-2xl font-bold text-gray-800 dark:text-white items-center gap-3">
@@ -305,32 +332,14 @@ const Configuracion = () => {
             TARJETA DE VISTA PREVIA
            ========================================================= */}
         <div>
-          <div className="bg-white dark:bg-[#1e1e1e] rounded-xl sm:rounded-2xl border border-gray-200 dark:border-gray-700 shadow-lg overflow-hidden">
+          <div className="">
             
-            {/* VISTA PREVIA BANNER */}
-            <div className="h-28 sm:h-36 w-full bg-gray-200 dark:bg-[#1D1F23] relative transition-all duration-500">
-               {formData.banner ? (
-                 isBannerUrl ? (
-                   <img 
-                     src={formData.banner} 
-                     alt="Banner Preview" 
-                     className="w-full h-full object-cover"
-                     referrerPolicy="no-referrer"
-                   />
-                 ) : (
-                   <div className="w-full h-full" style={{ background: formData.banner }}></div>
-                 )
-               ) : (
-                 <div className="w-full h-full bg-gradient-to-r from-primary-600 to-purple-600"></div>
-               )}
-            </div>
-
             <div className="px-3 sm:px-4 md:px-8 pb-4 sm:pb-6 md:pb-8 text-center">
                 
                 {/* VISTA PREVIA AVATAR */}
-                <div className="relative w-24 h-24 sm:w-32 sm:h-32 mx-auto -mt-12 sm:-mt-16 mb-3 sm:mb-4">
+                <div className="relative w-24 h-24 sm:w-32 sm:h-32 mx-auto mt-4 sm:mt-6 mb-3 sm:mb-4">
                   {/* Contenedor con aspect-square y rounded-full para asegurar circularidad */}
-                  <div className="w-full h-full rounded-full p-1 sm:p-1.5 bg-white dark:bg-[#1e1e1e] shadow-xl overflow-hidden aspect-square shrink-0 ring-4 ring-white dark:ring-[#1e1e1e] transition-transform duration-300">
+                  <div className="w-full h-full rounded-full shadow-xl overflow-hidden aspect-square shrink-0 transition-transform duration-300">
                     {/* Render interno */}
                     <div className="w-full h-full rounded-full overflow-hidden">
                         {renderPreviewAvatar()}
@@ -359,26 +368,18 @@ const Configuracion = () => {
             FORMULARIO DE EDICIÓN
            ========================================================= */}
         <div>
-          <div className="bg-white dark:bg-[#1e1e1e] p-4 sm:p-5 md:p-7 rounded-xl sm:rounded-2xl border border-gray-200 dark:border-gray-700 shadow-lg">
-            
-            <h3 className="flex items-center gap-3 text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-4 sm:mb-6 border-b border-gray-200 dark:border-gray-700 pb-3 sm:pb-4">
-              <Edit2 size={18} className="text-primary-500" /> Editar Perfil
-            </h3>
+          <h3 className="flex items-center gap-3 text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-4 sm:mb-6 pb-3 sm:pb-4 border-b border-gray-200 dark:border-gray-700">
+            <Edit2 size={18} className="text-primary-500" /> Editar Perfil
+          </h3>
 
-            {message.text && (
-              <div className={clsx("mb-4 sm:mb-6 p-3 sm:p-4 rounded-xl flex items-center gap-2 sm:gap-3 text-xs sm:text-sm animate-fade-in-up ring-1", message.type === 'success' ? "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300 ring-green-200 dark:ring-green-800" : "bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300 ring-red-200 dark:ring-red-800")}>
-                {message.type === 'success' ? <CheckCircle size={16} /> : <AlertCircle size={16} />} {message.text}
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4 sm:gap-6">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4 sm:gap-6">
               
               {/* 1. USERNAME */}
               <div>
                 <label className="block text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2.5">Nombre de Usuario</label>
                 <div className="relative group">
                   <User className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary-500 transition-colors" size={16} />
-                  <input type="text" name="username" required value={formData.username} onChange={handleChange} className="w-full pl-9 sm:pl-12 pr-3 sm:pr-4 py-2.5 sm:py-3.5 rounded-lg sm:rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all text-sm dark:text-white" />
+                  <input type="text" name="username" required value={formData.username} onChange={handleChange} className="w-full pl-9 sm:pl-12 pr-3 sm:pr-4 py-2.5 sm:py-3.5 rounded-lg sm:rounded-xl bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all text-sm dark:text-white" />
                 </div>
               </div>
 
@@ -387,19 +388,19 @@ const Configuracion = () => {
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Avatar</label>
                 
                 <div className="flex gap-1.5 mb-3 p-1 bg-gray-100 dark:bg-[#1D1F23] rounded-lg w-full">
-                    <button type="button" onClick={() => setAvatarTab('url')} className={clsx("flex-1 px-3 py-2 rounded-md text-xs font-medium transition-all flex items-center justify-center gap-1.5", avatarTab === 'url' ? "bg-white dark:bg-gray-700 shadow-sm text-primary-600 dark:text-white" : "text-gray-500 hover:text-gray-700 dark:text-gray-400")}>
+                    <button type="button" onClick={() => setAvatarTab('url')} className={clsx("flex-1 px-3 py-2 rounded-md text-xs font-medium transition-all flex items-center justify-center gap-1.5", avatarTab === 'url' ? "bg-white dark:bg-[#2a2d34] shadow-sm text-primary-600 dark:text-white" : "text-gray-500 hover:text-gray-700 dark:text-gray-400")}>
                         <LinkIcon size={12} /> URL
                     </button>
-                    <button type="button" onClick={() => setAvatarTab('design')} className={clsx("flex-1 px-3 py-2 rounded-md text-xs font-medium transition-all flex items-center justify-center gap-1.5", avatarTab === 'design' ? "bg-white dark:bg-gray-700 shadow-sm text-primary-600 dark:text-white" : "text-gray-500 hover:text-gray-700 dark:text-gray-400")}>
+                    <button type="button" onClick={() => setAvatarTab('design')} className={clsx("flex-1 px-3 py-2 rounded-md text-xs font-medium transition-all flex items-center justify-center gap-1.5", avatarTab === 'design' ? "bg-white dark:bg-[#2a2d34] shadow-sm text-primary-600 dark:text-white" : "text-gray-500 hover:text-gray-700 dark:text-gray-400")}>
                         <Palette size={12} /> Diseñar
                     </button>
                 </div>
 
-                <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3 border border-gray-100 dark:border-gray-700/50">
+                <div className="rounded-lg p-3 bg-white dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-800">
                     {avatarTab === 'url' && (
                         <div className="relative group">
                             <Camera className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary-500 transition-colors" size={16} />
-                            <input type="url" name="avatar" placeholder="https://..." value={formData.avatar} onChange={handleChange} className="w-full pl-10 pr-3 py-2.5 rounded-lg bg-white dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all text-sm dark:text-white" />
+                            <input type="url" name="avatar" placeholder="https://..." value={formData.avatar} onChange={handleChange} className="w-full pl-10 pr-3 py-2.5 rounded-lg bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all text-sm dark:text-white" />
                         </div>
                     )}
 
@@ -416,10 +417,10 @@ const Configuracion = () => {
                                                 type="button" 
                                                 onClick={() => updateAvatarDesign(name, selectedColor)} 
                                                 className={clsx(
-                                                    "aspect-square rounded-lg flex items-center justify-center transition-all border bg-white dark:bg-[#1D1F23] hover:scale-105", 
+                                                    "aspect-square rounded-lg flex items-center justify-center transition-all border hover:scale-105", 
                                                     selectedIcon === name 
-                                                        ? "border-primary-500 text-primary-600 bg-primary-50 dark:bg-primary-900/20 shadow-sm" 
-                                                        : "border-gray-200 dark:border-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                                        ? "border-primary-500 text-primary-600 bg-white dark:bg-[#2a2d34] shadow-sm" 
+                                                        : "border-gray-300 dark:border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                                                 )}
                                             >
                                                 <Icon size={18} strokeWidth={1.5} />
@@ -450,47 +451,101 @@ const Configuracion = () => {
                 </div>
               </div>
 
-              {/* 3. BANNER CONFIGURATION */}
+              {/* 3. REDES SOCIALES */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Diseño del Banner</label>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Redes Sociales</label>
                 
-                <div className="flex gap-1.5 mb-3 p-1 bg-gray-100 dark:bg-[#1D1F23] rounded-lg w-full">
-                    <button type="button" onClick={() => setBannerTab('presets')} className={clsx("flex-1 px-3 py-2 rounded-md text-xs font-medium transition-all flex items-center justify-center gap-1.5", bannerTab === 'presets' ? "bg-white dark:bg-gray-700 shadow-sm text-primary-600 dark:text-white" : "text-gray-500 hover:text-gray-700 dark:text-gray-400")}>
-                        <LayoutGrid size={12} /> Presets
-                    </button>
-                    <button type="button" onClick={() => setBannerTab('colors')} className={clsx("flex-1 px-3 py-2 rounded-md text-xs font-medium transition-all flex items-center justify-center gap-1.5", bannerTab === 'colors' ? "bg-white dark:bg-gray-700 shadow-sm text-primary-600 dark:text-white" : "text-gray-500 hover:text-gray-700 dark:text-gray-400")}>
-                        <Palette size={12} /> Colores
-                    </button>
-                    <button type="button" onClick={() => setBannerTab('custom')} className={clsx("flex-1 px-3 py-2 rounded-md text-xs font-medium transition-all flex items-center justify-center gap-1.5", bannerTab === 'custom' ? "bg-white dark:bg-gray-700 shadow-sm text-primary-600 dark:text-white" : "text-gray-500 hover:text-gray-700 dark:text-gray-400")}>
-                        <LinkIcon size={12} /> URL
-                    </button>
-                </div>
+                <div className="space-y-3">
+                  {/* YouTube */}
+                  <div className="relative group">
+                    <Youtube className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-red-500 transition-colors" size={16} />
+                    <input 
+                      type="url" 
+                      name="youtube" 
+                      placeholder="YouTube URL" 
+                      value={formData.youtube} 
+                      onChange={handleChange} 
+                      className="w-full pl-10 pr-3 py-2.5 rounded-lg bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-all text-sm dark:text-white" 
+                    />
+                  </div>
 
-                <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3 border border-gray-100 dark:border-gray-700/50">
-                    {bannerTab === 'presets' && (
-                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                            {PRESET_BANNERS.map((imgUrl, index) => (
-                                <button key={index} type="button" onClick={() => updateBanner(imgUrl)} className={clsx("h-16 w-full rounded-lg bg-gray-200 overflow-hidden border transition-all hover:opacity-80 hover:scale-105", formData.banner === imgUrl ? "border-primary-500 ring-2 ring-primary-500/30 shadow-sm" : "border-gray-200 dark:border-gray-700")}>
-                                    <img src={imgUrl} alt={`Preset ${index}`} className="w-full h-full object-cover" />
-                                </button>
-                            ))}
-                        </div>
-                    )}
+                  {/* Twitter */}
+                  <div className="relative group">
+                    <Twitter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-400 transition-colors" size={16} />
+                    <input 
+                      type="url" 
+                      name="twitter" 
+                      placeholder="Twitter/X URL" 
+                      value={formData.twitter} 
+                      onChange={handleChange} 
+                      className="w-full pl-10 pr-3 py-2.5 rounded-lg bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400 transition-all text-sm dark:text-white" 
+                    />
+                  </div>
 
-                    {bannerTab === 'colors' && (
-                        <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-                            {PRESET_COLORS.map((gradient, index) => (
-                                <button key={index} type="button" onClick={() => updateBanner(gradient)} className={clsx("h-10 w-full rounded-lg border transition-all hover:opacity-80 hover:scale-105", formData.banner === gradient ? "border-white ring-2 ring-primary-500 shadow-sm" : "border-gray-200 dark:border-gray-700")} style={{ background: gradient }}></button>
-                            ))}
-                        </div>
-                    )}
+                  {/* Instagram */}
+                  <div className="relative group">
+                    <Instagram className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-pink-500 transition-colors" size={16} />
+                    <input 
+                      type="url" 
+                      name="instagram" 
+                      placeholder="Instagram URL" 
+                      value={formData.instagram} 
+                      onChange={handleChange} 
+                      className="w-full pl-10 pr-3 py-2.5 rounded-lg bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent outline-none focus:ring-2 focus:ring-pink-500/50 focus:border-pink-500 transition-all text-sm dark:text-white" 
+                    />
+                  </div>
 
-                    {bannerTab === 'custom' && (
-                        <div className="relative group">
-                           <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary-500 transition-colors" size={16} />
-                           <input type="url" name="banner" placeholder="https://imgur.com/..." value={formData.banner} onChange={handleChange} className="w-full pl-10 pr-3 py-2.5 rounded-lg bg-white dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all text-sm dark:text-white" />
-                        </div>
-                    )}
+                  {/* LinkedIn */}
+                  <div className="relative group">
+                    <Linkedin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-600 transition-colors" size={16} />
+                    <input 
+                      type="url" 
+                      name="linkedin" 
+                      placeholder="LinkedIn URL" 
+                      value={formData.linkedin} 
+                      onChange={handleChange} 
+                      className="w-full pl-10 pr-3 py-2.5 rounded-lg bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent outline-none focus:ring-2 focus:ring-blue-600/50 focus:border-blue-600 transition-all text-sm dark:text-white" 
+                    />
+                  </div>
+
+                  {/* GitHub */}
+                  <div className="relative group">
+                    <Github className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-gray-700 transition-colors" size={16} />
+                    <input 
+                      type="url" 
+                      name="github" 
+                      placeholder="GitHub URL" 
+                      value={formData.github} 
+                      onChange={handleChange} 
+                      className="w-full pl-10 pr-3 py-2.5 rounded-lg bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent outline-none focus:ring-2 focus:ring-gray-600/50 focus:border-gray-600 transition-all text-sm dark:text-white" 
+                    />
+                  </div>
+
+                  {/* Discord */}
+                  <div className="relative group">
+                    <MessageCircle className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors" size={16} />
+                    <input 
+                      type="url" 
+                      name="discord" 
+                      placeholder="Discord URL" 
+                      value={formData.discord} 
+                      onChange={handleChange} 
+                      className="w-full pl-10 pr-3 py-2.5 rounded-lg bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all text-sm dark:text-white" 
+                    />
+                  </div>
+
+                  {/* Website */}
+                  <div className="relative group">
+                    <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-purple-500 transition-colors" size={16} />
+                    <input 
+                      type="url" 
+                      name="website" 
+                      placeholder="Website URL" 
+                      value={formData.website} 
+                      onChange={handleChange} 
+                      className="w-full pl-10 pr-3 py-2.5 rounded-lg bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 transition-all text-sm dark:text-white" 
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -503,12 +558,11 @@ const Configuracion = () => {
               </div>
 
             </form>
-          </div>
         </div>
 
         {/* SECCIÓN DE CAMBIO DE CONTRASEÑA */}
-        <div className="bg-white dark:bg-[#1e1e1e] p-4 sm:p-5 md:p-7 rounded-xl sm:rounded-2xl border border-gray-200 dark:border-gray-700 shadow-lg">
-          <h3 className="flex items-center gap-3 text-base sm:text-lg font-bold text-gray-900 dark:text-white mb-3 sm:mb-4">
+        <div>
+          <h3 className="flex items-center gap-3 text-base sm:text-lg font-bold text-gray-900 dark:text-white mb-3 sm:mb-4 pb-3 sm:pb-4 border-b border-gray-200 dark:border-gray-700">
             <Shield size={16} className="text-primary-500" /> Cambiar Contraseña
           </h3>
 
@@ -525,7 +579,7 @@ const Configuracion = () => {
                 type="password"
                 value={passwordData.newPassword}
                 onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all text-sm dark:text-white"
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all text-sm dark:text-white"
                 placeholder="Mínimo 6 caracteres"
                 required
               />
@@ -536,7 +590,7 @@ const Configuracion = () => {
                 type="password"
                 value={passwordData.confirmPassword}
                 onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all text-sm dark:text-white"
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all text-sm dark:text-white"
                 placeholder="Repite la nueva contraseña"
                 required
               />
@@ -553,8 +607,8 @@ const Configuracion = () => {
         </div>
 
         {/* SECCIÓN DE ELIMINAR CUENTA */}
-        <div className="bg-white dark:bg-[#1e1e1e] p-4 sm:p-5 md:p-7 rounded-xl sm:rounded-2xl border border-red-200 dark:border-red-900 shadow-lg">
-          <h3 className="flex items-center gap-3 text-base sm:text-lg font-bold text-red-600 dark:text-red-400 mb-3 sm:mb-4">
+        <div>
+          <h3 className="flex items-center gap-3 text-base sm:text-lg font-bold text-red-600 dark:text-red-400 mb-3 sm:mb-4 pb-3 sm:pb-4 border-b border-red-200 dark:border-red-900">
             <AlertCircle size={16} /> Zona de Peligro
           </h3>
 
@@ -579,7 +633,7 @@ const Configuracion = () => {
                   type="text"
                   value={deleteConfirmation}
                   onChange={(e) => setDeleteConfirmation(e.target.value)}
-                  className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-red-200 dark:border-red-900 outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-all text-sm dark:text-white"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-white dark:bg-[#1D1F23] border border-red-200 dark:border-red-900 outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-all text-sm dark:text-white"
                   placeholder="ELIMINAR"
                 />
               </div>
@@ -609,6 +663,31 @@ const Configuracion = () => {
         </div>
 
       </div>
+
+      {/* MODAL DE ÉXITO */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fade-in">
+          <div className="bg-white dark:bg-[#1e1e1e] rounded-2xl p-6 md:p-8 max-w-md w-full shadow-2xl animate-scale-in">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-4">
+                <CheckCircle size={32} className="text-green-600 dark:text-green-400" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                ¡Perfil actualizado!
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                Tus cambios han sido guardados correctamente.
+              </p>
+              <button
+                onClick={() => setShowModal(false)}
+                className="px-6 py-3 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-semibold transition-all w-full"
+              >
+                Aceptar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
