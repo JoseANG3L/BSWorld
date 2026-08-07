@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
+import { createPortal } from 'react-dom';
 import { getContentByCreator, getUserByUsername, getUserPublicProfile, getUserLikedContent } from '../services/api';
 import Card from '../components/Card';
 import { 
   Calendar, Shield, UserX, Loader2, Heart, Youtube, Twitter, Instagram, Linkedin, Github, Globe, MessageCircle,
-  Grid, Boxes, Map, Gamepad2, Package, Wrench, User, Search, ChevronDown, ArrowUpDown, Edit3, Settings
+  Grid, Boxes, Map, Gamepad2, Package, Wrench, User, Search, ChevronDown, ArrowUpDown, Edit3, Settings, Filter, X, Check
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import AvatarRenderer from '../components/AvatarRenderer';
@@ -12,6 +13,12 @@ import { useAuth } from '../context/AuthContext';
 
 // Cache simple para perfiles
 const profileCache = {};
+
+const capitalizeText = (str) => {
+  if (!str) return '';
+  const stringValue = str.toString();
+  return stringValue.charAt(0).toUpperCase() + stringValue.slice(1).toLowerCase();
+};
 
 const PublicProfile = () => {
   const { username } = useParams();
@@ -27,8 +34,17 @@ const PublicProfile = () => {
   const [busqueda, setBusqueda] = useState('');
   const [orden, setOrden] = useState('recientes');
   const [activeTab, setActiveTab] = useState('todos');
+  const [selectedTypes, setSelectedTypes] = useState([]);
+  const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
   const [isOrdenDropdownOpen, setIsOrdenDropdownOpen] = useState(false);
+  const [isFiltersModalOpen, setIsFiltersModalOpen] = useState(false);
+  
+  // Estados temporales para el modal en móvil
+  const [tempOrden, setTempOrden] = useState('recientes');
+  const [tempSelectedTypes, setTempSelectedTypes] = useState([]);
+  
   const ordenDropdownRef = useRef(null);
+  const typeDropdownRef = useRef(null);
 
   // Verificar si el usuario en sesión es el dueño de este perfil
   const isOwnProfile = useMemo(() => {
@@ -36,9 +52,12 @@ const PublicProfile = () => {
     return currentUser.id === profile.uid || currentUser.username?.toLowerCase() === username?.toLowerCase();
   }, [currentUser, profile, username]);
 
-  // Cierre del menú de ordenamiento al dar clic afuera
+  // Cierre de menús al dar clic afuera
   useEffect(() => {
     const handleClickOutside = (event) => {
+      if (typeDropdownRef.current && !typeDropdownRef.current.contains(event.target)) {
+        setIsTypeDropdownOpen(false);
+      }
       if (ordenDropdownRef.current && !ordenDropdownRef.current.contains(event.target)) {
         setIsOrdenDropdownOpen(false);
       }
@@ -46,6 +65,31 @@ const PublicProfile = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Bloqueo de scroll cuando el modal de filtros está abierto
+  useEffect(() => {
+    if (isFiltersModalOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isFiltersModalOpen]);
+
+  // Abrir modal e inicializar estados temporales
+  const handleOpenFiltersModal = () => {
+    setTempOrden(orden);
+    setTempSelectedTypes(selectedTypes);
+    setIsFiltersModalOpen(true);
+  };
+
+  // Tipos disponibles
+  const availableTypes = useMemo(() => {
+    const types = [...new Set(content.map(item => item.tipo))];
+    return types.filter(Boolean);
+  }, [content]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -125,6 +169,15 @@ const PublicProfile = () => {
       return item.tipo === activeTab;
     });
 
+    // Filtrar por tipos seleccionados
+    if (selectedTypes.length > 0) {
+      const typesInLowerCase = selectedTypes.map(t => t.toString().toLowerCase());
+      resultado = resultado.filter(item => {
+        const itemType = item.tipo?.toString().toLowerCase();
+        return itemType && typesInLowerCase.includes(itemType);
+      });
+    }
+
     if (busqueda) {
       const lowerBusqueda = busqueda.toLowerCase();
       resultado = resultado.filter(item => {
@@ -149,7 +202,7 @@ const PublicProfile = () => {
     });
 
     return resultado;
-  }, [content, likedContent, activeTab, busqueda, orden]);
+  }, [content, likedContent, activeTab, busqueda, orden, selectedTypes]);
 
   if (loading) return (
     <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4">
@@ -180,10 +233,10 @@ const PublicProfile = () => {
       {/* SECCIÓN 1: PERFIL */}
       <div className="relative mb-4 md:mb-6">
          {/* CONTENEDOR PERFIL: AVATAR IZQUIERDA, NOMBRE CENTRO, REDES DERECHA */}
-         <div className="flex items-center gap-4 md:gap-6 p-3 md:p-4 bg-white dark:bg-[#1e1e1e] rounded-2xl border border-gray-200 dark:border-gray-700 shadow-lg">
+         <div className="flex items-center gap-4">
                  {/* AVATAR IZQUIERDA */}
                  <div className="relative group shrink-0">
-                    <div className="w-20 h-20 md:w-28 md:h-28 rounded-full border-[3px] border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-[#2a2d34] shadow-lg overflow-hidden">
+                    <div className="w-20 h-20 md:w-28 md:h-28 rounded-full shadow-lg overflow-hidden">
                         <AvatarRenderer avatar={displayAvatar} name={username} /> 
                     </div>
                     {profile?.role === 'admin' && (
@@ -203,7 +256,7 @@ const PublicProfile = () => {
                      <div className="flex items-center gap-4 mt-2 text-sm text-gray-600 dark:text-gray-300">
                          <div className="flex items-center gap-1.5">
                              <span className="font-bold">{content.length}</span>
-                             <span className="text-xs uppercase text-gray-400">Posts</span>
+                             <span className="text-xs uppercase text-gray-400">Mods</span>
                          </div>
                          <div className="w-px h-4 bg-gray-200 dark:bg-gray-700"></div>
                          <div className="flex items-center gap-1.5">
@@ -229,38 +282,38 @@ const PublicProfile = () => {
                  {/* REDES SOCIALES DERECHA */}
                  <div className="flex items-center gap-2 shrink-0">
                      {profile?.youtube && (
-                         <a href={profile.youtube} target="_blank" rel="noopener noreferrer" className="w-9 h-9 flex items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors">
-                             <Youtube size={16} />
+                         <a href={profile.youtube} target="_blank" rel="noopener noreferrer" className="w-10 h-10 flex items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors">
+                             <Youtube size={22} />
                          </a>
                      )}
                      {profile?.twitter && (
-                         <a href={profile.twitter} target="_blank" rel="noopener noreferrer" className="w-9 h-9 flex items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors">
-                             <Twitter size={16} />
+                         <a href={profile.twitter} target="_blank" rel="noopener noreferrer" className="w-10 h-10 flex items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors">
+                             <Twitter size={22} />
                          </a>
                      )}
                      {profile?.instagram && (
-                         <a href={profile.instagram} target="_blank" rel="noopener noreferrer" className="w-9 h-9 flex items-center justify-center rounded-full bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 hover:bg-pink-200 dark:hover:bg-pink-900/50 transition-colors">
-                             <Instagram size={16} />
+                         <a href={profile.instagram} target="_blank" rel="noopener noreferrer" className="w-10 h-10 flex items-center justify-center rounded-full bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 hover:bg-pink-200 dark:hover:bg-pink-900/50 transition-colors">
+                             <Instagram size={22} />
                          </a>
                      )}
                      {profile?.linkedin && (
-                         <a href={profile.linkedin} target="_blank" rel="noopener noreferrer" className="w-9 h-9 flex items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors">
-                             <Linkedin size={16} />
+                         <a href={profile.linkedin} target="_blank" rel="noopener noreferrer" className="w-10 h-10 flex items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors">
+                             <Linkedin size={22} />
                          </a>
                      )}
                      {profile?.github && (
-                         <a href={profile.github} target="_blank" rel="noopener noreferrer" className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
-                             <Github size={16} />
+                         <a href={profile.github} target="_blank" rel="noopener noreferrer" className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                             <Github size={22} />
                          </a>
                      )}
                      {profile?.discord && (
-                         <a href={profile.discord} target="_blank" rel="noopener noreferrer" className="w-9 h-9 flex items-center justify-center rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-colors">
-                             <MessageCircle size={16} />
+                         <a href={profile.discord} target="_blank" rel="noopener noreferrer" className="w-10 h-10 flex items-center justify-center rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-colors">
+                             <MessageCircle size={22} />
                          </a>
                      )}
                      {profile?.website && (
-                         <a href={profile.website} target="_blank" rel="noopener noreferrer" className="w-9 h-9 flex items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors">
-                             <Globe size={16} />
+                         <a href={profile.website} target="_blank" rel="noopener noreferrer" className="w-10 h-10 flex items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors">
+                             <Globe size={22} />
                          </a>
                      )}
                  </div>
@@ -315,9 +368,79 @@ const PublicProfile = () => {
             />
           </div>
 
-          {/* Ordenamiento */}
-          <div className="flex items-center gap-2 w-full md:w-auto" ref={ordenDropdownRef}>
-            <div className="relative w-full md:w-64">
+          {/* Botón para abrir modal de filtros en móvil */}
+          <div className="md:hidden">
+            <button
+              type="button"
+              onClick={handleOpenFiltersModal}
+              className="relative px-4 py-2.5 h-10 rounded-xl bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-sm font-medium flex items-center gap-2 shrink-0"
+            >
+              <Filter size={18} className="text-gray-500 dark:text-gray-400" />
+              <span>Filtros</span>
+              {(selectedTypes.length > 0 || orden !== 'recientes') && (
+                <span className="w-2 h-2 rounded-full bg-primary-500 shrink-0"></span>
+              )}
+            </button>
+          </div>
+
+          {/* Filtro de tipos (Desktop) */}
+          {availableTypes.length > 0 && (
+            <div className="hidden md:block relative w-full md:w-auto" ref={typeDropdownRef}>
+              <div className="relative w-full md:w-56 lg:w-64">
+                <Filter size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <button
+                  type="button"
+                  onClick={() => { setIsTypeDropdownOpen(!isTypeDropdownOpen); setIsOrdenDropdownOpen(false); }}
+                  className="w-full pl-10 pr-10 py-2.5 h-10 rounded-xl bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none appearance-none cursor-pointer transition-all text-sm font-medium text-left"
+                >
+                  <span className="truncate block">
+                    {selectedTypes.length === 0 
+                      ? 'Todos los tipos' 
+                      : selectedTypes.length === 1 
+                        ? capitalizeText(selectedTypes[0]) 
+                        : `${selectedTypes.length} tipos`}
+                  </span>
+                </button>
+                <ChevronDown size={16} className={clsx("absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none transition-transform duration-200", isTypeDropdownOpen && "rotate-180")} />
+              </div>
+
+              {isTypeDropdownOpen && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent rounded-xl shadow-lg z-50 p-1">
+                  <div className="flex flex-col gap-0.5">
+                    <button
+                      type="button"
+                      onClick={() => { setSelectedTypes([]); setIsTypeDropdownOpen(false); }}
+                      className={clsx("flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left", selectedTypes.length === 0 ? "text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-700" : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700")}
+                    >
+                      <div className={clsx("w-4 h-4 rounded border flex items-center justify-center transition-colors flex-shrink-0", selectedTypes.length === 0 ? "bg-primary-500 border-primary-500" : "border-gray-300 dark:border-gray-600")}>
+                        {selectedTypes.length === 0 && <Check size={12} className="text-white" />}
+                      </div>
+                      <span>Todos los tipos</span>
+                    </button>
+                    {availableTypes.map((type) => (
+                      <button
+                        key={type}
+                        type="button"
+                        onClick={() => setSelectedTypes(prev => 
+                          prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+                        )}
+                        className={clsx("flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left", selectedTypes.includes(type) ? "text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-700" : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700")}
+                      >
+                        <div className={clsx("w-4 h-4 rounded border flex items-center justify-center transition-colors flex-shrink-0", selectedTypes.includes(type) ? "bg-primary-500 border-primary-500" : "border-gray-300 dark:border-gray-600")}>
+                          {selectedTypes.includes(type) && <Check size={12} className="text-white" />}
+                        </div>
+                        <span className="text-ellipsis overflow-hidden shrink">{capitalizeText(type)}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Ordenamiento (Desktop) */}
+          <div className="hidden md:flex items-center gap-2 w-full md:w-auto" ref={ordenDropdownRef}>
+            <div className="relative w-full md:w-56 lg:w-64">
               <ArrowUpDown size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <button 
                 type="button" 
@@ -373,10 +496,116 @@ const PublicProfile = () => {
             <>
               <Search size={48} className="mb-4 opacity-20" />
               <p className="text-lg font-medium">No se encontraron resultados</p>
-              <p className="text-sm">Intenta con otro término de búsqueda.</p>
+              <p className="text-sm">Intenta con otro término de búsqueda o limpiando filtros.</p>
             </>
           )}
         </div>
+      )}
+
+      {/* MODAL DE FILTROS EN MÓVIL */}
+      {isFiltersModalOpen && createPortal(
+        <div
+          className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 md:hidden"
+          onClick={() => setIsFiltersModalOpen(false)}
+        >
+          <div
+            className="bg-white dark:bg-[#1e1e1e] rounded-2xl p-5 max-w-sm w-full border border-gray-200 dark:border-transparent shadow-2xl relative animate-fade-in-up flex flex-col max-h-[85vh]"
+            onClick={(e) => e.stopPropagation()}
+            style={{ animationDuration: '200ms' }}
+          >
+            {/* Cabecera */}
+            <div className="flex items-center justify-between pb-3 border-b border-gray-200 dark:border-gray-800">
+              <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <Filter size={18} className="text-primary-600 dark:text-primary-400" />
+                <span>Filtros</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsFiltersModalOpen(false)}
+                className="p-1 rounded-lg text-gray-400 hover:text-gray-600 dark:hover.text-gray-200 transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Contenido del modal */}
+            <div className="flex-1 overflow-y-auto py-4 space-y-6">
+              {/* Filtro de tipos */}
+              {availableTypes.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Tipo de contenido</h4>
+                  <div className="space-y-2">
+                    <button
+                      type="button"
+                      onClick={() => setTempSelectedTypes([])}
+                      className={clsx("flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left w-full", tempSelectedTypes.length === 0 ? "text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-700" : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700")}
+                    >
+                      <div className={clsx("w-4 h-4 rounded border flex items-center justify-center transition-colors flex-shrink-0", tempSelectedTypes.length === 0 ? "bg-primary-500 border-primary-500" : "border-gray-300 dark:border-gray-600")}>
+                        {tempSelectedTypes.length === 0 && <Check size={12} className="text-white" />}
+                      </div>
+                      <span>Todos los tipos</span>
+                    </button>
+                    {availableTypes.map((type) => (
+                      <button
+                        key={type}
+                        type="button"
+                        onClick={() => setTempSelectedTypes(prev => 
+                          prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+                        )}
+                        className={clsx("flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left w-full", tempSelectedTypes.includes(type) ? "text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-700" : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700")}
+                      >
+                        <div className={clsx("w-4 h-4 rounded border flex items-center justify-center transition-colors flex-shrink-0", tempSelectedTypes.includes(type) ? "bg-primary-500 border-primary-500" : "border-gray-300 dark:border-gray-600")}>
+                          {tempSelectedTypes.includes(type) && <Check size={12} className="text-white" />}
+                        </div>
+                        <span className="text-ellipsis overflow-hidden shrink">{capitalizeText(type)}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Ordenamiento */}
+              <div>
+                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Ordenar por</h4>
+                <div className="space-y-2">
+                  {[{ val: 'recientes', label: 'Más Recientes' }, { val: 'antiguos', label: 'Más Antiguos' }, { val: 'mas_descargas', label: 'Más Descargas' }, { val: 'mas_vistas', label: 'Más Vistas' }, { val: 'az', label: 'Nombre (A-Z)' }, { val: 'za', label: 'Nombre (Z-A)' }].map((opt) => (
+                    <button
+                      key={opt.val}
+                      type="button"
+                      onClick={() => setTempOrden(opt.val)}
+                      className={clsx("w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors", tempOrden === opt.val ? "text-gray-800 dark:text-white bg-gray-200 dark:bg-gray-700 font-semibold" : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700")}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Botones de acción */}
+            <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-800">
+              <button
+                type="button"
+                onClick={() => setIsFiltersModalOpen(false)}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-semibold hover:bg-gray-200 dark:hover:bg-gray-600 transition-all text-sm"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setOrden(tempOrden);
+                  setSelectedTypes(tempSelectedTypes);
+                  setIsFiltersModalOpen(false);
+                }}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-semibold transition-all text-sm"
+              >
+                Aplicar
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );

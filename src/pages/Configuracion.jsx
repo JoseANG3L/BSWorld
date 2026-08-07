@@ -317,7 +317,7 @@ const Configuracion = () => {
   return (
     <div className="w-full max-w-4xl mx-auto flex flex-col p-2 md:p-4 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
 
-      <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-4 md:mb-6">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-2 md:mb-4">
         <h1 className="flex text-xl md:text-2xl font-bold text-gray-800 dark:text-white items-center gap-3">
           <div className={clsx("w-9 h-9 rounded-xl flex items-center justify-center shadow-sm text-white bg-primary-600")}>
               <User size={22} strokeWidth={2.5} />
@@ -327,48 +327,40 @@ const Configuracion = () => {
       </div>
 
       <div className="space-y-4 md:space-y-6">
-        
-        {/* =========================================================
-            TARJETA DE VISTA PREVIA
-           ========================================================= */}
-        <div>
-          <div className="">
+
+        <div className="pb-1 md:pb-2 text-center">
             
-            <div className="px-3 sm:px-4 md:px-8 pb-4 sm:pb-6 md:pb-8 text-center">
-                
-                {/* VISTA PREVIA AVATAR */}
-                <div className="relative w-24 h-24 sm:w-32 sm:h-32 mx-auto mt-4 sm:mt-6 mb-3 sm:mb-4">
-                  {/* Contenedor con aspect-square y rounded-full para asegurar circularidad */}
-                  <div className="w-full h-full rounded-full shadow-xl overflow-hidden aspect-square shrink-0 transition-transform duration-300">
-                    {/* Render interno */}
-                    <div className="w-full h-full rounded-full overflow-hidden">
-                        {renderPreviewAvatar()}
-                    </div>
-                  </div>
+            {/* VISTA PREVIA AVATAR */}
+            <div className="relative w-24 h-24 sm:w-32 sm:h-32 mx-auto">
+              {/* Contenedor con aspect-square y rounded-full para asegurar circularidad */}
+              <div className="w-full h-full rounded-full shadow-xl overflow-hidden aspect-square shrink-0 transition-transform duration-300">
+                {/* Render interno */}
+                <div className="w-full h-full rounded-full overflow-hidden">
+                    {renderPreviewAvatar()}
                 </div>
-
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white truncate mt-2 sm:mt-3">
-                  {formData.username || "Usuario"}
-                </h2>
-                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-3 sm:mb-5 truncate">{user?.email}</p>
-
-                <div className="flex flex-col gap-2">
-                  <div className={clsx("px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl text-[10px] sm:text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all", user?.role === 'admin' ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 ring-1 ring-purple-200 dark:ring-purple-800" : "bg-gray-100 text-gray-600 dark:bg-[#1D1F23] dark:text-gray-400 ring-1 ring-gray-200 dark:ring-gray-700")}>
-                    <Shield size={12} /> {user?.role === 'admin' ? 'Administrador' : 'Miembro'}
-                  </div>
-                  <div className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-300 text-[10px] sm:text-xs font-medium flex items-center justify-center gap-2 ring-1 ring-blue-200 dark:ring-blue-800">
-                    <Calendar size={12} /> Miembro desde: {joinDate}
-                  </div>
-                </div>
+              </div>
             </div>
-          </div>
+
+            <h2 className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white truncate mt-2 md:mt-3">
+              {formData.username || "Usuario"}
+            </h2>
+            <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400 mb-2 md:mb-4 truncate">{user?.email}</p>
+
+            <div className="flex flex-col gap-2">
+              <div className={clsx("text-[10px] md:text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all", user?.role === 'admin' ? "text-purple-700 dark:text-purple-300" : "text-gray-600 dark:text-gray-400")}>
+                <Shield size={12} /> {user?.role === 'admin' ? 'Administrador' : 'Miembro'}
+              </div>
+              <div className="text-blue-600 dark:text-blue-300 text-[10px] md:text-xs font-medium flex items-center justify-center gap-2">
+                <Calendar size={12} /> Miembro desde: {joinDate}
+              </div>
+            </div>
         </div>
 
         {/* =========================================================
             FORMULARIO DE EDICIÓN
            ========================================================= */}
         <div>
-          <h3 className="flex items-center gap-3 text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-4 sm:mb-6 pb-3 sm:pb-4 border-b border-gray-200 dark:border-gray-700">
+          <h3 className="flex items-center gap-3 text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-4 sm:mb-6 pt-4 md:pt-6 border-t border-gray-200 dark:border-gray-700">
             <Edit2 size={18} className="text-primary-500" /> Editar Perfil
           </h3>
 
@@ -396,19 +388,19 @@ const Configuracion = () => {
                     </button>
                 </div>
 
-                <div className="rounded-lg p-3 bg-white dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-800">
+                <div>
                     {avatarTab === 'url' && (
                         <div className="relative group">
-                            <Camera className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary-500 transition-colors" size={16} />
-                            <input type="url" name="avatar" placeholder="https://..." value={formData.avatar} onChange={handleChange} className="w-full pl-10 pr-3 py-2.5 rounded-lg bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all text-sm dark:text-white" />
+                          <Camera className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary-500 transition-colors" size={16} />
+                          <input type="text" name="username" required placeholder="https://..." value={formData.avatar} onChange={handleChange} className="w-full pl-9 sm:pl-12 pr-3 sm:pr-4 py-2.5 sm:py-3.5 rounded-lg sm:rounded-xl bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all text-sm dark:text-white" />
                         </div>
                     )}
 
                     {avatarTab === 'design' && (
-                        <div className="space-y-3">
+                        <div className="bg-white dark:bg-[#1D1F23] p-2 md:p-4 rounded-lg space-y-3">
                             <div>
-                                <p className="text-[10px] font-bold text-gray-500 uppercase mb-2">1. Icono</p>
-                                <div className="grid grid-cols-6 sm:grid-cols-8 lg:grid-cols-10 gap-1.5">
+                                <p className="text-xs font-bold text-gray-500 uppercase mb-2">1. Icono</p>
+                                <div className="grid grid-cols-6 md:grid-cols-8 lg:grid-cols-12 gap-1.5">
                                     {AVATAR_ICON_NAMES.map((name) => {
                                         const Icon = AVATAR_ICONS_MAP[name];
                                         return (
@@ -417,10 +409,10 @@ const Configuracion = () => {
                                                 type="button" 
                                                 onClick={() => updateAvatarDesign(name, selectedColor)} 
                                                 className={clsx(
-                                                    "aspect-square rounded-lg flex items-center justify-center transition-all border hover:scale-105", 
+                                                    "aspect-square rounded-lg flex items-center justify-center transition-all border", 
                                                     selectedIcon === name 
-                                                        ? "border-primary-500 text-primary-600 bg-white dark:bg-[#2a2d34] shadow-sm" 
-                                                        : "border-gray-300 dark:border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                                                        ? "border-primary-500 bg-white dark:bg-gray-700 shadow-sm" 
+                                                        : "bg-white dark:bg-gray-800/50 border-gray-300 dark:border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                                                 )}
                                             >
                                                 <Icon size={18} strokeWidth={1.5} />
@@ -430,7 +422,7 @@ const Configuracion = () => {
                                 </div>
                             </div>
                             <div>
-                                <p className="text-[10px] font-bold text-gray-500 uppercase mb-2">2. Color</p>
+                                <p className="text-xs font-bold text-gray-500 uppercase mb-2">2. Color</p>
                                 <div className="flex flex-wrap gap-1.5">
                                     {AVATAR_COLORS.map((color) => (
                                         <button 
