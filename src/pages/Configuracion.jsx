@@ -4,7 +4,7 @@ import { supabase } from '../services/supabaseClient'; // 1. Importación correg
 import { 
   User, Camera, Save, Calendar, Shield, Loader2, CheckCircle, AlertCircle, 
   Image as ImageIcon, Palette, LayoutGrid, Link as LinkIcon, Edit2,
-  Youtube, Twitter, Instagram, Linkedin, Github, Globe, MessageCircle
+  Youtube, Twitter, Instagram, Linkedin, Github, Globe, MessageCircle, Trash2
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { ICON_MAP } from '../components/AvatarRenderer';
@@ -326,7 +326,7 @@ const Configuracion = () => {
         </h1>
       </div>
 
-      <div className="space-y-4 md:space-y-6">
+      <div className="space-y-4 md:space-y-6 pb-4">
 
         <div className="pb-1 md:pb-2 text-center">
             
@@ -364,7 +364,7 @@ const Configuracion = () => {
             <Edit2 size={18} className="text-primary-500" /> Editar Perfil
           </h3>
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4 sm:gap-6">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-2 md:gap-4">
               
               {/* 1. USERNAME */}
               <div>
@@ -409,13 +409,13 @@ const Configuracion = () => {
                                                 type="button" 
                                                 onClick={() => updateAvatarDesign(name, selectedColor)} 
                                                 className={clsx(
-                                                    "aspect-square rounded-lg flex items-center justify-center transition-all border", 
+                                                    "aspect-square rounded-lg flex items-center justify-center transition-all border-2 shadow-sm", 
                                                     selectedIcon === name 
-                                                        ? "border-primary-500 bg-white dark:bg-gray-700 shadow-sm" 
+                                                        ? "border-primary-500 bg-white dark:bg-primary-800/50" 
                                                         : "bg-white dark:bg-gray-800/50 border-gray-300 dark:border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                                                 )}
                                             >
-                                                <Icon size={18} strokeWidth={1.5} />
+                                                <Icon size={20} strokeWidth={1.5} />
                                             </button>
                                         );
                                     })}
@@ -430,8 +430,8 @@ const Configuracion = () => {
                                             type="button" 
                                             onClick={() => updateAvatarDesign(selectedIcon, color)} 
                                             className={clsx(
-                                                "w-10 h-10 rounded-full border-2 transition-all hover:scale-110", 
-                                                selectedColor === color ? "border-white ring-2 ring-primary-500 shadow-sm" : "border-gray-200 dark:border-gray-700 shadow-sm"
+                                                "w-10 h-10 rounded-full border-2 transition-all shadow-sm", 
+                                                selectedColor === color ? "border-white" : "border-transparent"
                                             )} 
                                             style={{ backgroundColor: color }} 
                                         />
@@ -542,8 +542,8 @@ const Configuracion = () => {
               </div>
 
               {/* Botón Guardar */}
-              <div className="pt-2">
-                <button type="submit" disabled={loading} className={clsx("px-6 sm:px-8 py-2.5 sm:py-3.5 rounded-lg sm:rounded-xl text-white font-bold flex items-center justify-center gap-2 transition-all w-full sm:w-auto shadow-lg hover:shadow-xl text-sm sm:text-base", loading ? "bg-gray-400 cursor-not-allowed" : "bg-primary-600 hover:bg-primary-700")}>
+              <div>
+                <button type="submit" disabled={loading} className={clsx("px-5 py-2.5 rounded-lg sm:rounded-xl text-white font-bold flex items-center justify-center gap-2 transition-all w-full md:w-auto shadow-lg hover:shadow-xl text-sm sm:text-base", loading ? "bg-gray-400 cursor-not-allowed" : "bg-primary-600 hover:bg-primary-700")}>
                   {loading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
                   {loading ? "Guardando..." : "Guardar Cambios"}
                 </button>
@@ -554,7 +554,7 @@ const Configuracion = () => {
 
         {/* SECCIÓN DE CAMBIO DE CONTRASEÑA */}
         <div>
-          <h3 className="flex items-center gap-3 text-base sm:text-lg font-bold text-gray-900 dark:text-white mb-3 sm:mb-4 pb-3 sm:pb-4 border-b border-gray-200 dark:border-gray-700">
+          <h3 className="flex items-center gap-3 text-base sm:text-lg font-bold text-gray-900 dark:text-white mb-3 sm:mb-4 pt-4 md:pt-6 border-t border-gray-200 dark:border-gray-700">
             <Shield size={16} className="text-primary-500" /> Cambiar Contraseña
           </h3>
 
@@ -590,7 +590,7 @@ const Configuracion = () => {
             <button
               type="submit"
               disabled={passwordLoading}
-              className={clsx("px-5 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl text-white font-bold flex items-center justify-center gap-2 transition-all w-full sm:w-fit text-sm sm:text-base", passwordLoading ? "bg-gray-400 cursor-not-allowed" : "bg-primary-600 hover:bg-primary-700")}
+              className={clsx("px-5 py-2.5 rounded-lg md:rounded-xl text-white font-bold flex items-center justify-center gap-2 transition-all w-full sm:w-fit text-sm sm:text-base", passwordLoading ? "bg-gray-400 cursor-not-allowed" : "bg-primary-600 hover:bg-primary-700")}
             >
               {passwordLoading ? <Loader2 className="animate-spin" size={14} /> : <Shield size={14} />}
               {passwordLoading ? "Actualizando..." : "Cambiar Contraseña"}
@@ -600,7 +600,7 @@ const Configuracion = () => {
 
         {/* SECCIÓN DE ELIMINAR CUENTA */}
         <div>
-          <h3 className="flex items-center gap-3 text-base sm:text-lg font-bold text-red-600 dark:text-red-400 mb-3 sm:mb-4 pb-3 sm:pb-4 border-b border-red-200 dark:border-red-900">
+          <h3 className="flex items-center gap-3 text-base sm:text-lg font-bold text-red-600 dark:text-red-400 mb-3 sm:mb-4 pt-4 md:pt-6 border-t border-red-200 dark:border-red-800">
             <AlertCircle size={16} /> Zona de Peligro
           </h3>
 
@@ -608,8 +608,9 @@ const Configuracion = () => {
             <button
               type="button"
               onClick={() => setShowDeleteSection(true)}
-              className="px-4 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-bold hover:bg-red-200 dark:hover:bg-red-900/30 transition-all text-sm sm:text-base"
+              className="px-5 py-2.5 rounded-lg md:rounded-xl flex items-center justify-center gap-2 bg-red-100 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 font-bold hover:bg-red-200 dark:hover:bg-red-900/30 transition-all text-sm sm:text-base"
             >
+              <Trash2 size={14} />
               Eliminar mi cuenta
             </button>
           ) : (
@@ -636,7 +637,7 @@ const Configuracion = () => {
                     setShowDeleteSection(false);
                     setDeleteConfirmation('');
                   }}
-                  className="px-4 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-bold hover:bg-gray-200 dark:hover:bg-gray-600 transition-all text-sm sm:text-base"
+                  className="px-5 py-2.5 rounded-lg sm:rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-bold hover:bg-gray-200 dark:hover:bg-gray-600 transition-all text-sm sm:text-base"
                 >
                   Cancelar
                 </button>
@@ -644,7 +645,7 @@ const Configuracion = () => {
                   type="button"
                   onClick={handleDeleteAccount}
                   disabled={deleteLoading || deleteConfirmation !== 'ELIMINAR'}
-                  className={clsx("px-4 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl text-white font-bold flex items-center justify-center gap-2 transition-all text-sm sm:text-base", deleteLoading || deleteConfirmation !== 'ELIMINAR' ? "bg-red-400 cursor-not-allowed" : "bg-red-600 hover:bg-red-700")}
+                  className={clsx("px-5 py-2.5 rounded-lg sm:rounded-xl text-white font-bold flex items-center justify-center gap-2 transition-all text-sm sm:text-base", deleteLoading || deleteConfirmation !== 'ELIMINAR' ? "bg-red-400 cursor-not-allowed" : "bg-red-600 hover:bg-red-700")}
                 >
                   {deleteLoading ? <Loader2 className="animate-spin" size={14} /> : <AlertCircle size={14} />}
                   {deleteLoading ? "Eliminando..." : "Eliminar Cuenta Definitivamente"}
