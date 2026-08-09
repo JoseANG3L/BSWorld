@@ -372,7 +372,7 @@ const PublicProfile = () => {
           <button
             onClick={() => setActiveTab('todos')}
             className={clsx(
-              "pb-3 px-12 text-sm font-semibold transition-all duration-200 flex items-center gap-2",
+              "pb-3 px-14 text-sm font-semibold transition-all duration-200 flex items-center gap-2",
               activeTab === 'todos'
                 ? "text-primary-600 dark:text-primary-400 border-b-2 border-primary-600 dark:border-primary-400"
                 : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border-b-2 border-transparent"
@@ -385,7 +385,7 @@ const PublicProfile = () => {
           <button
             onClick={() => setActiveTab('likes')}
             className={clsx(
-              "pb-3 px-12 text-sm font-semibold transition-all duration-200 flex items-center gap-2",
+              "pb-3 px-14 text-sm font-semibold transition-all duration-200 flex items-center gap-2",
               activeTab === 'likes'
                 ? "text-red-500 dark:text-red-400 border-b-2 border-red-500 dark:border-red-400"
                 : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border-b-2 border-transparent"

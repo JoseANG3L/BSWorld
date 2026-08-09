@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Wrench, Boxes, Flame, Trophy, ArrowRight, ArrowLeft, Loader2, Heart } from 'lucide-react';
-import Carousel from '../components/Carousel.jsx';
+import Banner from '../components/Banner.jsx';
 import Card from '../components/Card.jsx';
 import { getPublicContent } from '../services/api'; 
 
@@ -131,8 +131,8 @@ const Inicio = () => {
   return (
     <div className="flex flex-col animate-fade-in-up shadow-sm" style={{ animationDuration: '200ms' }}>
       
-      {/* CARRUSEL PRINCIPAL */}
-      <Carousel title="" limit={9} />
+      {/* BANNER PRINCIPAL */}
+      <Banner />
       
       <div className="flex flex-col px-2 md:px-4 py-8 md:py-6 space-y-5">
         
