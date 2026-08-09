@@ -4,8 +4,8 @@ import { createPortal } from 'react-dom';
 import { getContentByCreator, getUserByUsername, getUserPublicProfile, getUserLikedContent } from '../services/api';
 import Card from '../components/Card';
 import { 
-  Calendar, Shield, UserX, Loader2, Heart, Youtube, Twitter, Instagram, Linkedin, Github, Globe, MessageCircle,
-  Grid, Boxes, Map, Gamepad2, Package, Wrench, User, Search, ChevronDown, ArrowUpDown, Edit3, Settings, Filter, X, Check
+  Calendar, Shield, UserX, Loader2, Heart, Youtube, Twitter, Instagram, Linkedin, Github, Globe, MessageCircle, Download,
+  Grid, Boxes, Map, Gamepad2, Package, Wrench, User, Search, ChevronDown, ArrowUpDown, Edit3, Settings, Filter, X, Check, Eye
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import AvatarRenderer from '../components/AvatarRenderer';
@@ -91,6 +91,32 @@ const PublicProfile = () => {
     return types.filter(Boolean);
   }, [content]);
 
+  // Función para formatear números con K/M
+  const formatNumber = (num) => {
+    if (num >= 1000000) {
+      return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+    }
+    if (num >= 1000) {
+      return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+    }
+    return num.toString();
+  };
+
+  // Calcular estadísticas totales
+  const totalStats = useMemo(() => {
+    const totalLikes = content.reduce((acc, item) => acc + (item.likes_count || 0), 0);
+    const totalDescargas = content.reduce((acc, item) => {
+      return acc + (item.descargas || []).reduce((dAcc, curr) => dAcc + (curr.count || 0), 0);
+    }, 0);
+    const totalVistas = content.reduce((acc, item) => acc + (item.vistas || 0), 0);
+    
+    return {
+      likes: totalLikes,
+      descargas: totalDescargas,
+      vistas: totalVistas
+    };
+  }, [content]);
+
   useEffect(() => {
     const loadData = async () => {
       // Verificar si ya tenemos datos en cache para este username
@@ -122,11 +148,14 @@ const PublicProfile = () => {
         const userContent = await getContentByCreator(username);
         setContent(userContent);
 
-        // 4. Si es propio perfil, cargar contenido liked
+        // 4. Cargar contenido liked del perfil visitado
         let liked = [];
-        if (currentUser && finalProfile && (currentUser.id === finalProfile.uid || currentUser.username?.toLowerCase() === username?.toLowerCase())) {
-          liked = await getUserLikedContent(currentUser.id);
+        if (finalProfile && finalProfile.uid) {
+          console.log('Cargando likes para UID:', finalProfile.uid);
+          liked = await getUserLikedContent(finalProfile.uid);
+          console.log('Datos de likes recibidos:', liked);
           const contentFromLikes = liked.map(item => item.content).filter(Boolean);
+          console.log('Contenido extraído de likes:', contentFromLikes);
           setLikedContent(contentFromLikes);
         }
         
@@ -222,7 +251,7 @@ const PublicProfile = () => {
   const displayAvatar = profile?.imagen || profile?.avatar; 
   const banner = profile?.banner;
   const joinDate = profile?.createdat 
-    ? new Date(profile.createdat).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }) 
+    ? new Date(profile.createdat).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) 
     : 'N/A';
 
   const isBannerUrl = banner && (banner.startsWith('http') || banner.startsWith('data:image'));
@@ -231,128 +260,143 @@ const PublicProfile = () => {
     <div className="flex flex-col p-2 md:p-4 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
       
       {/* SECCIÓN 1: PERFIL */}
-      <div className="relative mb-4 md:mb-6">
-         {/* CONTENEDOR PERFIL: AVATAR IZQUIERDA, NOMBRE CENTRO, REDES DERECHA */}
-         <div className="flex items-center gap-4">
-                 {/* AVATAR IZQUIERDA */}
-                 <div className="relative group shrink-0">
-                    <div className="w-20 h-20 md:w-28 md:h-28 rounded-full shadow-lg overflow-hidden">
-                        <AvatarRenderer avatar={displayAvatar} name={username} /> 
-                    </div>
-                    {profile?.role === 'admin' && (
-                        <div className="absolute bottom-0 right-0 bg-yellow-400 text-yellow-900 p-1 rounded-full border-2 border-white dark:border-[#121212]" title="Admin">
-                            <Shield size={12} fill="currentColor" />
-                        </div>
+      <div className="flex items-center gap-4 justify-between mb-4 md:mb-6 px-2 md:px-4">
+        {/* AVATAR, NOMBRE, FECHA Y REDES IZQUIERDA */}
+        <div className="flex-1 flex items-center gap-4 md:gap-6 min-w-0">
+            {/* AVATAR */}
+            <div className="relative group shrink-0">
+              <div className="w-20 h-20 md:w-36 md:h-36 rounded-full shadow-lg overflow-hidden">
+                  <AvatarRenderer avatar={displayAvatar} name={username} /> 
+              </div>
+              {profile?.role === 'admin' && (
+                  <div className="absolute bottom-0 right-0 bg-yellow-400 text-yellow-900 p-1 rounded-full border-2 border-white dark:border-[#121212]" title="Admin">
+                      <Shield size={12} fill="currentColor" />
+                  </div>
+              )}
+            </div>
+
+            {/* NOMBRE, FECHA Y REDES */}
+            <div className="flex flex-col min-w-0">
+                <div className="flex items-center gap-3">
+                    <h1 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white truncate">
+                      {username}
+                    </h1>
+                    
+                    {/* BOTÓN EDITAR PERFIL */}
+                    {isOwnProfile && (
+                      <Link
+                        to="/configuracion"
+                        className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100 dark:bg-[#1D1F23] hover:bg-gray-200 dark:hover:bg-gray-800 text-gray-800 dark:text-gray-200 transition-colors border border-gray-300 dark:border-gray-700 shadow-sm shrink-0"
+                      >
+                        <Settings size={16} />
+                      </Link>
                     )}
-                 </div>
+                </div>
+                
+                {/* FECHA DE MIEMBRO */}
+                <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                    Miembro desde {joinDate}
+                </div>
 
-                 {/* NOMBRE CENTRO */}
-                 <div className="flex-1 min-w-0">
-                     <h1 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white truncate">
-                        {username}
-                     </h1>
-                     
-                     {/* ESTADÍSTICAS */}
-                     <div className="flex items-center gap-4 mt-2 text-sm text-gray-600 dark:text-gray-300">
-                         <div className="flex items-center gap-1.5">
-                             <span className="font-bold">{content.length}</span>
-                             <span className="text-xs uppercase text-gray-400">Mods</span>
-                         </div>
-                         <div className="w-px h-4 bg-gray-200 dark:bg-gray-700"></div>
-                         <div className="flex items-center gap-1.5">
-                            <Calendar size={14} />
-                            <span className="text-xs uppercase text-gray-400">{joinDate}</span>
-                         </div>
-                     </div>
+                {/* DESCRIPCIÓN */}
+                {profile?.descripcion && (
+                    <div className="mt-2 text-sm text-gray-800 dark:text-gray-200 line-clamp-2">
+                        {profile.descripcion}
+                    </div>
+                )}
 
-                     {/* BOTÓN EDITAR PERFIL */}
-                     {isOwnProfile && (
-                       <div className="mt-3">
-                         <Link
-                           to="/configuracion"
-                           className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-[#1D1F23] hover:bg-gray-200 dark:hover:bg-gray-800 text-gray-800 dark:text-gray-200 font-semibold text-xs transition-colors border border-gray-300 dark:border-gray-700 shadow-sm"
-                         >
-                           <Settings size={14} />
-                           <span>Editar perfil</span>
-                         </Link>
-                       </div>
-                     )}
-                 </div>
+                {/* REDES SOCIALES */}
+                <div className="flex items-center gap-2 mt-2.5 flex-wrap">
+                    {profile?.youtube && (
+                        <a href={profile.youtube} target="_blank" rel="noopener noreferrer" className="w-8 h-8 flex items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors">
+                            <Youtube size={18} />
+                        </a>
+                    )}
+                    {profile?.twitter && (
+                        <a href={profile.twitter} target="_blank" rel="noopener noreferrer" className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors">
+                            <Twitter size={18} />
+                        </a>
+                    )}
+                    {profile?.instagram && (
+                        <a href={profile.instagram} target="_blank" rel="noopener noreferrer" className="w-8 h-8 flex items-center justify-center rounded-full bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 hover:bg-pink-200 dark:hover:bg-pink-900/50 transition-colors">
+                            <Instagram size={18} />
+                        </a>
+                    )}
+                    {profile?.linkedin && (
+                        <a href={profile.linkedin} target="_blank" rel="noopener noreferrer" className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors">
+                            <Linkedin size={18} />
+                        </a>
+                    )}
+                    {profile?.github && (
+                        <a href={profile.github} target="_blank" rel="noopener noreferrer" className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                            <Github size={18} />
+                        </a>
+                    )}
+                    {profile?.discord && (
+                        <a href={profile.discord} target="_blank" rel="noopener noreferrer" className="w-8 h-8 flex items-center justify-center rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-colors">
+                            <MessageCircle size={18} />
+                        </a>
+                    )}
+                    {profile?.website && (
+                        <a href={profile.website} target="_blank" rel="noopener noreferrer" className="w-8 h-8 flex items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors">
+                            <Globe size={18} />
+                        </a>
+                    )}
+                </div>
+            </div>
+        </div>
 
-                 {/* REDES SOCIALES DERECHA */}
-                 <div className="flex items-center gap-2 shrink-0">
-                     {profile?.youtube && (
-                         <a href={profile.youtube} target="_blank" rel="noopener noreferrer" className="w-10 h-10 flex items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors">
-                             <Youtube size={22} />
-                         </a>
-                     )}
-                     {profile?.twitter && (
-                         <a href={profile.twitter} target="_blank" rel="noopener noreferrer" className="w-10 h-10 flex items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors">
-                             <Twitter size={22} />
-                         </a>
-                     )}
-                     {profile?.instagram && (
-                         <a href={profile.instagram} target="_blank" rel="noopener noreferrer" className="w-10 h-10 flex items-center justify-center rounded-full bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 hover:bg-pink-200 dark:hover:bg-pink-900/50 transition-colors">
-                             <Instagram size={22} />
-                         </a>
-                     )}
-                     {profile?.linkedin && (
-                         <a href={profile.linkedin} target="_blank" rel="noopener noreferrer" className="w-10 h-10 flex items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors">
-                             <Linkedin size={22} />
-                         </a>
-                     )}
-                     {profile?.github && (
-                         <a href={profile.github} target="_blank" rel="noopener noreferrer" className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
-                             <Github size={22} />
-                         </a>
-                     )}
-                     {profile?.discord && (
-                         <a href={profile.discord} target="_blank" rel="noopener noreferrer" className="w-10 h-10 flex items-center justify-center rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-colors">
-                             <MessageCircle size={22} />
-                         </a>
-                     )}
-                     {profile?.website && (
-                         <a href={profile.website} target="_blank" rel="noopener noreferrer" className="w-10 h-10 flex items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors">
-                             <Globe size={22} />
-                         </a>
-                     )}
-                 </div>
-             </div>
+        {/* ESTADÍSTICAS DERECHA */}
+        <div className="flex items-center gap-8 shrink-0">
+            <div className="flex flex-col items-center">
+                <Eye size={22} className="text-green-500 mb-1" />
+                <span className="font-bold text-gray-900 dark:text-white text-xl">{formatNumber(totalStats.vistas)}</span>
+                <span className="text-[11px] uppercase text-gray-500 dark:text-gray-400 font-medium">Vistas</span>
+            </div>
+            <div className="flex flex-col items-center">
+                <Download size={22} className="text-blue-500 mb-1" />
+                <span className="font-bold text-gray-900 dark:text-white text-xl">{formatNumber(totalStats.descargas)}</span>
+                <span className="text-[11px] uppercase text-gray-500 dark:text-gray-400 font-medium">Descargas</span>
+            </div>
+            <div className="flex flex-col items-center">
+                <Heart size={22} className="text-red-500 mb-1" />
+                <span className="font-bold text-gray-900 dark:text-white text-xl">{formatNumber(totalStats.likes)}</span>
+                <span className="text-[11px] uppercase text-gray-500 dark:text-gray-400 font-medium">Likes</span>
+            </div>
+        </div>
       </div>
 
-      {/* SECCIÓN 2: TABS (Solo para propio perfil) */}
-      {isOwnProfile && (
-        <div className="mb-2 md:mb-4">
-          <div className="inline-flex bg-gray-100 dark:bg-[#1D1F23] rounded-2xl p-1.5 gap-1.5">
-            <button
-              onClick={() => setActiveTab('todos')}
-              className={clsx(
-                "px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center gap-2",
-                activeTab === 'todos'
-                  ? "bg-white dark:bg-[#252525] text-gray-900 dark:text-white shadow-sm"
-                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-              )}
-            >
-              <Grid size={16} className={activeTab === 'todos' ? "text-primary-600 dark:text-primary-400" : ""} />
-              Mis Mods
-              <span className="text-xs opacity-60">({content.length})</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('likes')}
-              className={clsx(
-                "px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center gap-2",
-                activeTab === 'likes'
-                  ? "bg-white dark:bg-[#252525] text-gray-900 dark:text-white shadow-sm"
-                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-              )}
-            >
-              <Heart size={16} className={activeTab === 'likes' ? "text-red-500 fill-current" : ""} />
-              Mis Likes
-              <span className="text-xs opacity-60">({likedContent.length})</span>
-            </button>
-          </div>
+      {/* SECCIÓN 2: TABS */}
+      <div className="mb-2 md:mb-4">
+        <div className="flex gap-6 border-b border-gray-200 dark:border-gray-700">
+          <button
+            onClick={() => setActiveTab('todos')}
+            className={clsx(
+              "pb-3 px-12 text-sm font-semibold transition-all duration-200 flex items-center gap-2",
+              activeTab === 'todos'
+                ? "text-primary-600 dark:text-primary-400 border-b-2 border-primary-600 dark:border-primary-400"
+                : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border-b-2 border-transparent"
+            )}
+          >
+            <Grid size={16} />
+            Mods
+            <span className="text-xs opacity-60">({content.length})</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('likes')}
+            className={clsx(
+              "pb-3 px-12 text-sm font-semibold transition-all duration-200 flex items-center gap-2",
+              activeTab === 'likes'
+                ? "text-red-500 dark:text-red-400 border-b-2 border-red-500 dark:border-red-400"
+                : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border-b-2 border-transparent"
+            )}
+          >
+            <Heart size={16} />
+            Me gustó
+            <span className="text-xs opacity-60">({likedContent.length})</span>
+          </button>
         </div>
-      )}
+      </div>
 
       {/* SECCIÓN 3: BARRA DE BÚSQUEDA Y ORDENAMIENTO */}
       <div className="mb-2 md:mb-4 flex flex-col md:flex-row gap-2 md:gap-3 items-start md:items-center">

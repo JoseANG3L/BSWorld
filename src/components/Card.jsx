@@ -186,7 +186,7 @@ const Card = ({
   const formatNumber = (num) => {
     if (!num) return '0';
     if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-    if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
+    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
     return num.toString();
   };
 
@@ -400,7 +400,7 @@ const Card = ({
           
           {/* Likes */}
           <div className="flex items-center gap-1.5" title="Total de valoraciones">
-            <Heart size={14} className="text-red-500/80 dark:text-red-400/80 fill-current" />
+            <Heart size={14} className="text-red-500/80 dark:text-red-400/80" />
             <span>{formatNumber(likes_count)}</span>
           </div>
 

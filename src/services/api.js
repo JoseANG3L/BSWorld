@@ -483,6 +483,7 @@ export const getUserPublicProfile = async (uid) => {
       banner: data.banner || null,
       verificado: !!data.verificado,
       createdat: data.createdat || null,
+      descripcion: data.descripcion || null,
       youtube: data.youtube || null,
       twitter: data.twitter || null,
       instagram: data.instagram || null,
@@ -514,6 +515,7 @@ export const getUserByUsername = async (username) => {
       imagen: data.avatar || null, 
       banner: data.banner || null,
       createdat: data.createdat || null,
+      descripcion: data.descripcion || null,
       youtube: data.youtube || null,
       twitter: data.twitter || null,
       instagram: data.instagram || null,
@@ -1108,10 +1110,13 @@ export const getContentLikes = async (contentId) => {
 
 export const getUserLikedContent = async (userId) => {
   try {
+    console.log('getUserLikedContent llamado con userId:', userId);
     const { data, error } = await supabase
       .from('likes')
       .select('content_id, content(*)')
       .eq('user_id', userId);
+    
+    console.log('Resultado de consulta likes:', { data, error });
     
     if (error) throw error;
     return data || [];

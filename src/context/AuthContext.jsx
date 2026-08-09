@@ -68,7 +68,8 @@ export const AuthProvider = ({ children }) => {
         email: email,
         avatar: finalAvatar,
         role: "user",
-        createdat: new Date().toISOString()
+        createdat: new Date().toISOString(),
+        descripcion: null
       }
     ]);
     
@@ -173,7 +174,8 @@ export const AuthProvider = ({ children }) => {
         avatar: userAvatar,
         role: "user",
         verificado: false, 
-        createdat: new Date().toISOString()
+        createdat: new Date().toISOString(),
+        descripcion: null
       };
 
       const { data: insertedData, error: insertError } = await supabase

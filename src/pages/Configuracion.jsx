@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabaseClient'; // 1. Importación corregida
 import { 
@@ -43,6 +44,7 @@ const Configuracion = () => {
     username: '', 
     avatar: '', 
     banner: '',
+    descripcion: '',
     youtube: '',
     twitter: '',
     instagram: '',
@@ -71,12 +73,25 @@ const Configuracion = () => {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [showDeleteSection, setShowDeleteSection] = useState(false);
 
+  // Bloqueo de scroll cuando el modal está abierto
+  useEffect(() => {
+    if (showModal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [showModal]);
+
   useEffect(() => {
     if (user) {
       setFormData({
         username: user.username || '',
         avatar: user.avatar || '',
         banner: user.banner || '',
+        descripcion: user.descripcion || '',
         youtube: user.youtube || '',
         twitter: user.twitter || '',
         instagram: user.instagram || '',
@@ -256,6 +271,7 @@ const Configuracion = () => {
           username: formData.username,
           avatar: formData.avatar,
           banner: formData.banner,
+          descripcion: formData.descripcion,
           youtube: formData.youtube,
           twitter: formData.twitter,
           instagram: formData.instagram,
@@ -278,7 +294,8 @@ const Configuracion = () => {
       updateUserProfile({
         username: formData.username,
         avatar: formData.avatar,
-        banner: formData.banner
+        banner: formData.banner,
+        descripcion: formData.descripcion
       });
 
       setShowModal(true);
@@ -392,7 +409,7 @@ const Configuracion = () => {
                     {avatarTab === 'url' && (
                         <div className="relative group">
                           <Camera className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary-500 transition-colors" size={16} />
-                          <input type="text" name="username" required placeholder="https://..." value={formData.avatar} onChange={handleChange} className="w-full pl-9 sm:pl-12 pr-3 sm:pr-4 py-2.5 sm:py-3.5 rounded-lg sm:rounded-xl bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all text-sm dark:text-white" />
+                          <input type="text" name="avatar" placeholder="https://..." value={formData.avatar} onChange={handleChange} className="w-full pl-9 sm:pl-12 pr-3 sm:pr-4 py-2.5 sm:py-3.5 rounded-lg sm:rounded-xl bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all text-sm dark:text-white" />
                         </div>
                     )}
 
@@ -440,6 +457,26 @@ const Configuracion = () => {
                             </div>
                         </div>
                     )}
+                </div>
+              </div>
+
+              {/* 2.5. DESCRIPCIÓN */}
+              <div>
+                <label className="block text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2.5">Descripción</label>
+                <div className="relative group">
+                  <Edit2 className="absolute left-3 sm:left-4 top-3 sm:top-4 text-gray-400 group-focus-within:text-primary-500 transition-colors" size={16} />
+                  <textarea 
+                    name="descripcion" 
+                    value={formData.descripcion} 
+                    onChange={handleChange} 
+                    placeholder="Escribe una breve descripción sobre ti..." 
+                    rows="3"
+                    maxLength="200"
+                    className="w-full pl-9 sm:pl-12 pr-3 sm:pr-4 py-2.5 sm:py-3 rounded-lg sm:rounded-xl bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all text-sm dark:text-white resize-none"
+                  />
+                  <div className="absolute right-3 bottom-2 text-xs text-gray-400">
+                    {formData.descripcion?.length || 0}/200
+                  </div>
                 </div>
               </div>
 
@@ -658,7 +695,7 @@ const Configuracion = () => {
       </div>
 
       {/* MODAL DE ÉXITO */}
-      {showModal && (
+      {showModal && createPortal(
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fade-in">
           <div className="bg-white dark:bg-[#1e1e1e] rounded-2xl p-6 md:p-8 max-w-md w-full shadow-2xl animate-scale-in">
             <div className="flex flex-col items-center text-center">
@@ -679,7 +716,8 @@ const Configuracion = () => {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
