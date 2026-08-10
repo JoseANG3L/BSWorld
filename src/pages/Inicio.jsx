@@ -139,9 +139,12 @@ const Inicio = () => {
         {/* --- SECCIÓN: NOVEDADES RECIENTES --- */}
         <div className="flex flex-col">
           <div className="flex justify-between items-center mb-5">
-            <h2 className="text-xl font-extrabold text-gray-800 dark:text-white flex items-center gap-2 tracking-tight">
+            <button
+              onClick={() => novedades.length > 0 && navigate(`/view/${novedades[0].id}`)}
+              className="text-xl font-extrabold text-gray-800 dark:text-white flex items-center gap-2 tracking-tight hover:text-primary-600 dark:hover:text-primary-400 transition-colors cursor-pointer"
+            >
               <Flame size={20} className="text-red-600 dark:text-red-500" /> Últimas Novedades
-            </h2>
+            </button>
             
             {/* 👇 BOTONES CONDICIONALES ANIMADOS */}
             <div className="flex gap-1.5 z-10 min-h-[36px]">
@@ -208,9 +211,12 @@ const Inicio = () => {
         {/* --- SECCIÓN: TOP 10 MODS --- */}
         <div className="flex flex-col">
           <div className="flex justify-between items-center mb-5">
-            <h2 className="text-xl font-extrabold text-gray-800 dark:text-white flex items-center gap-2 tracking-tight">
+            <button
+              onClick={() => topMods.length > 0 && navigate(`/view/${topMods[0].id}`)}
+              className="text-xl font-extrabold text-gray-800 dark:text-white flex items-center gap-2 tracking-tight hover:text-primary-600 dark:hover:text-primary-400 transition-colors cursor-pointer"
+            >
               <Trophy size={20} className="text-yellow-600 dark:text-yellow-500" /> Top 10 Más Descargados
-            </h2>
+            </button>
             
             {/* 👇 BOTONES CONDICIONALES ANIMADOS */}
             <div className="flex gap-1.5 z-10 min-h-[36px]">
@@ -277,9 +283,12 @@ const Inicio = () => {
         {/* --- SECCIÓN: TOP 10 FAVORITOS --- */}
         <div className="flex flex-col pb-2 md:pb-4 relative">
           <div className="flex justify-between items-center mb-5">
-            <h2 className="text-xl font-extrabold text-gray-800 dark:text-white flex items-center gap-2 tracking-tight">
+            <button
+              onClick={() => topFavoritos.length > 0 && navigate(`/view/${topFavoritos[0].id}`)}
+              className="text-xl font-extrabold text-gray-800 dark:text-white flex items-center gap-2 tracking-tight hover:text-primary-600 dark:hover:text-primary-400 transition-colors cursor-pointer"
+            >
               <Heart size={20} className="text-pink-600 dark:text-pink-500" /> Top 10 Favoritos
-            </h2>
+            </button>
             
             {/* 👇 BOTONES CONDICIONALES ANIMADOS */}
             <div className="flex gap-1.5 z-10 min-h-[36px]">
