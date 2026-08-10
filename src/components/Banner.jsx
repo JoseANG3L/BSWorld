@@ -55,7 +55,7 @@ const Banner = () => {
   };
 
   return (
-    <div className="relative w-full h-auto md:h-[450px] lg:h-[500px] overflow-hidden">
+    <div className="relative w-full h-auto md:h-[380px] lg:h-[460px] overflow-hidden">
       {/* Background Image */}
       <div 
         className="absolute inset-0 bg-cover bg-center"
@@ -79,12 +79,13 @@ const Banner = () => {
       <div className="absolute top-1/2 right-1/4 w-24 h-24 bg-white/5 rounded-full blur-2xl" />
 
       {/* Content */}
-      <div className="relative z-10 h-full flex flex-col items-center justify-center px-2 md:px-8 lg:px-12 py-4 pb-5 md:py-12 lg:py-16">
+      <div className="relative z-10 h-full flex flex-col items-center justify-center px-4 md:px-8 lg:px-12 pt-3 pb-5 md:py-12 lg:py-16">
+        
         {/* Mobile Layout */}
         <div className="flex flex-col items-center justify-center w-full max-w-4xl mx-auto md:hidden">
           {/* Title Section */}
-          <div className="mb-4 animate-fade-in-up text-center" style={{ animationDuration: '300ms' }}>
-            <h1 className="text-3xl sm:text-4xl font-black text-white leading-tight tracking-tight mb-2 drop-shadow-lg">
+          <div className="mb-2.5 animate-fade-in-up text-center" style={{ animationDuration: '300ms' }}>
+            <h1 className="text-3xl sm:text-4xl font-black text-white leading-tight tracking-tight mb-1 drop-shadow-lg">
               BombSquad World
             </h1>
             <p className="text-base font-semibold text-white/90 tracking-wide">
@@ -93,14 +94,14 @@ const Banner = () => {
           </div>
 
           {/* Categories */}
-          <div className="flex flex-col gap-2 mb-4 animate-fade-in-up w-full" style={{ animationDuration: '400ms' }}>
+          <div className="flex flex-col gap-2 mb-2.5 animate-fade-in-up w-full" style={{ animationDuration: '400ms' }}>
             <div className="flex justify-center gap-2">
-              <span className="inline-flex items-center gap-2 px-3 py-1 bg-primary-500/40 backdrop-blur-md text-white text-[10px] font-bold rounded-md border-2 border-primary-400 shadow-lg">
-                <UsersIcon size={12} />
+              <span className="inline-flex items-center gap-2 px-3 py-1 bg-primary-500/40 backdrop-blur-md text-white text-[11px] font-bold rounded-md border-2 border-primary-400 shadow-lg">
+                <UsersIcon size={11} />
                 Comunidad
               </span>
-              <span className="inline-flex items-center gap-2 px-3 py-1 bg-primary-500/40 backdrop-blur-md text-white text-[10px] font-bold rounded-md border-2 border-primary-400 shadow-lg">
-                <Server size={12} />
+              <span className="inline-flex items-center gap-2 px-3 py-1 bg-primary-500/40 backdrop-blur-md text-white text-[11px] font-bold rounded-md border-2 border-primary-400 shadow-lg">
+                <Server size={11} />
                 Servidores
               </span>
             </div>
@@ -117,7 +118,7 @@ const Banner = () => {
                 return (
                   <span
                     key={categoria.name}
-                    className="inline-flex items-center gap-1 px-2 py-1 bg-white/10 backdrop-blur-md text-white text-[9px] font-semibold rounded-md border border-white/20"
+                    className="inline-flex items-center gap-1 px-2 py-1 bg-white/10 backdrop-blur-md text-white text-[10px] font-semibold rounded-md border border-white/20"
                   >
                     {categoria.name.charAt(0).toUpperCase() + categoria.name.slice(1)}
                   </span>
@@ -127,58 +128,58 @@ const Banner = () => {
           </div>
 
           {/* Stats */}
-          <div className="flex flex-row gap-3 mb-4 animate-fade-in-up" style={{ animationDuration: '700ms' }}>
-            <div className="flex flex-col items-center p-3 bg-white/10 backdrop-blur-md rounded-xl border border-white/10 min-w-[80px]">
-              <div className="flex items-center justify-center gap-1.5 mb-1">
-                <Package size={16} className="text-white/80" />
-                <span className="text-[10px] font-semibold text-white/70 uppercase tracking-wider">Mods</span>
+          <div className="flex flex-row gap-2 mb-3 animate-fade-in-up" style={{ animationDuration: '700ms' }}>
+            <div className="flex flex-col items-center p-2 bg-white/10 backdrop-blur-md rounded-lg border border-white/10">
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <Package size={11} className="text-white/80" />
+                <span className="text-[9px] font-semibold text-white/70 uppercase tracking-wider">Mods</span>
               </div>
               {loading ? (
                 <div className="w-10 h-5 bg-white/20 rounded animate-pulse" />
               ) : (
-                <span className="text-lg font-black text-white">{formatNumber(stats.mods)}</span>
+                <span className="text-sm font-black text-white">{formatNumber(stats.mods)}</span>
               )}
             </div>
 
-            <div className="flex flex-col items-center p-3 bg-white/10 backdrop-blur-md rounded-xl border border-white/10 min-w-[80px]">
-              <div className="flex items-center justify-center gap-1.5 mb-1">
-                <Download size={16} className="text-white/80" />
-                <span className="text-[10px] font-semibold text-white/70 uppercase tracking-wider">Descargas</span>
+            <div className="flex flex-col items-center p-2 bg-white/10 backdrop-blur-md rounded-lg border border-white/10">
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <Download size={11} className="text-white/80" />
+                <span className="text-[9px] font-semibold text-white/70 uppercase tracking-wider">Descargas</span>
               </div>
               {loading ? (
                 <div className="w-10 h-5 bg-white/20 rounded animate-pulse" />
               ) : (
-                <span className="text-lg font-black text-white">{formatNumber(stats.downloads)}</span>
+                <span className="text-sm font-black text-white">{formatNumber(stats.downloads)}</span>
               )}
             </div>
 
-            <div className="flex flex-col items-center p-3 bg-white/10 backdrop-blur-md rounded-xl border border-white/10 min-w-[80px]">
-              <div className="flex items-center justify-center gap-1.5 mb-1">
-                <Users size={16} className="text-white/80" />
-                <span className="text-[10px] font-semibold text-white/70 uppercase tracking-wider">Usuarios</span>
+            <div className="flex flex-col items-center p-2 bg-white/10 backdrop-blur-md rounded-lg border border-white/10">
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <Users size={11} className="text-white/80" />
+                <span className="text-[9px] font-semibold text-white/70 uppercase tracking-wider">Usuarios</span>
               </div>
               {loading ? (
                 <div className="w-10 h-5 bg-white/20 rounded animate-pulse" />
               ) : (
-                <span className="text-lg font-black text-white">{formatNumber(stats.users)}</span>
+                <span className="text-sm font-black text-white">{formatNumber(stats.users)}</span>
               )}
             </div>
           </div>
 
           {/* Buttons */}
-          <div className="flex flex-col sm:flex-row gap-3 animate-fade-in-up w-full" style={{ animationDuration: '500ms' }}>
+          <div className="flex flex-col gap-2 animate-fade-in-up w-full" style={{ animationDuration: '500ms' }}>
             <button
               onClick={() => setIsSubirModOpen(true)}
               className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-white text-primary-700 font-bold rounded-xl hover:bg-white/90 transition-all shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 text-sm"
             >
-              <Upload size={18} strokeWidth={2.5} />
+              <Upload size={16} strokeWidth={2.5} />
               <span>Subir Mod</span>
             </button>
             <button
               onClick={() => navigate('/mods')}
               className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-md text-white font-bold rounded-xl border-2 border-white/20 hover:bg-white/20 transition-all shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 text-sm"
             >
-              <Gamepad2 size={18} strokeWidth={2.5} />
+              <Gamepad2 size={16} strokeWidth={2.5} />
               <span>Explorar Mods</span>
             </button>
           </div>
@@ -252,9 +253,9 @@ const Banner = () => {
           </div>
 
           {/* Right Section - Stats */}
-          <div className="flex flex-row gap-6 animate-fade-in-up" style={{ animationDuration: '700ms' }}>
+          <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 animate-fade-in-up" style={{ animationDuration: '700ms' }}>
             {/* Mods Stat */}
-            <div className="flex flex-col items-center p-3 md:p-6 bg-white/10 backdrop-blur-md rounded-xl border border-white/10 min-w-[80px] md:min-w-[140px]">
+            <div className="flex flex-col items-center p-3 lg:p-6 bg-white/10 backdrop-blur-md rounded-xl border border-white/10 min-w-[80px] md:min-w-[140px]">
               <div className="flex items-center justify-center gap-1.5 md:gap-2 mb-1 md:mb-2">
                 <Package size={16} className="text-white/80" />
                 <span className="text-[10px] md:text-xs font-semibold text-white/70 uppercase tracking-wider">Mods</span>
@@ -267,7 +268,7 @@ const Banner = () => {
             </div>
 
             {/* Downloads Stat */}
-            <div className="flex flex-col items-center p-3 md:p-6 bg-white/10 backdrop-blur-md rounded-xl border border-white/10 min-w-[80px] md:min-w-[140px]">
+            <div className="flex flex-col items-center p-3 lg:p-6 bg-white/10 backdrop-blur-md rounded-xl border border-white/10 min-w-[80px] md:min-w-[140px]">
               <div className="flex items-center justify-center gap-1.5 md:gap-2 mb-1 md:mb-2">
                 <Download size={16} className="text-white/80" />
                 <span className="text-[10px] md:text-xs font-semibold text-white/70 uppercase tracking-wider">Descargas</span>
@@ -280,7 +281,7 @@ const Banner = () => {
             </div>
 
             {/* Users Stat */}
-            <div className="flex flex-col items-center p-3 md:p-6 bg-white/10 backdrop-blur-md rounded-xl border border-white/10 min-w-[80px] md:min-w-[140px]">
+            <div className="flex flex-col items-center p-3 lg:p-6 bg-white/10 backdrop-blur-md rounded-xl border border-white/10 min-w-[80px] md:min-w-[140px]">
               <div className="flex items-center justify-center gap-1.5 md:gap-2 mb-1 md:mb-2">
                 <Users size={16} className="text-white/80" />
                 <span className="text-[10px] md:text-xs font-semibold text-white/70 uppercase tracking-wider">Usuarios</span>

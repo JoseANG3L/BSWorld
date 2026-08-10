@@ -239,13 +239,7 @@ const Card = ({
 
   return (
     <div 
-      className="group flex flex-col bg-white dark:bg-[#1e1e1e] border border-gray-300 dark:border-transparent rounded-lg shadow-sm transition-all duration-300 z-0 relative h-full cursor-pointer hover:shadow-md"
-      onClick={(e) => {
-        // Solo navegar si no es preview, no es editable, tiene id, y no se clickeó en un botón o enlace
-        if (!isPreview && !isEditable && id && !e.target.closest('button') && !e.target.closest('a')) {
-          navigate(`/view/${id}`);
-        }
-      }}
+      className="group flex flex-col bg-white dark:bg-[#1e1e1e] border border-gray-300 dark:border-transparent rounded-lg shadow-sm transition-all duration-300 z-0 relative h-full hover:shadow-md"
     >
       
       {/* ESTADO */}
@@ -321,7 +315,10 @@ const Card = ({
         {/* 3. DESCARGAS DESPLEGABLE */}
         <div className="relative" ref={downloadRef}>
           <button 
-            onClick={() => setIsOpenDownload(!isOpenDownload)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsOpenDownload(!isOpenDownload);
+            }}
             className={clsx(
               "flex text-sm items-center justify-between px-3 w-full py-2.5 rounded-lg text-white font-bold shadow-md transition-all duration-150 active:scale-[0.98]",
               isOpenDownload ? "bg-primary-600" : "bg-primary-700 hover:bg-primary-600"
@@ -364,7 +361,13 @@ const Card = ({
             </Link>
           ) : (
             <>
-              <button onClick={() => setIsOpenCredits(!isOpenCredits)} className="flex items-center gap-2 w-full px-2 py-1 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-left group/creator">
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsOpenCredits(!isOpenCredits);
+                }} 
+                className="flex items-center gap-2 w-full px-2 py-1 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-left group/creator"
+              >
                 <SmartUserDisplay initialUser={primerCredito} type="header" extraCount={totalExtra} />
                 <ChevronDown size={14} className={clsx("ml-auto text-gray-400 transition-transform", isOpenCredits && "rotate-180")} />
               </button>
