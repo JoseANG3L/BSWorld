@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Download, Tag, ChevronDown, AlertCircle, Eye, User, ShieldCheck, Edit3, Trash2, Loader2, ExternalLink, Heart } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Download, ChevronDown, AlertCircle, Eye, User, ShieldCheck, ExternalLink, Heart, Wrench, Map, Gamepad2, Boxes, Package } from 'lucide-react';
 import { clsx } from 'clsx';
 import AvatarRenderer from './AvatarRenderer';
 import LikeButton from './LikeButton';
@@ -8,7 +8,16 @@ import { useAuth } from '../context/AuthContext';
 // Importamos la función para obtener datos frescos
 import { registerDownload, getUserPublicProfile } from '../services/api'; 
 
-const COOLDOWN_TIME = 3600000; 
+const COOLDOWN_TIME = 3600000;
+
+const CATEGORIAS = {
+  complemento: { nombre: 'Complemento', icon: Wrench },
+  mapa: { nombre: 'Mapa', icon: Map },
+  minijuego: { nombre: 'Minijuego', icon: Gamepad2 },
+  modpack: { nombre: 'Modpack', icon: Boxes },
+  paquete: { nombre: 'Paquete', icon: Package },
+  personaje: { nombre: 'Personaje', icon: User }
+}; 
 
 // --- SUB-COMPONENTE INTELIGENTE ---
 const SmartUserDisplay = ({ initialUser, type = 'list', extraCount = 0 }) => {
@@ -54,7 +63,7 @@ const SmartUserDisplay = ({ initialUser, type = 'list', extraCount = 0 }) => {
   if (type === 'list') {
     return (
       <Link to={`/u/${userData.nombre}`} className="flex items-center gap-3 px-2 py-1.5 hover:bg-primary-300 dark:hover:bg-gray-700 transition-colors group">
-        <div className="w-6 h-6 rounded-full overflow-hidden bg-gray-200 dark:bg-[#1D1F23] shrink-0 relative">
+        <div className="w-6 h-6 rounded-full shrink-0 relative">
             <AvatarRenderer avatar={userData.imagen} name={userData.nombre} />
         </div>
         <div className="flex items-center gap-1 min-w-0">
@@ -94,18 +103,18 @@ const SmartUserDisplay = ({ initialUser, type = 'list', extraCount = 0 }) => {
       return (
         <>
             <div className="relative shrink-0">
-                <div className="w-6 h-6 rounded-full border border-gray-300 dark:border-gray-700 overflow-hidden bg-gray-200 dark:bg-[#1D1F23]">
+                <div className="w-6 h-6 rounded-full">
                     <AvatarRenderer avatar={userData.imagen} name={userData.nombre} />
                 </div>
             </div>
-            <div className="flex items-center gap-1.5 min-w-0">
+            <div className="flex items-center gap-1 min-w-0">
                <span className="text-sm font-bold text-gray-700 dark:text-gray-100 truncate transition-colors">
                     {userData.nombre}
                </span>
                {esVerificado && <ShieldCheck size={12} className="text-blue-500 shrink-0" />}
                {extraCount > 0 && (
-                   <span className="shrink-0 w-5 h-5 flex items-center justify-center text-[9px] font-bold bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-300 rounded-full border border-gray-300 dark:border-gray-700">
-                       + {extraCount}
+                   <span className="shrink-0 w-5 h-5 text-gray-500 dark:text-gray-400 flex items-center justify-center text-[9px] font-bold">
+                       +{extraCount}
                    </span>
                )}
             </div>
@@ -114,45 +123,6 @@ const SmartUserDisplay = ({ initialUser, type = 'list', extraCount = 0 }) => {
   }
 
   return null;
-};
-
-const getStatusConfig = (status) => {
-  switch (status) {
-    case 'aceptado':
-    case 'published':
-      return { 
-        label: 'Aceptado', 
-        style: 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800' 
-      };
-    case 'revision':
-    case 'pending':
-      return { 
-        label: 'En Revisión', 
-        style: 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800' 
-      };
-    case 'rechazado':
-    case 'rejected':
-      return { 
-        label: 'Rechazado', 
-        style: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800' 
-      };
-    case 'borrador':
-    case 'draft':
-      return { 
-        label: 'Borrador', 
-        style: 'bg-gray-100 text-gray-600 border-gray-200 dark:bg-[#1D1F23] dark:text-gray-400 dark:border-gray-700' 
-      };
-    case 'inactive':
-      return { 
-        label: 'Inactivo', 
-        style: 'bg-gray-100 text-gray-500 border-gray-200 dark:bg-[#1D1F23] dark:text-gray-500' 
-      };
-    default:
-      return { 
-        label: 'Desconocido', 
-        style: 'bg-gray-100 text-gray-500 border-gray-200 dark:bg-[#1D1F23] dark:text-gray-500' 
-      };
-  }
 };
 
 const Card = ({ 
@@ -166,17 +136,13 @@ const Card = ({
   vistas = 0,
   likes_count = 0,
   status = 'Creado',
-  isPreview = false,
-  isEditable = false,
-  handleDelete,
-  isDeleting = false
+  tipo
 }) => {
   const { user } = useAuth();
   const [isOpenDownload, setIsOpenDownload] = useState(false);
   const downloadRef = useRef(null);
   const [isOpenCredits, setIsOpenCredits] = useState(false);
   const creditosRef = useRef(null);
-  const navigate = useNavigate();
 
   const [localDescargas, setLocalDescargas] = useState(descargas);
   const [isSpamming, setIsSpamming] = useState(false);
@@ -191,7 +157,7 @@ const Card = ({
   };
 
   const handleDownloadClick = async (url) => {
-    if (isPreview || !id) return;
+    if (!id) return;
     const storageKey = `download_limit_${id}_${url}`;
     const lastDownloadTime = localStorage.getItem(storageKey);
     const now = Date.now();
@@ -235,31 +201,24 @@ const Card = ({
     Math.max(0, listaCreditos.length - 1)
   , [listaCreditos]);
 
-  const statusConfig = getStatusConfig(status);
+  const categoriaInfo = CATEGORIAS[tipo] || { nombre: tipo || 'Sin categoría', icon: null };
+  const CategoriaIcon = categoriaInfo.icon;
 
   return (
     <div 
-      className="group flex flex-col bg-white dark:bg-[#1e1e1e] border border-gray-300 dark:border-transparent rounded-lg shadow-sm transition-all duration-300 z-0 relative h-full hover:shadow-md"
+      className="group flex flex-col bg-white dark:bg-[#1e1e1e] border border-gray-300 dark:border-transparent rounded-lg shadow-sm transition-all duration-300 z-0 relative h-full"
     >
       
-      {/* ESTADO */}
-      {isEditable && (
-        <div className={`text-xs font-bold text-center p-1 ${statusConfig.style} rounded-t-xl`}>
-          {statusConfig.label}
-        </div>
-      )}
-
       {/* 1. IMAGEN */}
       <Link 
-        to={(!isPreview && id) ? `/view/${id}` : "#"} 
-        className={clsx("relative w-full aspect-video overflow-hidden bg-gray-100 dark:bg-[#1D1F23] block cursor-pointer", isPreview && "cursor-default", !isEditable && "rounded-t-lg")}
-        onClick={(e) => isPreview && e.preventDefault()}
+        to={id ? `/view/${id}` : "#"} 
+        className="relative w-full aspect-video overflow-hidden bg-gray-100 dark:bg-[#1D1F23] block cursor-pointer rounded-t-lg"
       >
         <img 
           src={imagen || '/default.jpg'} 
           alt={titulo}
           loading="lazy"
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          className="w-full h-full object-cover"
           onError={(e) => { e.target.src = '/default.jpg'; }}
         />
 
@@ -269,51 +228,20 @@ const Card = ({
             <AlertCircle size={12} /> Límite excedido
           </div>
         )}
-
-        {/* Capa de acciones para edición */}
-        {isEditable && (
-          <div className="absolute bottom-3 right-3 flex flex-col gap-2 z-20">
-            <button
-              onClick={(e) => {
-                e.preventDefault(); 
-                e.stopPropagation();
-                navigate(`/subir?edit=${id}`);
-              }}
-              className="p-2 bg-white dark:bg-[#1D1F23] text-blue-600 dark:text-blue-400 rounded-xl shadow-lg hover:bg-gray-200 dark:hover:bg-[#191B1E] transition-all border border-gray-200 dark:border-gray-700"
-              title="Editar Contenido"
-            >
-              <Edit3 size={18} />
-            </button>
-
-            <button 
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                if (handleDelete) handleDelete(id, titulo);
-              }}
-              className="p-2 bg-white dark:bg-[#1D1F23] text-red-500 rounded-xl shadow-lg hover:bg-gray-200 dark:hover:bg-[#191B1E] transition-all border border-gray-200 dark:border-gray-700"
-              disabled={isDeleting}
-              title="Eliminar"
-            >
-              {isDeleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
-            </button>
-          </div>
-        )}
       </Link>
 
       <div className="flex flex-col flex-1 px-3 pt-3 pb-3 space-y-2.5">
         
         {/* 2. TÍTULO */}
         <Link 
-            to={(!isPreview && id) ? `/view/${id}` : "#"} 
-            className={clsx("block", !isPreview && "hover:text-primary-600 dark:hover:text-primary-400 transition-colors")}
-            onClick={(e) => isPreview && e.preventDefault()}
+            to={id ? `/view/${id}` : "#"} 
+            className="block hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
         >
             <h3 className="text-md font-bold text-black dark:text-white line-clamp-1 hover:text-primary-600 dark:hover:text-primary-400 transition-colors" title={titulo}>{titulo}</h3>
         </Link>
 
         {/* 3. DESCARGAS DESPLEGABLE */}
-        <div className="relative" ref={downloadRef}>
+        {/* <div className="relative" ref={downloadRef}>
           <button 
             onClick={(e) => {
               e.stopPropagation();
@@ -348,14 +276,14 @@ const Card = ({
               </div>
             </div>
           )}
-        </div>
+        </div> */}
 
         {/* 4. CRÉDITOS */}
         <div className="relative" ref={creditosRef}>
           {listaCreditos.length === 1 ? (
             <Link 
               to={`/u/${primerCredito.nombre}`} 
-              className="flex items-center gap-2 w-full px-2 py-1 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-left group/creator"
+              className="flex items-center gap-2 w-full rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-left group/creator"
             >
               <SmartUserDisplay initialUser={primerCredito} type="header" extraCount={0} />
             </Link>
@@ -366,10 +294,9 @@ const Card = ({
                   e.stopPropagation();
                   setIsOpenCredits(!isOpenCredits);
                 }} 
-                className="flex items-center gap-2 w-full px-2 py-1 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-left group/creator"
+                className="flex items-center gap-2 w-full rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-left group/creator"
               >
                 <SmartUserDisplay initialUser={primerCredito} type="header" extraCount={totalExtra} />
-                <ChevronDown size={14} className={clsx("ml-auto text-gray-400 transition-transform", isOpenCredits && "rotate-180")} />
               </button>
               
               {isOpenCredits && (
@@ -386,7 +313,7 @@ const Card = ({
         </div>
 
         {/* 5. TAGS */}
-        {tags && tags.length > 0 && (
+        {/* {tags && tags.length > 0 && (
           <div className="flex flex-wrap gap-1">
             {tags.map((tag, index) => (
               <div key={index} className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-gray-50 dark:bg-[#1D1F23] border border-gray-300 dark:border-gray-700">
@@ -394,7 +321,7 @@ const Card = ({
               </div>
             ))}
           </div>
-        )}
+        )} */}
 
         {/* 6. APORTE DE */}
         {/* {aporte && (
@@ -403,22 +330,28 @@ const Card = ({
 
         {/* 👇 NUEVO BLOQUE: MÉTRICAS GENERALES DE LA CARD */}
         <div className="flex justify-between items-center w-full pt-3 border-t border-gray-100 dark:border-gray-800/60 text-gray-500 dark:text-gray-400 text-xs font-semibold">
-          {/* Vistas */}
-          <div className="flex items-center gap-1.5" title="Total de visualizaciones">
-            <Eye size={14} className="text-gray-400 dark:text-gray-500" />
-            <span>{formatNumber(vistas)}</span>
+          <div className="flex items-center gap-1.5" title="Categoría">
+            {CategoriaIcon && <CategoriaIcon size={14} className="text-gray-400 dark:text-gray-500" />}
+            <span>{categoriaInfo.nombre}</span>
           </div>
-          
-          {/* Likes */}
-          <div className="flex items-center gap-1.5" title="Total de valoraciones">
-            <Heart size={14} className="text-red-500/80 dark:text-red-400/80" />
-            <span>{formatNumber(likes_count)}</span>
-          </div>
+          <div className="flex gap-3">
+            {/* Vistas */}
+            <div className="flex items-center gap-1.5" title="Total de visualizaciones">
+              <Eye size={14} className="text-gray-400 dark:text-gray-500" />
+              <span>{formatNumber(vistas)}</span>
+            </div>
+            
+            {/* Likes */}
+            <div className="flex items-center gap-1.5" title="Total de valoraciones">
+              <Heart size={14} className="text-red-500/80 dark:text-red-400/80" />
+              <span>{formatNumber(likes_count)}</span>
+            </div>
 
-          {/* Descargas totales calculadas */}
-          <div className="flex items-center gap-1.5" title="Total de descargas globales">
-            <Download size={14} className="text-primary-500/80 dark:text-primary-400/80" />
-            <span>{formatNumber(calculatedTotal)}</span>
+            {/* Descargas totales calculadas */}
+            <div className="flex items-center gap-1.5" title="Total de descargas globales">
+              <Download size={14} className="text-primary-500/80 dark:text-primary-400/80" />
+              <span>{formatNumber(calculatedTotal)}</span>
+            </div>
           </div>
         </div>
 

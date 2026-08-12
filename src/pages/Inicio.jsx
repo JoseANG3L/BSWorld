@@ -66,9 +66,10 @@ const Inicio = () => {
             </div>
             
             <Link to="/mods?sort=recientes"
-              className="p-1.5 rounded-lg bg-primary-500 hover:bg-primary-600 dark:bg-primary-600 dark:hover:bg-primary-700 text-white transition-all shadow-sm active:scale-95"
+              className="px-3 py-1.5 flex items-center gap-1.5 rounded-lg bg-primary-500 hover:bg-primary-600 dark:bg-[#1e1e1e] dark:hover:bg-[#2a2a2a] text-white transition-all shadow-sm active:scale-95"
             >
-              <ArrowRight size={20} strokeWidth={2.5} />
+              <span className="md:block hidden pl-1 text-sm font-semibold">Ver todos</span>
+              <ArrowRight size={16} strokeWidth={3} />
             </Link>
           </div>
 
@@ -91,10 +92,10 @@ const Inicio = () => {
             </div>
             
             <Link to="/mods?sort=mas_descargas"
-              className="p-1.5 flex items-center gap-1 rounded-lg bg-primary-500 hover:bg-primary-600 dark:bg-primary-600 dark:hover:bg-primary-700 text-white transition-all shadow-sm active:scale-95"
+              className="px-3 py-1.5 flex items-center gap-1.5 rounded-lg bg-primary-500 hover:bg-primary-600 dark:bg-[#1e1e1e] dark:hover:bg-[#2a2a2a] text-white transition-all shadow-sm active:scale-95"
             >
-              <span className="md:block hidden pl-1 text-md font-semibold">Ver todos</span>
-              <ArrowRight size={20} strokeWidth={2.5} />
+              <span className="md:block hidden pl-1 text-sm font-semibold">Ver todos</span>
+              <ArrowRight size={16} strokeWidth={3} />
             </Link>
           </div>
 
@@ -117,9 +118,10 @@ const Inicio = () => {
             </div>
             
             <Link to="/mods?sort=mas_likes"
-              className="p-1.5 rounded-lg bg-primary-500 hover:bg-primary-600 dark:bg-primary-600 dark:hover:bg-primary-700 text-white transition-all shadow-sm active:scale-95"
+              className="px-3 py-1.5 flex items-center gap-1.5 rounded-lg bg-primary-500 hover:bg-primary-600 dark:bg-[#1e1e1e] dark:hover:bg-[#2a2a2a] text-white transition-all shadow-sm active:scale-95"
             >
-              <ArrowRight size={20} strokeWidth={2.5} />
+              <span className="md:block hidden pl-1 text-sm font-semibold">Ver todos</span>
+              <ArrowRight size={16} strokeWidth={3} />
             </Link>
           </div>
 
