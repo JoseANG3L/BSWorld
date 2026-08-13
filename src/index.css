@@ -63,3 +63,13 @@ html, body, #root {
 .hover-boing:hover .icon-boing {
   animation: boing .3s ease-out forwards;
 }
+
+/* Ocultar scrollbar pero permitir scroll */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+  scroll-behavior: smooth;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari, Opera */
+}

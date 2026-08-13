@@ -1,9 +1,32 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Wrench, Boxes, Flame, Trophy, ArrowRight, Loader2, Heart } from 'lucide-react';
+import { Wrench, Boxes, Flame, Trophy, ArrowRight, Loader2, Heart, ChevronLeft, ChevronRight } from 'lucide-react';
 import Banner from '../components/Banner.jsx';
 import Card from '../components/Card.jsx';
-import { getPublicContent } from '../services/api'; 
+import { getPublicContent } from '../services/api';
+
+// Hook para scroll con botones de navegación
+const useScrollNavigation = () => {
+  const scrollRef = useRef(null);
+
+  const scrollLeft = () => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollBy({ left: -300, behavior: 'smooth' });
+    }
+  };
+
+  const scrollRight = () => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollBy({ left: 300, behavior: 'smooth' });
+    }
+  };
+
+  return {
+    scrollRef,
+    scrollLeft,
+    scrollRight
+  };
+};
 
 const Inicio = () => {
   const navigate = useNavigate();
@@ -11,6 +34,11 @@ const Inicio = () => {
   const [topMods, setTopMods] = useState([]);
   const [topFavoritos, setTopFavoritos] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Hooks para scroll con navegación en cada sección
+  const novedadesScroll = useScrollNavigation();
+  const topModsScroll = useScrollNavigation();
+  const topFavoritosScroll = useScrollNavigation();
 
   useEffect(() => {
     const loadHomeData = async () => {
@@ -73,14 +101,32 @@ const Inicio = () => {
             </Link>
           </div>
 
-          {/* Contenedor Grid Responsivo */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 md:gap-4">
-            {novedades.map((item, index) => (
-              <div key={item.id} className="relative group/top-card">
-                <Card {...item} />
-              </div>
-            ))}
-
+          {/* Contenedor Scroll Horizontal con Navegación */}
+          <div className="relative group/scroll">
+            <button
+              onClick={novedadesScroll.scrollLeft}
+              className="absolute z-10 left-0 top-0 bottom-0 hidden md:flex w-12 items-center justify-center bg-white/80 dark:bg-[#1e1e1e]/80 backdrop-blur-md border border-gray-300 dark:border-transparent rounded-lg shadow-sm transition-all duration-300"
+            >
+              <ChevronLeft size={28} className="text-white" />
+            </button>
+            
+            <div 
+              ref={novedadesScroll.scrollRef}
+              className="flex overflow-x-auto gap-3 md:gap-4 scrollbar-hide scroll-smooth pl-14 pr-14"
+            >
+              {novedades.map((item, index) => (
+                <div key={item.id} className="flex-shrink-0 w-[160px] sm:w-[200px] md:w-[220px] lg:w-[240px] xl:w-[260px]">
+                  <Card {...item} />
+                </div>
+              ))}
+            </div>
+            
+            <button
+              onClick={novedadesScroll.scrollRight}
+              className="absolute z-10 right-0 top-0 bottom-0 hidden md:flex w-12 items-center justify-center bg-white/80 dark:bg-[#1e1e1e]/80 backdrop-blur-md border border-gray-300 dark:border-transparent rounded-lg shadow-sm transition-all duration-300"
+            >
+              <ChevronRight size={28} className="text-white" />
+            </button>
           </div>
         </div>
 
@@ -99,14 +145,32 @@ const Inicio = () => {
             </Link>
           </div>
 
-          {/* Contenedor Grid Responsivo */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 md:gap-4">
-            {topMods.map((item, index) => (
-              <div key={item.id} className="relative group/top-card">
-                <Card {...item} />
-              </div>
-            ))}
-
+          {/* Contenedor Scroll Horizontal con Navegación */}
+          <div className="relative group/scroll">
+            <button
+              onClick={topModsScroll.scrollLeft}
+              className="absolute left-0 top-0 bottom-0 hidden md:flex w-12 items-center justify-center bg-white/80 dark:bg-[#1e1e1e]/80 backdrop-blur-md border border-gray-300 dark:border-transparent rounded-lg shadow-sm transition-all duration-300"
+            >
+              <ChevronLeft size={28} className="text-white" />
+            </button>
+            
+            <div 
+              ref={topModsScroll.scrollRef}
+              className="flex overflow-x-auto gap-3 md:gap-4 pb-4 scrollbar-hide scroll-smooth pl-14 pr-14"
+            >
+              {topMods.map((item, index) => (
+                <div key={item.id} className="flex-shrink-0 w-[160px] sm:w-[200px] md:w-[220px] lg:w-[240px] xl:w-[260px]">
+                  <Card {...item} />
+                </div>
+              ))}
+            </div>
+            
+            <button
+              onClick={topModsScroll.scrollRight}
+              className="absolute right-0 top-0 bottom-0 hidden md:flex w-12 items-center justify-center bg-white/80 dark:bg-[#1e1e1e]/80 backdrop-blur-md border border-gray-300 dark:border-transparent rounded-lg shadow-sm transition-all duration-300"
+            >
+              <ChevronRight size={28} className="text-white" />
+            </button>
           </div>
         </div>
 
@@ -125,14 +189,32 @@ const Inicio = () => {
             </Link>
           </div>
 
-          {/* Contenedor Grid Responsivo */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 md:gap-4">
-            {topFavoritos.map((item, index) => (
-              <div key={item.id} className="relative group/top-card">
-                <Card {...item} />
-              </div>
-            ))}
-
+          {/* Contenedor Scroll Horizontal con Navegación */}
+          <div className="relative group/scroll">
+            <button
+              onClick={topFavoritosScroll.scrollLeft}
+              className="absolute left-0 top-0 bottom-0 hidden md:flex w-12 items-center justify-center bg-white/80 dark:bg-[#1e1e1e]/80 backdrop-blur-md border border-gray-300 dark:border-transparent rounded-lg shadow-sm transition-all duration-300"
+            >
+              <ChevronLeft size={28} className="text-white" />
+            </button>
+            
+            <div 
+              ref={topFavoritosScroll.scrollRef}
+              className="flex overflow-x-auto gap-3 md:gap-4 pb-4 scrollbar-hide scroll-smooth pl-14 pr-14"
+            >
+              {topFavoritos.map((item, index) => (
+                <div key={item.id} className="flex-shrink-0 w-[160px] sm:w-[200px] md:w-[220px] lg:w-[240px] xl:w-[260px]">
+                  <Card {...item} />
+                </div>
+              ))}
+            </div>
+            
+            <button
+              onClick={topFavoritosScroll.scrollRight}
+              className="absolute right-0 top-0 bottom-0 hidden md:flex w-12 items-center justify-center bg-white/80 dark:bg-[#1e1e1e]/80 backdrop-blur-md border border-gray-300 dark:border-transparent rounded-lg shadow-sm transition-all duration-300"
+            >
+              <ChevronRight size={28} className="text-white" />
+            </button>
           </div>
         </div>
 
