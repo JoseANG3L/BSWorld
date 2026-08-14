@@ -103,29 +103,31 @@ const Inicio = () => {
 
           {/* Contenedor Scroll Horizontal con Navegación */}
           <div className="relative group/scroll">
+            <div className="hidden md:block absolute z-10 left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-white to-transparent dark:from-dark-bg dark:to-transparent pointer-events-none"></div>
             <button
               onClick={novedadesScroll.scrollLeft}
               className="absolute z-10 left-0 top-0 bottom-0 hidden md:flex w-12 items-center justify-center bg-white/80 dark:bg-[#1e1e1e]/80 backdrop-blur-md border border-gray-300 dark:border-transparent rounded-lg shadow-sm transition-all duration-300"
             >
-              <ChevronLeft size={28} className="text-white" />
+              <ChevronLeft size={26} className="text-white" />
             </button>
             
             <div 
               ref={novedadesScroll.scrollRef}
-              className="flex overflow-x-auto gap-3 md:gap-4 scrollbar-hide scroll-smooth pl-14 pr-14"
+              className="flex overflow-x-auto gap-2 md:gap-3 scrollbar-hide scroll-smooth px-0 md:px-14"
             >
               {novedades.map((item, index) => (
-                <div key={item.id} className="flex-shrink-0 w-[160px] sm:w-[200px] md:w-[220px] lg:w-[240px] xl:w-[260px]">
+                <div key={item.id} className="flex-shrink-0 w-[320px] md:w-[300px]">
                   <Card {...item} />
                 </div>
               ))}
             </div>
             
+            <div className="hidden md:block absolute z-10 right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-white to-transparent dark:from-dark-bg dark:to-transparent pointer-events-none"></div>
             <button
               onClick={novedadesScroll.scrollRight}
               className="absolute z-10 right-0 top-0 bottom-0 hidden md:flex w-12 items-center justify-center bg-white/80 dark:bg-[#1e1e1e]/80 backdrop-blur-md border border-gray-300 dark:border-transparent rounded-lg shadow-sm transition-all duration-300"
             >
-              <ChevronRight size={28} className="text-white" />
+              <ChevronRight size={26} className="text-white" />
             </button>
           </div>
         </div>
@@ -147,29 +149,31 @@ const Inicio = () => {
 
           {/* Contenedor Scroll Horizontal con Navegación */}
           <div className="relative group/scroll">
+            <div className="hidden md:block absolute z-10 left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-white to-transparent dark:from-dark-bg dark:to-transparent pointer-events-none"></div>
             <button
               onClick={topModsScroll.scrollLeft}
-              className="absolute left-0 top-0 bottom-0 hidden md:flex w-12 items-center justify-center bg-white/80 dark:bg-[#1e1e1e]/80 backdrop-blur-md border border-gray-300 dark:border-transparent rounded-lg shadow-sm transition-all duration-300"
+              className="absolute z-10 left-0 top-0 bottom-0 hidden md:flex w-12 items-center justify-center bg-white/80 dark:bg-[#1e1e1e]/80 backdrop-blur-md border border-gray-300 dark:border-transparent rounded-lg shadow-sm transition-all duration-300"
             >
-              <ChevronLeft size={28} className="text-white" />
+              <ChevronLeft size={26} className="text-white" />
             </button>
             
             <div 
               ref={topModsScroll.scrollRef}
-              className="flex overflow-x-auto gap-3 md:gap-4 pb-4 scrollbar-hide scroll-smooth pl-14 pr-14"
+              className="flex overflow-x-auto gap-2 md:gap-3 scrollbar-hide scroll-smooth px-0 md:px-14"
             >
               {topMods.map((item, index) => (
-                <div key={item.id} className="flex-shrink-0 w-[160px] sm:w-[200px] md:w-[220px] lg:w-[240px] xl:w-[260px]">
+                <div key={item.id} className="flex-shrink-0 w-[320px] md:w-[300px]">
                   <Card {...item} />
                 </div>
               ))}
             </div>
             
+            <div className="hidden md:block absolute z-10 right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-white to-transparent dark:from-dark-bg dark:to-transparent pointer-events-none"></div>
             <button
               onClick={topModsScroll.scrollRight}
-              className="absolute right-0 top-0 bottom-0 hidden md:flex w-12 items-center justify-center bg-white/80 dark:bg-[#1e1e1e]/80 backdrop-blur-md border border-gray-300 dark:border-transparent rounded-lg shadow-sm transition-all duration-300"
+              className="absolute z-10 right-0 top-0 bottom-0 hidden md:flex w-12 items-center justify-center bg-white/80 dark:bg-[#1e1e1e]/80 backdrop-blur-md border border-gray-300 dark:border-transparent rounded-lg shadow-sm transition-all duration-300"
             >
-              <ChevronRight size={28} className="text-white" />
+              <ChevronRight size={26} className="text-white" />
             </button>
           </div>
         </div>
@@ -191,29 +195,31 @@ const Inicio = () => {
 
           {/* Contenedor Scroll Horizontal con Navegación */}
           <div className="relative group/scroll">
+            <div className="hidden md:block absolute z-10 left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-white to-transparent dark:from-dark-bg dark:to-transparent pointer-events-none"></div>
             <button
               onClick={topFavoritosScroll.scrollLeft}
-              className="absolute left-0 top-0 bottom-0 hidden md:flex w-12 items-center justify-center bg-white/80 dark:bg-[#1e1e1e]/80 backdrop-blur-md border border-gray-300 dark:border-transparent rounded-lg shadow-sm transition-all duration-300"
+              className="absolute z-10 left-0 top-0 bottom-0 hidden md:flex w-12 items-center justify-center bg-white/80 dark:bg-[#1e1e1e]/80 backdrop-blur-md border border-gray-300 dark:border-transparent rounded-lg shadow-sm transition-all duration-300"
             >
-              <ChevronLeft size={28} className="text-white" />
+              <ChevronLeft size={26} className="text-white" />
             </button>
             
             <div 
               ref={topFavoritosScroll.scrollRef}
-              className="flex overflow-x-auto gap-3 md:gap-4 pb-4 scrollbar-hide scroll-smooth pl-14 pr-14"
+              className="flex overflow-x-auto gap-2 md:gap-4 scrollbar-hide scroll-smooth px-0 md:px-14"
             >
               {topFavoritos.map((item, index) => (
-                <div key={item.id} className="flex-shrink-0 w-[160px] sm:w-[200px] md:w-[220px] lg:w-[240px] xl:w-[260px]">
+                <div key={item.id} className="flex-shrink-0 w-[320px] md:w-[300px]">
                   <Card {...item} />
                 </div>
               ))}
             </div>
             
+            <div className="hidden md:block absolute z-10 right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-white to-transparent dark:from-dark-bg dark:to-transparent pointer-events-none"></div>
             <button
               onClick={topFavoritosScroll.scrollRight}
-              className="absolute right-0 top-0 bottom-0 hidden md:flex w-12 items-center justify-center bg-white/80 dark:bg-[#1e1e1e]/80 backdrop-blur-md border border-gray-300 dark:border-transparent rounded-lg shadow-sm transition-all duration-300"
+              className="absolute z-10 right-0 top-0 bottom-0 hidden md:flex w-12 items-center justify-center bg-white/80 dark:bg-[#1e1e1e]/80 backdrop-blur-md border border-gray-300 dark:border-transparent rounded-lg shadow-sm transition-all duration-300"
             >
-              <ChevronRight size={28} className="text-white" />
+              <ChevronRight size={26} className="text-white" />
             </button>
           </div>
         </div>
