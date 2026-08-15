@@ -116,7 +116,7 @@ const Inicio = () => {
               className="flex overflow-x-auto gap-2 md:gap-3 scrollbar-hide scroll-smooth px-0 md:px-14"
             >
               {novedades.map((item, index) => (
-                <div key={item.id} className="flex-shrink-0 w-[320px] md:w-[300px]">
+                <div key={item.id} className="flex-shrink-0 w-[280px]">
                   <Card {...item} />
                 </div>
               ))}
@@ -162,7 +162,7 @@ const Inicio = () => {
               className="flex overflow-x-auto gap-2 md:gap-3 scrollbar-hide scroll-smooth px-0 md:px-14"
             >
               {topMods.map((item, index) => (
-                <div key={item.id} className="flex-shrink-0 w-[320px] md:w-[300px]">
+                <div key={item.id} className="flex-shrink-0 w-[280px]">
                   <Card {...item} />
                 </div>
               ))}
@@ -208,7 +208,7 @@ const Inicio = () => {
               className="flex overflow-x-auto gap-2 md:gap-4 scrollbar-hide scroll-smooth px-0 md:px-14"
             >
               {topFavoritos.map((item, index) => (
-                <div key={item.id} className="flex-shrink-0 w-[320px] md:w-[300px]">
+                <div key={item.id} className="flex-shrink-0 w-[280px]">
                   <Card {...item} />
                 </div>
               ))}

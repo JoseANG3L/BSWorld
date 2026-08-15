@@ -11,12 +11,12 @@ import { registerDownload, getUserPublicProfile } from '../services/api';
 const COOLDOWN_TIME = 3600000;
 
 const CATEGORIAS = {
-  complemento: { nombre: 'Complemento', icon: Wrench },
-  mapa: { nombre: 'Mapa', icon: Map },
-  minijuego: { nombre: 'Minijuego', icon: Gamepad2 },
-  modpack: { nombre: 'Modpack', icon: Boxes },
-  paquete: { nombre: 'Paquete', icon: Package },
-  personaje: { nombre: 'Personaje', icon: User }
+  complemento: { nombre: 'Complemento', icon: Wrench, color: 'text-blue-500' },
+  mapa: { nombre: 'Mapa', icon: Map, color: 'text-emerald-500' },
+  minijuego: { nombre: 'Minijuego', icon: Gamepad2, color: 'text-amber-500' },
+  modpack: { nombre: 'Modpack', icon: Boxes, color: 'text-red-500' },
+  paquete: { nombre: 'Paquete', icon: Package, color: 'text-cyan-500' },
+  personaje: { nombre: 'Personaje', icon: User, color: 'text-purple-500' }
 }; 
 
 // --- SUB-COMPONENTE INTELIGENTE ---
@@ -103,12 +103,12 @@ const SmartUserDisplay = ({ initialUser, type = 'list', extraCount = 0 }) => {
       return (
         <>
             <div className="relative shrink-0">
-                <div className="w-6 h-6 rounded-full">
+                <div className="w-5 h-5 rounded-full">
                     <AvatarRenderer avatar={userData.imagen} name={userData.nombre} />
                 </div>
             </div>
             <div className="flex items-center gap-1 min-w-0">
-               <span className="text-sm font-bold text-gray-700 dark:text-gray-100 truncate transition-colors">
+               <span className="text-sm font-semibold text-gray-700 dark:text-gray-100 truncate transition-colors group-hover/creator:text-primary-600 dark:group-hover/creator:text-primary-400">
                     {userData.nombre}
                </span>
                {esVerificado && <ShieldCheck size={12} className="text-blue-500 shrink-0" />}
@@ -230,7 +230,7 @@ const Card = ({
         )}
       </Link>
 
-      <div className="flex flex-col flex-1 px-3 pt-3 pb-3 space-y-2.5">
+      <div className="flex flex-col flex-1 px-3 pt-2.5 pb-2 space-y-2">
         
         {/* 2. TÍTULO */}
         <Link 
@@ -283,7 +283,7 @@ const Card = ({
           {listaCreditos.length === 1 ? (
             <Link 
               to={`/u/${primerCredito.nombre}`} 
-              className="flex items-center gap-2 w-full rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-left group/creator"
+              className="flex items-center gap-2 text-gray-700 dark:text-gray-200 group/creator hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
             >
               <SmartUserDisplay initialUser={primerCredito} type="header" extraCount={0} />
             </Link>
@@ -294,7 +294,7 @@ const Card = ({
                   e.stopPropagation();
                   setIsOpenCredits(!isOpenCredits);
                 }} 
-                className="flex items-center gap-2 w-full rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-left group/creator"
+                className="flex items-center gap-2 text-gray-700 dark:text-gray-200 group/creator hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
               >
                 <SmartUserDisplay initialUser={primerCredito} type="header" extraCount={totalExtra} />
               </button>
@@ -329,26 +329,26 @@ const Card = ({
         )} */}
 
         {/* 👇 NUEVO BLOQUE: MÉTRICAS GENERALES DE LA CARD */}
-        <div className="flex justify-between items-center w-full pt-3 border-t border-gray-100 dark:border-gray-800/60 text-gray-500 dark:text-gray-400 text-xs font-semibold">
+        <div className="flex justify-between items-center w-full pt-2 border-t border-gray-100 dark:border-gray-800/60 text-gray-500 dark:text-gray-400 text-xs font-semibold">
           <div className="flex items-center gap-1.5" title="Categoría">
-            {CategoriaIcon && <CategoriaIcon size={14} className="text-gray-400 dark:text-gray-500" />}
+            {CategoriaIcon && <CategoriaIcon size={14} className={categoriaInfo.color} />}
             <span>{categoriaInfo.nombre}</span>
           </div>
           <div className="flex gap-3">
             {/* Vistas */}
-            <div className="flex items-center gap-1.5" title="Total de visualizaciones">
+            <div className="flex items-center gap-1" title="Total de visualizaciones">
               <Eye size={14} className="text-gray-400 dark:text-gray-500" />
               <span>{formatNumber(vistas)}</span>
             </div>
             
             {/* Likes */}
-            <div className="flex items-center gap-1.5" title="Total de valoraciones">
+            <div className="flex items-center gap-1" title="Total de valoraciones">
               <Heart size={14} className="text-red-500/80 dark:text-red-400/80" />
               <span>{formatNumber(likes_count)}</span>
             </div>
 
             {/* Descargas totales calculadas */}
-            <div className="flex items-center gap-1.5" title="Total de descargas globales">
+            <div className="flex items-center gap-1" title="Total de descargas globales">
               <Download size={14} className="text-primary-500/80 dark:text-primary-400/80" />
               <span>{formatNumber(calculatedTotal)}</span>
             </div>

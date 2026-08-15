@@ -9,7 +9,7 @@ import { useAuth } from '../context/AuthContext';
 import AvatarRenderer from './AvatarRenderer';
 import NotificationBell from './NotificationBell';
 import SubirMod from '../pages/SubirMod';
-import Login from '../pages/Login'; // 👈 Importamos el componente Login Modal
+import Login from '../pages/Login';
 
 const menuItems = [
   { to: "/", icon: Home, label: "Inicio" },
