@@ -88,7 +88,7 @@ const Inicio = () => {
         
         {/* --- SECCIÓN: NOVEDADES RECIENTES --- */}
         <div className="flex flex-col">
-          <div className="flex justify-between items-center mb-5">
+          <div className="flex justify-between items-center mb-3.5 md:mb-5">
             <div className="text-xl font-extrabold text-gray-800 dark:text-white flex items-center gap-2 tracking-tight">
               <Flame size={20} className="text-red-600 dark:text-red-500" /> Últimas Novedades
             </div>
@@ -113,10 +113,10 @@ const Inicio = () => {
             
             <div 
               ref={novedadesScroll.scrollRef}
-              className="flex overflow-x-auto gap-2 md:gap-3 scrollbar-hide scroll-smooth py-2 px-0 md:px-14"
+              className="flex overflow-x-auto gap-2 md:gap-3 scrollbar-hide scroll-smooth px-0 md:px-14"
             >
               {novedades.map((item, index) => (
-                <div key={item.id} className="flex-shrink-0 w-[280px] md:w-[340px]">
+                <div key={item.id} className="flex-shrink-0 w-[300px]">
                   <Card {...item} />
                 </div>
               ))}
@@ -134,7 +134,7 @@ const Inicio = () => {
 
         {/* --- SECCIÓN: TOP 10 MODS --- */}
         <div className="flex flex-col">
-          <div className="flex justify-between items-center mb-5">
+          <div className="flex justify-between items-center mb-3.5 md:mb-5">
             <div className="text-xl font-extrabold text-gray-800 dark:text-white flex items-center gap-2 tracking-tight">
               <Trophy size={20} className="text-yellow-600 dark:text-yellow-500" /> Top 10 Más Descargados
             </div>
@@ -162,7 +162,7 @@ const Inicio = () => {
               className="flex overflow-x-auto gap-2 md:gap-3 scrollbar-hide scroll-smooth px-0 md:px-14"
             >
               {topMods.map((item, index) => (
-                <div key={item.id} className="flex-shrink-0 w-[280px] md:w-[340px]">
+                <div key={item.id} className="flex-shrink-0 w-[300px]">
                   <Card {...item} />
                 </div>
               ))}
@@ -180,7 +180,7 @@ const Inicio = () => {
 
         {/* --- SECCIÓN: TOP 10 FAVORITOS --- */}
         <div className="flex flex-col pb-2 md:pb-4 relative">
-          <div className="flex justify-between items-center mb-5">
+          <div className="flex justify-between items-center mb-3.5 md:mb-5">
             <div className="text-xl font-extrabold text-gray-800 dark:text-white flex items-center gap-2 tracking-tight">
               <Heart size={20} className="text-pink-600 dark:text-pink-500" /> Top 10 Favoritos
             </div>
@@ -208,7 +208,7 @@ const Inicio = () => {
               className="flex overflow-x-auto gap-2 md:gap-4 scrollbar-hide scroll-smooth px-0 md:px-14"
             >
               {topFavoritos.map((item, index) => (
-                <div key={item.id} className="flex-shrink-0 w-[280px] md:w-[340px]">
+                <div key={item.id} className="flex-shrink-0 w-[300px]">
                   <Card {...item} />
                 </div>
               ))}

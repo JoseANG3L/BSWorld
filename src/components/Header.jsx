@@ -157,29 +157,10 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
 
       {/* LOGO BSWorld */}
       <Link to="/" className="flex items-center shrink-0 group mx-auto md:mx-0 pr-1 lg:pr-0">
-        <span className="pt-0.5 font-bold text-xl md:text-xl text-black dark:text-white hover:text-primary-700 dark:hover:text-primary-300 transition-colors">
+        <span className="pt-0.5 font-bold text-xl md:text-xl text-black dark:text-white">
           BSWorld
         </span>
       </Link>
-
-      {/* SEARCH BAR (Desktop) */}
-      <div className="hidden md:block relative transition-all duration-300 ease-out flex-1 max-w-2xl pr-1 lg:pr-0">
-        <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
-          <Search size={18} className={clsx("transition-colors duration-300", isFocused ? "text-primary-600 dark:text-primary-400" : "text-gray-400")} />
-        </div>
-        <input
-          type="text"
-          placeholder="Buscar mapas, mods..."
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-          onKeyDown={handleSearch}
-          className={clsx(
-            "w-full py-2 pl-11 pr-4 rounded-xl text-sm font-medium transition-all duration-300 outline-none border shadow-sm",
-            "bg-white dark:bg-[#1D1F23] border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 placeholder-gray-400",
-            "focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
-          )}
-        />
-      </div>      
 
       {/* MENÚ DE NAVEGACIÓN (DESKTOP) */}
       <div className="hidden lg:flex items-center gap-1 ml-0 xl:ml-4">
@@ -205,6 +186,25 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
             </Link>
           );
         })}
+      </div>
+
+      {/* SEARCH BAR (Desktop) */}
+      <div className="hidden md:block relative transition-all duration-300 ease-out flex-1 max-w-2xl pr-1 lg:pr-0">
+        <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
+          <Search size={18} className={clsx("transition-colors duration-300", isFocused ? "text-primary-600 dark:text-primary-400" : "text-gray-400")} />
+        </div>
+        <input
+          type="text"
+          placeholder="Buscar mapas, mods..."
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+          onKeyDown={handleSearch}
+          className={clsx(
+            "w-full py-2 pl-11 pr-4 rounded-xl text-sm font-medium transition-all duration-300 outline-none border shadow-sm",
+            "bg-white dark:bg-[#1D1F23] border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 placeholder-gray-400",
+            "focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+          )}
+        />
       </div>
 
       {/* ACCIONES (Desktop) */}

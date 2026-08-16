@@ -6,7 +6,7 @@ import {
     Share2, ShieldCheck, MessageCircle, Facebook, Twitter, Eye,
     Image as ImageIcon, Layers, Loader2, ChevronLeft, ChevronRight, PlayCircle,
     Link as LinkIcon, Mail, Send, Check, Copy, Youtube, AlertCircle, Code,
-    Info, Lock, Unlock, Heart, X, Edit, GitCompare
+    Info, Lock, Unlock, Heart, X, Edit, GitCompare, Wrench, Map, Gamepad2, Boxes, Package
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { getContentById, registerDownload, registerView, getUserPublicProfile, toggleLike, isLikedByUser, getRecommendedContent, updateContent, approveRevision, rejectRevision } from '../services/api';
@@ -17,6 +17,15 @@ import CommentSection from '../components/CommentSection';
 import { encryptionService, initializeEncryption } from '../services/encryption';
 import { createPortal } from 'react-dom';
 import Modal from '../components/Modal';
+
+const CATEGORIAS = {
+    complemento: { nombre: 'Complemento', icon: Wrench, color: 'text-blue-500', bgColor: 'bg-blue-50 dark:bg-blue-900/20', borderColor: 'border-blue-200 dark:border-blue-800' },
+    mapa: { nombre: 'Mapa', icon: Map, color: 'text-emerald-500', bgColor: 'bg-emerald-50 dark:bg-emerald-900/20', borderColor: 'border-emerald-200 dark:border-emerald-800' },
+    minijuego: { nombre: 'Minijuego', icon: Gamepad2, color: 'text-amber-500', bgColor: 'bg-amber-50 dark:bg-amber-900/20', borderColor: 'border-amber-200 dark:border-amber-800' },
+    modpack: { nombre: 'Modpack', icon: Boxes, color: 'text-red-500', bgColor: 'bg-red-50 dark:bg-red-900/20', borderColor: 'border-red-200 dark:border-red-800' },
+    paquete: { nombre: 'Paquete', icon: Package, color: 'text-cyan-500', bgColor: 'bg-cyan-50 dark:bg-cyan-900/20', borderColor: 'border-cyan-200 dark:border-cyan-800' },
+    personaje: { nombre: 'Personaje', icon: User, color: 'text-purple-500', bgColor: 'bg-purple-50 dark:bg-purple-900/20', borderColor: 'border-purple-200 dark:border-purple-800' }
+};
 
 // --- SUB-COMPONENTE: CAMPOS DE CONTENIDO PARA COMPARACIÓN ---
 const ContentFields = ({ content, original, showChanges = false }) => {
@@ -210,8 +219,14 @@ const RecommendedItem = ({ content }) => {
 
     const formatNumber = (num) => {
         if (!num) return '0';
-        if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-        if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
+        if (num >= 1000000) {
+            const value = num / 1000000;
+            return value < 10 ? value.toFixed(1) + 'M' : Math.floor(value) + 'M';
+        }
+        if (num >= 1000) {
+            const value = num / 1000;
+            return value < 10 ? value.toFixed(1) + 'K' : Math.floor(value) + 'K';
+        }
         return num.toString();
     };
 
@@ -663,8 +678,14 @@ const DetalleContenido = () => {
 
     const formatNumber = (num) => {
         if (!num) return '0';
-        if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-        if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
+        if (num >= 1000000) {
+            const value = num / 1000000;
+            return value < 10 ? value.toFixed(1) + 'M' : Math.floor(value) + 'M';
+        }
+        if (num >= 1000) {
+            const value = num / 1000;
+            return value < 10 ? value.toFixed(1) + 'K' : Math.floor(value) + 'K';
+        }
         return num.toString();
     };
 
@@ -1083,18 +1104,18 @@ const DetalleContenido = () => {
                                         className={clsx(
                                             "flex items-center justify-between px-3 py-2 rounded-lg transition-colors w-full text-left border",
                                             downloading === d.url 
-                                                ? "bg-white dark:bg-[#2e3238] border-gray-300 dark:border-transparent cursor-not-allowed" 
-                                                : "bg-white dark:bg-[#2e3238] border-gray-300 dark:border-transparent hover:bg-gray-200 dark:hover:bg-gray-700"
+                                                ? "bg-primary-600 dark:bg-primary-700 border-primary-600 dark:border-primary-700 cursor-not-allowed" 
+                                                : "bg-primary-600 dark:bg-primary-700 border-primary-600 dark:border-primary-700 hover:bg-primary-700 dark:hover:bg-primary-800"
                                         )}
                                     >
                                         <div className="flex flex-col truncate pr-2">
                                             <div className="flex items-center gap-2">
-                                                <span className="truncate font-bold text-sm text-gray-700 dark:text-gray-200">{d.label}</span>
+                                                <span className="truncate font-bold text-sm text-white">{d.label}</span>
                                                 {d.encrypted && (
                                                     <Lock size={12} className="text-blue-500 shrink-0" />
                                                 )}
                                             </div>
-                                            <span className="text-[11px] flex items-center gap-1 text-gray-500 dark:text-gray-400">
+                                            <span className="text-[11px] flex items-center gap-1 text-white/80">
                                                 <Download size={10} /> {formatNumber(d.count || 0)} descargas
                                             </span>
                                         </div>
@@ -1106,7 +1127,7 @@ const DetalleContenido = () => {
                                                     <Loader2 size={16} className="text-gray-400 animate-spin" />
                                                 )
                                             ) : (
-                                                <Download size={16} className="text-gray-500 dark:text-gray-400" />
+                                                <Download size={16} className="text-white" />
                                             )}
                                         </div>
                                     </button>
@@ -1149,26 +1170,32 @@ const DetalleContenido = () => {
                         </div>
                     )}
 
-                    {/* ETIQUETAS */}
-                    {item.tags && item.tags.length > 0 && (
-                        <div className="bg-white dark:bg-[#1e1e1e] p-3 md:p-4 rounded-lg shadow-sm border border-gray-300 dark:border-transparent">
-                            <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-3">
-                                Etiquetas
-                            </h4>
-                            <div className="flex flex-wrap gap-2">
-                                {item.tags.map((tag, index) => (
-                                    <div 
-                                        key={index} 
-                                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-gray-50 dark:bg-[#1D1F23] border border-gray-300 dark:border-gray-700"
-                                    >
-                                        <span className="text-[11px] font-bold uppercase tracking-wider text-gray-600 dark:text-gray-400">
-                                            {tag}
+                    {/* CATEGORÍA */}
+                    {item.tipo && (() => {
+                        const categoriaInfo = CATEGORIAS[item.tipo] || { 
+                            nombre: item.tipo || 'Sin categoría', 
+                            icon: null, 
+                            color: 'text-gray-500', 
+                            bgColor: 'bg-gray-50 dark:bg-gray-900/20', 
+                            borderColor: 'border-gray-200 dark:border-gray-800' 
+                        };
+                        const CategoriaIcon = categoriaInfo.icon;
+                        return (
+                            <div className="bg-white dark:bg-[#1e1e1e] p-3 md:p-4 rounded-lg shadow-sm border border-gray-300 dark:border-transparent">
+                                <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-3">
+                                    Categoría
+                                </h4>
+                                <div className="flex flex-wrap gap-2">
+                                    <div className={`flex items-center gap-1.5 px-3 py-2 rounded-full ${categoriaInfo.bgColor} border ${categoriaInfo.borderColor}`}>
+                                        {CategoriaIcon && <CategoriaIcon size={14} className={categoriaInfo.color} />}
+                                        <span className="text-sm font-semibold tracking-wider text-gray-900 dark:text-white">
+                                            {categoriaInfo.nombre}
                                         </span>
                                     </div>
-                                ))}
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        );
+                    })()}
 
                     {/* MODS RECOMENDADOS */}
                     {recommendedContent.length > 0 && (

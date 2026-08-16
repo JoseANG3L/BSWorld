@@ -11,12 +11,12 @@ import { registerDownload, getUserPublicProfile } from '../services/api';
 const COOLDOWN_TIME = 3600000;
 
 const CATEGORIAS = {
-  complemento: { nombre: 'Complemento', icon: Wrench, color: 'text-blue-500', borderColor: 'border-blue-500/50' },
-  mapa: { nombre: 'Mapa', icon: Map, color: 'text-emerald-500', borderColor: 'border-emerald-500/50' },
-  minijuego: { nombre: 'Minijuego', icon: Gamepad2, color: 'text-amber-500', borderColor: 'border-amber-500/50' },
-  modpack: { nombre: 'Modpack', icon: Boxes, color: 'text-red-500', borderColor: 'border-red-500/50' },
-  paquete: { nombre: 'Paquete', icon: Package, color: 'text-cyan-500', borderColor: 'border-cyan-500/50' },
-  personaje: { nombre: 'Personaje', icon: User, color: 'text-purple-500', borderColor: 'border-purple-500/50' }
+  complemento: { nombre: 'Complemento', icon: Wrench, color: 'text-blue-500', borderColor: 'border-blue-500/60' },
+  mapa: { nombre: 'Mapa', icon: Map, color: 'text-emerald-500', borderColor: 'border-emerald-500/60' },
+  minijuego: { nombre: 'Minijuego', icon: Gamepad2, color: 'text-amber-500', borderColor: 'border-amber-500/60' },
+  modpack: { nombre: 'Modpack', icon: Boxes, color: 'text-red-500', borderColor: 'border-red-500/60' },
+  paquete: { nombre: 'Paquete', icon: Package, color: 'text-cyan-500', borderColor: 'border-cyan-500/60' },
+  personaje: { nombre: 'Personaje', icon: User, color: 'text-purple-500', borderColor: 'border-purple-500/60' }
 }; 
 
 // --- SUB-COMPONENTE INTELIGENTE ---
@@ -151,8 +151,14 @@ const Card = ({
   
   const formatNumber = (num) => {
     if (!num) return '0';
-    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+    if (num >= 1000000) {
+      const value = num / 1000000;
+      return value < 10 ? value.toFixed(1) + 'M' : Math.floor(value) + 'M';
+    }
+    if (num >= 1000) {
+      const value = num / 1000;
+      return value < 10 ? value.toFixed(1) + 'K' : Math.floor(value) + 'K';
+    }
     return num.toString();
   };
 
@@ -230,7 +236,7 @@ const Card = ({
         )}
       </Link>
 
-      <div className="flex flex-col flex-1 px-3 pt-2.5 pb-2 space-y-2">
+      <div className="flex flex-col flex-1 px-2.5 md:px-3 pt-2 md:pt-2.5 pb-2 space-y-1.5 md:space-y-2">
         
         {/* 2. TÍTULO */}
         <Link 
