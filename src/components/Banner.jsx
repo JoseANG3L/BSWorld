@@ -6,6 +6,17 @@ import SubirMod from '../pages/SubirMod';
 
 const Banner = () => {
   const navigate = useNavigate();
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  useEffect(() => {
+    const checkTheme = () => {
+      setIsDarkMode(document.documentElement.classList.contains('dark'));
+    };
+    checkTheme();
+    const observer = new MutationObserver(checkTheme);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
   const [stats, setStats] = useState({
     mods: 0,
     downloads: 0,
@@ -49,8 +60,14 @@ const Banner = () => {
 
   const formatNumber = (num) => {
     if (!num) return '0';
-    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-    if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
+    if (num >= 1000000) {
+      const value = num / 1000000;
+      return value < 10 ? value.toFixed(1) + 'M' : Math.floor(value) + 'M';
+    }
+    if (num >= 1000) {
+      const value = num / 1000;
+      return value < 10 ? value.toFixed(1) + 'K' : Math.floor(value) + 'K';
+    }
     return num.toString();
   };
 
@@ -85,9 +102,11 @@ const Banner = () => {
         <div className="flex flex-col items-center justify-center w-full max-w-4xl mx-auto md:hidden">
           {/* Title Section */}
           <div className="mb-2.5 animate-fade-in-up text-center" style={{ animationDuration: '300ms' }}>
-            <h1 className="text-3xl sm:text-4xl font-black text-white leading-tight tracking-tight mb-1 drop-shadow-lg">
-              BombSquad World
-            </h1>
+            <img 
+              src={isDarkMode ? '/bsworld_dark.png' : '/bsworld.png'} 
+              alt="BombSquad World" 
+              className="h-10 sm:h-12 w-auto mb-2 drop-shadow-lg"
+            />
             <p className="text-base font-semibold text-white/90 tracking-wide">
               Un mundo lleno de mods
             </p>
@@ -191,9 +210,11 @@ const Banner = () => {
           <div className="flex flex-col items-start text-left max-w-xl">
             {/* Title Section */}
             <div className="mb-8 animate-fade-in-up" style={{ animationDuration: '300ms' }}>
-              <h1 className="text-5xl lg:text-6xl font-black text-white leading-tight tracking-tight mb-4 drop-shadow-lg">
-                BombSquad World
-              </h1>
+              <img 
+                src={isDarkMode ? '/bsworld_dark.png' : '/bsworld.png'} 
+                alt="BombSquad World" 
+                className="h-16 lg:h-20 w-auto mb-4 drop-shadow-lg"
+              />
               <p className="text-lg lg:text-xl font-semibold text-white/90 tracking-wide">
                 Un mundo lleno de mods
               </p>

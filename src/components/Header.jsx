@@ -78,7 +78,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
 
   return (
     <>
-    <header className="flex items-center gap-1 md:gap-2 lg:gap-4 sticky top-0 z-40 px-2 lg:px-4 py-1.5 md:py-2 bg-white dark:bg-dark-bg transition-colors duration-300 border-b border-gray-200 dark:border-gray-800 shadow-sm">
+    <header className="flex items-center gap-2 md:gap-4 lg:gap-6 sticky top-0 z-40 px-2 md:px-3 lg:px-6 py-1.5 md:py-2 bg-white dark:bg-dark-bg transition-colors duration-300 border-b border-gray-200 dark:border-gray-800 shadow-sm">
 
       {/* MENÚ HAMBURGUESA (Solo móvil) */}
       <div className="lg:hidden relative" ref={navMenuRef}>
@@ -130,7 +130,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
       </div>
 
       {/* ICONO BÚSQUEDA (Solo móvil, izquierda) */}
-      <button className="w-9 h-9 flex items-center justify-center md:hidden mr-2 p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700" onClick={() => setIsFocused(true)}>
+      <button className="w-9 h-9 flex items-center justify-center md:hidden p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700" onClick={() => setIsFocused(true)}>
         <Search size={22} className="text-gray-600 dark:text-gray-400" />
       </button>
 
@@ -156,14 +156,16 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
       )}
 
       {/* LOGO BSWorld */}
-      <Link to="/" className="flex items-center shrink-0 group mx-auto md:mx-0 pr-1 lg:pr-0">
-        <span className="pt-0.5 font-bold text-xl md:text-xl text-black dark:text-white">
-          BSWorld
-        </span>
+      <Link to="/" className="flex items-center pb-1 shrink-0 group">
+        <img 
+          src={isDarkMode ? '/bsworld_dark.png' : '/bsworld.png'} 
+          alt="BombSquad World" 
+          className="h-6 md:h-8 w-auto"
+        />
       </Link>
 
       {/* MENÚ DE NAVEGACIÓN (DESKTOP) */}
-      <div className="hidden lg:flex items-center gap-1 ml-0 xl:ml-4">
+      <div className="hidden lg:flex items-center gap-1">
         {menuItems.map((item) => {
           const isActive = location.pathname === item.to;
           return (
@@ -189,7 +191,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
       </div>
 
       {/* SEARCH BAR (Desktop) */}
-      <div className="hidden md:block relative transition-all duration-300 ease-out flex-1 max-w-2xl pr-1 lg:pr-0">
+      <div className="hidden md:block relative transition-all duration-300 ease-out flex-1 max-w-2xl mx-4 lg:mx-6">
         <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
           <Search size={18} className={clsx("transition-colors duration-300", isFocused ? "text-primary-600 dark:text-primary-400" : "text-gray-400")} />
         </div>
@@ -208,7 +210,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
       </div>
 
       {/* ACCIONES (Desktop) */}
-      <div className="flex items-center gap-2 lg:gap-3 ml-0 md:ml-auto">
+      <div className="flex items-center gap-2 lg:gap-3 shrink-0">
 
         {/* SUBIR MOD */}
         <button 
