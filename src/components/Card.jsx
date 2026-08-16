@@ -11,12 +11,12 @@ import { registerDownload, getUserPublicProfile } from '../services/api';
 const COOLDOWN_TIME = 3600000;
 
 const CATEGORIAS = {
-  complemento: { nombre: 'Complemento', icon: Wrench, color: 'text-blue-500' },
-  mapa: { nombre: 'Mapa', icon: Map, color: 'text-emerald-500' },
-  minijuego: { nombre: 'Minijuego', icon: Gamepad2, color: 'text-amber-500' },
-  modpack: { nombre: 'Modpack', icon: Boxes, color: 'text-red-500' },
-  paquete: { nombre: 'Paquete', icon: Package, color: 'text-cyan-500' },
-  personaje: { nombre: 'Personaje', icon: User, color: 'text-purple-500' }
+  complemento: { nombre: 'Complemento', icon: Wrench, color: 'text-blue-500', borderColor: 'border-blue-500/50' },
+  mapa: { nombre: 'Mapa', icon: Map, color: 'text-emerald-500', borderColor: 'border-emerald-500/50' },
+  minijuego: { nombre: 'Minijuego', icon: Gamepad2, color: 'text-amber-500', borderColor: 'border-amber-500/50' },
+  modpack: { nombre: 'Modpack', icon: Boxes, color: 'text-red-500', borderColor: 'border-red-500/50' },
+  paquete: { nombre: 'Paquete', icon: Package, color: 'text-cyan-500', borderColor: 'border-cyan-500/50' },
+  personaje: { nombre: 'Personaje', icon: User, color: 'text-purple-500', borderColor: 'border-purple-500/50' }
 }; 
 
 // --- SUB-COMPONENTE INTELIGENTE ---
@@ -87,7 +87,7 @@ const SmartUserDisplay = ({ initialUser, type = 'list', extraCount = 0 }) => {
                 onClick={(e) => e.stopPropagation()} 
                 className="flex items-center gap-1.5 group/aporte"
             >
-                <div className="w-4 h-4 rounded-full overflow-hidden border border-gray-200 dark:border-gray-600">
+                <div className="w-6 h-6 rounded-full overflow-hidden border border-gray-200 dark:border-gray-600">
                     <AvatarRenderer avatar={userData.imagen} name={userData.nombre} />
                 </div>
                 <span className="text-xs font-bold text-gray-600 dark:text-gray-400 group-hover/aporte:text-primary-600 transition-colors max-w-[90px] truncate flex items-center gap-1">
@@ -103,7 +103,7 @@ const SmartUserDisplay = ({ initialUser, type = 'list', extraCount = 0 }) => {
       return (
         <>
             <div className="relative shrink-0">
-                <div className="w-5 h-5 rounded-full">
+                <div className="w-6 h-6 rounded-full">
                     <AvatarRenderer avatar={userData.imagen} name={userData.nombre} />
                 </div>
             </div>
@@ -201,18 +201,18 @@ const Card = ({
     Math.max(0, listaCreditos.length - 1)
   , [listaCreditos]);
 
-  const categoriaInfo = CATEGORIAS[tipo] || { nombre: tipo || 'Sin categoría', icon: null };
+  const categoriaInfo = CATEGORIAS[tipo] || { nombre: tipo || 'Sin categoría', icon: null, color: 'text-gray-500', borderColor: 'border-gray-300' };
   const CategoriaIcon = categoriaInfo.icon;
 
   return (
     <div 
-      className="group flex flex-col bg-white dark:bg-[#1e1e1e] border border-gray-300 dark:border-transparent rounded-lg shadow-sm transition-all duration-300 z-0 relative h-full"
+      className={`group flex flex-col bg-white dark:bg-[#1e1e1e] rounded-xl transition-all duration-300 z-0 relative h-full`}
     >
       
       {/* 1. IMAGEN */}
       <Link 
         to={id ? `/view/${id}` : "#"} 
-        className="relative w-full aspect-video overflow-hidden bg-gray-100 dark:bg-[#1D1F23] block cursor-pointer rounded-t-lg"
+        className="relative w-full aspect-video overflow-hidden bg-gray-100 dark:bg-[#1D1F23] block cursor-pointer rounded-t-xl"
       >
         <img 
           src={imagen || '/default.jpg'} 
@@ -224,7 +224,7 @@ const Card = ({
 
         {/* Spam Limit Alert overlay */}
         {isSpamming && (
-          <div className="absolute top-2 right-2 px-2.5 py-1 bg-red-600 text-white rounded-lg flex items-center gap-1.5 text-xs font-bold shadow-sm z-10 animate-pulse">
+          <div className="absolute top-2 right-2 px-2.5 py-1 bg-red-600 text-white rounded-xl flex items-center gap-1.5 text-xs font-bold shadow-sm z-10 animate-pulse">
             <AlertCircle size={12} /> Límite excedido
           </div>
         )}
@@ -283,7 +283,7 @@ const Card = ({
           {listaCreditos.length === 1 ? (
             <Link 
               to={`/u/${primerCredito.nombre}`} 
-              className="flex items-center gap-2 text-gray-700 dark:text-gray-200 group/creator hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+              className="flex items-center w-fit gap-2 text-gray-700 dark:text-gray-200 group/creator hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
             >
               <SmartUserDisplay initialUser={primerCredito} type="header" extraCount={0} />
             </Link>
@@ -329,12 +329,12 @@ const Card = ({
         )} */}
 
         {/* 👇 NUEVO BLOQUE: MÉTRICAS GENERALES DE LA CARD */}
-        <div className="flex justify-between items-center w-full pt-2 border-t border-gray-100 dark:border-gray-800/60 text-gray-500 dark:text-gray-400 text-xs font-semibold">
+        <div className={`flex justify-between items-center w-full pt-2 border-t ${categoriaInfo.borderColor} text-gray-500 dark:text-gray-400 text-xs font-semibold`}>
           <div className="flex items-center gap-1.5" title="Categoría">
             {CategoriaIcon && <CategoriaIcon size={14} className={categoriaInfo.color} />}
             <span>{categoriaInfo.nombre}</span>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-2">
             {/* Vistas */}
             <div className="flex items-center gap-1" title="Total de visualizaciones">
               <Eye size={14} className="text-gray-400 dark:text-gray-500" />
