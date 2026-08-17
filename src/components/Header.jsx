@@ -78,7 +78,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
 
   return (
     <>
-    <header className="flex items-center gap-2 md:gap-4 lg:gap-6 sticky top-0 z-40 px-2 md:px-3 lg:px-6 py-1.5 md:py-2 bg-white dark:bg-dark-bg transition-colors duration-300 border-b border-gray-200 dark:border-gray-800 shadow-sm">
+    <header className="flex items-center gap-2 md:gap-4 lg:gap-5 sticky top-0 z-40 px-2 md:px-3 lg:px-5 py-1.5 md:py-2 bg-white dark:bg-dark-bg transition-colors duration-300 border-b border-gray-200 dark:border-gray-800 shadow-sm">
 
       {/* MENÚ HAMBURGUESA (Solo móvil) */}
       <div className="lg:hidden relative" ref={navMenuRef}>
@@ -130,7 +130,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
       </div>
 
       {/* ICONO BÚSQUEDA (Solo móvil, izquierda) */}
-      <button className="w-9 h-9 flex items-center justify-center md:hidden p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700" onClick={() => setIsFocused(true)}>
+      <button className="w-9 h-9 -ml-1.5 mr-1.5 flex items-center justify-center md:hidden p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700" onClick={() => setIsFocused(true)}>
         <Search size={22} className="text-gray-600 dark:text-gray-400" />
       </button>
 
@@ -142,7 +142,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
           </button>
           <input
             type="text"
-            placeholder="Buscar mapas, mods..."
+            placeholder="Buscar mods"
             autoFocus
             onBlur={() => setIsFocused(false)}
             onKeyDown={handleSearch}
@@ -156,11 +156,11 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
       )}
 
       {/* LOGO BSWorld */}
-      <Link to="/" className="flex items-center pb-1 shrink-0 group">
+      <Link to="/" className="flex items-center mx-auto md:mx-0 pb-1 shrink-0 group">
         <img 
           src={isDarkMode ? '/bsworld_dark.png' : '/bsworld.png'} 
           alt="BombSquad World" 
-          className="h-6 md:h-8 w-auto"
+          className="h-6 md:h-7 w-auto opacity-90 dark:opacity-100"
         />
       </Link>
 
@@ -191,13 +191,13 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
       </div>
 
       {/* SEARCH BAR (Desktop) */}
-      <div className="hidden md:block relative transition-all duration-300 ease-out flex-1 max-w-2xl mx-4 lg:mx-6">
+      <div className="hidden md:block relative transition-all duration-300 ease-out flex-1 max-w-2xl">
         <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
           <Search size={18} className={clsx("transition-colors duration-300", isFocused ? "text-primary-600 dark:text-primary-400" : "text-gray-400")} />
         </div>
         <input
           type="text"
-          placeholder="Buscar mapas, mods..."
+          placeholder="Buscar mods"
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           onKeyDown={handleSearch}
@@ -210,7 +210,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
       </div>
 
       {/* ACCIONES (Desktop) */}
-      <div className="flex items-center gap-2 lg:gap-3 shrink-0">
+      <div className="flex items-center ml-0 md:ml-auto gap-2 lg:gap-3 shrink-0">
 
         {/* SUBIR MOD */}
         <button 

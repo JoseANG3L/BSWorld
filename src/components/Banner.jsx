@@ -103,9 +103,9 @@ const Banner = () => {
           {/* Title Section */}
           <div className="mb-2.5 animate-fade-in-up text-center" style={{ animationDuration: '300ms' }}>
             <img 
-              src={isDarkMode ? '/bsworld_dark.png' : '/bsworld.png'} 
+              src={'/bsworld_dark.png'} 
               alt="BombSquad World" 
-              className="h-10 sm:h-12 w-auto mb-2 drop-shadow-lg"
+              className="h-10 sm:h-12 w-auto mb-2 mx-auto drop-shadow-lg"
             />
             <p className="text-base font-semibold text-white/90 tracking-wide">
               Un mundo lleno de mods
@@ -211,7 +211,7 @@ const Banner = () => {
             {/* Title Section */}
             <div className="mb-8 animate-fade-in-up" style={{ animationDuration: '300ms' }}>
               <img 
-                src={isDarkMode ? '/bsworld_dark.png' : '/bsworld.png'} 
+                src={'/bsworld_dark.png'} 
                 alt="BombSquad World" 
                 className="h-16 lg:h-20 w-auto mb-4 drop-shadow-lg"
               />

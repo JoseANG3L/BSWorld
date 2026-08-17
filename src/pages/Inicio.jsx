@@ -84,7 +84,7 @@ const Inicio = () => {
       {/* BANNER PRINCIPAL */}
       <Banner />
       
-      <div className="flex flex-col px-2 md:px-4 py-8 md:py-6 space-y-6">
+      <div className="flex flex-col px-2 md:px-4 py-6 md:py-7 space-y-6 md:space-y-7">
         
         {/* --- SECCIÓN: NOVEDADES RECIENTES --- */}
         <div className="flex flex-col">
@@ -94,7 +94,7 @@ const Inicio = () => {
             </div>
             
             <Link to="/mods?sort=recientes"
-              className="px-3 py-1.5 flex items-center gap-1.5 rounded-lg bg-primary-500 hover:bg-primary-600 dark:bg-[#1e1e1e] dark:hover:bg-[#2a2a2a] text-white transition-all shadow-sm active:scale-95"
+              className="px-3 py-1.5 flex items-center gap-1.5 border border-gray-300 dark:border-transparent rounded-lg bg-gray-50 hover:bg-gray-200 dark:bg-[#1e1e1e] dark:hover:bg-[#2a2a2a] text-gray-800 dark:text-white transition-all shadow-sm active:scale-95"
             >
               <span className="md:block hidden pl-1 text-sm font-semibold">Ver todos</span>
               <ArrowRight size={16} strokeWidth={3} />
@@ -108,7 +108,7 @@ const Inicio = () => {
               onClick={novedadesScroll.scrollLeft}
               className="absolute z-10 left-0 top-0 bottom-0 hidden md:flex w-12 items-center justify-center bg-white/80 dark:bg-[#1e1e1e]/80 backdrop-blur-md border border-gray-300 dark:border-transparent rounded-lg shadow-sm transition-all duration-300"
             >
-              <ChevronLeft size={26} className="text-white" />
+              <ChevronLeft size={26} className="text-gray-800 dark:text-white" />
             </button>
             
             <div 
@@ -127,7 +127,7 @@ const Inicio = () => {
               onClick={novedadesScroll.scrollRight}
               className="absolute z-10 right-0 top-0 bottom-0 hidden md:flex w-12 items-center justify-center bg-white/80 dark:bg-[#1e1e1e]/80 backdrop-blur-md border border-gray-300 dark:border-transparent rounded-lg shadow-sm transition-all duration-300"
             >
-              <ChevronRight size={26} className="text-white" />
+              <ChevronRight size={26} className="text-gray-800 dark:text-white" />
             </button>
           </div>
         </div>
@@ -140,7 +140,7 @@ const Inicio = () => {
             </div>
             
             <Link to="/mods?sort=mas_descargas"
-              className="px-3 py-1.5 flex items-center gap-1.5 rounded-lg bg-primary-500 hover:bg-primary-600 dark:bg-[#1e1e1e] dark:hover:bg-[#2a2a2a] text-white transition-all shadow-sm active:scale-95"
+              className="px-3 py-1.5 flex items-center gap-1.5 border border-gray-300 dark:border-transparent rounded-lg bg-gray-50 hover:bg-gray-200 dark:bg-[#1e1e1e] dark:hover:bg-[#2a2a2a] text-gray-800 dark:text-white transition-all shadow-sm active:scale-95"
             >
               <span className="md:block hidden pl-1 text-sm font-semibold">Ver todos</span>
               <ArrowRight size={16} strokeWidth={3} />
@@ -154,7 +154,7 @@ const Inicio = () => {
               onClick={topModsScroll.scrollLeft}
               className="absolute z-10 left-0 top-0 bottom-0 hidden md:flex w-12 items-center justify-center bg-white/80 dark:bg-[#1e1e1e]/80 backdrop-blur-md border border-gray-300 dark:border-transparent rounded-lg shadow-sm transition-all duration-300"
             >
-              <ChevronLeft size={26} className="text-white" />
+              <ChevronLeft size={26} className="text-gray-800 dark:text-white" />
             </button>
             
             <div 
@@ -173,7 +173,7 @@ const Inicio = () => {
               onClick={topModsScroll.scrollRight}
               className="absolute z-10 right-0 top-0 bottom-0 hidden md:flex w-12 items-center justify-center bg-white/80 dark:bg-[#1e1e1e]/80 backdrop-blur-md border border-gray-300 dark:border-transparent rounded-lg shadow-sm transition-all duration-300"
             >
-              <ChevronRight size={26} className="text-white" />
+              <ChevronRight size={26} className="text-gray-800 dark:text-white" />
             </button>
           </div>
         </div>
@@ -186,7 +186,7 @@ const Inicio = () => {
             </div>
             
             <Link to="/mods?sort=mas_likes"
-              className="px-3 py-1.5 flex items-center gap-1.5 rounded-lg bg-primary-500 hover:bg-primary-600 dark:bg-[#1e1e1e] dark:hover:bg-[#2a2a2a] text-white transition-all shadow-sm active:scale-95"
+              className="px-3 py-1.5 flex items-center gap-1.5 border border-gray-300 dark:border-transparent rounded-lg bg-gray-50 hover:bg-gray-200 dark:bg-[#1e1e1e] dark:hover:bg-[#2a2a2a] text-gray-800 dark:text-white transition-all shadow-sm active:scale-95"
             >
               <span className="md:block hidden pl-1 text-sm font-semibold">Ver todos</span>
               <ArrowRight size={16} strokeWidth={3} />
@@ -200,7 +200,7 @@ const Inicio = () => {
               onClick={topFavoritosScroll.scrollLeft}
               className="absolute z-10 left-0 top-0 bottom-0 hidden md:flex w-12 items-center justify-center bg-white/80 dark:bg-[#1e1e1e]/80 backdrop-blur-md border border-gray-300 dark:border-transparent rounded-lg shadow-sm transition-all duration-300"
             >
-              <ChevronLeft size={26} className="text-white" />
+              <ChevronLeft size={26} className="text-gray-800 dark:text-white" />
             </button>
             
             <div 
@@ -219,7 +219,7 @@ const Inicio = () => {
               onClick={topFavoritosScroll.scrollRight}
               className="absolute z-10 right-0 top-0 bottom-0 hidden md:flex w-12 items-center justify-center bg-white/80 dark:bg-[#1e1e1e]/80 backdrop-blur-md border border-gray-300 dark:border-transparent rounded-lg shadow-sm transition-all duration-300"
             >
-              <ChevronRight size={26} className="text-white" />
+              <ChevronRight size={26} className="text-gray-800 dark:text-white" />
             </button>
           </div>
         </div>

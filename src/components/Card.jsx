@@ -212,7 +212,7 @@ const Card = ({
 
   return (
     <div 
-      className={`group flex flex-col bg-white dark:bg-[#1e1e1e] rounded-xl transition-all duration-300 z-0 relative h-full`}
+      className={`group flex flex-col bg-white dark:bg-[#1e1e1e] border border-gray-300 dark:border-transparent shadow-sm rounded-xl transition-all duration-300 z-0 relative h-full`}
     >
       
       {/* 1. IMAGEN */}

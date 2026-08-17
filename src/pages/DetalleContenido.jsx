@@ -19,12 +19,12 @@ import { createPortal } from 'react-dom';
 import Modal from '../components/Modal';
 
 const CATEGORIAS = {
-    complemento: { nombre: 'Complemento', icon: Wrench, color: 'text-blue-500', bgColor: 'bg-blue-50 dark:bg-blue-900/20', borderColor: 'border-blue-200 dark:border-blue-800' },
-    mapa: { nombre: 'Mapa', icon: Map, color: 'text-emerald-500', bgColor: 'bg-emerald-50 dark:bg-emerald-900/20', borderColor: 'border-emerald-200 dark:border-emerald-800' },
-    minijuego: { nombre: 'Minijuego', icon: Gamepad2, color: 'text-amber-500', bgColor: 'bg-amber-50 dark:bg-amber-900/20', borderColor: 'border-amber-200 dark:border-amber-800' },
-    modpack: { nombre: 'Modpack', icon: Boxes, color: 'text-red-500', bgColor: 'bg-red-50 dark:bg-red-900/20', borderColor: 'border-red-200 dark:border-red-800' },
-    paquete: { nombre: 'Paquete', icon: Package, color: 'text-cyan-500', bgColor: 'bg-cyan-50 dark:bg-cyan-900/20', borderColor: 'border-cyan-200 dark:border-cyan-800' },
-    personaje: { nombre: 'Personaje', icon: User, color: 'text-purple-500', bgColor: 'bg-purple-50 dark:bg-purple-900/20', borderColor: 'border-purple-200 dark:border-purple-800' }
+    complemento: { nombre: 'Complemento', icon: Wrench, color: 'text-blue-600 dark:text-blue-400', bgColor: 'bg-blue-50 dark:bg-blue-900/20', borderColor: 'border-blue-400 dark:border-blue-800' },
+    mapa: { nombre: 'Mapa', icon: Map, color: 'text-emerald-600 dark:text-emerald-400', bgColor: 'bg-emerald-50 dark:bg-emerald-900/20', borderColor: 'border-emerald-400 dark:border-emerald-800' },
+    minijuego: { nombre: 'Minijuego', icon: Gamepad2, color: 'text-amber-600 dark:text-amber-400', bgColor: 'bg-amber-50 dark:bg-amber-900/20', borderColor: 'border-amber-400 dark:border-amber-800' },
+    modpack: { nombre: 'Modpack', icon: Boxes, color: 'text-red-600 dark:text-red-400', bgColor: 'bg-red-50 dark:bg-red-900/20', borderColor: 'border-red-400 dark:border-red-800' },
+    paquete: { nombre: 'Paquete', icon: Package, color: 'text-cyan-600 dark:text-cyan-400', bgColor: 'bg-cyan-50 dark:bg-cyan-900/20', borderColor: 'border-cyan-400 dark:border-cyan-800' },
+    personaje: { nombre: 'Personaje', icon: User, color: 'text-purple-600 dark:text-purple-400', bgColor: 'bg-purple-50 dark:bg-purple-900/20', borderColor: 'border-purple-400 dark:border-purple-800' }
 };
 
 // --- SUB-COMPONENTE: CAMPOS DE CONTENIDO PARA COMPARACIÓN ---
@@ -1019,10 +1019,10 @@ const DetalleContenido = () => {
                                 <button 
                                     onClick={handleLike}
                                     className={clsx(
-                                        "flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-semibold transition-all duration-150 active:scale-95 hover:opacity-80",
+                                        "flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-semibold transition-all duration-150",
                                         isLiked 
-                                            ? "text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300" 
-                                            : "text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400"
+                                            ? "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50" 
+                                            : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400"
                                     )}
                                 >
                                     <Heart 
@@ -1034,7 +1034,7 @@ const DetalleContenido = () => {
                                 
                                 <button 
                                     onClick={() => setShowShareModal(true)}
-                                    className="flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400"
+                                    className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-semibold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-primary-100 dark:hover:bg-primary-800/30 hover:text-primary-600 dark:hover:text-primary-400 transition-all"
                                 >
                                     <Share2 size={18} />
                                 </button>
@@ -1043,13 +1043,7 @@ const DetalleContenido = () => {
                     </div>
 
                     {/* DESCRIPCIÓN CON BOTÓN VER MÁS */}
-                    <div 
-                        onClick={() => descriptionOverflow && !descriptionExpanded && setDescriptionExpanded(true)}
-                        className={clsx(
-                            "bg-white dark:bg-[#1e1e1e] rounded-lg p-2 md:p-4 shadow-sm border border-gray-300 dark:border-transparent transition-colors", 
-                            descriptionOverflow && !descriptionExpanded && "cursor-pointer hover:bg-gray-50/60 dark:hover:bg-[#222]"
-                        )}
-                    >
+                    <div className="bg-white dark:bg-[#1e1e1e] rounded-lg p-2 md:p-4 shadow-sm border border-gray-300 dark:border-transparent">
                         <div className="flex items-center justify-between mb-1">
                             <h3 className="text-base font-semibold text-gray-900 dark:text-white">
                                 Descripción
@@ -1068,11 +1062,8 @@ const DetalleContenido = () => {
                             
                             {descriptionOverflow && (
                                 <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setDescriptionExpanded(!descriptionExpanded);
-                                    }}
-                                    className="mt-2 text-xs font-bold text-primary-600 dark:text-primary-400 hover:underline"
+                                    onClick={() => setDescriptionExpanded(!descriptionExpanded)}
+                                    className="mt-3 px-4 py-2 text-xs font-bold text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/30 transition-colors active:scale-95 min-w-[120px] text-center"
                                 >
                                     {descriptionExpanded ? 'Mostrar menos' : 'Mostrar más'}
                                 </button>
@@ -1116,18 +1107,18 @@ const DetalleContenido = () => {
                                                 )}
                                             </div>
                                             <span className="text-[11px] flex items-center gap-1 text-white/80">
-                                                <Download size={10} /> {formatNumber(d.count || 0)} descargas
+                                                {formatNumber(d.count || 0)} descargas
                                             </span>
                                         </div>
                                         <div className="shrink-0">
                                             {downloading === d.url ? (
                                                 decrypting ? (
-                                                    <Unlock size={16} className="text-primary-600 dark:text-primary-400 animate-pulse" />
+                                                    <Unlock size={17} className="text-primary-600 dark:text-primary-400 animate-pulse" />
                                                 ) : (
-                                                    <Loader2 size={16} className="text-gray-400 animate-spin" />
+                                                    <Loader2 size={17} className="text-gray-400 animate-spin" />
                                                 )
                                             ) : (
-                                                <Download size={16} className="text-white" />
+                                                <Download size={17} className="text-white" />
                                             )}
                                         </div>
                                     </button>
@@ -1186,9 +1177,9 @@ const DetalleContenido = () => {
                                     Categoría
                                 </h4>
                                 <div className="flex flex-wrap gap-2">
-                                    <div className={`flex items-center gap-1.5 px-3 py-2 rounded-full ${categoriaInfo.bgColor} border ${categoriaInfo.borderColor}`}>
-                                        {CategoriaIcon && <CategoriaIcon size={14} className={categoriaInfo.color} />}
-                                        <span className="text-sm font-semibold tracking-wider text-gray-900 dark:text-white">
+                                    <div className={`flex items-center shadow-sm gap-1.5 px-3 py-2 rounded-full ${categoriaInfo.bgColor} border ${categoriaInfo.borderColor}`}>
+                                        {CategoriaIcon && <CategoriaIcon size={16} className={categoriaInfo.color} />}
+                                        <span className={`text-sm font-semibold tracking-wider ${categoriaInfo.color}`}>
                                             {categoriaInfo.nombre}
                                         </span>
                                     </div>
