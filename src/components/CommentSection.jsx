@@ -447,15 +447,15 @@ const CommentSection = ({ contentId }) => {
             <input 
               type="text" 
               disabled 
-              placeholder="Debes iniciar sesión para comentar..." 
-              className="w-full pl-3 pr-32 py-2 text-sm rounded-lg bg-gray-100 dark:bg-[#1D1F23]/60 border border-gray-200 dark:border-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed select-none placeholder:text-gray-400 dark:placeholder:text-gray-500"
+              placeholder="Inicia sesión para comentar" 
+              className="w-full pl-3 py-2 text-sm rounded-lg bg-gray-100 dark:bg-[#1D1F23]/60 border border-gray-200 dark:border-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed select-none placeholder:text-gray-400 dark:placeholder:text-gray-500"
             />
             <Link 
               to="/login" 
-              className="absolute right-1 px-3 py-1 text-sm font-bold rounded-md bg-primary-600 hover:bg-primary-700 text-white transition-colors flex items-center gap-1.5 shadow-sm"
+              className="absolute right-1 px-2 py-1.5 text-sm font-bold rounded-md bg-primary-600 hover:bg-primary-700 text-white transition-colors flex items-center gap-1.5 shadow-sm"
             >
-              <LogIn size={13} />
-              <span>Iniciar sesión</span>
+              <LogIn size={16} />
+              <span className="hidden md:block">Iniciar sesión</span>
             </Link>
           </div>
         </div>

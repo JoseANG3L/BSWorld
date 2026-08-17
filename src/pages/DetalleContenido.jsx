@@ -800,7 +800,7 @@ const DetalleContenido = () => {
     if (!item) return null;
 
     return (
-        <div className="flex flex-col gap-3 lg:gap-4 p-2 pb-4 lg:p-4 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
+        <div className="flex flex-col gap-2 lg:gap-4 p-2 pb-4 lg:p-4 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
 
             {/* BANNER DE MODERACIÓN PARA ADMIN */}
             {canModerate && (
@@ -862,10 +862,10 @@ const DetalleContenido = () => {
                 </div>
             )}
             
-            <div className="flex flex-col lg:flex-row gap-3 lg:gap-4">
+            <div className="flex flex-col lg:flex-row gap-2 lg:gap-4">
 
                 {/* COLUMNA IZQUIERDA - CONTENIDO PRINCIPAL (MÓVIL: TODAS LAS SECCIONES, DESKTOP: GALERÍA, HEADER, DESCRIPCIÓN, COMENTARIOS) */}
-                <div className="w-full flex flex-col gap-3 md:gap-4">
+                <div className="w-full flex flex-col gap-2 md:gap-4">
 
                     {/* VISOR DE GALERÍA */}
                     <div className="w-full lg:order-1">
