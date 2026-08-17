@@ -130,7 +130,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
       </div>
 
       {/* ICONO BÚSQUEDA (Solo móvil, izquierda) */}
-      <button className="w-9 h-9 -ml-1.5 mr-1.5 flex items-center justify-center md:hidden p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700" onClick={() => setIsFocused(true)}>
+      <button className="w-9 h-9 -ml-1.5 flex items-center justify-center md:hidden p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700" onClick={() => setIsFocused(true)}>
         <Search size={22} className="text-gray-600 dark:text-gray-400" />
       </button>
 
@@ -160,7 +160,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
         <img 
           src={isDarkMode ? '/bsworld_dark.png' : '/bsworld.png'} 
           alt="BombSquad World" 
-          className="h-6 md:h-7 w-auto opacity-90 dark:opacity-100"
+          className="h-6 w-auto opacity-90 dark:opacity-100"
         />
       </Link>
 

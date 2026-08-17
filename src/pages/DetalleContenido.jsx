@@ -485,8 +485,14 @@ const DetalleContenido = () => {
     // 👇 VERIFICAR SI LA DESCRIPCIÓN DESBORDA EL CONTENEDOR
     useEffect(() => {
         if (descriptionRef.current && item?.descripcion) {
-            const isOverflowing = descriptionRef.current.scrollHeight > descriptionRef.current.clientHeight;
-            setDescriptionOverflow(isOverflowing);
+            // Pequeño retraso para permitir que el MarkdownRenderer se renderice completamente
+            const timer = setTimeout(() => {
+                if (descriptionRef.current) {
+                    const isOverflowing = descriptionRef.current.scrollHeight > descriptionRef.current.clientHeight;
+                    setDescriptionOverflow(isOverflowing);
+                }
+            }, 100);
+            return () => clearTimeout(timer);
         }
     }, [item?.descripcion]);
 
@@ -794,7 +800,7 @@ const DetalleContenido = () => {
     if (!item) return null;
 
     return (
-        <div className="flex flex-col gap-3 lg:gap-4 p-2 lg:p-4 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
+        <div className="flex flex-col gap-3 lg:gap-4 p-2 pb-4 lg:p-4 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
 
             {/* BANNER DE MODERACIÓN PARA ADMIN */}
             {canModerate && (
@@ -858,11 +864,11 @@ const DetalleContenido = () => {
             
             <div className="flex flex-col lg:flex-row gap-3 lg:gap-4">
 
-                {/* COLUMNA IZQUIERDA - CONTENIDO PRINCIPAL */}
-                <div className="w-full flex flex-col gap-4">
+                {/* COLUMNA IZQUIERDA - CONTENIDO PRINCIPAL (MÓVIL: TODAS LAS SECCIONES, DESKTOP: GALERÍA, HEADER, DESCRIPCIÓN, COMENTARIOS) */}
+                <div className="w-full flex flex-col gap-3 md:gap-4">
 
                     {/* VISOR DE GALERÍA */}
-                    <div className="w-full">
+                    <div className="w-full lg:order-1">
                         <div className="bg-black relative rounded-xl overflow-hidden group">
                             {youtubeId ? (
                                 <iframe 
@@ -949,7 +955,7 @@ const DetalleContenido = () => {
                     </div>
 
                     {/* HEADER ESTILO YOUTUBE (ÚNICAMENTE CREADORES) */}
-                    <div className="bg-white dark:bg-[#1e1e1e] rounded-lg p-2 md:p-4 shadow-sm border border-gray-300 dark:border-transparent">
+                    <div className="bg-white dark:bg-[#1e1e1e] rounded-lg p-3 md:p-4 shadow-sm border border-gray-300 dark:border-transparent lg:order-2">
                         <h1 className="text-md md:text-lg font-bold text-gray-900 dark:text-white mb-3 leading-tight">
                             {item.titulo}
                         </h1>
@@ -1004,7 +1010,7 @@ const DetalleContenido = () => {
                                 </div>
                             </button>
 
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1">
                                 {/* Botón editar para creador en borrador */}
                                 {canEdit && (
                                     <Link 
@@ -1021,8 +1027,8 @@ const DetalleContenido = () => {
                                     className={clsx(
                                         "flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-semibold transition-all duration-150",
                                         isLiked 
-                                            ? "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50" 
-                                            : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400"
+                                            ? "text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50" 
+                                            : "text-gray-700 dark:text-gray-300 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400"
                                     )}
                                 >
                                     <Heart 
@@ -1034,7 +1040,7 @@ const DetalleContenido = () => {
                                 
                                 <button 
                                     onClick={() => setShowShareModal(true)}
-                                    className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-semibold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-primary-100 dark:hover:bg-primary-800/30 hover:text-primary-600 dark:hover:text-primary-400 transition-all"
+                                    className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-primary-100 dark:hover:bg-primary-800/30 hover:text-primary-600 dark:hover:text-primary-400 transition-all"
                                 >
                                     <Share2 size={18} />
                                 </button>
@@ -1043,7 +1049,7 @@ const DetalleContenido = () => {
                     </div>
 
                     {/* DESCRIPCIÓN CON BOTÓN VER MÁS */}
-                    <div className="bg-white dark:bg-[#1e1e1e] rounded-lg p-2 md:p-4 shadow-sm border border-gray-300 dark:border-transparent">
+                    <div className="bg-white dark:bg-[#1e1e1e] rounded-lg p-3 md:p-4 shadow-sm border border-gray-300 dark:border-transparent lg:order-3">
                         <div className="flex items-center justify-between mb-1">
                             <h3 className="text-base font-semibold text-gray-900 dark:text-white">
                                 Descripción
@@ -1059,24 +1065,137 @@ const DetalleContenido = () => {
                             >
                                 <MarkdownRenderer content={item.descripcion} />
                             </div>
-                            
-                            {descriptionOverflow && (
-                                <button
-                                    onClick={() => setDescriptionExpanded(!descriptionExpanded)}
-                                    className="mt-3 px-4 py-2 text-xs font-bold text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/30 transition-colors active:scale-95 min-w-[120px] text-center"
-                                >
-                                    {descriptionExpanded ? 'Mostrar menos' : 'Mostrar más'}
-                                </button>
-                            )}
                         </div>
+                        
+                        {item?.descripcion && (
+                            <button
+                                onClick={() => setDescriptionExpanded(!descriptionExpanded)}
+                                className="mt-3 mb-1 text-sm font-medium text-primary-600 dark:text-primary-400"
+                            >
+                                {descriptionExpanded ? 'Mostrar menos' : 'Mostrar más'}
+                            </button>
+                        )}
+                    </div>
+
+                    {/* CATEGORÍA (MÓVIL: DESPUÉS DE DESCRIPCIÓN) */}
+                    {item.tipo && (() => {
+                        const categoriaInfo = CATEGORIAS[item.tipo] || { 
+                            nombre: item.tipo || 'Sin categoría', 
+                            icon: null, 
+                            color: 'text-gray-500', 
+                            bgColor: 'bg-gray-50 dark:bg-gray-900/20', 
+                            borderColor: 'border-gray-200 dark:border-gray-800' 
+                        };
+                        const CategoriaIcon = categoriaInfo.icon;
+                        return (
+                            <div className="bg-white dark:bg-[#1e1e1e] p-3 md:p-4 rounded-lg shadow-sm border border-gray-300 dark:border-transparent lg:hidden">
+                                <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-3">
+                                    Categoría
+                                </h4>
+                                <div className="flex flex-wrap gap-2">
+                                    <div className={`flex items-center shadow-sm gap-1.5 px-3 py-2 rounded-full ${categoriaInfo.bgColor} border ${categoriaInfo.borderColor}`}>
+                                        {CategoriaIcon && <CategoriaIcon size={16} className={categoriaInfo.color} />}
+                                        <span className={`text-sm font-semibold tracking-wider ${categoriaInfo.color}`}>
+                                            {categoriaInfo.nombre}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })()}
+                    
+                    {/* CRÉDITOS Y APORTE SEPARADOS (MÓVIL: DESPUÉS DE CATEGORÍA) */}
+                    {item.aporte && (
+                        <div className="bg-white dark:bg-[#1e1e1e] rounded-lg p-3 md:p-4 shadow-sm border border-gray-300 dark:border-transparent lg:hidden">
+                            <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-3">
+                                Aportado por
+                            </h4>
+                            <SmartUserRow user={item.aporte} role="uploader" />
+                        </div>
+                    )}
+
+                    {/* TARJETA DE DESCARGAS (MÓVIL: DESPUÉS DE APORTADO POR) */}
+                    <div className="bg-white dark:bg-[#1e1e1e] rounded-lg p-3 md:p-4 shadow-sm border border-gray-300 dark:border-transparent lg:hidden">
+                        <div className="flex items-center justify-between mb-3">
+                            <h3 className="text-base font-semibold text-gray-900 dark:text-white">
+                                Descargas
+                            </h3>
+                        </div>
+                        {item.descargas && item.descargas.length > 0 ? (
+                            <div className="flex flex-col gap-2">
+                                {item.descargas.map((d, idx) => (
+                                    <button 
+                                        key={idx} 
+                                        onClick={() => handleDownload(d)}
+                                        disabled={downloading === d.url}
+                                        className={clsx(
+                                            "flex items-center justify-between px-3 py-2 rounded-lg transition-colors w-full text-left border",
+                                            downloading === d.url 
+                                                ? "bg-primary-600 dark:bg-primary-700 border-primary-600 dark:border-primary-700 cursor-not-allowed" 
+                                                : "bg-primary-600 dark:bg-primary-700 border-primary-600 dark:border-primary-700 hover:bg-primary-700 dark:hover:bg-primary-800"
+                                        )}
+                                    >
+                                        <div className="flex flex-col truncate pr-2">
+                                            <div className="flex items-center gap-2">
+                                                <span className="truncate font-bold text-sm text-white">{d.label}</span>
+                                                {d.encrypted && (
+                                                    <Lock size={12} className="text-blue-500 shrink-0" />
+                                                )}
+                                            </div>
+                                            <span className="text-[11px] flex items-center gap-1 text-white/80">
+                                                {formatNumber(d.count || 0)} descargas
+                                            </span>
+                                        </div>
+                                        <div className="shrink-0">
+                                            {downloading === d.url ? (
+                                                decrypting ? (
+                                                    <Unlock size={17} className="text-primary-600 dark:text-primary-400 animate-pulse" />
+                                                ) : (
+                                                    <Loader2 size={17} className="text-gray-400 animate-spin" />
+                                                )
+                                            ) : (
+                                                <Download size={17} className="text-white" />
+                                            )}
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-2 text-gray-400 dark:text-gray-500 py-2">
+                                <AlertCircle size={16} />
+                                <span className="text-sm">No hay descargas disponibles.</span>
+                            </div>
+                        )}
                     </div>
 
                     {/* SECCIÓN DE COMENTARIOS */}
-                    <CommentSection contentId={id} />
+                    <div className="lg:order-4">
+                        <CommentSection contentId={id} />
+                    </div>
+
+                    {/* MODS RECOMENDADOS (MÓVIL: DESPUÉS DE COMENTARIOS) */}
+                    {recommendedContent.length > 0 && (
+                        <div className="bg-white dark:bg-[#1e1e1e] p-3 md:p-4 rounded-lg shadow-sm border border-gray-300 dark:border-transparent lg:hidden">
+                            <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-4">
+                                También te puede gustar
+                            </h4>
+                            {loadingRecommended ? (
+                                <div className="flex items-center justify-center py-4">
+                                    <Loader2 size={20} className="animate-spin text-gray-400" />
+                                </div>
+                            ) : (
+                                <div className="flex flex-col gap-2">
+                                    {recommendedContent.map((content) => (
+                                        <RecommendedItem key={content.id} content={content} />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
 
-                {/* COLUMNA DERECHA */}
-                <div className="lg:min-w-[420px] xl:min-w-[480px] 2xl:min-w-[520px] space-y-4">
+                {/* COLUMNA DERECHA (SOLO DESKTOP) */}
+                <div className="hidden lg:block lg:min-w-[420px] xl:min-w-[480px] 2xl:min-w-[520px] space-y-3 md:space-y-4">
                     
                     {/* TARJETA DE DESCARGAS */}
                     <div className="bg-white dark:bg-[#1e1e1e] rounded-lg p-3 md:p-4 shadow-sm border border-gray-300 dark:border-transparent">
@@ -1131,35 +1250,6 @@ const DetalleContenido = () => {
                             </div>
                         )}
                     </div>
-                    
-                    {/* CRÉDITOS Y APORTE SEPARADOS (COLUMNA DERECHA) */}
-                    {item.aporte && (
-                        <div className="bg-white dark:bg-[#1e1e1e] rounded-lg p-3 md:p-4 shadow-sm border border-gray-300 dark:border-transparent">
-                            <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-3">
-                                Aportado por
-                            </h4>
-                            <SmartUserRow user={item.aporte} role="uploader" />
-                        </div>
-                    )}
-                            
-
-                    {/* REDES Y ENLACES */}
-                    {item.redes && item.redes.length > 0 && (
-                        <div className="bg-white dark:bg-[#1e1e1e] rounded-lg p-3 md:p-4 shadow-sm border border-gray-300 dark:border-transparent">
-                            <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-3">
-                                Enlaces Externos
-                            </h4>
-                            <div className="flex flex-wrap gap-2">
-                                {item.redes.map((link, idx) => {
-                                    const config = getSocialConfig(link.url);
-                                    const IconComponent = config.icon;
-                                    return (
-                                        <SocialButton key={idx} href={link.url} icon={IconComponent} color={config.color} />
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    )}
 
                     {/* CATEGORÍA */}
                     {item.tipo && (() => {
@@ -1187,6 +1277,18 @@ const DetalleContenido = () => {
                             </div>
                         );
                     })()}
+                    
+                    {/* CRÉDITOS Y APORTE SEPARADOS (COLUMNA DERECHA) */}
+                    {item.aporte && (
+                        <div className="bg-white dark:bg-[#1e1e1e] rounded-lg p-3 md:p-4 shadow-sm border border-gray-300 dark:border-transparent">
+                            <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-3">
+                                Aportado por
+                            </h4>
+                            <SmartUserRow user={item.aporte} role="uploader" />
+                        </div>
+                    )}
+
+                    
 
                     {/* MODS RECOMENDADOS */}
                     {recommendedContent.length > 0 && (

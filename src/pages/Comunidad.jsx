@@ -47,9 +47,7 @@ const Comunidad = () => {
         <CreatorCard
           username={user.username}
           avatar={user.avatar}
-          banner={user.banner}
           role={user.role}
-          createdat={user.createdat}
         />
       )}
     />

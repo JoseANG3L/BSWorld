@@ -398,7 +398,7 @@ const CommentSection = ({ contentId }) => {
             Comentarios
           </h3>
           <p className="text-xs text-gray-500 dark:text-gray-400 pt-1">
-            {comments.length} {comments.length === 1 ? 'comentario' : 'comentarios'}
+            ({comments.length})
           </p>
         </div>
       </div>
@@ -479,17 +479,14 @@ const CommentSection = ({ contentId }) => {
           {comments.length > 1 && (
             <button
               onClick={() => setCommentsExpanded(!commentsExpanded)}
-              className="w-full py-2 px-4 text-sm font-medium text-primary-600 dark:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors"
+              className="my-1 text-sm font-medium text-left text-primary-600 dark:text-primary-400"
             >
               {commentsExpanded ? `Ocultar ${comments.length - 1} comentarios` : `Ver ${comments.length - 1} comentarios más`}
             </button>
           )}
         </>
       ) : (
-        <div className="flex flex-col items-center justify-center py-8 gap-3 text-center">
-          <div className="p-3 bg-gray-100 dark:bg-[#1D1F23] rounded-full">
-            <MessageSquare size={24} className="text-gray-400 dark:text-gray-600" />
-          </div>
+        <div className="flex flex-col items-center justify-center py-3 gap-3 text-center">
           <div>
             <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
               Aún no hay comentarios
