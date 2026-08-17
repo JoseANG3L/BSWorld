@@ -93,11 +93,14 @@ const PublicProfile = () => {
 
   // Función para formatear números con K/M
   const formatNumber = (num) => {
+    if (!num) return '0';
     if (num >= 1000000) {
-      return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+      const value = num / 1000000;
+      return value < 10 ? value.toFixed(1) + 'M' : Math.floor(value) + 'M';
     }
     if (num >= 1000) {
-      return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+      const value = num / 1000;
+      return value < 10 ? value.toFixed(1) + 'K' : Math.floor(value) + 'K';
     }
     return num.toString();
   };
@@ -260,11 +263,11 @@ const PublicProfile = () => {
     <div className="flex flex-col p-2 md:p-4 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
       
       {/* SECCIÓN 1: PERFIL */}
-      <div className="flex items-center gap-4 justify-between mb-4 md:mb-6 px-2 md:px-4">
+      <div className="flex flex-col md:flex-row items-center gap-2 md:gap-4 md:text-left justify-center md:justify-between mb-4 md:mb-6 px-2 md:px-4">
         {/* AVATAR, NOMBRE, FECHA Y REDES IZQUIERDA */}
-        <div className="flex-1 flex items-center gap-4 md:gap-6 min-w-0">
+        <div className="flex-1 flex flex-col md:flex-row items-center text-center gap-1 md:gap-6 min-w-0">
             {/* AVATAR */}
-            <div className="relative group shrink-0">
+            <div className="relative group shrink-0 items-center text-center">
               <div className="w-20 h-20 md:w-36 md:h-36 rounded-full shadow-lg overflow-hidden">
                   <AvatarRenderer avatar={displayAvatar} name={username} /> 
               </div>
@@ -276,8 +279,12 @@ const PublicProfile = () => {
             </div>
 
             {/* NOMBRE, FECHA Y REDES */}
-            <div className="flex flex-col min-w-0">
+            <div className="flex flex-col min-w-0 items-center md:items-start">
                 <div className="flex items-center gap-3">
+                    {isOwnProfile && (
+                      <div className="w-8 h-8"></div>
+                    )}
+
                     <h1 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white truncate">
                       {username}
                     </h1>
@@ -346,33 +353,33 @@ const PublicProfile = () => {
             </div>
         </div>
 
-        {/* ESTADÍSTICAS DERECHA */}
-        <div className="flex items-center gap-8 shrink-0">
+        {/* ESTADÍSTICAS */}
+        <div className="flex items-center mt-1 md:mt-0 gap-5 md:gap-8 shrink-0">
             <div className="flex flex-col items-center">
-                <Eye size={22} className="text-green-500 mb-1" />
-                <span className="font-bold text-gray-900 dark:text-white text-xl">{formatNumber(totalStats.vistas)}</span>
-                <span className="text-[11px] uppercase text-gray-500 dark:text-gray-400 font-medium">Vistas</span>
+                <Eye size={18} md:size={22} className="text-green-500 mb-1" />
+                <span className="font-bold text-gray-900 dark:text-white text-lg md:text-xl">{formatNumber(totalStats.vistas)}</span>
+                <span className="text-[10px] md:text-[11px] uppercase text-gray-500 dark:text-gray-400 font-medium">Vistas</span>
             </div>
             <div className="flex flex-col items-center">
-                <Download size={22} className="text-blue-500 mb-1" />
-                <span className="font-bold text-gray-900 dark:text-white text-xl">{formatNumber(totalStats.descargas)}</span>
-                <span className="text-[11px] uppercase text-gray-500 dark:text-gray-400 font-medium">Descargas</span>
+                <Download size={18} md:size={22} className="text-blue-500 mb-1" />
+                <span className="font-bold text-gray-900 dark:text-white text-lg md:text-xl">{formatNumber(totalStats.descargas)}</span>
+                <span className="text-[10px] md:text-[11px] uppercase text-gray-500 dark:text-gray-400 font-medium">Descargas</span>
             </div>
             <div className="flex flex-col items-center">
-                <Heart size={22} className="text-red-500 mb-1" />
-                <span className="font-bold text-gray-900 dark:text-white text-xl">{formatNumber(totalStats.likes)}</span>
-                <span className="text-[11px] uppercase text-gray-500 dark:text-gray-400 font-medium">Likes</span>
+                <Heart size={18} md:size={22} className="text-red-500 mb-1" />
+                <span className="font-bold text-gray-900 dark:text-white text-lg md:text-xl">{formatNumber(totalStats.likes)}</span>
+                <span className="text-[10px] md:text-[11px] uppercase text-gray-500 dark:text-gray-400 font-medium">Likes</span>
             </div>
         </div>
       </div>
 
       {/* SECCIÓN 2: TABS */}
       <div className="mb-2 md:mb-4">
-        <div className="flex gap-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex w-full md:w-auto border-b border-gray-200 dark:border-gray-700">
           <button
             onClick={() => setActiveTab('todos')}
             className={clsx(
-              "pb-3 px-14 text-sm font-semibold transition-all duration-200 flex items-center gap-2",
+              "flex-1 md:flex-none pb-3 px-2 md:px-14 text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2",
               activeTab === 'todos'
                 ? "text-primary-600 dark:text-primary-400 border-b-2 border-primary-600 dark:border-primary-400"
                 : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border-b-2 border-transparent"
@@ -385,7 +392,7 @@ const PublicProfile = () => {
           <button
             onClick={() => setActiveTab('likes')}
             className={clsx(
-              "pb-3 px-14 text-sm font-semibold transition-all duration-200 flex items-center gap-2",
+              "flex-1 md:flex-none pb-3 px-2 md:px-14 text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2",
               activeTab === 'likes'
                 ? "text-red-500 dark:text-red-400 border-b-2 border-red-500 dark:border-red-400"
                 : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border-b-2 border-transparent"
@@ -399,7 +406,7 @@ const PublicProfile = () => {
       </div>
 
       {/* SECCIÓN 3: BARRA DE BÚSQUEDA Y ORDENAMIENTO */}
-      <div className="mb-2 md:mb-4 flex flex-col md:flex-row gap-2 md:gap-3 items-start md:items-center">
+      <div className="mb-2 md:mb-4 flex flex-row gap-2 md:gap-3 items-start md:items-center">
           {/* Búsqueda */}
           <div className="relative w-full md:flex-1">
             <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -519,7 +526,7 @@ const PublicProfile = () => {
 
       {/* SECCIÓN 3: CONTENIDO */}
       {filteredContent.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 md:gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-4 pb-4">
           {filteredContent.map((item) => (
               <Card key={item.id} {...item} />
           ))}
@@ -566,64 +573,96 @@ const PublicProfile = () => {
               <button
                 type="button"
                 onClick={() => setIsFiltersModalOpen(false)}
-                className="p-1 rounded-lg text-gray-400 hover:text-gray-600 dark:hover.text-gray-200 transition-colors"
+                className="p-1 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
               >
                 <X size={20} />
               </button>
             </div>
 
-            {/* Contenido del modal */}
-            <div className="flex-1 overflow-y-auto py-4 space-y-6">
-              {/* Filtro de tipos */}
-              {availableTypes.length > 0 && (
-                <div>
-                  <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Tipo de contenido</h4>
-                  <div className="space-y-2">
-                    <button
-                      type="button"
-                      onClick={() => setTempSelectedTypes([])}
-                      className={clsx("flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left w-full", tempSelectedTypes.length === 0 ? "text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-700" : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700")}
-                    >
-                      <div className={clsx("w-4 h-4 rounded border flex items-center justify-center transition-colors flex-shrink-0", tempSelectedTypes.length === 0 ? "bg-primary-500 border-primary-500" : "border-gray-300 dark:border-gray-600")}>
-                        {tempSelectedTypes.length === 0 && <Check size={12} className="text-white" />}
-                      </div>
-                      <span>Todos los tipos</span>
-                    </button>
-                    {availableTypes.map((type) => (
-                      <button
-                        key={type}
-                        type="button"
-                        onClick={() => setTempSelectedTypes(prev => 
-                          prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
-                        )}
-                        className={clsx("flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left w-full", tempSelectedTypes.includes(type) ? "text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-700" : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700")}
-                      >
-                        <div className={clsx("w-4 h-4 rounded border flex items-center justify-center transition-colors flex-shrink-0", tempSelectedTypes.includes(type) ? "bg-primary-500 border-primary-500" : "border-gray-300 dark:border-gray-600")}>
-                          {tempSelectedTypes.includes(type) && <Check size={12} className="text-white" />}
-                        </div>
-                        <span className="text-ellipsis overflow-hidden shrink">{capitalizeText(type)}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Ordenamiento */}
+            {/* Contenido desplazable */}
+            <div className="flex-1 overflow-y-auto py-4 space-y-5 custom-scrollbar">
+              {/* Sección: Ordenar por */}
               <div>
-                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Ordenar por</h4>
-                <div className="space-y-2">
-                  {[{ val: 'recientes', label: 'Más Recientes' }, { val: 'antiguos', label: 'Más Antiguos' }, { val: 'mas_descargas', label: 'Más Descargas' }, { val: 'mas_vistas', label: 'Más Vistas' }, { val: 'az', label: 'Nombre (A-Z)' }, { val: 'za', label: 'Nombre (Z-A)' }].map((opt) => (
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
+                  Ordenar por
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { val: 'recientes', label: 'Más Recientes' },
+                    { val: 'antiguos', label: 'Más Antiguos' },
+                    { val: 'az', label: 'Nombre (A-Z)' },
+                    { val: 'za', label: 'Nombre (Z-A)' },
+                    { val: 'mas_vistas', label: 'Más Vistas' },
+                    { val: 'mas_descargas', label: 'Más Descargas' }
+                  ].map((opt) => (
                     <button
                       key={opt.val}
                       type="button"
                       onClick={() => setTempOrden(opt.val)}
-                      className={clsx("w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors", tempOrden === opt.val ? "text-gray-800 dark:text-white bg-gray-200 dark:bg-gray-700 font-semibold" : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700")}
+                      className={clsx(
+                        "px-3 py-2 rounded-xl text-xs font-semibold transition-all text-left border",
+                        tempOrden === opt.val
+                          ? "bg-primary-500/10 border-primary-500 text-primary-600 dark:text-primary-400 font-bold"
+                          : "border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                      )}
                     >
                       {opt.label}
                     </button>
                   ))}
                 </div>
               </div>
+
+              {/* Sección: Filtrar por tipo */}
+              {availableTypes.length > 0 && (
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
+                    Tipos de Contenido
+                  </label>
+                  <div className="flex flex-col gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setTempSelectedTypes([])}
+                      className={clsx(
+                        "flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-colors text-left border",
+                        tempSelectedTypes.length === 0
+                          ? "bg-primary-500/10 border-primary-500 text-primary-600 dark:text-primary-400 font-bold"
+                          : "border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                      )}
+                    >
+                      <div className={clsx("w-4 h-4 rounded border flex items-center justify-center transition-colors shrink-0", tempSelectedTypes.length === 0 ? "bg-primary-500 border-primary-500" : "border-gray-300 dark:border-gray-600")}>
+                        {tempSelectedTypes.length === 0 && <Check size={12} className="text-white" />}
+                      </div>
+                      <span>Todos los tipos</span>
+                    </button>
+
+                    {availableTypes.map((type) => {
+                      const isSelected = tempSelectedTypes.includes(type);
+                      return (
+                        <button
+                          key={type}
+                          type="button"
+                          onClick={() => {
+                            setTempSelectedTypes(prev =>
+                              prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+                            );
+                          }}
+                          className={clsx(
+                            "flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-colors text-left border",
+                            isSelected
+                              ? "bg-primary-500/10 border-primary-500 text-primary-600 dark:text-primary-400 font-bold"
+                              : "border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                          )}
+                        >
+                          <div className={clsx("w-4 h-4 rounded border flex items-center justify-center transition-colors shrink-0", isSelected ? "bg-primary-500 border-primary-500" : "border-gray-300 dark:border-gray-600")}>
+                            {isSelected && <Check size={12} className="text-white" />}
+                          </div>
+                          <span className="text-ellipsis overflow-hidden shrink">{capitalizeText(type)}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Botones de acción */}

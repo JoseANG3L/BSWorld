@@ -15,7 +15,7 @@ const menuItems = [
   { to: "/", icon: Home, label: "Inicio" },
   { to: "/comunidad", icon: Crown, label: "Comunidad" },
   { to: "/mods", icon: Gamepad2, label: "Mods" },
-  { to: "/servidores", icon: Server, label: "Servidores" },
+  // { to: "/servidores", icon: Server, label: "Servidores" },
 ];
 
 const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {

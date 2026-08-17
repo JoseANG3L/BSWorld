@@ -83,12 +83,14 @@ function App() {
             <Route index element={<Inicio />} />
             
             {/* --- CATEGORÍAS --- */}
-            <Route path="personajes" element={<Personajes />} />
-            <Route path="mapas" element={<Mapas />} />
-            <Route path="minijuegos" element={<Minijuegos />} />
+            {/* <Route path="personajes" element={<Personajes />} /> */}
+            {/* <Route path="mapas" element={<Mapas />} /> */}
+            {/* <Route path="minijuegos" element={<Minijuegos />} /> */}
             <Route path="mods" element={<Mods />} />
-            <Route path="modpacks" element={<Modpacks />} />
-            <Route path="paquetes" element={<Paquetes />} />
+            {/* <Route path="modpacks" element={<Modpacks />} /> */}
+            {/* <Route path="paquetes" element={<Paquetes />} /> */}
+            {/* <Route path="servidores" element={<Servidores />} /> */}
+            {/* <Route path="servidor/:id" element={<DetalleServidor />} /> */}
 
             {/* --- BUSCADOR --- */}
             <Route path="buscar" element={<Resultados />} /> 
@@ -101,8 +103,6 @@ function App() {
             <Route path="acerca-de" element={<AcercaDe />} />
             <Route path="contacto" element={<Contacto />} />
             <Route path="destacados" element={<Destacados />} />
-            <Route path="servidores" element={<Servidores />} />
-            <Route path="servidor/:id" element={<DetalleServidor />} />
             <Route path="/view/:id" element={<DetalleContenido />} />
 
             {/* --- RUTAS PROTEGIDAS --- */}
@@ -112,12 +112,12 @@ function App() {
                 </ProtectedRoute>
               } 
             />
-            <Route path="admin-upload" element={
+            {/* <Route path="admin-upload" element={
                 <ProtectedRoute requireAdmin={true}>
                   <AdminUpload />
                 </ProtectedRoute>
               } 
-            />
+            /> */}
             <Route path="configuracion" element={
                 <ProtectedRoute>
                   <Configuracion />

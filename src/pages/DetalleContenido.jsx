@@ -455,6 +455,7 @@ const DetalleContenido = () => {
     const [descriptionOverflow, setDescriptionOverflow] = useState(false);
     const descriptionRef = useRef(null);
     const viewRegistered = useRef(false);
+    const [imageErrors, setImageErrors] = useState({});
     
     // Estados para moderación de admin
     const [updatingStatus, setUpdatingStatus] = useState(false);
@@ -891,10 +892,20 @@ const DetalleContenido = () => {
                                 />
                             ) : (
                                 <img 
-                                    src={currentMedia} 
+                                    src={imageErrors[selectedIndex] ? '/default.jpg' : currentMedia} 
                                     key={currentMedia} 
-                                    className="w-full aspect-video object-cover bg-black" 
+                                    className="w-full aspect-video object-cover bg-black transition-opacity duration-300" 
+                                    style={{ opacity: 0 }}
                                     alt={item.titulo} 
+                                    onLoad={(e) => { e.target.style.opacity = 1; }}
+                                    onError={(e) => {
+                                        if (!imageErrors[selectedIndex]) {
+                                            console.warn('Error loading main image:', currentMedia);
+                                            setImageErrors(prev => ({ ...prev, [selectedIndex]: true }));
+                                            e.target.src = '/default.jpg';
+                                            e.target.style.opacity = 1;
+                                        }
+                                    }}
                                 />
                             )}
 
@@ -902,13 +913,13 @@ const DetalleContenido = () => {
                                 <>
                                     <button 
                                         onClick={handlePrev} 
-                                        className="absolute top-1/2 left-4 -translate-y-1/2 p-3 rounded-full bg-black/70 text-white hover:bg-black/90 transition-all opacity-0 group-hover:opacity-100 backdrop-blur-sm border border-white/20 z-10"
+                                        className="absolute top-1/2 left-2 -translate-y-1/2 p-3 rounded-full bg-black/60 text-white hover:bg-black/70 transition-all opacity-0 group-hover:opacity-100 backdrop-blur-sm z-10"
                                     >
                                         <ChevronLeft size={24} />
                                     </button>
                                     <button 
                                         onClick={handleNext} 
-                                        className="absolute top-1/2 right-4 -translate-y-1/2 p-3 rounded-full bg-black/70 text-white hover:bg-black/90 transition-all opacity-0 group-hover:opacity-100 backdrop-blur-sm border border-white/20 z-10"
+                                        className="absolute top-1/2 right-2 -translate-y-1/2 p-3 rounded-full bg-black/60 text-white hover:bg-black/70 transition-all opacity-0 group-hover:opacity-100 backdrop-blur-s z-10"
                                     >
                                         <ChevronRight size={24} />
                                     </button>
@@ -942,10 +953,19 @@ const DetalleContenido = () => {
                                                 </div>
                                             )}
                                             <img 
-                                                src={thumbSrc} 
+                                                src={imageErrors[index] ? '/default.jpg' : thumbSrc} 
                                                 alt={`Miniatura ${index + 1}`} 
-                                                className="w-full h-full object-cover"
-                                                onError={(e) => { e.target.src = "https://placehold.co/320x180?text=Error"; }}
+                                                className="w-full h-full object-cover transition-opacity duration-300"
+                                                style={{ opacity: 0 }}
+                                                onLoad={(e) => { e.target.style.opacity = 1; }}
+                                                onError={(e) => {
+                                                    if (!imageErrors[index]) {
+                                                        console.warn('Error loading thumbnail:', thumbSrc);
+                                                        setImageErrors(prev => ({ ...prev, [index]: true }));
+                                                        e.target.src = '/default.jpg';
+                                                        e.target.style.opacity = 1;
+                                                    }
+                                                }}
                                             />
                                         </button>
                                     );

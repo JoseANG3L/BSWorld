@@ -143,6 +143,7 @@ const Card = ({
   const downloadRef = useRef(null);
   const [isOpenCredits, setIsOpenCredits] = useState(false);
   const creditosRef = useRef(null);
+  const [imageError, setImageError] = useState(false);
 
   const [localDescargas, setLocalDescargas] = useState(descargas);
   const [isSpamming, setIsSpamming] = useState(false);
@@ -221,11 +222,20 @@ const Card = ({
         className="relative w-full aspect-video overflow-hidden bg-gray-100 dark:bg-[#1D1F23] block cursor-pointer rounded-t-xl"
       >
         <img 
-          src={imagen || '/default.jpg'} 
-          alt={titulo}
+          src={imageError ? '/default.jpg' : (imagen || '/default.jpg')} 
+          alt={titulo || 'Imagen del contenido'}
           loading="lazy"
-          className="w-full h-full object-cover"
-          onError={(e) => { e.target.src = '/default.jpg'; }}
+          className="w-full h-full object-cover transition-opacity duration-300"
+          style={{ opacity: 0 }}
+          onLoad={(e) => { e.target.style.opacity = 1; }}
+          onError={(e) => { 
+            if (!imageError) {
+              console.warn('Error loading image:', imagen);
+              setImageError(true);
+              e.target.src = '/default.jpg'; 
+              e.target.style.opacity = 1;
+            }
+          }}
         />
 
         {/* Spam Limit Alert overlay */}
