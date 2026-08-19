@@ -1,9 +1,18 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { createPortal } from 'react-dom';
-import { Edit3, Trash2, Loader2, Filter, Search, ArrowUpDown, ChevronDown, X, Check, Eye, Heart, MessageCircle, Layers, CheckCircle, XCircle, CheckSquare, Square, Download } from 'lucide-react';
+import { Edit3, Trash2, Loader2, Filter, Search, ArrowUpDown, ChevronDown, X, Check, Eye, Heart, MessageCircle, Layers, CheckCircle, XCircle, CheckSquare, Square, Download, Wrench, Map, Gamepad2, Boxes, Package, User } from 'lucide-react';
 import { getCommentCountByContent, getUserPublicProfile, updateContent, searchUsers, deleteContent } from '../services/api';
 import { clsx } from 'clsx';
+
+const CATEGORIAS = {
+  complemento: { nombre: 'Complemento', icon: Wrench, color: 'text-blue-500', borderColor: 'border-blue-500/80' },
+  mapa: { nombre: 'Mapa', icon: Map, color: 'text-emerald-500', borderColor: 'border-emerald-500/80' },
+  minijuego: { nombre: 'Minijuego', icon: Gamepad2, color: 'text-amber-500', borderColor: 'border-amber-500/80' },
+  modpack: { nombre: 'Modpack', icon: Boxes, color: 'text-red-500', borderColor: 'border-red-500/80' },
+  paquete: { nombre: 'Paquete', icon: Package, color: 'text-cyan-500', borderColor: 'border-cyan-500/80' },
+  personaje: { nombre: 'Personaje', icon: User, color: 'text-purple-500', borderColor: 'border-purple-500/80' }
+};
 
 const ContentTable = ({
   data,
@@ -141,10 +150,17 @@ const ContentTable = ({
     }
   };
 
-  // Formatear números grandes
+  // Formatear números grandes (mismo formato que el banner)
   const formatNumber = (num) => {
-    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+    if (!num) return '0';
+    if (num >= 1000000) {
+      const value = num / 1000000;
+      return value < 10 ? value.toFixed(1) + 'M' : Math.floor(value) + 'M';
+    }
+    if (num >= 1000) {
+      const value = num / 1000;
+      return value < 10 ? value.toFixed(1) + 'K' : Math.floor(value) + 'K';
+    }
     return num.toString();
   };
 
@@ -536,12 +552,11 @@ const ContentTable = ({
         
         {/* Estadísticas en el header */}
         {headerStats && (
-          <div className="flex flex-wrap gap-3 md:gap-4">
+          <div className="flex flex-wrap gap-2 md:gap-3">
             {headerStats.map((stat, index) => (
               <div key={index} className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-transparent">
                 <stat.icon size={16} className={clsx("text-gray-600 dark:text-gray-400", stat.iconColor)} />
-                <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">{stat.label}:</span>
-                <span className="text-xs font-bold text-gray-900 dark:text-white">{stat.value}</span>
+                <span className="text-xs font-bold text-gray-900 dark:text-white">{formatNumber(stat.value)}</span>
               </div>
             ))}
           </div>
@@ -611,19 +626,24 @@ const ContentTable = ({
                     </div>
                     <span>Todas las categorías</span>
                   </button>
-                  {availableTypes.map((type) => (
-                    <button
-                      key={type}
-                      type="button"
-                      onClick={() => toggleType(type)}
-                      className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left ${selectedTypes.includes(type) ? "text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-700" : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"}`}
-                    >
-                      <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors flex-shrink-0 ${selectedTypes.includes(type) ? "bg-primary-500 border-primary-500" : "border-gray-300 dark:border-gray-600"}`}>
-                        {selectedTypes.includes(type) && <Check size={12} className="text-white" />}
-                      </div>
-                      <span className="text-ellipsis overflow-hidden shrink">{type.charAt(0).toUpperCase() + type.slice(1).toLowerCase()}</span>
-                    </button>
-                  ))}
+                  {availableTypes.map((type) => {
+                    const categoriaInfo = CATEGORIAS[type] || { nombre: type.charAt(0).toUpperCase() + type.slice(1).toLowerCase(), icon: null, color: 'text-gray-500' };
+                    const CategoriaIcon = categoriaInfo.icon;
+                    return (
+                      <button
+                        key={type}
+                        type="button"
+                        onClick={() => toggleType(type)}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left ${selectedTypes.includes(type) ? "text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-700" : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"}`}
+                      >
+                        <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors flex-shrink-0 ${selectedTypes.includes(type) ? "bg-primary-500 border-primary-500" : "border-gray-300 dark:border-gray-600"}`}>
+                          {selectedTypes.includes(type) && <Check size={12} className="text-white" />}
+                        </div>
+                        {CategoriaIcon && <CategoriaIcon size={14} className={categoriaInfo.color} />}
+                        <span className="text-ellipsis overflow-hidden shrink">{categoriaInfo.nombre}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -938,13 +958,18 @@ const ContentTable = ({
                     {/* Categoría */}
                     {columns.category && (
                       <td className="p-3 text-center">
-                        <span 
-                          className="px-2 py-0.5 text-xs font-bold rounded-md bg-primary-100 dark:bg-primary-950/30 text-primary-700 dark:text-primary-400 capitalize"
-                          // onClick={() => openEditModal(item, 'categoria')}
-                          // title="Clic para editar categoría"
-                        >
-                          {item.tipo || 'complemento'}
-                        </span>
+                        {(() => {
+                          const categoriaInfo = CATEGORIAS[item.tipo] || { nombre: item.tipo || 'Complemento', icon: null, color: 'text-gray-500', borderColor: 'border-gray-300' };
+                          const CategoriaIcon = categoriaInfo.icon;
+                          return (
+                            <div className="flex items-center justify-center gap-1.5">
+                              {CategoriaIcon && <CategoriaIcon size={14} className={categoriaInfo.color} />}
+                              <span className={`text-xs font-semibold capitalize ${categoriaInfo.color}`}>
+                                {categoriaInfo.nombre}
+                              </span>
+                            </div>
+                          );
+                        })()}
                       </td>
                     )}
                     
@@ -1179,6 +1204,8 @@ const ContentTable = ({
 
                     {availableTypes.map((type) => {
                       const isSelected = tempSelectedTypes.includes(type);
+                      const categoriaInfo = CATEGORIAS[type] || { nombre: type.charAt(0).toUpperCase() + type.slice(1).toLowerCase(), icon: null, color: 'text-gray-500' };
+                      const CategoriaIcon = categoriaInfo.icon;
                       return (
                         <button
                           key={type}
@@ -1197,7 +1224,8 @@ const ContentTable = ({
                           <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors shrink-0 ${isSelected ? "bg-primary-500 border-primary-500" : "border-gray-300 dark:border-gray-600"}`}>
                             {isSelected && <Check size={12} className="text-white" />}
                           </div>
-                          <span>{type.charAt(0).toUpperCase() + type.slice(1).toLowerCase()}</span>
+                          {CategoriaIcon && <CategoriaIcon size={14} className={categoriaInfo.color} />}
+                          <span>{categoriaInfo.nombre}</span>
                         </button>
                       );
                     })}
@@ -1398,11 +1426,14 @@ const ContentTable = ({
                       className="w-full p-3 rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white text-sm"
                     >
                       <option value="">Seleccionar categoría...</option>
-                      {availableTypes.map((type) => (
-                        <option key={type} value={type}>
-                          {type.charAt(0).toUpperCase() + type.slice(1).toLowerCase()}
-                        </option>
-                      ))}
+                      {availableTypes.map((type) => {
+                        const categoriaInfo = CATEGORIAS[type] || { nombre: type.charAt(0).toUpperCase() + type.slice(1).toLowerCase() };
+                        return (
+                          <option key={type} value={type}>
+                            {categoriaInfo.nombre}
+                          </option>
+                        );
+                      })}
                     </select>
                   )}
 
@@ -1562,11 +1593,14 @@ const ContentTable = ({
                     autoFocus
                   >
                     <option value="">Seleccionar categoría...</option>
-                    {availableTypes.map((type) => (
-                      <option key={type} value={type}>
-                        {type.charAt(0).toUpperCase() + type.slice(1).toLowerCase()}
-                      </option>
-                    ))}
+                    {availableTypes.map((type) => {
+                      const categoriaInfo = CATEGORIAS[type] || { nombre: type.charAt(0).toUpperCase() + type.slice(1).toLowerCase() };
+                      return (
+                        <option key={type} value={type}>
+                          {categoriaInfo.nombre}
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
               )}
