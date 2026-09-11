@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext'; 
 
@@ -6,37 +6,30 @@ import { AuthProvider } from './context/AuthContext';
 import Layout from './components/Layout';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
-// Páginas Públicas
-import Inicio from './pages/Inicio';
-import Login from './pages/Login';
-import LoginPage from './pages/LoginPage';
-import AcercaDe from './pages/AcercaDe';
-import Contacto from './pages/Contacto';
+// Componente de carga
+const LoadingSpinner = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+  </div>
+);
 
-// Páginas de Contenido
-import Personajes from './pages/Personajes';
-import Mapas from './pages/Mapas';
-import Minijuegos from './pages/Minijuegos';
-import Mods from './pages/Mods';
-import Modpacks from './pages/Modpacks';
-import Paquetes from './pages/Paquetes';
-import MisMods from './pages/MisMods';
-
-// Páginas de Funcionalidad y Usuario
-import AdminPanel from './pages/AdminPanel';
-import AdminUpload from './pages/AdminUpload';
-import Configuracion from './pages/Configuracion';
-import Comunidad from './pages/Comunidad';
-import PublicProfile from './pages/PublicProfile';
-import Resultados from './pages/Resultados'; 
-import Destacados from './pages/Destacados';
-import DetalleContenido from './pages/DetalleContenido';
-import SubirMod from './pages/SubirMod';
-import SubirModPage from './pages/SubirModPage';
-import EditContent from './pages/EditContent';
-import Notificaciones from './pages/Notificaciones';
-import Servidores from './pages/Servidores';
-import DetalleServidor from './pages/DetalleServidor';
+// Lazy loading de páginas
+const Inicio = lazy(() => import('./pages/Inicio'));
+const LoginPage = lazy(() => import('./pages/LoginPage'));
+const AcercaDe = lazy(() => import('./pages/AcercaDe'));
+const Contacto = lazy(() => import('./pages/Contacto'));
+const Mods = lazy(() => import('./pages/Mods'));
+const MisMods = lazy(() => import('./pages/MisMods'));
+const AdminPanel = lazy(() => import('./pages/AdminPanel'));
+const Configuracion = lazy(() => import('./pages/Configuracion'));
+const Comunidad = lazy(() => import('./pages/Comunidad'));
+const PublicProfile = lazy(() => import('./pages/PublicProfile'));
+const Resultados = lazy(() => import('./pages/Resultados')); 
+const Destacados = lazy(() => import('./pages/Destacados'));
+const DetalleContenido = lazy(() => import('./pages/DetalleContenido'));
+const SubirModPage = lazy(() => import('./pages/SubirModPage'));
+const EditContent = lazy(() => import('./pages/EditContent'));
+const Notificaciones = lazy(() => import('./pages/Notificaciones'));
 
 // COMPONENTE INTERNO PARA REINICIAR EL SCROLL EN CADA CAMBIO DE RUTA
 const ScrollToTop = () => {
@@ -70,83 +63,71 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <ScrollToTop />
-        <Routes>
-          {/* RUTAS INDEPENDIENTES: Fuera del Layout principal */}
-          {/* <Route path="/login" element={<Login />} /> */}
-          <Route path="/login-page" element={<LoginPage />} />
-          <Route path="/subir" element={<SubirModPage />} />
+        <Suspense fallback={<LoadingSpinner />}>
+          <Routes>
+            {/* RUTAS INDEPENDIENTES: Fuera del Layout principal */}
+            <Route path="/login-page" element={<LoginPage />} />
+            <Route path="/subir" element={<SubirModPage />} />
 
-          {/* RUTAS ENVUELTAS EN EL LAYOUT (Llevan Sidebar y Header) */}
-          <Route path="/" element={<Layout toggleTheme={toggleTheme} isDarkMode={isDarkMode} />}>
-            
-            {/* --- RUTAS PRINCIPALES --- */}
-            <Route index element={<Inicio />} />
-            
-            {/* --- CATEGORÍAS --- */}
-            {/* <Route path="personajes" element={<Personajes />} /> */}
-            {/* <Route path="mapas" element={<Mapas />} /> */}
-            {/* <Route path="minijuegos" element={<Minijuegos />} /> */}
-            <Route path="mods" element={<Mods />} />
-            {/* <Route path="modpacks" element={<Modpacks />} /> */}
-            {/* <Route path="paquetes" element={<Paquetes />} /> */}
-            {/* <Route path="servidores" element={<Servidores />} /> */}
-            {/* <Route path="servidor/:id" element={<DetalleServidor />} /> */}
+            {/* RUTAS ENVUELTAS EN EL LAYOUT (Llevan Sidebar y Header) */}
+            <Route path="/" element={<Layout toggleTheme={toggleTheme} isDarkMode={isDarkMode} />}>
+              
+              {/* --- RUTAS PRINCIPALES --- */}
+              <Route index element={<Inicio />} />
+              
+              {/* --- CATEGORÍAS --- */}
+              <Route path="mods" element={<Mods />} />
 
-            {/* --- BUSCADOR --- */}
-            <Route path="buscar" element={<Resultados />} /> 
+              {/* --- BUSCADOR --- */}
+              <Route path="buscar" element={<Resultados />} /> 
 
-            {/* --- COMUNIDAD --- */}
-            <Route path="comunidad" element={<Comunidad />} />
-            <Route path="u/:username" element={<PublicProfile />} />
-            
-            {/* --- OTROS --- */}
-            <Route path="acerca-de" element={<AcercaDe />} />
-            <Route path="contacto" element={<Contacto />} />
-            <Route path="destacados" element={<Destacados />} />
-            <Route path="/view/:id" element={<DetalleContenido />} />
+              {/* --- COMUNIDAD --- */}
+              <Route path="comunidad" element={<Comunidad />} />
+              <Route path="u/:username" element={<PublicProfile />} />
+              
+              {/* --- OTROS --- */}
+              <Route path="acerca-de" element={<AcercaDe />} />
+              <Route path="contacto" element={<Contacto />} />
+              <Route path="destacados" element={<Destacados />} />
+              <Route path="/view/:id" element={<DetalleContenido />} />
 
-            {/* --- RUTAS PROTEGIDAS --- */}
-            <Route path="admin" element={
-                <ProtectedRoute requireAdmin={true}>
-                  <AdminPanel />
-                </ProtectedRoute>
-              } 
-            />
-            {/* <Route path="admin-upload" element={
-                <ProtectedRoute requireAdmin={true}>
-                  <AdminUpload />
-                </ProtectedRoute>
-              } 
-            /> */}
-            <Route path="configuracion" element={
-                <ProtectedRoute>
-                  <Configuracion />
-                </ProtectedRoute>
-              } 
-            />
-            <Route path="mis-mods" element={
-                <ProtectedRoute>
-                  <MisMods />
-                </ProtectedRoute>
-              } 
-            />
-            <Route path="edit/:id" element={
-                <ProtectedRoute>
-                  <EditContent />
-                </ProtectedRoute>
-              } 
-            />
-            <Route path="notificaciones" element={
-                <ProtectedRoute>
-                  <Notificaciones />
-                </ProtectedRoute>
-              } 
-            />
+              {/* --- RUTAS PROTEGIDAS --- */}
+              <Route path="admin" element={
+                  <ProtectedRoute requireAdmin={true}>
+                    <AdminPanel />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route path="configuracion" element={
+                  <ProtectedRoute>
+                    <Configuracion />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route path="mis-mods" element={
+                  <ProtectedRoute>
+                    <MisMods />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route path="edit/:id" element={
+                  <ProtectedRoute>
+                    <EditContent />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route path="notificaciones" element={
+                  <ProtectedRoute>
+                    <Notificaciones />
+                  </ProtectedRoute>
+                } 
+              />
 
-            {/* 404 - Redirección */}
-            <Route path="*" element={<Navigate to="/" />} />
-          </Route>
-        </Routes>
+              {/* 404 - Redirección */}
+              <Route path="*" element={<Navigate to="/" />} />
+            </Route>
+          </Routes>
+        </Suspense>
       </BrowserRouter>
     </AuthProvider>
   );

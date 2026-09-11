@@ -160,6 +160,7 @@ const Carousel = ({ title, limit = 6, tipo = null, autoPlayInterval = 5000 }) =>
                 src={item.imagen || '/default.jpg'}
                 alt={item.titulo}
                 className="w-full h-full object-cover select-none rounded-lg"
+                loading="lazy"
                 onError={(e) => { e.target.src = '/default.jpg'; }}
               />
               

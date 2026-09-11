@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Upload, Compass, Package, Download, Users, Zap, Puzzle, Map, Gamepad2, Box, Archive, User, Users as UsersIcon, Server } from 'lucide-react';
+import { Upload, Compass, Download, Users, Users as UsersIcon, Zap, Gamepad2, User, Server, Package } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getPublicContent, getGlobalStats } from '../services/api';
 import SubirMod from '../pages/SubirMod';

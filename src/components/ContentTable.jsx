@@ -929,6 +929,7 @@ const ContentTable = ({
                               src={mainImage} 
                               alt={item.titulo} 
                               className="w-full h-full object-cover"
+                              loading="lazy"
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-gray-400">
@@ -1554,6 +1555,7 @@ const ContentTable = ({
                           src={editingValue || (editingItem?.imagen || (editingItem?.imagenes && editingItem.imagenes[0]))}
                           alt="Previsualización"
                           className="w-full h-full object-cover"
+                          loading="lazy"
                           onError={(e) => {
                             e.target.style.display = 'none';
                             e.target.parentElement.innerHTML = '<div class="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-500 text-xs font-medium">No se pudo cargar la imagen</div>';

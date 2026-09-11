@@ -201,7 +201,7 @@ const DownloadsInput = ({
               <button
                 type="button"
                 onClick={() => handleRemoveDownload(index)}
-                className="w-full md:w-auto flex items-center justify-center p-2.5 text-red-600 bg-red-50 hover:bg-red-100 dark:text-red-500 dark:bg-red-900/20 dark:hover:bg-red-900/40 rounded-lg shadow-sm transition-colors"
+                className="w-full md:w-auto flex items-center justify-center p-2.5 text-red-600 bg-red-50 hover:bg-red-100 dark:text-red-500 dark:bg-red-900/20 dark:hover:bg-red-900/40 border border-red-200 dark:border-red-800 rounded-lg shadow-sm transition-colors"
               >
                 <Trash2 size={16} />
               </button>

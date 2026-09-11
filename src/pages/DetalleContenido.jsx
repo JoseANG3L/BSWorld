@@ -62,10 +62,11 @@ const ContentFields = ({ content, original, showChanges = false }) => {
                 <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 block">Imagen Principal</label>
                 {content?.imagen ? (
                     <div className="relative w-full aspect-video rounded-lg overflow-hidden">
-                        <img 
-                            src={content.imagen} 
-                            alt="Imagen principal" 
+                        <img
+                            src={content.imagen}
+                            alt="Imagen principal"
                             className="w-full h-full object-cover"
+                            loading="lazy"
                         />
                     </div>
                 ) : (
@@ -79,10 +80,11 @@ const ContentFields = ({ content, original, showChanges = false }) => {
                     {content?.galeria?.length > 0 ? (
                         content.galeria.map((img, i) => (
                             <div key={i} className="relative aspect-video rounded-lg overflow-hidden">
-                                <img 
-                                    src={img} 
-                                    alt={`Galería ${i + 1}`} 
+                                <img
+                                    src={img}
+                                    alt={`Galería ${i + 1}`}
                                     className="w-full h-full object-cover"
+                                    loading="lazy"
                                 />
                             </div>
                         ))
@@ -237,10 +239,11 @@ const RecommendedItem = ({ content }) => {
         >
             {/* Imagen a la izquierda */}
             <div className="h-20 aspect-video shrink-0 rounded-lg overflow-hidden bg-gray-200 dark:bg-[#1D1F23]">
-                <img 
-                    src={content.imagen || '/default.jpg'} 
+                <img
+                    src={content.imagen || '/default.jpg'}
                     alt={content.titulo}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                    loading="lazy"
                     onError={(e) => { e.target.src = '/default.jpg'; }}
                 />
             </div>
@@ -891,12 +894,13 @@ const DetalleContenido = () => {
                                     loop 
                                 />
                             ) : (
-                                <img 
-                                    src={imageErrors[selectedIndex] ? '/default.jpg' : currentMedia} 
-                                    key={currentMedia} 
-                                    className="w-full aspect-video object-cover bg-black transition-opacity duration-300" 
+                                <img
+                                    src={imageErrors[selectedIndex] ? '/default.jpg' : currentMedia}
+                                    key={currentMedia}
+                                    className="w-full aspect-video object-cover bg-black transition-opacity duration-300"
                                     style={{ opacity: 0 }}
-                                    alt={item.titulo} 
+                                    alt={item.titulo}
+                                    loading="lazy"
                                     onLoad={(e) => { e.target.style.opacity = 1; }}
                                     onError={(e) => {
                                         if (!imageErrors[selectedIndex]) {
@@ -952,11 +956,12 @@ const DetalleContenido = () => {
                                                     <PlayCircle size={16} className="text-white drop-shadow-md" />
                                                 </div>
                                             )}
-                                            <img 
-                                                src={imageErrors[index] ? '/default.jpg' : thumbSrc} 
-                                                alt={`Miniatura ${index + 1}`} 
+                                            <img
+                                                src={imageErrors[index] ? '/default.jpg' : thumbSrc}
+                                                alt={`Miniatura ${index + 1}`}
                                                 className="w-full h-full object-cover transition-opacity duration-300"
                                                 style={{ opacity: 0 }}
+                                                loading="lazy"
                                                 onLoad={(e) => { e.target.style.opacity = 1; }}
                                                 onError={(e) => {
                                                     if (!imageErrors[index]) {

@@ -81,13 +81,14 @@ const GalleryInput = ({
             Imagen de Portada *
           </label>
           
-          <div className="w-full aspect-video rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-800 bg-gray-100 dark:bg-gray-900 relative shadow-sm flex items-center justify-center">
+          <div className="w-full max-w-2xl mx-auto aspect-video rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-800 bg-gray-100 dark:bg-gray-900 relative shadow-sm flex items-center justify-center">
             {mainImage && mainImage.trim() ? (
               <img 
                 key={`main-cover-${mainImage}`}
                 src={mainImage} 
                 alt="Portada" 
                 className="w-full h-full object-cover" 
+                loading="lazy"
                 onError={(e) => {
                   e.target.style.opacity = '0';
                 }}
@@ -162,6 +163,7 @@ const GalleryInput = ({
                           src={url}
                           alt={`Galería ${index}`}
                           className="w-full h-full object-cover"
+                          loading="lazy"
                           onError={(e) => {
                             e.target.style.opacity = '0';
                           }}
@@ -223,6 +225,7 @@ const GalleryInput = ({
                           src={url}
                           alt={`Galería ${index}`}
                           className="w-full h-full object-cover"
+                          loading="lazy"
                           onError={(e) => {
                             e.target.style.opacity = '0';
                           }}
