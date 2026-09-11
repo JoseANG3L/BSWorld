@@ -84,7 +84,7 @@ const Inicio = () => {
       {/* BANNER PRINCIPAL */}
       <Banner />
       
-      <div className="flex flex-col px-2 md:px-4 py-6 md:py-7 space-y-6 md:space-y-7">
+      <div className="flex flex-col px-2 md:px-4 py-5 md:py-7 space-y-6 md:space-y-7">
         
         {/* --- SECCIÓN: NOVEDADES RECIENTES --- */}
         <div className="flex flex-col">

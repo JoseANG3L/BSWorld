@@ -189,14 +189,14 @@ const Banner = () => {
           <div className="flex flex-col gap-2 animate-fade-in-up w-full" style={{ animationDuration: '500ms' }}>
             <button
               onClick={() => setIsSubirModOpen(true)}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-white text-primary-700 font-bold rounded-xl hover:bg-white/90 transition-all shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 text-sm"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-white text-primary-700 font-bold rounded-xl hover:bg-white/90 transition-all shadow-lg text-sm"
             >
               <Upload size={16} strokeWidth={2.5} />
               <span>Subir Mod</span>
             </button>
             <button
               onClick={() => navigate('/mods')}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-md text-white font-bold rounded-xl border-2 border-white/20 hover:bg-white/20 transition-all shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 text-sm"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-md text-white font-bold rounded-xl border-2 border-white/20 hover:bg-white/20 transition-all shadow-lg text-sm"
             >
               <Gamepad2 size={16} strokeWidth={2.5} />
               <span>Explorar Mods</span>

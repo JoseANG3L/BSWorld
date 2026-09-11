@@ -100,6 +100,7 @@ const Login = ({ isOpen = true, onClose, initialRegister = false }) => {
           throw { code: 'password-mismatch' };
         }
         if (formData.password.length < 6) throw { code: 'weak-password' };
+        if (formData.username.length > 20) throw { code: 'username-too-long' };
         await signup(formData.email, formData.password, formData.username, formData.avatar);
       } else {
         await login(formData.email, formData.password);
@@ -116,6 +117,8 @@ const Login = ({ isOpen = true, onClose, initialRegister = false }) => {
       
       if (err.code === 'custom/username-taken') {
         msg = "Este nombre de usuario ya está ocupado.";
+      } else if (err.code === 'custom/username-too-long' || err.code === 'username-too-long') {
+        msg = "El nombre de usuario no puede tener más de 20 caracteres.";
       } else if (err.message === 'Invalid login credentials') {
         msg = "Correo o contraseña incorrectos.";
       } else if (err.code === 'password-mismatch') {
@@ -257,7 +260,7 @@ const Login = ({ isOpen = true, onClose, initialRegister = false }) => {
                   <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary-500 transition-colors" size={18} />
                   <input 
                     type="text" name="username" placeholder="Nombre de usuario" required={isRegistering}
-                    value={formData.username} onChange={handleChange}
+                    value={formData.username} onChange={handleChange} maxLength={20}
                     className="w-full pl-11 pr-4 py-3 rounded-xl dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 transition-all dark:text-white text-sm"
                   />
                 </div>

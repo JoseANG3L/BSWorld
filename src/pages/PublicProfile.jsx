@@ -282,7 +282,7 @@ const PublicProfile = () => {
             <div className="flex flex-col min-w-0 items-center md:items-start">
                 <div className="flex items-center gap-3">
                     {isOwnProfile && (
-                      <div className="w-8 h-8"></div>
+                      <div className="w-8 h-8 md:hidden"></div>
                     )}
 
                     <h1 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white truncate">
@@ -526,7 +526,7 @@ const PublicProfile = () => {
 
       {/* SECCIÓN 3: CONTENIDO */}
       {filteredContent.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-4 pb-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2 md:gap-3 pb-4">
           {filteredContent.map((item) => (
               <Card key={item.id} {...item} />
           ))}

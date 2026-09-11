@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { PackageOpen, FileBox, Heart, MessageCircle, Download } from 'lucide-react';
-import { getUserContent, deleteContent } from '../services/api';
+import { PackageOpen, Eye, Heart, MessageCircle, Download } from 'lucide-react';
+import { getUserContent, deleteContent, getCommentCountByContent } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import Modal from '../components/Modal';
 import ContentTable from '../components/ContentTable';
@@ -14,7 +14,7 @@ const MisMods = () => {
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState(null);
   const [hasLoaded, setHasLoaded] = useState(false);
-  const [stats, setStats] = useState({ total: 0, likes: 0, comments: 0, downloads: 0 });
+  const [stats, setStats] = useState({ total: 0, views: 0, likes: 0, comments: 0, downloads: 0 });
 
   // --- ESTADO DEL MODAL ---
   const [modal, setModal] = useState({
@@ -40,30 +40,55 @@ const MisMods = () => {
 
   const fetchMyMods = async () => {
     setLoading(true);
-    const data = await getUserContent(user?.id);
-    setMods(data);
-    
-    // Calcular estadísticas
-    const totalLikes = data.reduce((acc, item) => acc + (item.likes || 0), 0);
-    const totalComments = data.reduce((acc, item) => acc + (item.comments || 0), 0);
-    const totalDownloads = data.reduce((acc, item) => {
-      const itemDownloads = item.descargas?.reduce((subAcc, version) => subAcc + (version.count || 0), 0) || 0;
-      return acc + itemDownloads;
-    }, 0);
-    
-    setStats({
-      total: data.length,
-      likes: totalLikes,
-      comments: totalComments,
-      downloads: totalDownloads
-    });
-    
-    setLoading(false);
+    try {
+      const data = await getUserContent(user?.id);
+      const modsData = data || [];
+      setMods(modsData);
+
+      // Calcular estadísticas (total de todos los mods)
+      const totalViews = modsData.reduce((acc, item) => acc + (item.vistas || 0), 0);
+      const totalLikes = modsData.reduce((acc, item) => acc + (item.likes_count || 0), 0);
+
+      // Cargar conteos de comentarios para cada mod
+      const commentCounts = {};
+      await Promise.all(
+        modsData.map(async (item) => {
+          const count = await getCommentCountByContent(item.id);
+          commentCounts[item.id] = count;
+        })
+      );
+
+      const totalComments = Object.values(commentCounts).reduce((acc, count) => acc + count, 0);
+
+      const totalDownloads = modsData.reduce((acc, item) => {
+        const itemDownloads = item.descargas?.reduce((subAcc, version) => subAcc + (version.count || 0), 0) || 0;
+        return acc + itemDownloads;
+      }, 0);
+
+      setStats({
+        total: modsData.length,
+        views: totalViews,
+        likes: totalLikes,
+        comments: totalComments,
+        downloads: totalDownloads
+      });
+    } catch (error) {
+      console.error('Error al cargar mods:', error);
+      setMods([]);
+      setStats({ total: 0, views: 0, likes: 0, comments: 0, downloads: 0 });
+    } finally {
+      setLoading(false);
+    }
   };
 
   // --- EDICIÓN EN MASA ---
   const handleBulkUpdate = (selectedIds, actionType, value) => {
     // Recargar datos después de la edición en masa
+    fetchMyMods();
+  };
+
+  // --- RECARGAR ESTADÍSTICAS ---
+  const reloadStats = () => {
     fetchMyMods();
   };
 
@@ -84,7 +109,46 @@ const MisMods = () => {
     setDeletingId(id);
     try {
       await deleteContent(id);
-      setMods(prev => prev.filter(mod => mod.id !== id));
+      setMods(prev => {
+        const newMods = prev.filter(mod => mod.id !== id);
+
+        // Recalcular estadísticas después de eliminar
+        const totalViews = newMods.reduce((acc, item) => acc + (item.vistas || 0), 0);
+        const totalLikes = newMods.reduce((acc, item) => acc + (item.likes_count || 0), 0);
+
+        // Recargar conteos de comentarios para los mods restantes
+        const recalculateComments = async () => {
+          const commentCounts = {};
+          await Promise.all(
+            newMods.map(async (item) => {
+              const count = await getCommentCountByContent(item.id);
+              commentCounts[item.id] = count;
+            })
+          );
+          return Object.values(commentCounts).reduce((acc, count) => acc + count, 0);
+        };
+
+        const totalDownloads = newMods.reduce((acc, item) => {
+          const itemDownloads = item.descargas?.reduce((subAcc, version) => subAcc + (version.count || 0), 0) || 0;
+          return acc + itemDownloads;
+        }, 0);
+
+        // Actualizar stats inmediatamente con lo que podemos calcular sin async
+        setStats({
+          total: newMods.length,
+          views: totalViews,
+          likes: totalLikes,
+          comments: 0, // Se actualizará después
+          downloads: totalDownloads
+        });
+
+        // Luego actualizar comentarios de forma asíncrona
+        recalculateComments().then(totalComments => {
+          setStats(prev => ({ ...prev, comments: totalComments }));
+        });
+
+        return newMods;
+      });
       setModal({
         isOpen: true,
         type: 'success',
@@ -132,7 +196,7 @@ const MisMods = () => {
         icon={PackageOpen}
         gradientClass="from-green-600 to-emerald-700"
         headerStats={[
-          { icon: FileBox, label: 'Contenido', value: stats.total, iconColor: 'text-green-500' },
+          { icon: Eye, label: 'Vistas', value: stats.views, iconColor: 'text-green-500' },
           { icon: Heart, label: 'Likes', value: stats.likes, iconColor: 'text-red-500' },
           { icon: MessageCircle, label: 'Comentarios', value: stats.comments, iconColor: 'text-blue-500' },
           { icon: Download, label: 'Descargas', value: stats.downloads, iconColor: 'text-purple-500' }

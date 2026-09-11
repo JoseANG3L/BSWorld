@@ -297,7 +297,7 @@ const EditContent = () => {
         </h1>
 
         {/* Botones de acción */}
-        <div className="flex gap-3">
+        <div className="flex gap-3 mt-2 md:mt-0">
           <button
             type="button"
             onClick={() => navigate(-1)}

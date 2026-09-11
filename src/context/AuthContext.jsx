@@ -38,6 +38,11 @@ export const AuthProvider = ({ children }) => {
 
   // --- FUNCIÓN SIGNUP (Registro tradicional por Email/Password) ---
   const signup = async (email, password, username, avatarUrl) => {
+    // Validar longitud del username
+    if (username.length > 20) {
+      throw { code: "custom/username-too-long" };
+    }
+
     // 1. Verificar si el username ya existe en la tabla 'users'
     const { data: existingUser } = await supabase
       .from("users")

@@ -230,8 +230,8 @@ const SimpleEditor = ({ value, onChange, placeholder, withBorder = true }) => {
     <div className={clsx("border border-gray-300 rounded-xl overflow-hidden bg-white dark:bg-[#1e1e1e] transition-all duration-300 focus-within:ring-1 focus-within:ring-primary-500", withBorder ? "dark:border-gray-700" : "dark:border-transparent")}>
       
       {/* BARRA DE HERRAMIENTAS */}
-      <div className="flex flex-wrap items-center justify-between px-2 bg-gray-50 dark:bg-[#1D1F23] border-b border-gray-200 dark:border-gray-700 gap-1">
-        <div className="flex flex-wrap items-center gap-1 mb-1">
+      <div className="flex flex-wrap items-center justify-between px-2 pb-1 md:pb-0.5 bg-gray-50 dark:bg-[#1D1F23] border-b border-gray-200 dark:border-gray-700 gap-1">
+        <div className="flex flex-wrap items-center gap-1 w-full">
           <div className="flex items-center gap-1">
             <button type="button" onClick={formatBold} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Negrita (Ctrl+B)">
               <Bold size={18} />
@@ -303,11 +303,12 @@ const SimpleEditor = ({ value, onChange, placeholder, withBorder = true }) => {
               <Minus size={18} />
             </button>
           </div>
+          
+          <button type="button" onClick={() => setIsPreview(!isPreview)} className="ml-auto flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600">
+            {isPreview ? <><Edit3 size={14}/> Editar</> : <><Eye size={14}/> Vista Previa</>}
+          </button>
         </div>
 
-        <button type="button" onClick={() => setIsPreview(!isPreview)} className="flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-bold transition-colors bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600">
-          {isPreview ? <><Edit3 size={14}/> Editar</> : <><Eye size={14}/> Vista Previa</>}
-        </button>
       </div>
 
       {/* ÁREA DE EDICIÓN O VISTA PREVIA */}
