@@ -9,13 +9,44 @@ import { registerDownload, getUserPublicProfile } from '../services/api';
 
 const COOLDOWN_TIME = 3600000;
 
+// Configuración de categorías con soporte de iconos y colores adaptados a Light/Dark
 const CATEGORIAS = {
-  complemento: { nombre: 'Complemento', icon: Wrench, color: 'text-blue-500', borderColor: 'border-blue-500/80' },
-  mapa: { nombre: 'Mapa', icon: Map, color: 'text-emerald-500', borderColor: 'border-emerald-500/80' },
-  minijuego: { nombre: 'Minijuego', icon: Gamepad2, color: 'text-amber-500', borderColor: 'border-amber-500/80' },
-  modpack: { nombre: 'Modpack', icon: Boxes, color: 'text-red-500', borderColor: 'border-red-500/80' },
-  paquete: { nombre: 'Paquete', icon: Package, color: 'text-cyan-500', borderColor: 'border-cyan-500/80' },
-  personaje: { nombre: 'Personaje', icon: User, color: 'text-purple-500', borderColor: 'border-purple-500/80' }
+  complemento: { 
+    nombre: 'Complemento', 
+    icon: Wrench, 
+    badgeColor: 'text-blue-300',
+    borderColor: 'border-blue-500/80' 
+  },
+  mapa: { 
+    nombre: 'Mapa', 
+    icon: Map, 
+    badgeColor: 'text-emerald-300',
+    borderColor: 'border-emerald-500/80' 
+  },
+  minijuego: { 
+    nombre: 'Minijuego', 
+    icon: Gamepad2, 
+    badgeColor: 'text-amber-300',
+    borderColor: 'border-amber-500/80' 
+  },
+  modpack: { 
+    nombre: 'Modpack', 
+    icon: Boxes, 
+    badgeColor: 'text-rose-300',
+    borderColor: 'border-red-500/80' 
+  },
+  paquete: { 
+    nombre: 'Paquete', 
+    icon: Package, 
+    badgeColor: 'text-cyan-300',
+    borderColor: 'border-cyan-500/80' 
+  },
+  personaje: { 
+    nombre: 'Personaje', 
+    icon: User, 
+    badgeColor: 'text-purple-300',
+    borderColor: 'border-purple-500/80' 
+  }
 }; 
 
 // --- SUB-COMPONENTE INTELIGENTE ---
@@ -65,10 +96,10 @@ const SmartUserDisplay = ({ initialUser, type = 'list', extraCount = 0 }) => {
       <Link 
         to={`/u/${userData.nombre}`} 
         onClick={(e) => e.stopPropagation()}
-        className="relative block group/avatar shrink-0 mt-1" 
+        className="relative block group/avatar shrink-0 mt-1 md:mt-0.5" 
         title={userData.nombre}
       >
-        <div className="w-9 h-9 md:w-10 md:h-10 rounded-full">
+        <div className="w-9 h-9 md:w-10 md:h-10 rounded-full overflow-hidden">
           <AvatarRenderer avatar={userData.imagen} name={userData.nombre} />
         </div>
         {esVerificado && (
@@ -245,7 +276,13 @@ const Card = ({
     return listaCreditos[0] || { nombre: 'Desconocido', imagen: null, uid: null };
   }, [listaCreditos]);
 
-  const categoriaInfo = CATEGORIAS[tipo] || { nombre: tipo || 'Sin categoría', icon: null, color: 'text-gray-500', borderColor: 'border-gray-300' };
+  const categoriaInfo = CATEGORIAS[tipo] || { 
+    nombre: tipo || 'Sin categoría', 
+    icon: null, 
+    badgeColor: 'text-gray-200', 
+    borderColor: 'border-gray-300' 
+  };
+  const CategoriaIcon = categoriaInfo.icon;
 
   return (
     <div 
@@ -268,7 +305,7 @@ const Card = ({
       {/* 1. IMAGEN */}
       <Link 
         to={id ? `/view/${id}` : "#"} 
-        className="relative w-full aspect-video overflow-hidden bg-gray-100 dark:bg-[#1D1F23] block cursor-pointer rounded-t-xl"
+        className="relative w-full aspect-video overflow-hidden bg-gray-100 dark:bg-[#1D1F23] block cursor-pointer rounded-xl"
       >
         <div className="absolute inset-0 bg-gradient-to-t from-black/0 to-black/0 group-hover:from-black/20 group-hover:to-transparent transition-all duration-300 z-10" />
         <img 
@@ -294,9 +331,11 @@ const Card = ({
           </div>
         )}
 
+        {/* Badge de Categoría: Oscuro para Light, Claro para Dark + Ícono */}
         <div className="absolute top-2 left-2 z-10">
-          <span className={`px-2 py-1 rounded-lg text-xs font-bold ${categoriaInfo.color} bg-white/90 dark:bg-black/80 backdrop-blur-sm shadow-md`}>
-            {categoriaInfo.nombre}
+          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold ${categoriaInfo.badgeColor} bg-black/75 backdrop-blur-sm shadow-md`}>
+            {CategoriaIcon && <CategoriaIcon size={12} strokeWidth={2.5} className="shrink-0" />}
+            <span>{categoriaInfo.nombre}</span>
           </span>
         </div>
       </Link>
@@ -309,7 +348,7 @@ const Card = ({
           <SmartUserDisplay initialUser={primerCredito} type="card-avatar" />
           
           {/* Título y Nombre del Creador */}
-          <div className="flex-1 min-w-0">
+          <div className="min-w-0 flex-1">
             <Link 
               to={id ? `/view/${id}` : "#"} 
               className="block hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
@@ -320,7 +359,7 @@ const Card = ({
             </Link>
             
             {/* Nombre del creador con datos frescos y verificación */}
-            <div className="-mt-1">
+            <div className="-mt-0.5">
               <SmartUserDisplay initialUser={primerCredito} type="card-byline" />
             </div>
           </div>
