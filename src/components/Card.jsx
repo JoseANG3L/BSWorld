@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Download, ChevronDown, AlertCircle, Eye, User, ShieldCheck, ExternalLink, Heart, Wrench, Map, Gamepad2, Boxes, Package } from 'lucide-react';
+import { Download, ChevronDown, AlertCircle, Eye, User, ShieldCheck, ExternalLink, Heart, Wrench, Map, Gamepad2, Boxes, Package, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import AvatarRenderer from './AvatarRenderer';
 import LikeButton from './LikeButton';
 import { useAuth } from '../context/AuthContext';
-import { registerDownload, getUserPublicProfile } from '../services/api'; 
+import { registerDownload, getUserPublicProfile } from '../services/api';
+import { createPortal } from 'react-dom'; 
 
 const COOLDOWN_TIME = 3600000;
 
@@ -50,8 +51,12 @@ const CATEGORIAS = {
 }; 
 
 // --- SUB-COMPONENTE INTELIGENTE ---
-const SmartUserDisplay = ({ initialUser, type = 'list', extraCount = 0 }) => {
+const SmartUserDisplay = ({ initialUser, type = 'list', extraCount = 0, onClick }) => {
   const [userData, setUserData] = useState(() => {
+    // Si es un array (para card-avatar-stack), no inicializar userData ya que no se usa
+    if (Array.isArray(initialUser)) {
+      return { uid: null, nombre: 'Cargando...', imagen: null, verificado: false };
+    }
     if (typeof initialUser === 'string') {
       return { uid: initialUser, nombre: 'Cargando...', imagen: null, verificado: false };
     }
@@ -64,6 +69,11 @@ const SmartUserDisplay = ({ initialUser, type = 'list', extraCount = 0 }) => {
   });
 
   useEffect(() => {
+    // No hacer fetch si es un array (caso card-avatar-stack)
+    if (Array.isArray(initialUser)) {
+      return;
+    }
+
     let isMounted = true;
     const targetUid = typeof initialUser === 'string' ? initialUser : (initialUser?.uid || initialUser?.id);
 
@@ -92,6 +102,27 @@ const SmartUserDisplay = ({ initialUser, type = 'list', extraCount = 0 }) => {
 
   // Variante específica para el avatar circular principal del card
   if (type === 'card-avatar') {
+    if (onClick) {
+      return (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onClick();
+          }}
+          className="relative block group/avatar shrink-0 mt-1 md:mt-0.5 cursor-pointer"
+          title={userData.nombre}
+        >
+          <div className="w-9 h-9 md:w-10 md:h-10 rounded-full overflow-hidden">
+            <AvatarRenderer avatar={userData.imagen} name={userData.nombre} />
+          </div>
+          {esVerificado && (
+            <div className="absolute -bottom-0.5 -right-0.5 bg-white dark:bg-gray-900 rounded-full p-0.5 shadow-sm">
+              <ShieldCheck size={10} className="text-blue-500" />
+            </div>
+          )}
+        </button>
+      );
+    }
     return (
       <Link 
         to={`/u/${userData.nombre}`} 
@@ -108,6 +139,99 @@ const SmartUserDisplay = ({ initialUser, type = 'list', extraCount = 0 }) => {
           </div>
         )}
       </Link>
+    );
+  }
+
+  // Variante para mostrar múltiples avatares (avatar stack estilo DetalleContenido)
+  if (type === 'card-avatar-stack') {
+    const creators = Array.isArray(initialUser) ? initialUser : [initialUser];
+    const firstCreator = creators[0];
+    const extraCount = creators.length - 1;
+
+    // Estado local para el primer creador con fetching
+    const [userData, setUserData] = useState(() => {
+      if (typeof firstCreator === 'string') {
+        return { uid: firstCreator, nombre: firstCreator, imagen: null, verificado: false };
+      }
+      return {
+        uid: firstCreator?.uid || firstCreator?.id || null,
+        nombre: firstCreator?.nombre || firstCreator?.username || 'Desconocido',
+        imagen: firstCreator?.imagen || firstCreator?.avatar || null,
+        verificado: firstCreator?.verificado || false
+      };
+    });
+
+    useEffect(() => {
+      let isMounted = true;
+      const targetUid = typeof firstCreator === 'string' ? firstCreator : (firstCreator?.uid || firstCreator?.id);
+
+      if (targetUid) {
+        const fetchFresh = async () => {
+          try {
+            const freshProfile = await getUserPublicProfile(targetUid);
+            if (freshProfile && isMounted) {
+              setUserData({
+                uid: freshProfile.uid,
+                nombre: freshProfile.nombre,
+                imagen: freshProfile.imagen,
+                verificado: freshProfile.verificado
+              });
+            }
+          } catch (error) {
+            console.error("Error actualizando usuario tarjeta", error);
+          }
+        };
+        fetchFresh();
+      }
+      return () => { isMounted = false; };
+    }, [firstCreator]);
+
+    return (
+      <div className="flex shrink-0 mt-1 md:mt-0.5 relative">
+        {onClick ? (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onClick();
+            }}
+            className="relative block group/avatar cursor-pointer"
+            title={userData.nombre}
+          >
+            <div className="w-9 h-9 md:w-10 md:h-10 rounded-full relative shrink-0">
+              <AvatarRenderer avatar={userData.imagen} name={userData.nombre} />
+            </div>
+            {userData.verificado && (
+              <div className="absolute -bottom-0.5 -right-0.5 bg-white dark:bg-gray-900 rounded-full p-0.5 shadow-sm">
+                <ShieldCheck size={10} className="text-blue-500" />
+              </div>
+            )}
+          </button>
+        ) : (
+          <Link
+            to={`/u/${userData.nombre}`}
+            onClick={(e) => e.stopPropagation()}
+            className="relative block group/avatar"
+            title={userData.nombre}
+          >
+            <div className="w-9 h-9 md:w-10 md:h-10 rounded-full relative shrink-0">
+              <AvatarRenderer avatar={userData.imagen} name={userData.nombre} />
+            </div>
+            {userData.verificado && (
+              <div className="absolute -bottom-0.5 -right-0.5 bg-white dark:bg-gray-900 rounded-full p-0.5 shadow-sm">
+                <ShieldCheck size={10} className="text-blue-500" />
+              </div>
+            )}
+          </Link>
+        )}
+        {extraCount > 0 && (
+          <div 
+            className="absolute -bottom-1 -right-1 z-10 w-5 h-5 md:w-6 md:h-6 rounded-full bg-primary-600 dark:bg-primary-500 border-2 border-white dark:border-[#1e1e1e] flex items-center justify-center text-[10px] md:text-xs font-bold text-white shadow-sm"
+            title={`+${extraCount} creador${extraCount > 1 ? 'es' : ''}`}
+          >
+            +{extraCount}
+          </div>
+        )}
+      </div>
     );
   }
 
@@ -190,6 +314,68 @@ const SmartUserDisplay = ({ initialUser, type = 'list', extraCount = 0 }) => {
   return null;
 };
 
+// --- SUB-COMPONENTE: FILA DE USUARIO INTELIGENTE ---
+const SmartUserRow = ({ user }) => {
+  const [profile, setProfile] = useState(() => {
+    if (typeof user === 'string') {
+      return { uid: user, nombre: 'Cargando...', imagen: null, verificado: false };
+    }
+    return {
+      uid: user?.uid || user?.id || null,
+      nombre: user?.nombre || user?.username || 'Creador',
+      imagen: user?.imagen || user?.avatar || null,
+      verificado: user?.verificado || false
+    };
+  });
+
+  useEffect(() => {
+    let isMounted = true;
+    const targetUid = typeof user === 'string' ? user : (user?.uid || user?.id);
+
+    if (targetUid) {
+      const fetchFreshProfile = async () => {
+        try {
+          const freshData = await getUserPublicProfile(targetUid);
+          if (freshData && isMounted) {
+            setProfile({
+              uid: freshData.uid,
+              nombre: freshData.nombre,
+              imagen: freshData.imagen,
+              verificado: freshData.verificado
+            });
+          }
+        } catch (error) {
+          console.error("Error fetching user profile", error);
+        }
+      };
+      fetchFreshProfile();
+    }
+    return () => { isMounted = false; };
+  }, [user]);
+
+  return (
+    <Link 
+      to={profile.nombre ? `/u/${profile.nombre}` : '#'} 
+      className="flex items-center gap-3 group p-2 -mx-2 rounded-xl hover:bg-gray-300 dark:hover:bg-gray-700 transition-all"
+    >
+      <div className="w-10 h-10 shrink-0 rounded-full overflow-hidden relative">
+        <AvatarRenderer avatar={profile.imagen} name={profile.nombre} />
+      </div>
+
+      <div className="flex flex-col">
+        <div className="flex items-center gap-1.5">
+          <p className="text-sm font-bold text-gray-900 dark:text-white transition-colors line-clamp-1">
+            {profile.nombre}
+          </p>
+          {profile.verificado && (
+            <ShieldCheck size={14} className="text-blue-500 shrink-0" title="Verificado" />
+          )}
+        </div>
+      </div>
+    </Link>
+  );
+};
+
 const Card = ({ 
   id, 
   imagen, 
@@ -210,6 +396,7 @@ const Card = ({
   const creditosRef = useRef(null);
   const [imageError, setImageError] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [showCreatorsModal, setShowCreatorsModal] = useState(false);
 
   const [localDescargas, setLocalDescargas] = useState(descargas);
   const [isSpamming, setIsSpamming] = useState(false);
@@ -258,6 +445,18 @@ const Card = ({
   useEffect(() => {
     setLocalDescargas(descargas);
   }, [descargas]);
+
+  // Bloqueo de scroll cuando el modal de creadores está abierto
+  useEffect(() => {
+    if (showCreatorsModal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [showCreatorsModal]);
 
   const listaCreditos = useMemo(() => {
     return (Array.isArray(creadores) ? creadores : [creadores]).map(creador => {
@@ -345,7 +544,15 @@ const Card = ({
         {/* 2. LAYOUT HORIZONTAL: AVATAR INTELIGENTE + TÍTULO */}
         <div className="flex items-start gap-2">
           {/* Avatar dinámico mediante SmartUserDisplay */}
-          <SmartUserDisplay initialUser={primerCredito} type="card-avatar" />
+          {listaCreditos.length > 1 ? (
+            <SmartUserDisplay 
+              initialUser={listaCreditos} 
+              type="card-avatar-stack" 
+              onClick={() => setShowCreatorsModal(true)}
+            />
+          ) : (
+            <SmartUserDisplay initialUser={primerCredito} type="card-avatar" />
+          )}
           
           {/* Título y Nombre del Creador */}
           <div className="min-w-0 flex-1">
@@ -359,8 +566,20 @@ const Card = ({
             </Link>
             
             {/* Nombre del creador con datos frescos y verificación */}
-            <div className="-mt-0.5">
-              <SmartUserDisplay initialUser={primerCredito} type="card-byline" />
+            <div className="-mt-1">
+              {listaCreditos.length > 1 ? (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowCreatorsModal(true);
+                  }}
+                  className="text-xs text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors text-left"
+                >
+                  {listaCreditos[0].nombre} +{listaCreditos.length - 1}
+                </button>
+              ) : (
+                <SmartUserDisplay initialUser={primerCredito} type="card-byline" />
+              )}
             </div>
           </div>
         </div>
@@ -443,6 +662,38 @@ const Card = ({
         </div>
 
       </div>
+
+      {/* MODAL DE CREADORES */}
+      {showCreatorsModal && createPortal(
+        <div
+          className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm flex items-center justify-center"
+          onClick={() => setShowCreatorsModal(false)}
+        >
+          <div
+            className="bg-white dark:bg-[#1e1e1e] rounded-2xl p-2 md:p-4 max-w-md w-full border border-gray-200 dark:border-transparent shadow-2xl relative animate-fade-in-up"
+            style={{ animationDuration: '150ms' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-3 px-2">
+              <h3 className="text-base font-bold text-gray-900 dark:text-white">Creadores</h3>
+              <button
+                onClick={() => setShowCreatorsModal(false)}
+                className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                <X size={18} className="text-gray-600 dark:text-gray-400" />
+              </button>
+            </div>
+
+            {/* Lista de creadores */}
+            <div className="space-y-2">
+              {listaCreditos.map((creador, idx) => (
+                <SmartUserRow key={idx} user={creador} />
+              ))}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 };

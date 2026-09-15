@@ -804,7 +804,7 @@ const DetalleContenido = () => {
     if (!item) return null;
 
     return (
-        <div className="flex flex-col gap-2 lg:gap-4 p-2 pb-4 lg:p-4 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
+        <div className="max-w-7xl mx-auto w-full flex flex-col gap-2 lg:gap-4 p-2 pb-4 lg:p-4 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
 
             {/* BANNER DE MODERACIÓN PARA ADMIN */}
             {canModerate && (
@@ -991,15 +991,18 @@ const DetalleContenido = () => {
                                 onClick={() => setShowCreatorsModal(true)}
                                 className="flex items-center text-left hover:opacity-80 transition-opacity"
                             >
-                                <div className="flex mr-3">
-                                    {creadoresList.slice(0, 2).map((creador, idx) => (
-                                        <div key={idx} className={clsx(idx > 0 && "-ml-3")}>
-                                            <SmartCreatorAvatar creador={creador} />
-                                        </div>
-                                    ))}
-                                    {creadoresList.length > 2 && (
-                                        <div className="relative z-10 w-7 h-7 md:w-8 md:h-8 -ml-3 rounded-full bg-gray-300 dark:bg-gray-700 border-2 border-white dark:border-[#1e1e1e] flex items-center justify-center text-xs font-semibold text-gray-700 dark:text-gray-200 shrink-0">
-                                            +{creadoresList.length - 2}
+                                <div className="flex mr-3 relative">
+                                    {creadoresList.length > 0 && (
+                                        <div className="relative">
+                                            <SmartCreatorAvatar creador={creadoresList[0]} />
+                                            {creadoresList.length > 1 && (
+                                                <div 
+                                                    className="absolute -bottom-1 -right-1 z-10 w-5 h-5 md:w-6 md:h-6 rounded-full bg-primary-600 dark:bg-primary-500 border-2 border-white dark:border-[#1e1e1e] flex items-center justify-center text-[10px] md:text-xs font-bold text-white shadow-sm"
+                                                    title={`+${creadoresList.length - 1} creador${creadoresList.length - 1 > 1 ? 'es' : ''}`}
+                                                >
+                                                    +{creadoresList.length - 1}
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </div>
@@ -1007,23 +1010,13 @@ const DetalleContenido = () => {
                                 <div>
                                     <div className="flex items-center flex-wrap text-sm font-bold text-gray-900 dark:text-white">
                                         {creadoresList.length > 0 ? (
-                                            creadoresList.map((creador, idx) => {
-                                                const esUltimo = idx === creadoresList.length - 1;
-                                                const esPenultimo = idx === creadoresList.length - 2;
-
-                                                return (
-                                                    <React.Fragment key={idx}>
-                                                        <span>{creador.nombre || 'Creador'}</span>
-                                                        {!esUltimo && (
-                                                            <span>
-                                                                {esPenultimo ? '\u00A0y\u00A0' : ',\u00A0'}
-                                                            </span>
-                                                        )}
-                                                    </React.Fragment>
-                                                );
-                                            })
+                                            creadoresList.length > 1 ? (
+                                                <span>{creadoresList[0].nombre} +{creadoresList.length - 1}</span>
+                                            ) : (
+                                                <span>{creadoresList[0].nombre}</span>
+                                            )
                                         ) : (
-                                            <span>Desconocido</span>
+                                            <span>Sin creadores</span>
                                         )}
                                     </div>
                                     
@@ -1374,6 +1367,15 @@ const DetalleContenido = () => {
                         style={{ animationDuration: '150ms' }}
                         onClick={(e) => e.stopPropagation()}
                     >
+                        <div className="flex items-center justify-between mb-3 px-2">
+                            <h3 className="text-base font-bold text-gray-900 dark:text-white">Creadores</h3>
+                            <button
+                                onClick={() => setShowCreatorsModal(false)}
+                                className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                            >
+                                <X size={18} className="text-gray-600 dark:text-gray-400" />
+                            </button>
+                        </div>
                         
                         {/* Lista de creadores */}
                         <div className="space-y-2">

@@ -1341,6 +1341,152 @@ export const getCommentCountByContent = async (contentId) => {
   }
 };
 
+// --- SISTEMA DE FORO DE COMUNIDAD ---
+export const getForumPosts = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('forum_posts')
+      .select('*, users(username, avatar), replies:forum_posts(id)')
+      .is('parent_id', null)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    // Agregar replies_count manualmente
+    const postsWithCount = (data || []).map(post => ({
+      ...post,
+      replies_count: post.replies?.length || 0
+    }));
+
+    return postsWithCount;
+  } catch (error) {
+    console.error("Error obteniendo posts del foro:", error);
+    return [];
+  }
+};
+
+export const getForumReplies = async (postId) => {
+  try {
+    const { data, error } = await supabase
+      .from('forum_posts')
+      .select('*, users(username, avatar)')
+      .eq('parent_id', postId)
+      .order('created_at', { ascending: true });
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error("Error obteniendo respuestas del foro:", error);
+    return [];
+  }
+};
+
+export const createForumPost = async (userId, content, parentId = null) => {
+  try {
+    const { data, error } = await supabase
+      .from('forum_posts')
+      .insert({
+        user_id: userId,
+        content: content,
+        parent_id: parentId
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error("Error creando post del foro:", error);
+    throw error;
+  }
+};
+
+export const updateForumPost = async (postId, content) => {
+  try {
+    const { data, error } = await supabase
+      .from('forum_posts')
+      .update({
+        content: content,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', postId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error("Error actualizando post del foro:", error);
+    throw error;
+  }
+};
+
+export const deleteForumPost = async (postId) => {
+  try {
+    const { error } = await supabase
+      .from('forum_posts')
+      .delete()
+      .eq('id', postId);
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error("Error eliminando post del foro:", error);
+    throw error;
+  }
+};
+
+export const likeForumPost = async (postId, userId) => {
+  try {
+    // Primero verificar si ya existe el like
+    const { data: existingLike } = await supabase
+      .from('forum_likes')
+      .select('*')
+      .eq('post_id', postId)
+      .eq('user_id', userId)
+      .single();
+
+    if (existingLike) {
+      // Si ya existe, eliminar el like
+      const { error } = await supabase
+        .from('forum_likes')
+        .delete()
+        .eq('id', existingLike.id);
+
+      if (error) throw error;
+      return { liked: false };
+    } else {
+      // Si no existe, crear el like
+      const { data, error } = await supabase
+        .from('forum_likes')
+        .insert({
+          post_id: postId,
+          user_id: userId
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return { liked: true };
+    }
+  } catch (error) {
+    console.error("Error en like del foro:", error);
+    throw error;
+  }
+};
+
+export const getForumPostLikes = async (postId) => {
+  try {
+    const { count, error } = await supabase
+      .from('forum_likes')
+      .select('*', { count: 'exact', head: true })
+      .eq('post_id', postId);
+    return error ? 0 : count || 0;
+  } catch (error) {
+    return 0;
+  }
+};
+
 // --- MODS RECOMENDADOS ---
 export const getRecommendedContent = async (currentId, tipo, tags = [], limit = 5) => {
   try {
