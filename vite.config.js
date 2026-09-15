@@ -10,7 +10,7 @@ export default defineConfig({
       output: {
         manualChunks: {
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'firebase-vendor': ['firebase', '@supabase/supabase-js'],
+          'supabase-vendor': ['@supabase/supabase-js'],
           'ui-vendor': ['lucide-react', 'react-icons', 'clsx', 'tailwind-merge'],
           'markdown-vendor': ['react-markdown', 'rehype-raw', 'remark-gfm', 'remark-unwrap-images'],
         },
