@@ -13,8 +13,8 @@ import Login from '../pages/Login';
 
 const menuItems = [
   { to: "/", icon: Home, label: "Inicio" },
-  { to: "/comunidad", icon: Crown, label: "Comunidad" },
   { to: "/mods", icon: Gamepad2, label: "Mods" },
+  { to: "/comunidad", icon: Crown, label: "Comunidad" },
   // { to: "/servidores", icon: Server, label: "Servidores" },
 ];
 

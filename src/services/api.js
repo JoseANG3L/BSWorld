@@ -1381,19 +1381,34 @@ export const getForumReplies = async (postId) => {
   }
 };
 
-export const createForumPost = async (userId, content, parentId = null) => {
+export const createForumPost = async (userId, content, parentId = null, imageUrl = null, category = null, pollData = null) => {
   try {
+    const postData = {
+      user_id: userId,
+      content: content,
+      parent_id: parentId
+    };
+
+    if (imageUrl) postData.image_url = imageUrl;
+    if (category) postData.category = category;
+    if (pollData) postData.poll_data = pollData;
+
     const { data, error } = await supabase
       .from('forum_posts')
-      .insert({
-        user_id: userId,
-        content: content,
-        parent_id: parentId
-      })
+      .insert(postData)
       .select()
-      .single();
+      .maybeSingle();
 
-    if (error) throw error;
+    if (error) {
+      console.error("Error Supabase:", error);
+      throw error;
+    }
+    
+    if (!data) {
+      console.error("No se devolvieron datos después del insert");
+      throw new Error("No se pudo crear el post");
+    }
+    
     return data;
   } catch (error) {
     console.error("Error creando post del foro:", error);
