@@ -1,307 +1,14 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { getAllUsers, getForumPosts, createForumPost, updateForumPost, deleteForumPost, likeForumPost, getForumPostLikes, getForumReplies } from '../services/api';
+import React, { useState, useEffect, useRef } from 'react';
+import { getAllUsers, getForumPosts, createForumPost, updateForumPost, deleteForumPost, likeForumPost, getForumPostLikes, getForumReplies, getForumPostById } from '../services/api';
 import CreatorCard from '../components/CreatorCard';
-import { Crown, Loader2, MessageSquare, Users, Plus, X, Heart, Image as ImageIcon, Tag, Vote, ChevronDown, Search, ArrowUpDown, Filter, Check } from 'lucide-react';
+import ForumPost from '../components/ForumPost';
+import { Loader2, MessageSquare, Plus, X, Image as ImageIcon, Tag, Vote, ChevronDown, Check, Trash2, Crown, Users, Search } from 'lucide-react';
 import DataContainer from '../components/DataContainer';
 import { useAuth } from '../context/AuthContext';
 import AvatarRenderer from '../components/AvatarRenderer';
 import { createPortal } from 'react-dom';
 import { clsx } from 'clsx';
 import Login from '../pages/Login';
-
-// Componente de Foro basado en el sistema de comentarios
-const ForumPost = ({ post, onPostMutated, isReply = false }) => {
-  const { user } = useAuth();
-  const [isEditing, setIsEditing] = useState(false);
-  const [editText, setEditText] = useState(post.content);
-  const [liked, setLiked] = useState(false);
-  const [likesCount, setLikesCount] = useState(0);
-  const [showReplies, setShowReplies] = useState(false);
-  const [isReplying, setIsReplying] = useState(false);
-  const [replyText, setReplyText] = useState('');
-  const [replies, setReplies] = useState([]);
-
-  const isAuthor = user?.id === post.user_id;
-
-  // Cargar likes count inicial
-  useEffect(() => {
-    const loadLikes = async () => {
-      try {
-        const count = await getForumPostLikes(post.id);
-        setLikesCount(count);
-      } catch (error) {
-        console.error("Error cargando likes:", error);
-      }
-    };
-    loadLikes();
-  }, [post.id]);
-
-  const getRelativeTime = (dateString) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now - date;
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return 'ahora mismo';
-    if (diffMins < 60) return `hace ${diffMins} min`;
-    if (diffHours < 24) return `hace ${diffHours} h`;
-    if (diffDays < 7) return `hace ${diffDays} d`;
-    return date.toLocaleDateString('es-ES', { month: 'short', day: 'numeric' });
-  };
-
-  const formattedDate = getRelativeTime(post.created_at);
-
-  const handleUpdate = async (e) => {
-    e.preventDefault();
-    if (!editText.trim()) return;
-    try {
-      await updateForumPost(post.id, editText);
-      setIsEditing(false);
-      onPostMutated();
-    } catch (error) {
-      console.error("Error actualizando post:", error);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!window.confirm("¿Seguro que deseas eliminar esta publicación?")) return;
-    try {
-      await deleteForumPost(post.id);
-      onPostMutated();
-    } catch (error) {
-      console.error("Error eliminando post:", error);
-    }
-  };
-
-  const handleLike = async () => {
-    if (!user) return;
-    try {
-      const result = await likeForumPost(post.id, user.id);
-      setLiked(result.liked);
-      setLikesCount(prev => result.liked ? prev + 1 : prev - 1);
-    } catch (error) {
-      console.error("Error en like:", error);
-    }
-  };
-
-  const handleReply = async (e) => {
-    e.preventDefault();
-    if (!replyText.trim()) return;
-    try {
-      await createForumPost(user.id, replyText, post.id);
-      setReplyText('');
-      setIsReplying(false);
-      setShowReplies(true);
-      await loadReplies();
-      onPostMutated();
-    } catch (error) {
-      console.error("Error creando respuesta:", error);
-    }
-  };
-
-  const loadReplies = async () => {
-    try {
-      const data = await getForumReplies(post.id);
-      setReplies(data);
-    } catch (error) {
-      console.error("Error cargando respuestas:", error);
-    }
-  };
-
-  return (
-    <div className={clsx("flex flex-col gap-3 bg-white dark:bg-[#1e1e1e] rounded-lg p-4 shadow-sm border border-gray-200 dark:border-transparent", isReply && "ml-6 mt-2")}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 bg-gray-200 dark:bg-[#1D1F23]">
-            <AvatarRenderer avatar={post.users?.avatar} name={post.users?.username} />
-          </div>
-          <div className="flex flex-col">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                {post.users?.username || "Usuario"}
-              </span>
-              {isAuthor && (
-                <span className="px-1.5 py-0.5 text-[10px] font-bold bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 rounded">
-                  Autor
-                </span>
-              )}
-              {post.category && (
-                <span className="px-2 py-0.5 text-[10px] font-bold bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded">
-                  {post.category}
-                </span>
-              )}
-            </div>
-            <span className="text-[11px] text-gray-500 dark:text-gray-400">
-              {formattedDate}
-            </span>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-1">
-          {isAuthor && !isEditing && (
-            <>
-              <button onClick={() => setIsEditing(true)} className="p-1.5 text-gray-400 hover:text-primary-600 rounded transition-colors" title="Editar">
-                <MessageSquare size={14} />
-              </button>
-              <button onClick={handleDelete} className="p-1.5 text-gray-400 hover:text-red-600 rounded transition-colors" title="Eliminar">
-                <X size={14} />
-              </button>
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* Imagen del post */}
-      {post.image_url && (
-        <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-gray-100 dark:bg-[#1D1F23]">
-          <img 
-            src={post.image_url} 
-            alt="Imagen del post" 
-            className="w-full h-full object-cover"
-            loading="lazy"
-          />
-        </div>
-      )}
-
-      <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
-        {isEditing ? (
-          <form onSubmit={handleUpdate} className="flex gap-2">
-            <textarea 
-              value={editText} 
-              onChange={(e) => setEditText(e.target.value)} 
-              className="flex-1 px-3 py-2 text-sm bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:border-primary-500 dark:text-white resize-none"
-              rows={3}
-              required 
-              autoFocus
-            />
-            <div className="flex flex-col gap-2">
-              <button type="submit" className="p-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors">
-                <Users size={16} />
-              </button>
-              <button type="button" onClick={() => { setIsEditing(false); setEditText(post.content); }} className="p-2 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg transition-colors">
-                <X size={16} />
-              </button>
-            </div>
-          </form>
-        ) : (
-          <p>{post.content}</p>
-        )}
-      </div>
-
-      {/* Encuesta */}
-      {post.poll_data && post.poll_data.options && (
-        <div className="mt-3 space-y-2">
-          <div className="flex items-center gap-2 text-xs font-semibold text-gray-500 dark:text-gray-400">
-            <Vote size={14} />
-            Encuesta
-          </div>
-          {post.poll_data.options.map((option, index) => {
-            const totalVotes = post.poll_data.votes?.reduce((sum, v) => sum + v, 0) || 0;
-            const optionVotes = post.poll_data.votes?.[index] || 0;
-            const percentage = totalVotes > 0 ? (optionVotes / totalVotes) * 100 : 0;
-            
-            return (
-              <div key={index} className="relative">
-                <div 
-                  className="w-full h-8 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden"
-                  style={{ width: '100%' }}
-                >
-                  <div 
-                    className="h-full bg-primary-500 dark:bg-primary-600 transition-all duration-300"
-                    style={{ width: `${percentage}%` }}
-                  />
-                </div>
-                <div className="absolute inset-0 flex items-center justify-between px-3">
-                  <span className="text-xs font-medium text-gray-900 dark:text-white">{option}</span>
-                  <span className="text-xs font-bold text-gray-900 dark:text-white">{percentage.toFixed(0)}%</span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {!isEditing && (
-        <div className="flex items-center gap-4 pt-1">
-          <button
-            onClick={handleLike}
-            className={clsx(
-              "flex items-center gap-1.5 text-xs font-medium transition-colors",
-              liked ? "text-red-500" : "text-gray-400 hover:text-red-500"
-            )}
-          >
-            <Heart size={14} className={clsx(liked && "fill-current")} /> {likesCount}
-          </button>
-
-          <button 
-            onClick={() => setIsReplying(!isReplying)} 
-            className="flex items-center gap-1.5 text-xs font-medium text-gray-400 hover:text-primary-500 transition-colors"
-          >
-            <MessageSquare size={14} /> Responder
-          </button>
-        </div>
-      )}
-
-      {isReplying && (
-        <form onSubmit={handleReply} className="relative mt-3 pl-3 border-l-2 border-primary-500/50">
-          <textarea 
-            placeholder="Escribe una respuesta..." 
-            value={replyText} 
-            onChange={(e) => setReplyText(e.target.value)} 
-            className="w-full pl-3 pr-10 py-2 text-sm bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:border-primary-500 dark:text-white resize-none"
-            rows={2}
-            required 
-            autoFocus
-          />
-          <button 
-            type="submit" 
-            disabled={!replyText.trim()}
-            className={clsx(
-              "absolute right-1 bottom-1 p-1.5 rounded-md transition-colors flex items-center justify-center",
-              !replyText.trim()
-                ? "bg-gray-300 dark:bg-gray-700 text-gray-500 cursor-not-allowed"
-                : "bg-primary-600 hover:bg-primary-700 text-white"
-            )}
-          >
-            <Plus size={14} />
-          </button>
-        </form>
-      )}
-
-      {/* Botón para mostrar respuestas */}
-      {post.replies_count > 0 && (
-        <button 
-          onClick={() => {
-            if (!showReplies) {
-              loadReplies();
-            }
-            setShowReplies(!showReplies);
-          }} 
-          className="flex items-center gap-1.5 mt-2 text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-primary-500 dark:hover:text-primary-400 transition-colors"
-        >
-          <span>
-            {showReplies 
-              ? "Ocultar respuestas" 
-              : `Ver ${post.replies_count} ${post.replies_count === 1 ? 'respuesta' : 'respuestas'}`
-            }
-          </span>
-          {showReplies ? <X size={12} /> : <Plus size={12} />}
-        </button>
-      )}
-
-      {/* Contenedor de respuestas */}
-      {showReplies && replies.length > 0 && (
-        <div className="flex flex-col gap-3 mt-3">
-          {replies.map((reply) => (
-            <ForumPost key={reply.id} post={reply} onPostMutated={loadReplies} isReply={true} />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
 
 const ForumSection = () => {
   const { user } = useAuth();
@@ -312,14 +19,8 @@ const ForumSection = () => {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [loginInitialRegister, setLoginInitialRegister] = useState(false);
   
-  // Filtros
-  const [busqueda, setBusqueda] = useState('');
-  const [orden, setOrden] = useState('recientes');
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
-  const [isOrdenDropdownOpen, setIsOrdenDropdownOpen] = useState(false);
-  
   // Campos de publicación
+  const [postTitle, setPostTitle] = useState('');
   const [postContent, setPostContent] = useState('');
   const [postImageUrl, setPostImageUrl] = useState('');
   const [postCategory, setPostCategory] = useState('');
@@ -329,34 +30,11 @@ const ForumSection = () => {
   const [imagePreview, setImagePreview] = useState('');
   const [imageError, setImageError] = useState(false);
 
-  const categoryDropdownRef = useRef(null);
-  const ordenDropdownRef = useRef(null);
   const postCategoryDropdownRef = useRef(null);
 
   const categories = [
     'General', 'Ayuda', 'Discusión', 'Anuncios', 'Proyectos', 'Off-topic'
   ];
-
-  // Posts filtrados
-  const postsFiltrados = useMemo(() => {
-    let resultado = posts.filter(post => {
-      const valor = post.content || '';
-      return valor.toLowerCase().includes(busqueda.toLowerCase());
-    });
-
-    if (selectedCategory) {
-      resultado = resultado.filter(post => post.category === selectedCategory);
-    }
-
-    resultado.sort((a, b) => {
-      if (orden === 'recientes') return new Date(b.created_at) - new Date(a.created_at);
-      if (orden === 'antiguos') return new Date(a.created_at) - new Date(b.created_at);
-      if (orden === 'mas_likes') return (b.likes_count || 0) - (a.likes_count || 0);
-      return 0;
-    });
-
-    return resultado;
-  }, [posts, busqueda, orden, selectedCategory]);
 
   const loadPosts = async () => {
     try {
@@ -373,6 +51,16 @@ const ForumSection = () => {
     loadPosts();
   }, []);
 
+  // Preparar posts para DataContainer - agregar campo combinado para búsqueda
+  const postsWithSearchKey = posts.map(post => ({
+    ...post,
+    searchContent: `${post.title || ''} ${post.content || ''}`.toLowerCase()
+  }));
+
+  const renderForumPost = (post) => (
+    <ForumPost post={post} onPostMutated={loadPosts} />
+  );
+
   // Previsualización de imagen
   useEffect(() => {
     if (postImageUrl.trim()) {
@@ -387,12 +75,6 @@ const ForumSection = () => {
   // Cierre de menús al dar clic afuera
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(event.target)) {
-        setIsCategoryDropdownOpen(false);
-      }
-      if (ordenDropdownRef.current && !ordenDropdownRef.current.contains(event.target)) {
-        setIsOrdenDropdownOpen(false);
-      }
       if (postCategoryDropdownRef.current && !postCategoryDropdownRef.current.contains(event.target)) {
         setShowPostCategoryDropdown(false);
       }
@@ -445,10 +127,12 @@ const ForumSection = () => {
         null, 
         postImageUrl.trim() || null, 
         postCategory.trim() || null, 
-        pollData
+        pollData,
+        postTitle.trim() || null
       );
       
       // Reset form
+      setPostTitle('');
       setPostContent('');
       setPostImageUrl('');
       setPostCategory('');
@@ -479,108 +163,40 @@ const ForumSection = () => {
         </button>
       </div>
 
-      {/* BARRA DE FILTROS */}
-      <div className="mb-4 flex flex-row gap-2 md:gap-3 items-start md:items-center">
-        {/* Búsqueda */}
-        <div className="relative w-full md:flex-1">
-          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input 
-            type="text" 
-            placeholder="Buscar en el foro..." 
-            value={busqueda} 
-            onChange={(e) => setBusqueda(e.target.value)} 
-            className="w-full pl-10 pr-4 py-2.5 h-10 rounded-xl bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all text-sm" 
-          />
-        </div>
-
-        {/* Filtro de categoría */}
-        <div className="relative w-full md:w-auto" ref={categoryDropdownRef}>
-          <div className="relative w-full md:w-56">
-            <Tag size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <button
-              type="button"
-              onClick={() => { setIsCategoryDropdownOpen(!isCategoryDropdownOpen); setIsOrdenDropdownOpen(false); }}
-              className="w-full pl-10 pr-10 py-2.5 h-10 rounded-xl bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none appearance-none cursor-pointer transition-all text-sm font-medium text-left"
-            >
-              <span className="truncate block">
-                {selectedCategory ? selectedCategory : 'Todas las categorías'}
-              </span>
-            </button>
-            <ChevronDown size={16} className={clsx("absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none transition-transform duration-200", isCategoryDropdownOpen && "rotate-180")} />
-          </div>
-
-          {isCategoryDropdownOpen && (
-            <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent rounded-xl shadow-lg z-50 p-1">
-              <div className="flex flex-col gap-0.5">
-                <button
-                  type="button"
-                  onClick={() => { setSelectedCategory(''); setIsCategoryDropdownOpen(false); }}
-                  className={clsx("flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left", selectedCategory === '' ? "text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-700" : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700")}
-                >
-                  <span>Todas las categorías</span>
-                </button>
-                {categories.map((cat) => (
-                  <button
-                    key={cat}
-                    type="button"
-                    onClick={() => { setSelectedCategory(cat); setIsCategoryDropdownOpen(false); }}
-                    className={clsx("flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left", selectedCategory === cat ? "text-gray-900 dark:text-white bg-gray-200 dark:bg-gray-700" : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700")}
-                  >
-                    <span>{cat}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Ordenamiento */}
-        <div className="hidden md:flex items-center gap-2 w-full md:w-auto" ref={ordenDropdownRef}>
-          <div className="relative w-full md:w-56">
-            <ArrowUpDown size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <button type="button" onClick={() => { setIsOrdenDropdownOpen(!isOrdenDropdownOpen); setIsCategoryDropdownOpen(false); }} className="w-full pl-10 pr-10 py-2.5 h-10 rounded-xl bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none appearance-none cursor-pointer transition-all text-sm font-medium text-left">
-              <span className="truncate block">
-                {orden === 'recientes' ? 'Más Recientes' : orden === 'antiguos' ? 'Más Antiguos' : orden === 'mas_likes' ? 'Más Likes' : orden}
-              </span>
-            </button>
-            <ChevronDown size={16} className={clsx("absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none transition-transform duration-200", isOrdenDropdownOpen && "rotate-180")} />
-
-            {isOrdenDropdownOpen && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent rounded-xl shadow-lg z-50 p-1">
-                <div className="flex flex-col gap-0.5">
-                  {[
-                    { val: 'recientes', label: 'Más Recientes' },
-                    { val: 'antiguos', label: 'Más Antiguos' },
-                    { val: 'mas_likes', label: 'Más Likes' }
-                  ].map((opt) => (
-                    <button key={opt.val} type="button" onClick={() => { setOrden(opt.val); setIsOrdenDropdownOpen(false); }} className={clsx("w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors", orden === opt.val ? "text-gray-800 dark:text-white bg-gray-200 dark:bg-gray-700 font-semibold" : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700")}>{opt.label}</button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
       {loading ? (
         <div className="flex flex-col items-center justify-center py-8 gap-3">
           <Loader2 className="animate-spin text-primary-600" size={24} />
           <p className="text-sm text-gray-500 dark:text-gray-400">Cargando publicaciones...</p>
         </div>
-      ) : postsFiltrados.length > 0 ? (
-        <div className="flex flex-col gap-4">
-          {postsFiltrados.map((post) => (
-            <ForumPost key={post.id} post={post} onPostMutated={loadPosts} />
-          ))}
-        </div>
+      ) : posts.length > 0 ? (
+        <DataContainer
+          title="Foro de la Comunidad"
+          icon={MessageSquare}
+          gradientClass="from-blue-500 to-purple-500"
+          items={postsWithSearchKey}
+          searchKey="searchContent"
+          dateKey="created_at"
+          renderItem={renderForumPost}
+          enableTypeFilter={true}
+          typeKey="category"
+          customTypes={categories}
+          layout="forum-columns"
+          customSortOptions={[
+            { val: 'recientes', label: 'Más Recientes' },
+            { val: 'antiguos', label: 'Más Antiguos' },
+            { val: 'mas_likes', label: 'Más Likes' }
+          ]}
+          searchPlaceholder="Buscar en el foro..."
+          showHeader={false}
+        />
       ) : (
         <div className="flex flex-col items-center justify-center py-12 gap-3 text-center">
           <MessageSquare size={48} className="text-gray-300 dark:text-gray-600" />
           <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-            {busqueda || selectedCategory ? 'No se encontraron publicaciones' : 'Aún no hay publicaciones en el foro'}
+            Aún no hay publicaciones en el foro
           </p>
           <p className="text-xs text-gray-500 dark:text-gray-500">
-            {busqueda || selectedCategory ? 'Intenta con otros filtros' : '¡Sé el primero en compartir algo con la comunidad!'}
+            ¡Sé el primero en compartir algo con la comunidad!
           </p>
         </div>
       )}
@@ -673,6 +289,15 @@ const ForumSection = () => {
                   )}
                 </div>
               </div>
+
+              {/* INPUT DE TÍTULO */}
+              <input
+                type="text"
+                placeholder="Título de la publicación (opcional)"
+                value={postTitle}
+                onChange={(e) => setPostTitle(e.target.value)}
+                className="w-full p-3.5 text-sm bg-gray-50/50 dark:bg-[#16181B] border border-gray-200 dark:border-gray-800 rounded-2xl outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 dark:text-white transition-all placeholder:text-gray-400 font-semibold"
+              />
 
               {/* TEXTAREA PRINCIPAL */}
               <textarea
@@ -894,7 +519,7 @@ const UsersSection = ({ users }) => {
 };
 
 const Comunidad = () => {
-  const [activeTab, setActiveTab] = useState('usuarios'); // 'usuarios' | 'foro'
+  const [activeTab, setActiveTab] = useState('foro'); // 'usuarios' | 'foro'
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 

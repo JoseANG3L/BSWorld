@@ -23,6 +23,7 @@ const MisMods = lazy(() => import('./pages/MisMods'));
 const AdminPanel = lazy(() => import('./pages/AdminPanel'));
 const Configuracion = lazy(() => import('./pages/Configuracion'));
 const Comunidad = lazy(() => import('./pages/Comunidad'));
+const ForoDetalle = lazy(() => import('./pages/ForoDetalle'));
 const PublicProfile = lazy(() => import('./pages/PublicProfile'));
 const Resultados = lazy(() => import('./pages/Resultados')); 
 const Destacados = lazy(() => import('./pages/Destacados'));
@@ -83,6 +84,7 @@ function App() {
 
               {/* --- COMUNIDAD --- */}
               <Route path="comunidad" element={<Comunidad />} />
+              <Route path="foro/:id" element={<ForoDetalle />} />
               <Route path="u/:username" element={<PublicProfile />} />
               
               {/* --- OTROS --- */}

@@ -1381,7 +1381,7 @@ export const getForumReplies = async (postId) => {
   }
 };
 
-export const createForumPost = async (userId, content, parentId = null, imageUrl = null, category = null, pollData = null) => {
+export const createForumPost = async (userId, content, parentId = null, imageUrl = null, category = null, pollData = null, title = null) => {
   try {
     const postData = {
       user_id: userId,
@@ -1392,6 +1392,7 @@ export const createForumPost = async (userId, content, parentId = null, imageUrl
     if (imageUrl) postData.image_url = imageUrl;
     if (category) postData.category = category;
     if (pollData) postData.poll_data = pollData;
+    if (title) postData.title = title;
 
     const { data, error } = await supabase
       .from('forum_posts')
@@ -1416,14 +1417,18 @@ export const createForumPost = async (userId, content, parentId = null, imageUrl
   }
 };
 
-export const updateForumPost = async (postId, content) => {
+export const updateForumPost = async (postId, content, title = null) => {
   try {
+    const updateData = {
+      content: content,
+      updated_at: new Date().toISOString()
+    };
+
+    if (title !== null) updateData.title = title;
+
     const { data, error } = await supabase
       .from('forum_posts')
-      .update({
-        content: content,
-        updated_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('id', postId)
       .select()
       .single();
@@ -1448,6 +1453,22 @@ export const deleteForumPost = async (postId) => {
   } catch (error) {
     console.error("Error eliminando post del foro:", error);
     throw error;
+  }
+};
+
+export const getForumPostById = async (postId) => {
+  try {
+    const { data, error } = await supabase
+      .from('forum_posts')
+      .select('*, users(username, avatar)')
+      .eq('id', postId)
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error("Error obteniendo post del foro:", error);
+    return null;
   }
 };
 

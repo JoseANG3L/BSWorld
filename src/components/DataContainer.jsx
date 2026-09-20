@@ -19,7 +19,11 @@ const DataContainer = ({
   renderItem,
   enableTypeFilter = false,
   typeKey = 'tipo',
-  customTypes = null
+  customTypes = null,
+  layout = 'grid',
+  customSortOptions = null,
+  searchPlaceholder = null,
+  showHeader = true
 }) => {
   // 1. ESTADO INTERNO
   const [busqueda, setBusqueda] = useState('');
@@ -103,6 +107,7 @@ const DataContainer = ({
       if (orden === 'az') return a[searchKey].localeCompare(b[searchKey]);
       if (orden === 'za') return b[searchKey].localeCompare(a[searchKey]);
       if (orden === 'mas_vistas') return (b.vistas || 0) - (a.vistas || 0);
+      if (orden === 'mas_likes') return (b.likes_count || 0) - (a.likes_count || 0);
       if (orden === 'mas_descargas') {
         const totalA = (a.descargas || []).reduce((acc, curr) => acc + (curr.count || 0), 0);
         const totalB = (b.descargas || []).reduce((acc, curr) => acc + (curr.count || 0), 0);
@@ -132,15 +137,17 @@ const DataContainer = ({
   return (
     <div className="flex flex-col p-2 md:p-4 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
       {/* HEADER */}
-      <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-2 md:mb-6">
-        <h1 className="flex text-xl md:text-2xl font-bold text-gray-800 dark:text-white items-center gap-3">
-          <div className={clsx("w-9 h-9 rounded-xl flex items-center justify-center shadow-sm text-white", `bg-gradient-to-br ${gradientClass}`)}>
-              <Icon size={20} strokeWidth={2.5} />
-          </div>
-          {title}
-          <span className="text-sm font-normal text-gray-500 dark:text-gray-400 self-end mb-1 ml-1">({itemsFiltrados.length})</span>
-        </h1>
-      </div>
+      {showHeader && (
+        <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-2 md:mb-6">
+          <h1 className="flex text-xl md:text-2xl font-bold text-gray-800 dark:text-white items-center gap-3">
+            <div className={clsx("w-9 h-9 rounded-xl flex items-center justify-center shadow-sm text-white", `bg-gradient-to-br ${gradientClass}`)}>
+                <Icon size={20} strokeWidth={2.5} />
+            </div>
+            {title}
+            <span className="text-sm font-normal text-gray-500 dark:text-gray-400 self-end mb-1 ml-1">({itemsFiltrados.length})</span>
+          </h1>
+        </div>
+      )}
 
       {/* BARRA DE FILTROS */}
       <div className="mb-2 md:mb-6 flex flex-row gap-2 md:gap-3 items-start md:items-center">
@@ -149,7 +156,7 @@ const DataContainer = ({
           <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input 
             type="text" 
-            placeholder={`Buscar por ${searchKey}...`} 
+            placeholder={searchPlaceholder || `Buscar por ${searchKey}...`} 
             value={busqueda} 
             onChange={(e) => setBusqueda(e.target.value)} 
             className="w-full pl-10 pr-4 py-2.5 h-10 rounded-xl bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all text-sm" 
@@ -238,7 +245,14 @@ const DataContainer = ({
             {isOrdenDropdownOpen && (
               <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent rounded-xl shadow-lg z-50 p-1">
                 <div className="flex flex-col gap-0.5">
-                  {[{ val: 'mas_descargas', label: 'Más Descargas' }, { val: 'mas_vistas', label: 'Más Vistas' }, { val: 'az', label: 'Nombre (A-Z)' }, { val: 'za', label: 'Nombre (Z-A)' }, { val: 'recientes', label: 'Más Recientes' }, { val: 'antiguos', label: 'Más Antiguos' }].map((opt) => (
+                  {(customSortOptions || [
+                    { val: 'mas_descargas', label: 'Más Descargas' }, 
+                    { val: 'mas_vistas', label: 'Más Vistas' }, 
+                    { val: 'az', label: 'Nombre (A-Z)' }, 
+                    { val: 'za', label: 'Nombre (Z-A)' }, 
+                    { val: 'recientes', label: 'Más Recientes' }, 
+                    { val: 'antiguos', label: 'Más Antiguos' }
+                  ]).map((opt) => (
                     <button key={opt.val} type="button" onClick={() => { setOrden(opt.val); setIsOrdenDropdownOpen(false); }} className={clsx("w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors", orden === opt.val ? "text-gray-800 dark:text-white bg-gray-200 dark:bg-gray-700 font-semibold" : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700")}>{opt.label}</button>
                   ))}
                 </div>
@@ -251,7 +265,13 @@ const DataContainer = ({
       {/* RESULTADOS */}
       {visibleItems.length > 0 ? (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 md:gap-4 pb-4">
+          <div className={clsx(
+            layout === 'vertical' 
+              ? "flex flex-col gap-4 pb-4" 
+              : layout === 'forum-columns'
+                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-4"
+                : "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 md:gap-4 pb-4"
+          )}>
             {visibleItems.map((item) => 
                React.cloneElement(renderItem(item), { key: item.id || item._id })
             )}
@@ -306,14 +326,14 @@ const DataContainer = ({
                   Ordenar por
                 </label>
                 <div className="grid grid-cols-2 gap-2">
-                  {[
+                  {(customSortOptions || [
                     { val: 'recientes', label: 'Más Recientes' },
                     { val: 'antiguos', label: 'Más Antiguos' },
                     { val: 'az', label: 'Nombre (A-Z)' },
                     { val: 'za', label: 'Nombre (Z-A)' },
                     { val: 'mas_vistas', label: 'Más Vistas' },
                     { val: 'mas_descargas', label: 'Más Descargas' }
-                  ].map((opt) => (
+                  ]).map((opt) => (
                     <button
                       key={opt.val}
                       type="button"
