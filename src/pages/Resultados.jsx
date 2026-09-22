@@ -1,42 +1,58 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { 
-  Search, Loader2, Frown, Filter, Map, Gamepad2, Wrench, Boxes, Package, Grid, ChevronDown, User 
+  Search, Loader2, Frown, Filter, Map, Gamepad2, Wrench, Boxes, Package, Grid, ChevronDown, User, MessageSquare, Users
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import Card from '../components/Card';
-import { getAllContent } from '../services/api';
+import CreatorCard from '../components/CreatorCard';
+import ForumPost from '../components/ForumPost';
+import { getAllContent, getAllUsers, getForumPosts } from '../services/api';
+import DataContainer from '../components/DataContainer';
 
 const Resultados = () => {
   const [searchParams] = useSearchParams();
   const query = searchParams.get('q') || '';
   
-  const [allResults, setAllResults] = useState([]); 
-  const [filteredResults, setFilteredResults] = useState([]);
+  const [contentResults, setContentResults] = useState([]); 
+  const [userResults, setUserResults] = useState([]);
+  const [forumResults, setForumResults] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('todos');
+  const [activeTab, setActiveTab] = useState('contenido');
 
-  // 1. BUSCAR CUANDO CAMBIA LA URL
   useEffect(() => {
     const performSearch = async () => {
       setLoading(true);
       try {
-        const data = await getAllContent();
         const lowerQuery = query.toLowerCase();
         
-        const matches = data.filter(item => {
+        // Buscar contenido
+        const contentData = await getAllContent();
+        const contentMatches = contentData.filter(item => {
           const matchTitle = item.titulo?.toLowerCase().includes(lowerQuery);
           const matchTags = item.tags?.some(tag => tag.toLowerCase().includes(lowerQuery));
           const matchCreators = Array.isArray(item.creadores) 
             ? item.creadores.some(c => (typeof c === 'string' ? c : c.nombre).toLowerCase().includes(lowerQuery))
             : false;
-
           return matchTitle || matchTags || matchCreators;
         });
+        setContentResults(contentMatches);
 
-        setAllResults(matches);
-        setFilteredResults(matches);
-        setActiveTab('todos'); 
+        // Buscar usuarios
+        const userData = await getAllUsers();
+        const userMatches = userData.filter(user => 
+          user.username?.toLowerCase().includes(lowerQuery)
+        );
+        setUserResults(userMatches);
+
+        // Buscar posts del foro
+        const forumData = await getForumPosts();
+        const forumMatches = forumData.filter(post => {
+          const matchTitle = post.title?.toLowerCase().includes(lowerQuery);
+          const matchContent = post.content?.toLowerCase().includes(lowerQuery);
+          return matchTitle || matchContent;
+        });
+        setForumResults(forumMatches);
 
       } catch (error) {
         console.error("Error buscando:", error);
@@ -48,43 +64,30 @@ const Resultados = () => {
     if (query) performSearch();
   }, [query]);
 
-  // 2. FILTRAR POR TABS
-  useEffect(() => {
-    if (activeTab === 'todos') {
-      setFilteredResults(allResults);
-    } else {
-      setFilteredResults(allResults.filter(item => item.tipo === activeTab));
-    }
-  }, [activeTab, allResults]);
-
-  // --- 3. CONFIGURACIÓN DE TABS Y CONTADORES (CORREGIDO) ---
-  // Usamos 'allResults' porque queremos contar sobre lo que se encontró
-  const counts = {
-    mapa: allResults.filter(i => i.tipo === 'mapa').length,
-    minijuego: allResults.filter(i => i.tipo === 'minijuego').length,
-    modpack: allResults.filter(i => i.tipo === 'modpack').length,
-    complemento: allResults.filter(i => i.tipo === 'complemento').length,
-    paquete: allResults.filter(i => i.tipo === 'paquete').length,
-    personaje: allResults.filter(i => i.tipo === 'personaje').length,
-  };
-
   const tabsConfig = [
-    { id: 'todos', label: 'Todo', icon: Grid, count: allResults.length },
-    { id: 'mapa', label: 'Mapas', icon: Map, count: counts.mapa },
-    { id: 'minijuego', label: 'Minijuegos', icon: Gamepad2, count: counts.minijuego },
-    { id: 'modpack', label: 'Modpacks', icon: Boxes, count: counts.modpack },
-    { id: 'complemento', label: 'Mods', icon: Wrench, count: counts.mod },
-    { id: 'paquete', label: 'Paquetes', icon: Package, count: counts.paquete },
-    { id: 'personaje', label: 'Personajes', icon: User, count: counts.personaje },
+    { id: 'contenido', label: 'Contenido', icon: Grid, count: contentResults.length },
+    { id: 'usuarios', label: 'Usuarios', icon: Users, count: userResults.length },
+    { id: 'foro', label: 'Foro', icon: MessageSquare, count: forumResults.length },
   ];
-
-  // --- RENDERIZADO ---
 
   if (loading) return (
     <div className="h-[60vh] flex flex-col items-center justify-center gap-4">
       <Loader2 className="animate-spin text-primary-600" size={48} />
       <p className="text-gray-500 animate-pulse">Buscando en los archivos...</p>
     </div>
+  );
+
+  const renderContentItem = (item) => {
+    const total = item.descargas?.reduce((acc, curr) => acc + (curr.count || 0), 0) || 0;
+    return <Card key={item.id} id={item.id} {...item} totalDownloads={total} />;
+  };
+
+  const renderUserItem = (user) => (
+    <CreatorCard key={user.id} username={user.username} avatar={user.avatar} role={user.role} />
+  );
+
+  const renderForumItem = (post) => (
+    <ForumPost key={post.id} post={post} onPostMutated={() => {}} />
   );
 
   return (
@@ -99,77 +102,110 @@ const Resultados = () => {
           Resultados para: <span className="text-primary-600 dark:text-primary-400 italic">"{query}"</span>
         </h1>
         <p className="text-gray-500 dark:text-gray-400 mt-2 ml-1">
-          Se encontraron <b>{allResults.length}</b> coincidencias.
+          Se encontraron <b>{contentResults.length + userResults.length + forumResults.length}</b> coincidencias.
         </p>
       </div>
 
-      {allResults.length > 0 ? (
-        <>
-          {/* TABS DE FILTRO */}
-          <div className="mb-4 md:mb-6">
-        
-            {/* OPCIÓN A: MENU SELECT (SOLO MÓVIL) */}
-            <div className="block md:hidden">
-                <div className="relative">
-                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" size={20} />
-                    <select
-                        value={activeTab}
-                        onChange={(e) => setActiveTab(e.target.value)}
-                        className="w-full appearance-none bg-white dark:bg-[#1e1e1e] border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white py-3 pl-4 pr-10 rounded-xl shadow-sm font-medium focus:ring-2 focus:ring-primary-500 focus:outline-none transition-all"
-                    >
-                        {tabsConfig.map((tab) => (
-                            <option key={tab.id} value={tab.id}>
-                                {tab.label} {tab.count > 0 ? `(${tab.count})` : ''}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-            </div>
-
-            {/* OPCIÓN B: TABS DE BOTONES (SOLO ESCRITORIO) */}
-            <div className="hidden md:flex justify-start"> {/* Cambiado a justify-start para alineación */}
-                <div className="flex items-center gap-2 overflow-x-auto pb-1 px-1 scrollbar-hide max-w-full">
-                    {tabsConfig.map((tab) => (
-                        <TabButton 
-                            key={tab.id}
-                            active={activeTab === tab.id} 
-                            onClick={() => setActiveTab(tab.id)}
-                            icon={tab.icon} 
-                            label={tab.label} 
-                            count={tab.count}
-                        />
-                    ))}
-                </div>
-            </div>
-
+      {/* TABS DE FILTRO */}
+      <div className="mb-6">
+        <div className="block md:hidden">
+          <div className="relative">
+            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" size={20} />
+            <select
+              value={activeTab}
+              onChange={(e) => setActiveTab(e.target.value)}
+              className="w-full appearance-none bg-white dark:bg-[#1e1e1e] border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white py-3 pl-4 pr-10 rounded-xl shadow-sm font-medium focus:ring-2 focus:ring-primary-500 focus:outline-none transition-all"
+            >
+              {tabsConfig.map((tab) => (
+                <option key={tab.id} value={tab.id}>
+                  {tab.label} {tab.count > 0 ? `(${tab.count})` : ''}
+                </option>
+              ))}
+            </select>
           </div>
+        </div>
 
-          {/* GRID DE RESULTADOS */}
-          {filteredResults.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
-              {filteredResults.map((item) => {
-                 const total = item.descargas?.reduce((acc, curr) => acc + (curr.count || 0), 0) || 0;
-                 return (
-                    <Card 
-                        key={item.id} 
-                        id={item.id} 
-                        {...item} 
-                        totalDownloads={total}
-                    />
-                 );
-              })}
-            </div>
-          ) : (
-            // ESTADO VACÍO DENTRO DE UNA TAB
-            <div className="flex flex-col items-center justify-center py-20 text-gray-400 dark:text-gray-600">
-              <Search size={48} className="mb-4 opacity-20" />
-              <p className="text-lg font-medium">No se encontraron resultados</p>
-              <p className="text-sm">Intenta con otro término de búsqueda.</p>
-            </div>
-          )}
-        </>
-      ) : (
-        // ESTADO VACÍO TOTAL
+        <div className="hidden md:flex justify-start">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 px-1 scrollbar-hide max-w-full">
+            {tabsConfig.map((tab) => (
+              <TabButton 
+                key={tab.id}
+                active={activeTab === tab.id} 
+                onClick={() => setActiveTab(tab.id)}
+                icon={tab.icon} 
+                label={tab.label} 
+                count={tab.count}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* RESULTADOS POR TAB */}
+      {activeTab === 'contenido' && (
+        contentResults.length > 0 ? (
+          <DataContainer
+            title="Contenido Encontrado"
+            icon={Grid}
+            gradientClass="from-purple-500 to-pink-500"
+            items={contentResults}
+            searchKey="titulo"
+            dateKey="creado"
+            renderItem={renderContentItem}
+            enableTypeFilter={true}
+            typeKey="tipo"
+            customTypes={['mapa', 'minijuego', 'modpack', 'complemento', 'paquete', 'personaje']}
+            showHeader={false}
+          />
+        ) : (
+          <EmptyState message="No se encontró contenido" />
+        )
+      )}
+
+      {activeTab === 'usuarios' && (
+        userResults.length > 0 ? (
+          <DataContainer
+            title="Usuarios Encontrados"
+            icon={Users}
+            gradientClass="from-green-500 to-teal-500"
+            items={userResults}
+            searchKey="username"
+            dateKey="createdat"
+            renderItem={renderUserItem}
+            showHeader={false}
+            layout="grid"
+          />
+        ) : (
+          <EmptyState message="No se encontraron usuarios" />
+        )
+      )}
+
+      {activeTab === 'foro' && (
+        forumResults.length > 0 ? (
+          <DataContainer
+            title="Posts del Foro"
+            icon={MessageSquare}
+            gradientClass="from-blue-500 to-purple-500"
+            items={forumResults.map(post => ({
+              ...post,
+              searchContent: `${post.title || ''} ${post.content || ''}`.toLowerCase()
+            }))}
+            searchKey="searchContent"
+            dateKey="created_at"
+            renderItem={renderForumItem}
+            enableTypeFilter={true}
+            typeKey="category"
+            customTypes={['General', 'Ayuda', 'Discusión', 'Anuncios', 'Proyectos', 'Off-topic']}
+            layout="forum-columns"
+            showHeader={false}
+          />
+        ) : (
+          <EmptyState message="No se encontraron posts en el foro" />
+        )
+      )}
+
+      {/* ESTADO VACÍO TOTAL */}
+      {contentResults.length === 0 && userResults.length === 0 && forumResults.length === 0 && (
         <div className="flex flex-col items-center justify-center py-24 bg-gray-50 dark:bg-[#1e1e1e] rounded-3xl border border-gray-200 dark:border-gray-800 text-center">
            <div className="bg-gray-200 dark:bg-[#1D1F23] p-6 rounded-full mb-4">
               <Frown size={64} className="text-gray-400" />
@@ -206,6 +242,15 @@ const TabButton = ({ active, onClick, icon: Icon, label, count }) => (
       </span>
     )}
   </button>
+);
+
+// Componente EmptyState
+const EmptyState = ({ message }) => (
+  <div className="flex flex-col items-center justify-center py-20 text-gray-400 dark:text-gray-600">
+    <Search size={48} className="mb-4 opacity-20" />
+    <p className="text-lg font-medium">{message}</p>
+    <p className="text-sm">Intenta con otro término de búsqueda.</p>
+  </div>
 );
 
 export default Resultados;

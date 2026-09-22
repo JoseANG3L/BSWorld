@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { updateForumPost, deleteForumPost, likeForumPost, getForumPostLikes, getForumReplies } from '../services/api';
-import { MessageSquare, X, Heart, Vote, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
+import { likeForumPost, getForumPostLikes, getForumReplies } from '../services/api';
+import { MessageSquare, Heart, Vote, ChevronDown, ChevronUp } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuth } from '../context/AuthContext';
 import AvatarRenderer from './AvatarRenderer';
@@ -9,9 +9,6 @@ import AvatarRenderer from './AvatarRenderer';
 const ForumPost = ({ post, onPostMutated, isReply = false, showFullContent = false }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [isEditing, setIsEditing] = useState(false);
-  const [editText, setEditText] = useState(post.content);
-  const [editTitle, setEditTitle] = useState(post.title || '');
   const [liked, setLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(0);
   const [showReplies, setShowReplies] = useState(false);
@@ -50,28 +47,6 @@ const ForumPost = ({ post, onPostMutated, isReply = false, showFullContent = fal
   };
 
   const formattedDate = getRelativeTime(post.created_at);
-
-  const handleUpdate = async (e) => {
-    e.preventDefault();
-    if (!editText.trim()) return;
-    try {
-      await updateForumPost(post.id, editText, editTitle);
-      setIsEditing(false);
-      onPostMutated();
-    } catch (error) {
-      console.error("Error actualizando post:", error);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!window.confirm("¿Seguro que deseas eliminar esta publicación?")) return;
-    try {
-      await deleteForumPost(post.id);
-      onPostMutated();
-    } catch (error) {
-      console.error("Error eliminando post:", error);
-    }
-  };
 
   const handleLike = async () => {
     if (!user) return;
@@ -152,16 +127,7 @@ const ForumPost = ({ post, onPostMutated, isReply = false, showFullContent = fal
         </div>
 
         <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
-          {isAuthor && !isEditing && (
-            <>
-              <button onClick={() => setIsEditing(true)} className="p-1.5 text-gray-400 hover:text-primary-600 rounded transition-colors" title="Editar">
-                <MessageSquare size={14} />
-              </button>
-              <button onClick={handleDelete} className="p-1.5 text-gray-400 hover:text-red-600 rounded transition-colors" title="Eliminar">
-                <X size={14} />
-              </button>
-            </>
-          )}
+          {/* Los botones de editar/eliminar se movieron a la página de detalles */}
         </div>
       </div>
 
@@ -185,35 +151,7 @@ const ForumPost = ({ post, onPostMutated, isReply = false, showFullContent = fal
       )}
 
       <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
-        {isEditing ? (
-          <form onSubmit={handleUpdate} className="flex flex-col gap-2" onClick={(e) => e.stopPropagation()}>
-            <input 
-              type="text"
-              value={editTitle}
-              onChange={(e) => setEditTitle(e.target.value)}
-              placeholder="Título del post..."
-              className="w-full px-3 py-2 text-sm bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:border-primary-500 dark:text-white font-semibold"
-            />
-            <textarea 
-              value={editText} 
-              onChange={(e) => setEditText(e.target.value)} 
-              className="flex-1 px-3 py-2 text-sm bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:border-primary-500 dark:text-white resize-none"
-              rows={3}
-              required 
-              autoFocus
-            />
-            <div className="flex gap-2">
-              <button type="submit" className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm font-semibold">
-                Guardar
-              </button>
-              <button type="button" onClick={() => { setIsEditing(false); setEditText(post.content); setEditTitle(post.title || ''); }} className="px-3 py-2 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg transition-colors text-sm font-semibold">
-                Cancelar
-              </button>
-            </div>
-          </form>
-        ) : (
-          <p className="line-clamp-3 md:line-clamp-none">{post.content}</p>
-        )}
+        <p className="line-clamp-3 md:line-clamp-none">{post.content}</p>
       </div>
 
       {/* Encuesta */}
@@ -249,8 +187,7 @@ const ForumPost = ({ post, onPostMutated, isReply = false, showFullContent = fal
         </div>
       )}
 
-      {!isEditing && (
-        <div className="flex items-center gap-3 md:gap-4 pt-1" onClick={(e) => e.stopPropagation()}>
+      <div className="flex items-center gap-3 md:gap-4 pt-1" onClick={(e) => e.stopPropagation()}>
           <button
             onClick={handleLike}
             className={clsx(
