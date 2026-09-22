@@ -1,20 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  Bold, 
-  Italic, 
-  List, 
-  Edit3, 
-  Eye, 
-  Heading, 
-  Image as ImageIcon, 
-  Link, 
-  Quote, 
-  Table, 
-  Code, 
-  Minus,
-  ListOrdered,
-  Type
-} from 'lucide-react';
+import { Edit3, Eye } from 'lucide-react';
 import MarkdownRenderer from './MarkdownRenderer';
 import { clsx } from 'clsx';
 
@@ -73,13 +58,13 @@ const SimpleEditor = ({ value, onChange, placeholder, withBorder = true }) => {
     }, 10);
   };
 
-  // --- CORRECCIÓN EN EL PEGADO INTELIGENTE ---
+  // --- DETECCIÓN INTELIGENTE AL PEGAR ---
   const handlePaste = (e) => {
     const pasteText = e.clipboardData.getData('text/plain').trim();
     
     // Si es un enlace válido, aplicamos el formato inteligente de Markdown
     if (/^https?:\/\/[^\s]+$/i.test(pasteText)) {
-      e.preventDefault(); // Detener el pegado plano del enlace
+      e.preventDefault();
       
       const textarea = textareaRef.current;
       const start = textarea.selectionStart;
@@ -115,59 +100,94 @@ const SimpleEditor = ({ value, onChange, placeholder, withBorder = true }) => {
           }, 10);
         }
       }, 15);
+      return;
     }
-    // SI NO ES UN ENLACE, NO HACEMOS NADA. El navegador continuará pegando el texto plano de forma nativa.
+
+    // Detectar código basado en patrones comunes
+    const codePatterns = [
+      /^(function|const|let|var|class|import|export|if|for|while|return)/, // JavaScript
+      /^(def |class |import |from |if |for |while |return)/, // Python
+      /^(public|private|protected|class|interface|void|int|string)/, // Java/C#
+      /^((\w+::)?\w+\s*\(|\w+\s*=>\s*\{)/, // Rust/JS functions
+      /^\s*(\w+\.?){2,}\s*=/, // Dot notation assignments
+    ];
+
+    const isCode = codePatterns.some(pattern => pattern.test(pasteText.split('\n')[0]));
+    
+    if (isCode) {
+      e.preventDefault();
+      const textarea = textareaRef.current;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const selectedText = textarea.value.substring(start, end);
+      
+      const textToWrap = selectedText || pasteText;
+      insertMultiLine(['```', textToWrap, '```']);
+      return;
+    }
+
+    // Detectar listas numeradas
+    const numberedLines = pasteText.split('\n');
+    const isNumberedList = numberedLines.length > 1 && numberedLines.every(line => 
+      /^\d+\./.test(line.trim()) || line.trim() === ''
+    );
+
+    if (isNumberedList) {
+      e.preventDefault();
+      const textarea = textareaRef.current;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const before = textarea.value.substring(0, start);
+      const after = textarea.value.substring(end);
+      const lineBreak = before.endsWith('\n') || before === '' ? '' : '\n';
+      
+      onChange(`${before}${lineBreak}${pasteText}${after}`);
+      return;
+    }
+
+    // Detectar listas con viñetas
+    const bulletListPattern = /^[-*+]\s+/m;
+    if (bulletListPattern.test(pasteText)) {
+      e.preventDefault();
+      const textarea = textareaRef.current;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const before = textarea.value.substring(0, start);
+      const after = textarea.value.substring(end);
+      const lineBreak = before.endsWith('\n') || before === '' ? '' : '\n';
+      
+      onChange(`${before}${lineBreak}${pasteText}${after}`);
+      return;
+    }
+
+    // Detectar encabezados (texto que parece título)
+    const lines = pasteText.split('\n');
+    if (lines.length === 1 && lines[0].length < 60 && /^[A-Z][^a-z]/.test(lines[0])) {
+      e.preventDefault();
+      insertFormat(`# `, '', true);
+      setTimeout(() => {
+        const textarea = textareaRef.current;
+        const currentText = textarea.value;
+        const newPos = currentText.lastIndexOf('# ') + 2;
+        onChange(currentText.substring(0, newPos) + pasteText + currentText.substring(newPos));
+        setTimeout(() => {
+          textarea.focus();
+          textarea.setSelectionRange(newPos + pasteText.length, newPos + pasteText.length);
+        }, 10);
+      }, 15);
+      return;
+    }
   };
 
-  // Funciones específicas para cada formato
+  // Funciones de formato para atajos de teclado
   const formatBold = () => insertFormat('**', '**');
   const formatItalic = () => insertFormat('*', '*');
   const formatBoldItalic = () => insertFormat('***', '***');
-  
   const formatHeading = (level) => {
     const prefix = '#'.repeat(level) + ' ';
     insertFormat(prefix, '', true);
   };
-
-  const formatUnorderedList = () => insertFormat('- ', '', true);
-  const formatOrderedList = () => insertFormat('1. ', '', true);
-
-  const formatLink = () => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const selectedText = textarea.value.substring(start, end);
-    if (selectedText) {
-      insertFormat('[', `](https://ejemplo.com)`);
-    } else {
-      insertFormat('[Texto del enlace](https://ejemplo.com)', '', true);
-    }
-  };
-
-  const formatImage = () => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const selectedText = textarea.value.substring(start, end);
-    if (selectedText) {
-      insertFormat('![', '](https://ejemplo.com/imagen.jpg)');
-    } else {
-      insertFormat('![Texto alternativo](https://ejemplo.com/imagen.jpg)', '', true);
-    }
-  };
-
-  const formatBlockquote = () => insertFormat('> ', '', true);
-
-  const formatTable = () => {
-    const tableContent = `| Encabezado 1 | Encabezado 2 | Encabezado 3 |
-|--------------|--------------|--------------|
-| Celda 1      | Celda 2      | Celda 3      |
-| Celda 4      | Celda 5      | Celda 6      |`;
-    insertMultiLine(tableContent);
-  };
-
+  const formatLink = () => insertFormat('[', `](https://ejemplo.com)`);
   const formatCodeBlock = () => {
     const textarea = textareaRef.current;
     if (!textarea) return;
@@ -175,24 +195,20 @@ const SimpleEditor = ({ value, onChange, placeholder, withBorder = true }) => {
     const end = textarea.selectionEnd;
     const selectedText = textarea.value.substring(start, end);
     if (selectedText) {
-      insertMultiLine(['```python', selectedText, '```']);
+      insertMultiLine(['```', selectedText, '```']);
     } else {
-      insertMultiLine(['```python', '// Tu código aquí', '```']);
+      insertMultiLine(['```', '// Tu código aquí', '```']);
     }
   };
-
   const formatInlineCode = () => insertFormat('`', '`');
-  const formatHorizontalRule = () => insertMultiLine('\n---\n');
-  const formatStrikethrough = () => insertFormat('~~', '~~');
+  const formatBlockquote = () => insertFormat('> ', '', true);
 
-  // --- CORRECCIÓN EN LOS ATAJOS DE TECLADO ---
+  // --- ATAJOS DE TECLADO ---
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (!textareaRef.current || e.target !== textareaRef.current) return;
       
       if (e.ctrlKey || e.metaKey) {
-        // CORRECCIÓN: El preventDefault() ahora se llama individualmente dentro de cada caso personalizado,
-        // permitiendo que Ctrl+C, Ctrl+V, Ctrl+X y Ctrl+A funcionen de manera nativa sin interferencias.
         switch (e.key.toLowerCase()) {
           case 'b': e.preventDefault(); formatBold(); break;
           case 'i': e.preventDefault(); formatItalic(); break;
@@ -210,105 +226,13 @@ const SimpleEditor = ({ value, onChange, placeholder, withBorder = true }) => {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const showQuickGuide = () => {
-    const guideContent = `# Guía rápida de Markdown
-
-## Texto básico
-**Negrita**: **texto**
-*Cursiva*: *texto*
-~~Tachado~~: ~~texto~~
-
-## Enlaces e imágenes
-[Enlace](https://ejemplo.com)
-![Imagen](https://ejemplo.com/imagen.jpg)
-
-*Tip*: ¡Puedes copiar un enlace de internet, seleccionar un texto en el editor y presionar pegar (Ctrl+V) para enlazarlo automáticamente!`;
-    alert(guideContent);
-  };
-
   return (
     <div className={clsx("border border-gray-300 rounded-xl overflow-hidden bg-white dark:bg-[#1e1e1e] transition-all duration-300 focus-within:ring-1 focus-within:ring-primary-500", withBorder ? "dark:border-gray-700" : "dark:border-transparent")}>
-      
-      {/* BARRA DE HERRAMIENTAS */}
-      <div className="flex flex-wrap items-center justify-between px-2 pb-1 md:pb-0.5 bg-gray-50 dark:bg-[#1D1F23] border-b border-gray-200 dark:border-gray-700 gap-1">
-        <div className="flex flex-wrap items-center gap-1 w-full">
-          <div className="flex items-center gap-1">
-            <button type="button" onClick={formatBold} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Negrita (Ctrl+B)">
-              <Bold size={18} />
-            </button>
-            <button type="button" onClick={formatItalic} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Cursiva (Ctrl+I)">
-              <Italic size={18} />
-            </button>
-            <button type="button" onClick={formatBoldItalic} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Negrita y Cursiva (Ctrl+E)">
-              <Type size={18} />
-            </button>
-            <button type="button" onClick={formatStrikethrough} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Texto tachado">
-              <span className="text-sm font-bold">S</span>
-            </button>
-          </div>
-
-          <div className="w-px h-4 bg-gray-300 dark:bg-gray-600 mx-1"></div>
-          
-          <div className="flex gap-0.5">
-            {[1, 2, 3].map(level => (
-              <button key={level} type="button" onClick={() => formatHeading(level)} className="px-2 py-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300 text-xs font-bold" title={`Título H${level}`}>
-                H{level}
-              </button>
-            ))}
-          </div>
-          
-          <div className="w-px h-4 bg-gray-300 dark:bg-gray-600 mx-1"></div>
-
-          <div className="flex items-center gap-1">
-            <button type="button" onClick={formatUnorderedList} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Lista no ordenada">
-              <List size={18} />
-            </button>
-            <button type="button" onClick={formatOrderedList} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Lista ordenada">
-              <ListOrdered size={18} />
-            </button>
-          </div>
-          
-          <div className="w-px h-4 bg-gray-300 dark:bg-gray-600 mx-1"></div>
-
-          <div className="flex items-center gap-1">
-            <button type="button" onClick={formatLink} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Enlace (Ctrl+L)">
-              <Link size={18} />
-            </button>
-            <button type="button" onClick={formatImage} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Imagen">
-              <ImageIcon size={18} />
-            </button>
-          </div>
-          
-          <div className="w-px h-4 bg-gray-300 dark:bg-gray-600 mx-1"></div>
-
-          <div className="flex items-center gap-1">
-            <button type="button" onClick={formatBlockquote} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Cita (Ctrl+Q)">
-              <Quote size={18} />
-            </button>
-            <button type="button" onClick={formatCodeBlock} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Bloque de código (Ctrl+J)">
-              <Code size={18} />
-            </button>
-            <button type="button" onClick={formatInlineCode} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Código en línea (Ctrl+K)">
-              <span className="text-xs font-bold">{"<>"}</span>
-            </button>
-          </div>
-          
-          <div className="w-px h-4 bg-gray-300 dark:bg-gray-600 mx-1"></div>
-
-          <div className="flex items-center gap-1">
-            <button type="button" onClick={formatTable} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Tabla">
-              <Table size={18} />
-            </button>
-            <button type="button" onClick={formatHorizontalRule} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300" title="Línea horizontal">
-              <Minus size={18} />
-            </button>
-          </div>
-          
-          <button type="button" onClick={() => setIsPreview(!isPreview)} className="ml-auto flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600">
-            {isPreview ? <><Edit3 size={14}/> Editar</> : <><Eye size={14}/> Vista Previa</>}
-          </button>
-        </div>
-
+      {/* Botón de vista previa */}
+      <div className="flex justify-end px-2 py-1 bg-gray-50 dark:bg-[#1D1F23] border-b border-gray-200 dark:border-gray-700">
+        <button type="button" onClick={() => setIsPreview(!isPreview)} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600">
+          {isPreview ? <><Edit3 size={14}/> Editar</> : <><Eye size={14}/> Vista Previa</>}
+        </button>
       </div>
 
       {/* ÁREA DE EDICIÓN O VISTA PREVIA */}
