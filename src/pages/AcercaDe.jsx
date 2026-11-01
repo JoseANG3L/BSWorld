@@ -1,14 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { 
-  Heart, Code, Globe, Shield, Zap, Coffee, Github, Twitter, 
-  Users, Download, FileCode, Server, 
-  Facebook, Instagram, Youtube, Twitch, Loader2
-} from 'lucide-react';
+import { Heart, Code, Globe, Shield, Zap, Coffee, Github, Twitter, Users, Download, FileCode, Server, Facebook, Instagram, Youtube, Twitch } from 'lucide-react';
 import { clsx } from 'clsx';
 import AvatarRenderer from '../components/AvatarRenderer'; 
 // IMPORTAMOS LA FUNCIÓN DEL API
 import { getGlobalStats } from '../services/api';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 // --- SUB-COMPONENTES ---
 
@@ -18,7 +15,7 @@ const StatCard = ({ icon: Icon, value, label, color, loading }) => (
       <Icon size={20} />
     </div>
     {loading ? (
-        <Loader2 className="animate-spin text-gray-400 mb-1" size={24} />
+        <LoadingSpinner variant="inline" size={24} />
     ) : (
         <span className="text-xl md:text-2xl font-black text-gray-900 dark:text-white mb-1 animate-fade-in-up">
             {value}

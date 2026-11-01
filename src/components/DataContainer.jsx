@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Search, Filter, ArrowUpDown, Sparkles, X, ChevronDown, Check } from 'lucide-react';
 import { clsx } from 'clsx';
+import { prefetchUserProfiles } from '../services/api';
+import { CardSkeleton, PostSkeleton } from './CardSkeleton';
 
 const capitalizeText = (str) => {
   if (!str) return '';
@@ -23,7 +25,9 @@ const DataContainer = ({
   layout = 'grid',
   customSortOptions = null,
   searchPlaceholder = null,
-  showHeader = true
+  showHeader = true,
+  loading = false,
+  skeletonCount = 12
 }) => {
   // 1. ESTADO INTERNO
   const [busqueda, setBusqueda] = useState('');
@@ -39,6 +43,18 @@ const DataContainer = ({
   const [tempSelectedTypes, setTempSelectedTypes] = useState([]);
 
   const ITEMS_PER_PAGE = 12;
+
+  // Precarga avatares en 1 sola consulta (evita N peticiones, una por tarjeta)
+  useEffect(() => {
+    if (!items || items.length === 0) return;
+    const uids = items.flatMap((item) => {
+      const fromList = Array.isArray(item.creadores) ? item.creadores : [item.creadores];
+      return [...fromList, item.aporte]
+        .map((c) => (typeof c === 'string' ? c : c?.uid || c?.id))
+        .filter(Boolean);
+    });
+    prefetchUserProfiles(uids);
+  }, [items]);
 
   const typeDropdownRef = useRef(null);
   const ordenDropdownRef = useRef(null);
@@ -144,13 +160,13 @@ const DataContainer = ({
                 <Icon size={20} strokeWidth={2.5} />
             </div>
             {title}
-            <span className="text-sm font-normal text-gray-500 dark:text-gray-400 self-end mb-1 ml-1">({itemsFiltrados.length})</span>
+            <span className="text-sm font-normal text-gray-500 dark:text-gray-400 self-end mb-1 ml-1">({loading ? '···' : itemsFiltrados.length})</span>
           </h1>
         </div>
       )}
 
       {/* BARRA DE FILTROS */}
-      <div className="mb-2 md:mb-6 flex flex-row gap-2 md:gap-3 items-start md:items-center">
+      <div className="mb-2 md:mb-5 flex flex-row gap-2 md:gap-3 items-start md:items-center">
         {/* Búsqueda */}
         <div className="relative w-full md:flex-1">
           <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -263,7 +279,19 @@ const DataContainer = ({
       </div>
 
       {/* RESULTADOS */}
-      {visibleItems.length > 0 ? (
+      {loading ? (
+        <div className={clsx(
+          layout === 'vertical'
+            ? "flex flex-col gap-4 pb-4"
+            : layout === 'forum-columns'
+              ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-4"
+              : "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 md:gap-4 pb-4"
+        )}>
+          {Array.from({ length: layout === 'forum-columns' ? 6 : skeletonCount }).map((_, i) => (
+            layout === 'forum-columns' ? <PostSkeleton key={i} /> : <CardSkeleton key={i} />
+          ))}
+        </div>
+      ) : visibleItems.length > 0 ? (
         <>
           <div className={clsx(
             layout === 'vertical' 
@@ -278,7 +306,7 @@ const DataContainer = ({
           </div>
           {hasMore && (
             <div className="flex justify-center mt-6">
-              <button onClick={() => setVisibleCount(prev => prev + ITEMS_PER_PAGE)} className="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-semibold transition-all duration-200 shadow-md hover:shadow-lg flex items-center gap-2">
+              <button onClick={() => setVisibleCount(prev => prev + ITEMS_PER_PAGE)} className="px-5 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-semibold transition-all duration-200 shadow-md text-sm flex items-center gap-2">
                 Ver más contenido <span className="text-sm opacity-75">({itemsFiltrados.length - visibleCount} restantes)</span>
               </button>
             </div>

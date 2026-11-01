@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Package, Loader2 } from 'lucide-react'; 
+import { Package } from 'lucide-react'; 
 import DataContainer from '../components/DataContainer';
 import Card from '../components/Card';
 import { getContentByType } from '../services/api';
@@ -24,18 +24,13 @@ const Paquetes = () => {
     loadData();
   }, []);
 
-  if (loading) return (
-    <div className="h-full flex items-center justify-center min-h-[50vh]">
-      <Loader2 className="animate-spin text-primary-600" size={48} />
-    </div>
-  );
-
   return (
     <DataContainer
       title="Paquetes"
       icon={Package}
       gradientClass="from-yellow-500 to-amber-400"
       items={paquetes}
+      loading={loading}
       searchKey="titulo"
       renderItem={(item) => (
         <Card key={item.id} {...item} />

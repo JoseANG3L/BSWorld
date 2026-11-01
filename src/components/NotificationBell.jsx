@@ -1,91 +1,94 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Bell, CheckCircle, XCircle, Clock, Check, Loader2, Inbox, Heart, MessageCircle, Download, EyeOff, Eye, Globe, Lock } from 'lucide-react';
+import { Bell, CheckCheck, ChevronRight, Inbox, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuth, useNotifications } from '../context/AuthContext';
-import { getUserNotifications, markNotificationAsRead, invalidateNotificationsCache, getUserPublicProfile } from '../services/api';
+import {
+  getUserNotifications,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
+  invalidateNotificationsCache,
+  getUserPublicProfile,
+  prefetchUserProfiles
+} from '../services/api';
 import AvatarRenderer from './AvatarRenderer';
+import { getNotificationView, getTimeAgo, CONTENT_TYPE_LABELS } from '../utils/notifications';
+import { thumbUrl } from '../utils/image';
 
-const getTimeAgo = (dateString) => {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now - date;
-  const diffSecs = Math.floor(diffMs / 1000);
-  const diffMins = Math.floor(diffSecs / 60);
-  const diffHours = Math.floor(diffMins / 60);
-  const diffDays = Math.floor(diffHours / 24);
+const PANEL_LIMIT = 8;
 
-  if (diffSecs < 60) return 'Hace un momento';
-  if (diffMins < 60) return `Hace ${diffMins} minuto${diffMins > 1 ? 's' : ''}`;
-  if (diffHours < 24) return `Hace ${diffHours} hora${diffHours > 1 ? 's' : ''}`;
-  if (diffDays === 1) return `Ayer a las ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-  
-  if (diffDays < 7) {
-    const days = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
-    return `El ${days[date.getDay()]} a las ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-  }
-
-  return `${date.toLocaleDateString()} a las ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-};
+const BellSkeleton = () => (
+  <div className="divide-y divide-gray-100 dark:divide-white/[0.04]">
+    {[0, 1, 2].map((i) => (
+      <div key={i} className="flex items-start gap-2.5 px-2 py-2 sm:gap-3 sm:px-3.5 sm:py-3">
+        <div className="h-9 w-9 shrink-0 animate-pulse rounded-full bg-gray-200 dark:bg-white/10" />
+        <div className="flex-1 space-y-2 py-0.5">
+          <div className="h-2 w-16 animate-pulse rounded-full bg-gray-200 dark:bg-white/10" />
+          <div className="h-2.5 w-4/5 animate-pulse rounded-full bg-gray-200 dark:bg-white/10" />
+          <div className="h-2 w-1/2 animate-pulse rounded-full bg-gray-200 dark:bg-white/10" />
+        </div>
+      </div>
+    ))}
+  </div>
+);
 
 const NotificationBell = () => {
   const { user } = useAuth();
   const { unreadCount, refreshNotifications } = useNotifications();
-
-  // Usamos una función simulada para navigate en este entorno aislado
-  const navigate = (path) => console.log(`Navegando a: ${path}`);
+  const navigate = useNavigate();
 
   const [isOpen, setIsOpen] = useState(false);
-  const [unreadNotifs, setUnreadNotifs] = useState([]);
+  const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [actorCache, setActorCache] = useState({}); // Cache para información de actores
+  const [actorCache, setActorCache] = useState({});
   const dropdownRef = useRef(null);
 
-  // Cargar notificaciones no leídas para el panel
-  const fetchUnread = async () => {
+  const fetchRecent = useCallback(async ({ showLoader = false } = {}) => {
     if (!user?.id) {
       setLoading(false);
+      setItems([]);
       return;
     }
-    setLoading(true);
+    if (showLoader) setLoading(true);
     try {
-      // Solo cargar las primeras 10 notificaciones no leídas para el panel
-      const data = await getUserNotifications(user.id, true, 10, 0, true);
-      setUnreadNotifs(data);
+      const data = await getUserNotifications(user.id, false, PANEL_LIMIT, 0, true);
+      setItems(data);
     } catch (error) {
-      console.error("Error cargando notificaciones para el panel:", error);
+      console.error('Error cargando notificaciones para el panel:', error);
     } finally {
       setLoading(false);
     }
-  };
-
-  // Cargar al montar el componente y cuando el usuario cambie
-  useEffect(() => {
-    fetchUnread();
   }, [user?.id]);
 
-  // Cargar información de actores cuando cambian las notificaciones no leídas
+  // Cargar al montar y cuando cambia el usuario
   useEffect(() => {
-    const loadActorsInfo = async () => {
-      const actorIds = unreadNotifs.map(n => n.actorid).filter(Boolean);
-      const uniqueActorIds = [...new Set(actorIds)];
-      
-      for (const actorId of uniqueActorIds) {
-        if (!actorCache[actorId]) {
-          const info = await getUserPublicProfile(actorId);
-          if (info) {
-            setActorCache(prev => ({ ...prev, [actorId]: info }));
-          }
-        }
-      }
-    };
-    
-    if (unreadNotifs.length > 0) {
-      loadActorsInfo();
-    }
-  }, [unreadNotifs]);
+    fetchRecent({ showLoader: true });
+  }, [fetchRecent]);
 
-  // Cerrar panel al hacer clic fuera de él
+  // Perfiles de quienes interactúan (una sola consulta para todos)
+  useEffect(() => {
+    const ids = [...new Set(items.map((n) => n.actorid).filter(Boolean))]
+      .filter((id) => !actorCache[id]);
+    if (ids.length === 0) return;
+
+    let active = true;
+    (async () => {
+      await prefetchUserProfiles(ids);
+      const entries = await Promise.all(
+        ids.map(async (id) => [id, await getUserPublicProfile(id)])
+      );
+      if (!active) return;
+      setActorCache((prev) => {
+        const next = { ...prev };
+        entries.forEach(([id, info]) => { if (info) next[id] = info; });
+        return next;
+      });
+    })();
+
+    return () => { active = false; };
+  }, [items, actorCache]);
+
+  // Cerrar al hacer clic fuera
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -96,378 +99,246 @@ const NotificationBell = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Marcar como leída desde el panel
-  const handleMarkAsRead = async (e, notifId) => {
-    e.stopPropagation(); // Evita que se dispare el click del contenedor padre
-    try {
-      // Actualización optimista: la quitamos del panel instantáneamente
-      setUnreadNotifs(prev => prev.filter(n => n.id !== notifId));
-      await markNotificationAsRead(notifId, user?.uid);
-      invalidateNotificationsCache(user?.uid);
-      refreshNotifications(); // Refrescar el conteo global
-    } catch (error) {
-      console.error("Error al marcar como leída", error);
+  const togglePanel = () => {
+    const next = !isOpen;
+    setIsOpen(next);
+    if (next) {
+      fetchRecent();
+      refreshNotifications();
     }
   };
 
-  // Click en una notificación entera: marca como leída y navega
-  const handleNotifClick = async (notif) => {
-    setIsOpen(false); // Cierra el panel
-
-    try {
-      setUnreadNotifs(prev => prev.filter(n => n.id !== notif.id));
-      await markNotificationAsRead(notif.id, user?.uid);
-      invalidateNotificationsCache(user?.uid);
-      refreshNotifications(); // Refrescar el conteo global
-    } catch (error) {
-      console.error(error);
-    }
-
-    // Navegación al contenido
-    if (notif.modid) {
-      navigate(`/view/${notif.modid}`);
-    } else {
-      navigate(`/subir?edit=${notif.modId}`);
-    }
-  };
-
-  // Configuración visual según tipo de notificación
-  const getNotificationConfig = (notification) => {
-    // Prioridad para tipos de notificaciones de interacción
-    if (notification.type === 'like') {
-      return {
-        icon: Heart,
-        color: "text-red-500",
-        bg: "bg-red-100 dark:bg-red-900/30",
-        label: "Nuevo like"
-      };
-    }
-    
-    if (notification.type === 'comment') {
-      return {
-        icon: MessageCircle,
-        color: "text-blue-500",
-        bg: "bg-blue-100 dark:bg-blue-900/30",
-        label: "Nuevo comentario"
-      };
-    }
-    
-    if (notification.type === 'download') {
-      return {
-        icon: Download,
-        color: "text-green-500",
-        bg: "bg-green-100 dark:bg-green-900/30",
-        label: "Nueva descarga"
-      };
-    }
-    
-    if (notification.type === 'visibility') {
-      const visibility = notification.visibilidad;
-      if (visibility === 'publico') {
-        return {
-          icon: Globe,
-          color: "text-green-500",
-          bg: "bg-green-100 dark:bg-green-900/30",
-          label: "Visibilidad: Público"
-        };
-      } else if (visibility === 'privado') {
-        return {
-          icon: Lock,
-          color: "text-orange-500",
-          bg: "bg-orange-100 dark:bg-orange-900/30",
-          label: "Visibilidad: Privado"
-        };
-      } else {
-        return {
-          icon: Eye,
-          color: "text-blue-500",
-          bg: "bg-blue-100 dark:bg-blue-900/30",
-          label: "Visibilidad cambiada"
-        };
+  const handleOpenNotification = async (notif) => {
+    setIsOpen(false);
+    if (!notif.leida) {
+      try {
+        setItems((prev) => prev.map((n) => (n.id === notif.id ? { ...n, leida: true } : n)));
+        await markNotificationAsRead(notif.id, user?.id);
+        invalidateNotificationsCache(user?.id);
+        refreshNotifications();
+      } catch (error) {
+        console.error('Error marcando notificación como leída:', error);
       }
     }
-    
-    // Configuración para notificaciones de estado del contenido
-    const status = notification.status || notification.estado;
-    switch (status) {
-      case 'published': // Público y sin cambios pendientes
-        return { 
-          icon: CheckCircle, 
-          color: "text-green-500", 
-          bg: "bg-green-100 dark:bg-green-900/30", 
-          label: "Publicado" 
-        };
-      case 'published_editing': // Está al aire, pero el autor subió una versión nueva que se está revisando
-        return { 
-          icon: Clock, 
-          color: "text-blue-500", 
-          bg: "bg-blue-100 dark:bg-blue-900/30", 
-          label: "Publicado (Revisando cambios)" 
-        };
-      case 'pending': // Primera vez que se sube, aún no es público
-        return { 
-          icon: Loader2, // O Clock
-          color: "text-yellow-600", 
-          bg: "bg-yellow-100 dark:bg-yellow-900/30", 
-          label: "En revisión" 
-        };
-      case 'rejected': // Fue rechazado por moderación
-        return { 
-          icon: XCircle, 
-          color: "text-red-500", 
-          bg: "bg-red-100 dark:bg-red-900/30", 
-          label: "Rechazado" 
-        };
-      case 'draft': // En borrador
-        return { 
-          icon: Clock,
-          color: "text-red-500", 
-          bg: "bg-red-100 dark:bg-red-900/30", 
-          label: "Borrador" 
-        };
-      case 'inactive': // Deshabilitado (por el usuario o admin)
-        return { 
-          icon: EyeOff,
-          color: "text-gray-500", 
-          bg: "bg-gray-100 dark:bg-[#1D1F23]", 
-          label: "Inactivo" 
-        };
-      default:
-        return { 
-          icon: Bell, 
-          color: "text-gray-500", 
-          bg: "bg-gray-100 dark:bg-[#1D1F23]", 
-          label: "Aviso" 
-        };
+    if (notif.modid) navigate(`/view/${notif.modid}`);
+  };
+
+  const handleMarkAllAsRead = async (event) => {
+    event.stopPropagation();
+    if (!user?.id) return;
+    try {
+      setItems((prev) => prev.map((n) => ({ ...n, leida: true })));
+      await markAllNotificationsAsRead(user.id);
+      refreshNotifications();
+    } catch (error) {
+      console.error('Error marcando todas como leídas:', error);
+      fetchRecent();
     }
   };
 
-  if (!user) return null; // No mostrar si no hay sesión
+  if (!user) return null;
 
   return (
     <div className="relative inline-block font-sans" ref={dropdownRef}>
-
-      {/* BOTÓN CAMPANA */}
+      {/* CAMPANA */}
       <button
-        onClick={() => {
-          setIsOpen(!isOpen);
-          if (!isOpen && unreadNotifs.length === 0) fetchUnread(); // Refrescar al abrir si está vacío
-          refreshNotifications(); // Refrescar conteo global al abrir
-        }}
+        type="button"
+        onClick={togglePanel}
         className={clsx(
-          "w-9 h-9 flex items-center justify-center border shadow-sm rounded-full transition-all text-sm",
-          "bg-white dark:bg-[#252525] border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400"
+          'relative flex h-9 w-9 items-center justify-center rounded-full border text-sm shadow-sm transition-all',
+          'bg-white dark:bg-[#252525] border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400',
+          'hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400',
+          isOpen && 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
         )}
         title="Notificaciones"
+        aria-label={unreadCount > 0 ? `Notificaciones, ${unreadCount} sin leer` : 'Notificaciones'}
+        aria-expanded={isOpen}
       >
         <Bell size={18} strokeWidth={2.5} />
-        {/* Badge numérico si hay > 0 */}
         {unreadCount > 0 && (
-          <span className="absolute -top-1.5 -right-1.5 flex h-[20px] min-w-[20px] items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white border-2 border-white dark:border-[#121212] px-1">
+          <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-white bg-red-500 px-1 text-[10px] font-bold text-white shadow-sm dark:border-[#121212]">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
       </button>
 
-      {/* PANEL FLOTANTE */}
+      {/* PANEL */}
       {isOpen && (
-        <div className="fixed md:absolute top-full right-0 mt-1 mx-3 md:mx-0 md:mt-3 w-100 md:w-96 bg-white dark:bg-[#1e1e1e] border border-gray-300 dark:border-transparent rounded-xl shadow-xl z-50 overflow-hidden flex flex-col animate-fade-in-up origin-top-right" style={{ animationDuration: '200ms' }}>
+        <div
+          className="fixed inset-0 z-[70] flex h-dvh w-full flex-col overflow-hidden bg-white shadow-lg shadow-black/5 animate-fade-in-up dark:bg-[#1c1d20] sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:mt-3 sm:h-auto sm:max-h-none sm:w-[min(23rem,calc(100vw-1.5rem))] sm:rounded-2xl sm:border sm:border-gray-200 sm:shadow-2xl sm:shadow-black/10 sm:dark:border-white/[0.08]"
+          style={{ animationDuration: '180ms' }}
+        >
+          {/* CABECERA */}
+          <div className="flex items-center justify-between gap-2 border-b border-gray-100 bg-gray-50/70 px-2.5 py-2 dark:border-white/[0.06] dark:bg-white/[0.02] sm:px-3.5 sm:py-3">
+            <div className="flex min-w-0 items-center gap-2 sm:gap-2.5">
+              <div className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary-600 text-white sm:h-8 sm:w-8 sm:rounded-xl sm:bg-gradient-to-br sm:from-primary-500 sm:to-indigo-500 sm:shadow-sm sm:shadow-primary-500/25">
+                <Bell size={14} strokeWidth={2.5} />
+                {unreadCount > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-red-500 dark:border-[#1c1d20]" />
+                )}
+              </div>
+              <div className="min-w-0">
+                <h3 className="truncate text-sm font-bold text-gray-900 dark:text-white">
+                  Notificaciones
+                </h3>
+                <p className="truncate text-[10px] font-medium text-gray-400 dark:text-gray-500">
+                  {unreadCount > 0
+                    ? `${unreadCount > 99 ? '99+' : unreadCount} sin leer`
+                    : 'Todo al día'}
+                </p>
+              </div>
+            </div>
 
-          {/* Header del Panel */}
-          <div className="flex items-center justify-between px-3 py-2.5 border-b border-gray-100 dark:border-gray-800">
-            <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-300 flex items-center gap-2">
-              Notificaciones
-            </h3>
+            {unreadCount > 0 && (
+              <button
+                type="button"
+                onClick={handleMarkAllAsRead}
+                className="flex shrink-0 items-center gap-1 rounded-lg px-1.5 py-1 text-[10px] font-bold text-primary-600 transition-colors hover:bg-primary-50 dark:text-primary-400 dark:hover:bg-primary-500/10 sm:px-2 sm:text-[11px]"
+              >
+                <CheckCheck size={12} />
+                Marcar leídas
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setIsOpen(false)}
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-gray-500 transition-colors hover:bg-gray-200 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white sm:hidden"
+              aria-label="Cerrar notificaciones"
+              title="Cerrar"
+            >
+              <X size={16} />
+            </button>
           </div>
 
-          {/* Cuerpo del Panel (Lista) */}
-          <div className="max-h-80 overflow-y-auto flex flex-col custom-scrollbar">
+          {/* LISTA */}
+          <div className="custom-scrollbar flex min-h-0 flex-1 flex-col overflow-y-auto sm:max-h-[min(24rem,calc(100vh-9rem))] sm:flex-none">
             {loading ? (
-              <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-gray-400" size={24} /></div>
-            ) : unreadNotifs.length > 0 ? (
-              unreadNotifs.slice(0, 10).map(notif => {
-                const config = getNotificationConfig(notif);
-                const Icon = config.icon;
-                const actorInfo = actorCache[notif.actorid] || { nombre: notif.actorname, imagen: notif.actoravatar };
+              <BellSkeleton />
+            ) : items.length > 0 ? (
+              <div className="divide-y divide-gray-100 dark:divide-white/[0.04]">
+                {items.map((notif) => {
+                  const actorInfo = actorCache[notif.actorid] || null;
+                  const view = getNotificationView(notif, actorInfo, user?.role);
+                  const Icon = view.Icon;
+                  const contentType = CONTENT_TYPE_LABELS[notif.modtype] || 'contenido';
 
-                // Renderizado especial para comentarios
-                if (notif.type === 'comment') {
-                  const isReply = !!notif.parentid;
-                  
                   return (
-                    <div
+                    <button
+                      type="button"
                       key={notif.id}
-                      onClick={() => handleNotifClick(notif)}
-                      className="flex gap-3 p-3 hover:bg-gray-50 dark:hover:bg-[#313131] transition-colors cursor-pointer group"
-                    >
-                      {/* Avatar del usuario */}
-                      <div className="shrink-0">
-                        <div className="w-10 h-10 rounded-full">
-                          <AvatarRenderer 
-                            avatar={actorInfo.imagen} 
-                            name={actorInfo.nombre} 
-                          />
-                        </div>
-                      </div>
-
-                      {/* Contenido del comentario */}
-                      <div className="flex-1 min-w-0">
-                        {/* Header: Nombre y tiempo */}
-                        <div className="flex items-center justify-between mb-1">
-                          <h4 className="text-xs font-bold text-gray-900 dark:text-white">
-                            {actorInfo.nombre || 'Alguien'}
-                          </h4>
-                        </div>
-
-                        {/* Comentario o Respuesta */}
-                        <p className="text-xs text-gray-700 dark:text-gray-300">
-                          {isReply ? `Respuesta: "${notif.commenttext || '...'}"` : `"${notif.commenttext || '...'}"`}
-                        </p>
-
-                        <span className="text-[10px] text-gray-400">
-                          {getTimeAgo(notif.creado)}
-                        </span>
-                      </div>
-
-                      {/* Imagen del contenido */}
-                      {notif.modimage && (
-                        <div className="relative h-14 aspect-video shrink-0">
-                          <img 
-                            src={notif.modimage} 
-                            alt={notif.modtitle}
-                            className="w-full h-full rounded-lg object-cover"
-                          />
-                        </div>
+                      onClick={() => handleOpenNotification(notif)}
+                      className={clsx(
+                        'group relative flex w-full items-start gap-2.5 px-2 py-2 text-left transition-colors sm:gap-3 sm:px-3.5 sm:py-3',
+                        'hover:bg-gray-50 dark:hover:bg-white/[0.04]',
+                        !notif.leida && 'bg-gradient-to-r from-primary-50/70 to-white dark:from-primary-500/[0.08] dark:to-transparent'
                       )}
-                    </div>
-                  );
-                }
-                
-                // Renderizado especial para likes con avatar
-                if (notif.type === 'like') {
-                  return (
-                    <div
-                      key={notif.id}
-                      onClick={() => handleNotifClick(notif)}
-                      className="flex gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer group"
                     >
-                      {/* Avatar del usuario */}
-                      <div className="shrink-0">
-                        <div className="w-10 h-10 rounded-full">
-                          <AvatarRenderer 
-                            avatar={actorInfo.imagen} 
-                            name={actorInfo.nombre} 
-                          />
-                        </div>
+                      {!notif.leida && (
+                        <span className="absolute left-0 top-1/2 h-8 w-[3px] -translate-y-1/2 rounded-r-full bg-gradient-to-b from-primary-400 to-primary-600" />
+                      )}
+
+                      <div className="relative shrink-0">
+                        {view.hasActor && notif.actorid ? (
+                          <>
+                            <div className="h-8 w-8 overflow-hidden rounded-full ring-1 ring-white/80 dark:ring-[#1c1d20] sm:h-9 sm:w-9 sm:ring-2">
+                              <AvatarRenderer avatar={actorInfo?.imagen} name={actorInfo?.nombre} />
+                            </div>
+                            <span className={clsx('absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full ring-1 ring-white dark:ring-[#1c1d20] sm:h-[18px] sm:w-[18px] sm:ring-2', view.badge)}>
+                              <Icon size={8} strokeWidth={2.5} />
+                            </span>
+                          </>
+                        ) : (
+                          <div className={clsx('flex h-8 w-8 items-center justify-center rounded-lg ring-1 ring-black/5 dark:ring-white/5 sm:h-9 sm:w-9 sm:rounded-xl', view.tile)}>
+                            <Icon size={15} />
+                          </div>
+                        )}
                       </div>
 
-                      {/* Contenido del like */}
-                      <div className="flex-1 min-w-0">
-                        {/* Header: Nombre y tiempo */}
-                        <div className="flex items-center justify-between mb-1">
-                          <h4 className="text-xs font-bold text-gray-900 dark:text-white">
-                            {actorInfo.nombre || 'Alguien'}
-                          </h4>
-                          <span className="text-[10px] text-gray-400">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1">
+                          <span className={clsx(
+                            'inline-flex items-center rounded px-1 py-0.5 text-[8px] font-bold uppercase tracking-wider sm:px-1.5 sm:text-[9px]',
+                            view.pill
+                          )}>
+                            {view.label}
+                          </span>
+                          <span className="text-[9px] font-medium text-gray-400 dark:text-gray-500 sm:text-[10px]">
                             {getTimeAgo(notif.creado)}
                           </span>
+                          {!notif.leida && (
+                            <span className="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-primary-500" />
+                          )}
                         </div>
 
-                        {/* Mensaje de like */}
-                        <p className="text-xs text-gray-700 dark:text-gray-300 mb-1">
-                          Le gustó tu {notif.modtype}
+                        <p className={clsx(
+                          'mt-0.5 text-[11px] leading-snug line-clamp-2 sm:mt-1 sm:text-xs',
+                          notif.leida
+                            ? 'text-gray-600 dark:text-gray-400'
+                            : 'font-semibold text-gray-900 dark:text-white'
+                        )}>
+                          {view.title}
                         </p>
 
-                        {/* Información del contenido */}
-                        <div className="text-[10px] text-gray-500 dark:text-gray-400">
-                          <span className="text-primary-600 dark:text-primary-400">"{notif.modtitle}"</span>
-                        </div>
+                        {view.quote && (
+                          <p className="mt-0.5 line-clamp-1 border-l-2 border-blue-400/40 pl-1.5 text-[9px] italic text-gray-400 dark:text-gray-500 sm:mt-1 sm:text-[10px]">
+                            “{view.quote}”
+                          </p>
+                        )}
+
+                        {notif.modtitle && (
+                          <div className="mt-1 flex items-center gap-1.5 sm:mt-1.5">
+                            {notif.modimage ? (
+                              <img
+                                src={thumbUrl(notif.modimage, 80)}
+                                alt=""
+                                loading="lazy"
+                                decoding="async"
+                                className="h-4 w-4 shrink-0 rounded object-cover sm:h-5 sm:w-5"
+                                onError={(event) => { event.currentTarget.src = '/default.jpg'; }}
+                              />
+                            ) : (
+                              <span className={clsx('flex h-4 w-4 shrink-0 items-center justify-center rounded sm:h-5 sm:w-5', view.tile)}>
+                                <Icon size={9} />
+                              </span>
+                            )}
+                            <span className="truncate text-[9px] font-medium text-gray-400 dark:text-gray-500 sm:text-[10px]">
+                              {notif.modtitle}
+                            </span>
+                            <span className="shrink-0 text-[8px] uppercase tracking-wide text-gray-300 dark:text-gray-600 sm:text-[9px]">
+                              {contentType}
+                            </span>
+                          </div>
+                        )}
                       </div>
-
-                      {/* Imagen del contenido */}
-                      {notif.modimage && (
-                        <div className="shrink-0">
-                          <img 
-                            src={notif.modimage} 
-                            alt={notif.modtitle}
-                            className="w-12 h-12 rounded-lg object-cover"
-                          />
-                        </div>
-                      )}
-                    </div>
-                  );
-                }
-
-                // Renderizado normal para otros tipos
-                let message = '';
-                const actorName = actorInfo.nombre || 'Alguien';
-                
-                if (notif.type === 'like') {
-                  message = `A ${actorName} le gustó tu ${notif.modtype} "${notif.modtitle}"`;
-                } else if (notif.type === 'download') {
-                  message = `${actorName} descargó tu ${notif.modtype} "${notif.modtitle}"`;
-                } else if (notif.type === 'visibility') {
-                  const visibility = notif.visibilidad;
-                  const visibilityText = visibility === 'publico' ? 'público' : visibility === 'privado' ? 'privado' : 'cambiado';
-                  message = `Tu ${notif.modtype} "${notif.modtitle}" ahora es ${visibilityText}`;
-                } else {
-                  message = `Tu ${notif.modtype} "${notif.modtitle}" ha sido ${config.label.toLowerCase()}`;
-                }
-
-                return (
-                  <div
-                    key={notif.id}
-                    onClick={() => handleNotifClick(notif)}
-                    className="flex gap-3 p-3 hover:bg-gray-50 dark:hover:bg-[#191B1E] transition-colors cursor-pointer group"
-                  >
-                    <div className={clsx("p-2.5 rounded-full h-fit shrink-0", config.bg, config.color)}>
-                      <Icon size={18} />
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 pr-4 leading-tight">
-                        {message}
-                      </p>
-                      <p className="text-[10px] text-gray-500 mt-1 font-medium">
-                        {getTimeAgo(notif.creado)}
-                      </p>
-                    </div>
-
-                    <button
-                      onClick={(e) => handleMarkAsRead(e, notif.id)}
-                      className="opacity-0 group-hover:opacity-100 p-1.5 h-fit text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-all shrink-0"
-                      title="Marcar como leída"
-                    >
-                      <Check size={16} />
                     </button>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="p-8 flex flex-col items-center justify-center text-center text-gray-500">
-                <Inbox size={32} className="text-gray-300 dark:text-gray-600 mb-3" />
-                <p className="text-sm font-medium">No tienes notificaciones nuevas</p>
-                <p className="text-xs mt-1">¡Todo está al día!</p>
+                  );
+                })}
               </div>
-            )}
-
-            {/* Aviso si hay más de 10 */}
-            {unreadNotifs.length > 10 && (
-              <p className="text-center text-[10px] text-gray-400 py-2 border-t border-gray-100 dark:border-gray-800 mt-1">
-                Y {unreadNotifs.length - 10} más...
-              </p>
+            ) : (
+              <div className="flex flex-col items-center justify-center px-3 py-6 text-center sm:px-6 sm:py-10">
+                <div className="relative mb-2 sm:mb-3">
+                  <span className="absolute -inset-2 rounded-full bg-primary-500/5 dark:bg-primary-500/10" />
+                  <div className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-primary-100 bg-primary-50 text-primary-500 dark:border-primary-500/20 dark:bg-primary-500/10 dark:text-primary-400 sm:h-12 sm:w-12 sm:rounded-2xl">
+                    <Inbox size={20} />
+                  </div>
+                </div>
+                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Todo al día</p>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-500">
+                  Aquí verás los likes, comentarios y novedades de tu contenido.
+                </p>
+              </div>
             )}
           </div>
 
-          {/* Footer del Panel (Botón Ver Todas) */}
+          {/* PIE */}
           <Link
             to="/notificaciones"
             onClick={() => setIsOpen(false)}
-            className="text-sm m-3 text-primary-600 hover:text-primary-700 dark:text-primary-400 hover:dark:text-primary-500 font-semibold transition-colors"
+            className="flex items-center justify-center gap-1 border-t border-gray-100 bg-gray-50/50 px-2.5 py-2 text-[11px] font-bold text-primary-600 transition-colors hover:bg-primary-50 dark:border-white/[0.06] dark:bg-white/[0.01] dark:text-primary-400 dark:hover:bg-primary-500/10 sm:gap-1.5 sm:px-4 sm:py-2.5 sm:text-xs"
           >
             Ver todas las notificaciones
+            <ChevronRight size={13} />
           </Link>
-
         </div>
       )}
     </div>

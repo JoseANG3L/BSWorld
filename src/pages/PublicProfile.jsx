@@ -3,13 +3,11 @@ import { useParams, Link, useLocation } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { getContentByCreator, getUserByUsername, getUserPublicProfile, getUserLikedContent } from '../services/api';
 import Card from '../components/Card';
-import { 
-  Calendar, Shield, UserX, Loader2, Heart, Youtube, Twitter, Instagram, Linkedin, Github, Globe, MessageCircle, Download,
-  Grid, Boxes, Map, Gamepad2, Package, Wrench, User, Search, ChevronDown, ArrowUpDown, Edit3, Settings, Filter, X, Check, Eye
-} from 'lucide-react';
+import { Calendar, Shield, UserX, Heart, Youtube, Twitter, Instagram, Linkedin, Github, Globe, MessageCircle, Download, Grid, Boxes, Map, Gamepad2, Package, Wrench, User, Search, ChevronDown, ArrowUpDown, Edit3, Settings, Filter, X, Check, Eye } from 'lucide-react';
 import { clsx } from 'clsx';
 import AvatarRenderer from '../components/AvatarRenderer';
 import { useAuth } from '../context/AuthContext';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 // Cache simple para perfiles
 const profileCache = {};
@@ -236,11 +234,7 @@ const PublicProfile = () => {
     return resultado;
   }, [content, likedContent, activeTab, busqueda, orden, selectedTypes]);
 
-  if (loading) return (
-    <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4">
-      <Loader2 className="animate-spin text-primary-600" size={48}/>
-    </div>
-  );
+  if (loading) return <LoadingSpinner variant="page" />;
 
   if (!exists) return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4 animate-fade-in-up">

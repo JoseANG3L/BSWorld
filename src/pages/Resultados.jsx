@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { 
-  Search, Loader2, Frown, Filter, Map, Gamepad2, Wrench, Boxes, Package, Grid, ChevronDown, User, MessageSquare, Users
-} from 'lucide-react';
+import { useSearchParams, Link } from 'react-router-dom';
+import { Search, Frown, Grid, MessageSquare, Users, Compass } from 'lucide-react';
 import { clsx } from 'clsx';
 import Card from '../components/Card';
 import CreatorCard from '../components/CreatorCard';
@@ -21,39 +19,57 @@ const Resultados = () => {
   const [activeTab, setActiveTab] = useState('contenido');
 
   useEffect(() => {
+    const q = query.trim().toLowerCase();
+
+    // Sin término: no buscar (antes se quedaba cargando infinito)
+    if (!q) {
+      setContentResults([]);
+      setUserResults([]);
+      setForumResults([]);
+      setLoading(false);
+      return;
+    }
+
     const performSearch = async () => {
       setLoading(true);
       try {
-        const lowerQuery = query.toLowerCase();
-        
-        // Buscar contenido
-        const contentData = await getAllContent();
-        const contentMatches = contentData.filter(item => {
-          const matchTitle = item.titulo?.toLowerCase().includes(lowerQuery);
-          const matchTags = item.tags?.some(tag => tag.toLowerCase().includes(lowerQuery));
-          const matchCreators = Array.isArray(item.creadores) 
-            ? item.creadores.some(c => (typeof c === 'string' ? c : c.nombre).toLowerCase().includes(lowerQuery))
-            : false;
-          return matchTitle || matchTags || matchCreators;
-        });
+        const terms = q.split(/\s+/);
+        const matches = (...fields) => {
+          const haystack = fields.filter(Boolean).join(' ').toLowerCase();
+          return terms.some((t) => haystack.includes(t));
+        };
+
+        // En paralelo (antes eran 3 awaits secuenciales) y con caché de api.js
+        const [contentData, userData, forumData] = await Promise.all([
+          getAllContent(),
+          getAllUsers(),
+          getForumPosts(),
+        ]);
+
+        // Buscar contenido (título, tags, creadores, descripción)
+        const contentMatches = (contentData || []).filter(item => matches(
+          item.titulo,
+          Array.isArray(item.tags) ? item.tags.join(' ') : item.tags,
+          Array.isArray(item.creadores)
+            ? item.creadores.map(c => (typeof c === 'string' ? c : c?.nombre || c?.username)).join(' ')
+            : item.creadores,
+          item.descripcion
+        ));
         setContentResults(contentMatches);
 
-        // Buscar usuarios
-        const userData = await getAllUsers();
-        const userMatches = userData.filter(user => 
-          user.username?.toLowerCase().includes(lowerQuery)
-        );
+        // Buscar usuarios (nombre y descripción)
+        const userMatches = (userData || []).filter(u => matches(u.username, u.descripcion));
         setUserResults(userMatches);
 
-        // Buscar posts del foro
-        const forumData = await getForumPosts();
-        const forumMatches = forumData.filter(post => {
-          const matchTitle = post.title?.toLowerCase().includes(lowerQuery);
-          const matchContent = post.content?.toLowerCase().includes(lowerQuery);
-          return matchTitle || matchContent;
-        });
+        // Buscar posts del foro (título y contenido)
+        const forumMatches = (forumData || []).filter(post => matches(post.title, post.content));
         setForumResults(forumMatches);
 
+        // Ir directo a la primera pestaña con resultados
+        const counts = { contenido: contentMatches.length, usuarios: userMatches.length, foro: forumMatches.length };
+        setActiveTab((prev) => (
+          counts[prev] > 0 ? prev : (['contenido', 'usuarios', 'foro'].find(t => counts[t] > 0) || 'contenido')
+        ));
       } catch (error) {
         console.error("Error buscando:", error);
       } finally {
@@ -61,7 +77,7 @@ const Resultados = () => {
       }
     };
 
-    if (query) performSearch();
+    performSearch();
   }, [query]);
 
   const tabsConfig = [
@@ -70,17 +86,7 @@ const Resultados = () => {
     { id: 'foro', label: 'Foro', icon: MessageSquare, count: forumResults.length },
   ];
 
-  if (loading) return (
-    <div className="h-[60vh] flex flex-col items-center justify-center gap-4">
-      <Loader2 className="animate-spin text-primary-600" size={48} />
-      <p className="text-gray-500 animate-pulse">Buscando en los archivos...</p>
-    </div>
-  );
-
-  const renderContentItem = (item) => {
-    const total = item.descargas?.reduce((acc, curr) => acc + (curr.count || 0), 0) || 0;
-    return <Card key={item.id} id={item.id} {...item} totalDownloads={total} />;
-  };
+  const renderContentItem = (item) => <Card key={item.id} {...item} />;
 
   const renderUserItem = (user) => (
     <CreatorCard key={user.id} username={user.username} avatar={user.avatar} role={user.role} />
@@ -90,65 +96,50 @@ const Resultados = () => {
     <ForumPost key={post.id} post={post} onPostMutated={() => {}} />
   );
 
+  const totalCount = contentResults.length + userResults.length + forumResults.length;
+
   return (
-    <div className="animate-fade-in-up pb-10">
-      
-      {/* HEADER DE RESULTADOS */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-          <div className="p-2 bg-primary-100 dark:bg-primary-900/30 rounded-xl text-primary-600">
-             <Search size={20} strokeWidth={2.5} />
+    <div className="flex flex-col animate-fade-in-up" style={{ animationDuration: '200ms' }}>
+      {/* HEADER estilo DataContainer */}
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center p-2 md:p-4">
+        <h1 className="flex text-xl md:text-2xl font-bold text-gray-800 dark:text-white items-center gap-3">
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-sm text-white bg-gradient-to-br from-primary-500 to-primary-700">
+            <Search size={20} strokeWidth={2.5} />
           </div>
-          Resultados para: <span className="text-primary-600 dark:text-primary-400 italic">"{query}"</span>
+          {query.trim() ? (
+            <span className="truncate">Resultados para "{query.trim()}"</span>
+          ) : (
+            'Buscar'
+          )}
+          <span className="text-sm font-normal text-gray-500 dark:text-gray-400 self-end mb-1 ml-1">({totalCount})</span>
         </h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-2 ml-1">
-          Se encontraron <b>{contentResults.length + userResults.length + forumResults.length}</b> coincidencias.
-        </p>
       </div>
 
-      {/* TABS DE FILTRO */}
-      <div className="mb-6">
-        <div className="block md:hidden">
-          <div className="relative">
-            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" size={20} />
-            <select
-              value={activeTab}
-              onChange={(e) => setActiveTab(e.target.value)}
-              className="w-full appearance-none bg-white dark:bg-[#1e1e1e] border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white py-3 pl-4 pr-10 rounded-xl shadow-sm font-medium focus:ring-2 focus:ring-primary-500 focus:outline-none transition-all"
-            >
-              {tabsConfig.map((tab) => (
-                <option key={tab.id} value={tab.id}>
-                  {tab.label} {tab.count > 0 ? `(${tab.count})` : ''}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="hidden md:flex justify-start">
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 px-1 scrollbar-hide max-w-full">
-            {tabsConfig.map((tab) => (
-              <TabButton 
-                key={tab.id}
-                active={activeTab === tab.id} 
-                onClick={() => setActiveTab(tab.id)}
-                icon={tab.icon} 
-                label={tab.label} 
-                count={tab.count}
-              />
-            ))}
-          </div>
+      {/* TABS como pills con scroll (móvil y desktop) */}
+      <div className="px-2 md:px-4">
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide max-w-full">
+          {tabsConfig.map((tab) => (
+            <TabButton
+              key={tab.id}
+              active={activeTab === tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              icon={tab.icon}
+              label={tab.label}
+              count={tab.count}
+            />
+          ))}
         </div>
       </div>
 
       {/* RESULTADOS POR TAB */}
       {activeTab === 'contenido' && (
-        contentResults.length > 0 ? (
+        contentResults.length > 0 || loading ? (
           <DataContainer
             title="Contenido Encontrado"
             icon={Grid}
             gradientClass="from-purple-500 to-pink-500"
             items={contentResults}
+            loading={loading}
             searchKey="titulo"
             dateKey="creado"
             renderItem={renderContentItem}
@@ -163,12 +154,13 @@ const Resultados = () => {
       )}
 
       {activeTab === 'usuarios' && (
-        userResults.length > 0 ? (
+        userResults.length > 0 || loading ? (
           <DataContainer
             title="Usuarios Encontrados"
             icon={Users}
             gradientClass="from-green-500 to-teal-500"
             items={userResults}
+            loading={loading}
             searchKey="username"
             dateKey="createdat"
             renderItem={renderUserItem}
@@ -181,7 +173,7 @@ const Resultados = () => {
       )}
 
       {activeTab === 'foro' && (
-        forumResults.length > 0 ? (
+        forumResults.length > 0 || loading ? (
           <DataContainer
             title="Posts del Foro"
             icon={MessageSquare}
@@ -197,6 +189,7 @@ const Resultados = () => {
             typeKey="category"
             customTypes={['General', 'Ayuda', 'Discusión', 'Anuncios', 'Proyectos', 'Off-topic']}
             layout="forum-columns"
+            loading={loading}
             showHeader={false}
           />
         ) : (
@@ -204,16 +197,30 @@ const Resultados = () => {
         )
       )}
 
-      {/* ESTADO VACÍO TOTAL */}
-      {contentResults.length === 0 && userResults.length === 0 && forumResults.length === 0 && (
+      {/* ESTADO VACÍO / SIN TÉRMINO (solo cuando ya terminó de cargar) */}
+      {!loading && contentResults.length === 0 && userResults.length === 0 && forumResults.length === 0 && (
         <div className="flex flex-col items-center justify-center py-24 bg-gray-50 dark:bg-[#1e1e1e] rounded-3xl border border-gray-200 dark:border-gray-800 text-center">
            <div className="bg-gray-200 dark:bg-[#1D1F23] p-6 rounded-full mb-4">
-              <Frown size={64} className="text-gray-400" />
+              {query.trim() ? (
+                <Frown size={64} className="text-gray-400" />
+              ) : (
+                <Compass size={64} className="text-primary-500" />
+              )}
            </div>
-           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">No encontramos nada</h2>
-           <p className="text-gray-500 dark:text-gray-400 max-w-md">
-             Intenta con otras palabras clave, revisa la ortografía o busca términos más generales.
+           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+             {query.trim() ? 'No encontramos nada' : 'Busca mods, usuarios o posts'}
+           </h2>
+           <p className="text-gray-500 dark:text-gray-400 max-w-md mb-6">
+             {query.trim()
+               ? 'Intenta con otras palabras clave, revisa la ortografía o busca términos más generales.'
+               : 'Escribe en la barra superior qué quieres encontrar.'}
            </p>
+           <Link
+             to="/mods"
+             className="px-6 py-2.5 bg-primary-600 hover:bg-primary-700 text-white text-sm font-bold rounded-xl transition-colors shadow-sm"
+           >
+             Explorar mods
+           </Link>
         </div>
       )}
     </div>

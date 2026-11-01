@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { FEATURES } from '../config/features';
 
 const menuItems = [
   { to: "/", icon: Home, label: "Inicio" },
@@ -20,7 +21,7 @@ const menuItems = [
   { to: "/servidores", icon: Server, label: "Servidores" },
   { to: "/acerca-de", icon: Info, label: "Acerca de" },
   { to: "/contacto", icon: Mail, label: "Contacto" },
-];
+].filter((item) => item.to !== "/comunidad" || FEATURES.comunidad);
 
 const SidebarItem = ({ to, icon: Icon, label, isCollapsed }) => (
   <NavLink

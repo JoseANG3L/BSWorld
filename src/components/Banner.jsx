@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Upload, Compass, Download, Users, Users as UsersIcon, Zap, Gamepad2, User, Server, Package } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getPublicContent, getGlobalStats } from '../services/api';
+import LoadingSpinner from '../components/LoadingSpinner';
 import SubirMod from '../pages/SubirMod';
+import { FEATURES } from '../config/features';
 
 const Banner = () => {
   const navigate = useNavigate();
@@ -76,7 +78,7 @@ const Banner = () => {
       {/* Background Image */}
       <div 
         className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: 'url(/bannerbsworld.png)' }}
+        style={{ backgroundImage: 'url(/bannerbsworld.webp)' }}
       />
       
       {/* Overlay */}
@@ -115,10 +117,12 @@ const Banner = () => {
           {/* Categories */}
           <div className="flex flex-col gap-2 mb-2.5 animate-fade-in-up w-full" style={{ animationDuration: '400ms' }}>
             <div className="flex justify-center gap-2">
-              <span className="inline-flex items-center gap-2 px-3 py-1 bg-primary-500/40 backdrop-blur-md text-white text-[11px] font-bold rounded-md border-2 border-primary-400 shadow-lg">
-                <UsersIcon size={11} />
-                Comunidad
-              </span>
+              {FEATURES.comunidad && (
+                <span className="inline-flex items-center gap-2 px-3 py-1 bg-primary-500/40 backdrop-blur-md text-white text-[11px] font-bold rounded-md border-2 border-primary-400 shadow-lg">
+                  <UsersIcon size={11} />
+                  Comunidad
+                </span>
+              )}
               <span className="inline-flex items-center gap-2 px-3 py-1 bg-primary-500/40 backdrop-blur-md text-white text-[11px] font-bold rounded-md border-2 border-primary-400 shadow-lg">
                 <Server size={11} />
                 Servidores
@@ -154,7 +158,7 @@ const Banner = () => {
                 <span className="text-[9px] font-semibold text-white/70 uppercase tracking-wider">Mods</span>
               </div>
               {loading ? (
-                <div className="w-10 h-5 bg-white/20 rounded animate-pulse" />
+                <LoadingSpinner variant="inline" size={20} />
               ) : (
                 <span className="text-sm font-black text-white">{formatNumber(stats.mods)}</span>
               )}
@@ -166,7 +170,7 @@ const Banner = () => {
                 <span className="text-[9px] font-semibold text-white/70 uppercase tracking-wider">Descargas</span>
               </div>
               {loading ? (
-                <div className="w-10 h-5 bg-white/20 rounded animate-pulse" />
+                <LoadingSpinner variant="inline" size={20} />
               ) : (
                 <span className="text-sm font-black text-white">{formatNumber(stats.downloads)}</span>
               )}
@@ -178,7 +182,7 @@ const Banner = () => {
                 <span className="text-[9px] font-semibold text-white/70 uppercase tracking-wider">Usuarios</span>
               </div>
               {loading ? (
-                <div className="w-10 h-5 bg-white/20 rounded animate-pulse" />
+                <LoadingSpinner variant="inline" size={20} />
               ) : (
                 <span className="text-sm font-black text-white">{formatNumber(stats.users)}</span>
               )}
@@ -223,10 +227,12 @@ const Banner = () => {
             {/* Categories */}
             <div className="flex flex-col gap-3 mb-8 animate-fade-in-up w-full" style={{ animationDuration: '400ms' }}>
               <div className="flex justify-start gap-3">
-                <span className="inline-flex items-center gap-2 px-6 py-1.5 bg-primary-500/40 backdrop-blur-md text-white text-xs font-bold rounded-md border-2 border-primary-400 shadow-lg">
-                  <UsersIcon size={12} />
-                  Comunidad
-                </span>
+                {FEATURES.comunidad && (
+                  <span className="inline-flex items-center gap-2 px-6 py-1.5 bg-primary-500/40 backdrop-blur-md text-white text-xs font-bold rounded-md border-2 border-primary-400 shadow-lg">
+                    <UsersIcon size={12} />
+                    Comunidad
+                  </span>
+                )}
                 <span className="inline-flex items-center gap-2 px-6 py-1.5 bg-primary-500/40 backdrop-blur-md text-white text-xs font-bold rounded-md border-2 border-primary-400 shadow-lg">
                   <Server size={12} />
                   Servidores
@@ -282,7 +288,7 @@ const Banner = () => {
                 <span className="text-[10px] md:text-xs font-semibold text-white/70 uppercase tracking-wider">Mods</span>
               </div>
               {loading ? (
-                <div className="w-10 h-5 bg-white/20 rounded animate-pulse" />
+                <LoadingSpinner variant="inline" size={20} />
               ) : (
                 <span className="text-lg md:text-2xl lg:text-3xl font-black text-white">{formatNumber(stats.mods)}</span>
               )}
@@ -295,7 +301,7 @@ const Banner = () => {
                 <span className="text-[10px] md:text-xs font-semibold text-white/70 uppercase tracking-wider">Descargas</span>
               </div>
               {loading ? (
-                <div className="w-10 h-5 bg-white/20 rounded animate-pulse" />
+                <LoadingSpinner variant="inline" size={20} />
               ) : (
                 <span className="text-lg md:text-2xl lg:text-3xl font-black text-white">{formatNumber(stats.downloads)}</span>
               )}
@@ -308,7 +314,7 @@ const Banner = () => {
                 <span className="text-[10px] md:text-xs font-semibold text-white/70 uppercase tracking-wider">Usuarios</span>
               </div>
               {loading ? (
-                <div className="w-10 h-5 bg-white/20 rounded animate-pulse" />
+                <LoadingSpinner variant="inline" size={20} />
               ) : (
                 <span className="text-lg md:text-2xl lg:text-3xl font-black text-white">{formatNumber(stats.users)}</span>
               )}

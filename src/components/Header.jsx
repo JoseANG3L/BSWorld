@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, lazy, Suspense } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Search, Sun, Moon, User, Menu, LogOut, ShieldCheck, UserPlus, LogIn, Settings, Upload, 
@@ -6,20 +6,24 @@ import {
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../hooks/useToast';
 import AvatarRenderer from './AvatarRenderer';
 import NotificationBell from './NotificationBell';
-import SubirMod from '../pages/SubirMod';
-import Login from '../pages/Login';
+import { FEATURES } from '../config/features';
+// Modales en lazy: evitan arrastrar react-markdown al bundle inicial
+const SubirMod = lazy(() => import('../pages/SubirMod'));
+const Login = lazy(() => import('../pages/Login'));
 
 const menuItems = [
   { to: "/", icon: Home, label: "Inicio" },
   { to: "/mods", icon: Gamepad2, label: "Mods" },
   { to: "/comunidad", icon: Crown, label: "Comunidad" },
   // { to: "/servidores", icon: Server, label: "Servidores" },
-];
+].filter((item) => item.to !== "/comunidad" || FEATURES.comunidad);
 
-const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
+const Header = ({ toggleTheme, isDarkMode }) => {
   const { user, logout } = useAuth();
+  const { showToast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -78,7 +82,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
 
   return (
     <>
-    <header className="flex items-center gap-2 md:gap-4 lg:gap-5 sticky top-0 z-40 px-2 md:px-3 lg:px-5 py-1.5 md:py-2 bg-white dark:bg-dark-bg transition-colors duration-300 border-b border-gray-200 dark:border-gray-800 shadow-sm">
+    <header className="flex items-center gap-1.5 md:gap-4 lg:gap-5 sticky top-0 z-40 px-2 md:px-3 lg:px-5 py-1.5 md:py-2 bg-white dark:bg-dark-bg transition-colors duration-300 border-b border-gray-200 dark:border-gray-800 shadow-sm">
 
       {/* MENÚ HAMBURGUESA (Solo móvil) */}
       <div className="lg:hidden relative" ref={navMenuRef}>
@@ -110,14 +114,14 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
               );
             })}
 
-            <div className="md:hidden border-t border-gray-300 dark:border-gray-700 my-1"></div>
+            <div className="border-t border-gray-300 dark:border-gray-700 my-1"></div>
 
             {/* Dark Mode / Light Mode */}
             <button
               type="button"
               onClick={toggleTheme}
               className={clsx(
-                "w-full flex md:hidden items-center gap-3 px-4 py-2.5 text-sm transition-colors",
+                "w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors",
                 "text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-primary-600 dark:hover:text-primary-400"
               )}
               title={isDarkMode ? "Modo Claro" : "Modo Oscuro"}
@@ -210,33 +214,30 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
       </div>
 
       {/* ACCIONES (Desktop) */}
-      <div className="flex items-center ml-0 md:ml-auto gap-2 lg:gap-3 shrink-0">
+      <div className="flex items-center ml-0 md:ml-auto gap-1.5 md:gap-2 lg:gap-3 shrink-0">
 
         {/* SUBIR MOD */}
         <button 
           onClick={handleSubirModClick}
-          className="flex items-center justify-center w-9 h-9 xl:w-auto xl:h-auto px-0 py-0 xl:px-4 xl:py-2 bg-primary-600 hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-800 text-white rounded-full xl:rounded-lg text-sm font-semibold transition-colors shadow-sm gap-2"
+          className="hidden md:flex items-center justify-center w-9 h-9 xl:w-auto xl:h-auto px-0 py-0 xl:px-4 xl:py-2 bg-primary-600 hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-800 text-white rounded-full xl:rounded-lg text-sm font-semibold transition-colors shadow-sm gap-2"
+          aria-label="Subir contenido"
         >
           <Upload size={16} strokeWidth={3} />
           <span className="hidden xl:flex">Subir</span>
         </button>
 
-        {/* THEME TOGGLE */}
+        {/* THEME TOGGLE (solo escritorio grande; en móvil/tablet vive en el menú) */}
         <button
           type="button"
           onClick={toggleTheme}
-          className={clsx("w-9 h-9 hidden md:flex items-center justify-center rounded-full bg-white dark:bg-[#252525] border border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400 transition-all shadow-sm", "hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400")}
+          className={clsx("w-9 h-9 hidden lg:flex items-center justify-center rounded-full bg-white dark:bg-[#252525] border border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400 transition-all shadow-sm", "hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400")}
           title={isDarkMode ? "Modo Claro" : "Modo Oscuro"}
         >
           {isDarkMode ? <Sun size={18} strokeWidth={2.5} /> : <Moon size={18} strokeWidth={2.5} />}
         </button>
 
-        {/* NOTIFICACIONES */}
-        {user && (
-          <div className="hidden md:block">
-            <NotificationBell />
-          </div>
-        )}
+        {/* NOTIFICACIONES (siempre visibles en cualquier tamaño) */}
+        {user && <NotificationBell />}
 
         <div className="h-6 w-px hidden md:block bg-gray-400 dark:bg-gray-600 mx-1"></div>
 
@@ -307,6 +308,7 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
                     onClick={() => {
                       logout();
                       setIsProfileOpen(false);
+                      showToast('Sesión cerrada. ¡Hasta pronto!', 'info');
                     }}
                     className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
                   >
@@ -345,16 +347,28 @@ const Header = ({ toggleTheme, isDarkMode, onMenuClick }) => {
         </div>
       </div>
     </header>
-    
-    {/* MODAL SUBIR MOD */}
-    <SubirMod isOpen={isSubirModOpen} onClose={() => setIsSubirModOpen(false)} />
 
-    {/* MODAL LOGIN / REGISTRO */}
-    <Login 
-      isOpen={isLoginOpen} 
-      onClose={() => setIsLoginOpen(false)} 
-      initialRegister={loginInitialRegister} 
-    />
+    <button
+      type="button"
+      onClick={handleSubirModClick}
+      className="fixed bottom-4 right-4 z-40 flex h-11 w-11 items-center justify-center rounded-full bg-primary-600 text-white shadow-lg shadow-primary-900/20 transition-colors hover:bg-primary-700 active:scale-95 dark:bg-primary-700 dark:hover:bg-primary-600 md:hidden"
+      title="Subir contenido"
+      aria-label="Subir contenido"
+    >
+      <Upload size={19} strokeWidth={2.25} />
+    </button>
+    
+    {/* MODALES (carga diferida) */}
+    <Suspense fallback={null}>
+      <SubirMod isOpen={isSubirModOpen} onClose={() => setIsSubirModOpen(false)} />
+
+      {/* MODAL LOGIN / REGISTRO */}
+      <Login
+        isOpen={isLoginOpen}
+        onClose={() => setIsLoginOpen(false)}
+        initialRegister={loginInitialRegister}
+      />
+    </Suspense>
     </>
   );
 };

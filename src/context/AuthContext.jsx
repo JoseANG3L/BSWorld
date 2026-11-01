@@ -105,42 +105,16 @@ export const AuthProvider = ({ children }) => {
     setUser(prev => ({ ...prev, ...updates }));
   };
 
-  // --- GESTIÓN DE SESIÓN ---
-  useEffect(() => {
-    const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        await fetchUserProfile(session.user);
-        limpiarHashUrl(); // 👈 Limpiamos el token de la barra de direcciones
-      } else {
-        setUser(null);
-      }
-      setLoading(false);
-    };
-    getSession();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session) {
-        await fetchUserProfile(session.user);
-        if (event === 'SIGNED_IN') {
-          limpiarHashUrl(); // 👈 Limpiamos también en el evento de redirección entrante
-        }
-      } else {
-        setUser(null);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
   // --- CONTROL DE PERFIL E INSERCIÓN AUTOMÁTICA OAUTH (Google, GitHub, Discord) ---
+  // Definido antes del efecto de sesión porque este lo usa en segundo plano.
   const fetchUserProfile = async (authUser) => {
+    try {
     // Intentamos buscar si ya existe en la tabla pública 'users'
     let { data, error } = await supabase.from("users").select("*").eq("id", authUser.id).single();
-    
+
     // Si no existe (Caso típico del primer login con OAuth), lo insertamos dinámicamente
-    if (error && error.code === 'PGRST116') { 
-      const metadata = authUser.user_metadata;
+    if (error && error.code === 'PGRST116') {
+      const metadata = authUser.user_metadata || {};
       const provider = authUser.app_metadata?.provider || 'oauth';
 
       // 1. Extraer o generar el Username según el proveedor
@@ -158,6 +132,7 @@ export const AuthProvider = ({ children }) => {
       if (!baseUsername && authUser.email) {
         baseUsername = authUser.email.split('@')[0];
       }
+      if (!baseUsername) baseUsername = 'usuario';
 
       // Normalizamos el username: minúsculas, sin espacios y agregamos un sufijo único de 4 caracteres
       const cleanName = baseUsername.replace(/\s+/g, '').toLowerCase();
@@ -165,7 +140,7 @@ export const AuthProvider = ({ children }) => {
 
       // 2. Extraer el Avatar según el proveedor
       let userAvatar = metadata.avatar_url || metadata.picture;
-      
+
       // Fallback si el proveedor no retornó imagen
       if (!userAvatar) {
         userAvatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${uniqueUsername}`;
@@ -178,7 +153,7 @@ export const AuthProvider = ({ children }) => {
         email: authUser.email || `${uniqueUsername}@cambiame.com`, // Fallback por si ocultaron el email en Github/Discord
         avatar: userAvatar,
         role: "user",
-        verificado: false, 
+        verificado: false,
         createdat: new Date().toISOString(),
         descripcion: null
       };
@@ -197,6 +172,10 @@ export const AuthProvider = ({ children }) => {
     }
 
     setUser({ ...authUser, ...data, role: data?.role || 'user' });
+    } catch (error) {
+      console.error("Error cargando perfil:", error);
+      setUser({ ...authUser, role: 'user' });
+    }
   };
 
   // Auxiliar para remover los parámetros molestos de Google (#access_token=...)
@@ -205,6 +184,79 @@ export const AuthProvider = ({ children }) => {
       window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
     }
   };
+
+  // --- GESTIÓN DE SESIÓN ---
+  // No bloquea el primer pintado: muestra la app con la sesión base
+  // y completa el perfil en segundo plano.
+  useEffect(() => {
+    let mounted = true;
+    // Seguridad: nunca dejar la app en blanco si Supabase tarda o falla
+    const safetyTimeout = setTimeout(() => {
+      if (mounted) setLoading(false);
+    }, 8000);
+
+    const finishProfileInBackground = (authUser) => {
+      fetchUserProfile(authUser).catch((profileError) => {
+        console.error("Error cargando perfil:", profileError);
+        if (mounted) setUser((prev) => prev ?? { ...authUser, role: 'user' });
+      });
+    };
+
+    const getSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!mounted) return;
+        if (session) {
+          setUser(session.user);
+          setLoading(false);
+          clearTimeout(safetyTimeout);
+          limpiarHashUrl(); // 👈 Limpiamos el token de la barra de direcciones
+          finishProfileInBackground(session.user);
+        } else {
+          setUser(null);
+          setLoading(false);
+          clearTimeout(safetyTimeout);
+        }
+      } catch (error) {
+        console.error("Error obteniendo sesión:", error);
+        if (mounted) {
+          setUser(null);
+          setLoading(false);
+          clearTimeout(safetyTimeout);
+        }
+      }
+    };
+    getSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return;
+      try {
+        if (session) {
+          setUser(session.user);
+          setLoading(false);
+          finishProfileInBackground(session.user);
+          if (event === 'SIGNED_IN') {
+            limpiarHashUrl(); // 👈 Limpiamos también en el evento de redirección entrante
+          }
+        } else {
+          setUser(null);
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error("Error en cambio de auth:", error);
+        setUser(null);
+        setLoading(false);
+      }
+    });
+
+    return () => {
+      mounted = false;
+      clearTimeout(safetyTimeout);
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  // --- NOTIFICACIONES GLOBALES ---
 
   // Funciones de notificaciones globales
   const fetchUnreadCount = async () => {
@@ -240,7 +292,7 @@ export const AuthProvider = ({ children }) => {
   return (
     <AuthContext.Provider value={{ user, login, signup, logout, loading, signInWithProvider, updateUserProfile }}>
       <NotificationsContext.Provider value={{ unreadCount, notifications, setNotifications, refreshNotifications }}>
-        {!loading && children}
+        {children}
       </NotificationsContext.Provider>
     </AuthContext.Provider>
   );

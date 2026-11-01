@@ -63,6 +63,7 @@ const AvatarRenderer = ({ avatar, name, className }) => {
       alt={name || "Avatar"} 
       className={clsx("w-full h-full object-cover select-none rounded-full", className)}
       loading="lazy"
+      decoding="async"
       referrerPolicy="no-referrer"
       crossOrigin="anonymous"
       onError={() => setHasError(true)}

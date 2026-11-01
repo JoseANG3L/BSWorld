@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Gamepad2, Loader2 } from 'lucide-react'; 
+import { Gamepad2 } from 'lucide-react'; 
 import DataContainer from '../components/DataContainer';
 import Card from '../components/Card';
 import { getPublicContent } from '../services/api';
@@ -24,18 +24,13 @@ const Mods = () => {
     loadData();
   }, []);
 
-  if (loading) return (
-    <div className="h-full flex items-center justify-center min-h-[50vh]">
-      <Loader2 className="animate-spin text-primary-600" size={48} />
-    </div>
-  );
-
   return (
     <DataContainer
       title="Mods"
       icon={Gamepad2} 
       gradientClass="from-purple-500 to-pink-500"
       items={mods}
+      loading={loading}
       searchKey="titulo"
       enableTypeFilter={true}
       typeKey="tipo"

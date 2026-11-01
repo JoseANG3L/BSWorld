@@ -5,6 +5,7 @@ import { MessageSquare, Heart, Vote, ChevronDown, ChevronUp } from 'lucide-react
 import { clsx } from 'clsx';
 import { useAuth } from '../context/AuthContext';
 import AvatarRenderer from './AvatarRenderer';
+import RichText from './RichText';
 
 const ForumPost = ({ post, onPostMutated, isReply = false, showFullContent = false }) => {
   const { user } = useAuth();
@@ -151,7 +152,7 @@ const ForumPost = ({ post, onPostMutated, isReply = false, showFullContent = fal
       )}
 
       <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
-        <p className="line-clamp-3 md:line-clamp-none">{post.content}</p>
+        <p className="line-clamp-3 md:line-clamp-none"><RichText text={post.content} /></p>
       </div>
 
       {/* Encuesta */}
@@ -213,7 +214,6 @@ const ForumPost = ({ post, onPostMutated, isReply = false, showFullContent = fal
             <span className="text-[10px] md:text-xs">Responder</span>
           </button>
         </div>
-      )}
 
       {isReplying && (
         <form onSubmit={handleReply} className="relative mt-3 pl-3 border-l-2 border-primary-500/50" onClick={(e) => e.stopPropagation()}>

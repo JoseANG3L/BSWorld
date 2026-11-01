@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Download, ChevronDown, AlertCircle, Eye, User, ShieldCheck, ExternalLink, Heart, Wrench, Map, Gamepad2, Boxes, Package, X } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -6,6 +6,7 @@ import AvatarRenderer from './AvatarRenderer';
 import LikeButton from './LikeButton';
 import { useAuth } from '../context/AuthContext';
 import { registerDownload, getUserPublicProfile } from '../services/api';
+import { thumbUrl } from '../utils/image';
 import { createPortal } from 'react-dom'; 
 
 const COOLDOWN_TIME = 3600000;
@@ -109,10 +110,10 @@ const SmartUserDisplay = ({ initialUser, type = 'list', extraCount = 0, onClick 
             e.stopPropagation();
             onClick();
           }}
-          className="relative block group/avatar shrink-0 mt-1 md:mt-0.5 cursor-pointer"
+          className="relative block group/avatar shrink-0 cursor-pointer"
           title={userData.nombre}
         >
-          <div className="w-9 h-9 md:w-10 md:h-10 rounded-full overflow-hidden">
+          <div className="w-4 h-4 md:w-5 md:h-5 rounded-full overflow-hidden">
             <AvatarRenderer avatar={userData.imagen} name={userData.nombre} />
           </div>
           {esVerificado && (
@@ -127,10 +128,10 @@ const SmartUserDisplay = ({ initialUser, type = 'list', extraCount = 0, onClick 
       <Link 
         to={`/u/${userData.nombre}`} 
         onClick={(e) => e.stopPropagation()}
-        className="relative block group/avatar shrink-0 mt-1 md:mt-0.5" 
+        className="relative block group/avatar shrink-0"
         title={userData.nombre}
       >
-        <div className="w-9 h-9 md:w-10 md:h-10 rounded-full overflow-hidden">
+        <div className="w-4 h-4 md:w-5 md:h-5 rounded-full overflow-hidden">
           <AvatarRenderer avatar={userData.imagen} name={userData.nombre} />
         </div>
         {esVerificado && (
@@ -187,7 +188,7 @@ const SmartUserDisplay = ({ initialUser, type = 'list', extraCount = 0, onClick 
     }, [firstCreator]);
 
     return (
-      <div className="flex shrink-0 mt-1 md:mt-0.5 relative">
+      <div className="flex shrink-0 relative">
         {onClick ? (
           <button
             onClick={(e) => {
@@ -197,7 +198,7 @@ const SmartUserDisplay = ({ initialUser, type = 'list', extraCount = 0, onClick 
             className="relative block group/avatar cursor-pointer"
             title={userData.nombre}
           >
-            <div className="w-9 h-9 md:w-10 md:h-10 rounded-full relative shrink-0">
+            <div className="w-4 h-4 md:w-5 md:h-5 rounded-full relative shrink-0">
               <AvatarRenderer avatar={userData.imagen} name={userData.nombre} />
             </div>
             {userData.verificado && (
@@ -213,7 +214,7 @@ const SmartUserDisplay = ({ initialUser, type = 'list', extraCount = 0, onClick 
             className="relative block group/avatar"
             title={userData.nombre}
           >
-            <div className="w-9 h-9 md:w-10 md:h-10 rounded-full relative shrink-0">
+            <div className="w-4 h-4 md:w-5 md:h-5 rounded-full relative shrink-0">
               <AvatarRenderer avatar={userData.imagen} name={userData.nombre} />
             </div>
             {userData.verificado && (
@@ -222,14 +223,6 @@ const SmartUserDisplay = ({ initialUser, type = 'list', extraCount = 0, onClick 
               </div>
             )}
           </Link>
-        )}
-        {extraCount > 0 && (
-          <div 
-            className="absolute -bottom-1 -right-1 z-10 w-5 h-5 md:w-6 md:h-6 rounded-full bg-primary-600 dark:bg-primary-500 border-2 border-white dark:border-[#1e1e1e] flex items-center justify-center text-[10px] md:text-xs font-bold text-white shadow-sm"
-            title={`+${extraCount} creador${extraCount > 1 ? 'es' : ''}`}
-          >
-            +{extraCount}
-          </div>
         )}
       </div>
     );
@@ -387,7 +380,8 @@ const Card = ({
   vistas = 0,
   likes_count = 0,
   status = 'Creado',
-  tipo
+  tipo,
+  priority = false
 }) => {
   const { user } = useAuth();
   const [isOpenDownload, setIsOpenDownload] = useState(false);
@@ -398,8 +392,24 @@ const Card = ({
   const [isHovered, setIsHovered] = useState(false);
   const [showCreatorsModal, setShowCreatorsModal] = useState(false);
 
+  // Miniatura rápida (WebP 640px) con caída a original y luego a default
+  const thumb = useMemo(() => thumbUrl(imagen, 640), [imagen]);
+  const [imgStage, setImgStage] = useState(0);
+  useEffect(() => { setImgStage(0); setImageError(false); }, [imagen]);
+  const imgSrc = imgStage === 0
+    ? (thumb || '/default.jpg')
+    : imgStage === 1
+      ? (imagen || '/default.jpg')
+      : '/default.jpg';
+
   const [localDescargas, setLocalDescargas] = useState(descargas);
   const [isSpamming, setIsSpamming] = useState(false);
+
+  // Estado del like compartido con el botón y la métrica de la card
+  const [likeState, setLikeState] = useState({ liked: false, count: likes_count });
+  const handleLikeChange = useCallback((liked, count) => {
+    setLikeState({ liked, count });
+  }, []);
 
   const calculatedTotal = localDescargas.reduce((acc, curr) => acc + (curr.count || 0), 0);
   
@@ -494,7 +504,7 @@ const Card = ({
         <div 
           className={`absolute inset-0 bg-cover bg-center transition-all duration-500 ease-in-out ${isHovered ? 'dark:opacity-30 opacity-20' : 'opacity-0'} -z-10`}
           style={{ 
-            backgroundImage: `url(${imageError ? '/default.jpg' : (imagen || '/default.jpg')})`,
+            backgroundImage: `url(${imgSrc})`,
             filter: 'blur(40px) brightness(0.8)',
             transform: 'scale(1.2)'
           }}
@@ -502,91 +512,120 @@ const Card = ({
       </div>
       
       {/* 1. IMAGEN */}
-      <Link 
-        to={id ? `/view/${id}` : "#"} 
-        className="relative w-full aspect-video overflow-hidden bg-gray-100 dark:bg-[#1D1F23] block cursor-pointer rounded-xl"
-      >
-        <div className="absolute inset-0 bg-gradient-to-t from-black/0 to-black/0 group-hover:from-black/20 group-hover:to-transparent transition-all duration-300 z-10" />
-        <img 
-          src={imageError ? '/default.jpg' : (imagen || '/default.jpg')} 
-          alt={titulo || 'Imagen del contenido'}
-          loading="lazy"
-          className="w-full h-full object-cover transition-all duration-500 group-hover:scale-110"
-          style={{ opacity: 0 }}
-          onLoad={(e) => { e.target.style.opacity = 1; }}
-          onError={(e) => { 
-            if (!imageError) {
-              console.warn('Error loading image:', imagen);
-              setImageError(true);
-              e.target.src = '/default.jpg'; 
-              e.target.style.opacity = 1;
-            }
-          }}
-        />
+      <div className="relative w-full aspect-video overflow-hidden rounded-xl bg-gray-100 dark:bg-[#1D1F23]">
+        <Link
+          to={id ? `/view/${id}` : "#"}
+          className="absolute inset-0 block cursor-pointer"
+        >
+          <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/0 to-black/0 transition-all duration-300 group-hover:from-black/20 group-hover:to-transparent" />
+          <img
+            src={imgSrc}
+            alt={titulo || 'Imagen del contenido'}
+            loading={priority ? 'eager' : 'lazy'}
+            fetchPriority={priority ? 'high' : 'auto'}
+            decoding="async"
+            className="h-full w-full object-cover transition-all duration-500 group-hover:scale-110"
+            style={{ opacity: 0 }}
+            onLoad={(e) => { e.target.style.opacity = 1; }}
+            onError={(e) => {
+              if (imgStage < 2) {
+                setImgStage(imgStage + 1);
+              } else if (!imageError) {
+                console.warn('Error loading image:', imagen);
+                setImageError(true);
+                e.target.style.opacity = 1;
+              }
+            }}
+          />
+
+          {/* Badge de Categoría: Oscuro para Light, Claro para Dark + Ícono */}
+          <div className="absolute top-2 left-2 z-10">
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold ${categoriaInfo.badgeColor} bg-black/75 backdrop-blur-sm shadow-md`}>
+              {CategoriaIcon && <CategoriaIcon size={12} strokeWidth={2.5} className="shrink-0" />}
+              <span>{categoriaInfo.nombre}</span>
+            </span>
+          </div>
+        </Link>
 
         {isSpamming && (
-          <div className="absolute top-2 right-2 px-2.5 py-1 bg-red-600 text-white rounded-xl flex items-center gap-1.5 text-xs font-bold shadow-sm z-20 animate-pulse">
+          <div className="absolute top-2 right-14 z-20 flex items-center gap-1.5 rounded-xl bg-red-600 px-2.5 py-1 text-xs font-bold text-white shadow-sm animate-pulse">
             <AlertCircle size={12} /> Límite excedido
           </div>
         )}
+        <LikeButton contentId={id} initialLikes={likes_count} variant="overlay" onChange={handleLikeChange} />
+      </div>
 
-        {/* Badge de Categoría: Oscuro para Light, Claro para Dark + Ícono */}
-        <div className="absolute top-2 left-2 z-10">
-          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold ${categoriaInfo.badgeColor} bg-black/75 backdrop-blur-sm shadow-md`}>
-            {CategoriaIcon && <CategoriaIcon size={12} strokeWidth={2.5} className="shrink-0" />}
-            <span>{categoriaInfo.nombre}</span>
-          </span>
+      <div className="flex flex-col flex-1 px-1 pt-1.5 md:pt-2 pb-1 md:pb-1.5 space-y-1.5 md:space-y-2">
+
+        {/* 2. TÍTULO EN UNA LÍNEA Y CREADOR DEBAJO */}
+        <div className="flex flex-col gap-1.5 min-w-0">
+          <Link
+            to={id ? `/view/${id}` : "#"}
+            className="block min-w-0 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+          >
+            <h3 className="text-base font-bold text-black dark:text-white truncate hover:text-primary-600 dark:hover:text-primary-400 transition-colors" title={titulo}>
+              {titulo}
+            </h3>
+          </Link>
+
+          <div className="flex items-center gap-2 min-w-0">
+            {listaCreditos.length > 1 ? (
+              <SmartUserDisplay
+                initialUser={listaCreditos}
+                type="card-avatar-stack"
+                onClick={() => setShowCreatorsModal(true)}
+              />
+            ) : (
+              <SmartUserDisplay initialUser={primerCredito} type="card-avatar" />
+            )}
+
+            {listaCreditos.length > 1 ? (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowCreatorsModal(true);
+                }}
+                className="text-xs text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors text-left truncate"
+              >
+                {listaCreditos[0].nombre} ({listaCreditos.length - 1})
+              </button>
+            ) : (
+              <SmartUserDisplay initialUser={primerCredito} type="card-byline" />
+            )}
+          </div>
         </div>
-      </Link>
 
-      <div className="flex flex-col flex-1 px-1 pt-1.5 md:pt-2 pb-1.5 md:pb-2 space-y-1.5 md:space-y-2">
-        
-        {/* 2. LAYOUT HORIZONTAL: AVATAR INTELIGENTE + TÍTULO */}
-        <div className="flex items-start gap-2">
-          {/* Avatar dinámico mediante SmartUserDisplay */}
-          {listaCreditos.length > 1 ? (
-            <SmartUserDisplay 
-              initialUser={listaCreditos} 
-              type="card-avatar-stack" 
-              onClick={() => setShowCreatorsModal(true)}
-            />
-          ) : (
-            <SmartUserDisplay initialUser={primerCredito} type="card-avatar" />
-          )}
-          
-          {/* Título y Nombre del Creador */}
-          <div className="min-w-0 flex-1">
-            <Link 
-              to={id ? `/view/${id}` : "#"} 
-              className="block hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
-            >
-              <h3 className="text-base font-bold text-black dark:text-white line-clamp-2 hover:text-primary-600 dark:hover:text-primary-400 transition-colors" title={titulo}>
-                {titulo}
-              </h3>
-            </Link>
+        {/* 4. MÉTRICAS GENERALES DE LA CARD */}
+        <div className="flex justify-between items-center w-full pt-1 text-gray-500 dark:text-gray-400 text-xs font-semibold">
+          <div className="flex gap-3">
+            <div className="flex items-center gap-1.5 group/metric" title="Total de visualizaciones">
+              <Eye size={16} className="text-gray-400 dark:text-gray-500 group-hover/metric:text-blue-500 transition-colors" />
+              <span className="group-hover/metric:text-blue-600 dark:group-hover/metric:text-blue-400 transition-colors">{formatNumber(vistas)}</span>
+            </div>
             
-            {/* Nombre del creador con datos frescos y verificación */}
-            <div className="-mt-1">
-              {listaCreditos.length > 1 ? (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowCreatorsModal(true);
-                  }}
-                  className="text-xs text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors text-left"
-                >
-                  {listaCreditos[0].nombre} +{listaCreditos.length - 1}
-                </button>
-              ) : (
-                <SmartUserDisplay initialUser={primerCredito} type="card-byline" />
-              )}
+            <div className="flex items-center gap-1.5 group/metric" title="Total de valoraciones">
+              <Heart
+                size={16}
+                className={clsx(
+                  'transition-colors duration-200',
+                  likeState.liked
+                    ? 'fill-rose-500 text-rose-500'
+                    : 'text-red-400/80 dark:text-red-500/80 group-hover/metric:text-red-500 group-hover/metric:fill-red-500/30'
+                )}
+              />
+              <span className={clsx('transition-colors', likeState.liked ? 'text-rose-600 dark:text-rose-400' : 'group-hover/metric:text-red-600 dark:group-hover/metric:text-red-400')}>{formatNumber(likeState.count)}</span>
+            </div>
+
+            <div className="flex items-center gap-1.5 group/metric" title="Total de descargas globales">
+              <Download size={16} className="text-primary-400/80 dark:text-primary-500/80 group-hover/metric:text-primary-500 transition-colors" />
+              <span className="group-hover/metric:text-primary-600 dark:group-hover/metric:text-primary-400 transition-colors">{formatNumber(calculatedTotal)}</span>
             </div>
           </div>
         </div>
 
         {/* 3. BOTÓN DE DESCARGA RÁPIDA */}
         {localDescargas.length > 0 && (
-          <div className="relative" ref={downloadRef}>
+          <div className="relative pt-1.5" ref={downloadRef}>
             {localDescargas.length === 1 ? (
               <a 
                 href={localDescargas[0].url} 
@@ -640,26 +679,6 @@ const Card = ({
             )}
           </div>
         )}
-
-        {/* 4. MÉTRICAS GENERALES DE LA CARD */}
-        <div className="flex justify-between items-center w-full pt-3 border-t border-gray-200 dark:border-gray-700/50 text-gray-500 dark:text-gray-400 text-xs font-semibold">
-          <div className="flex gap-3">
-            <div className="flex items-center gap-1.5 group/metric" title="Total de visualizaciones">
-              <Eye size={16} className="text-gray-400 dark:text-gray-500 group-hover/metric:text-blue-500 transition-colors" />
-              <span className="group-hover/metric:text-blue-600 dark:group-hover/metric:text-blue-400 transition-colors">{formatNumber(vistas)}</span>
-            </div>
-            
-            <div className="flex items-center gap-1.5 group/metric" title="Total de valoraciones">
-              <Heart size={16} className="text-red-400/80 dark:text-red-500/80 group-hover/metric:text-red-500 transition-colors" />
-              <span className="group-hover/metric:text-red-600 dark:group-hover/metric:text-red-400 transition-colors">{formatNumber(likes_count)}</span>
-            </div>
-
-            <div className="flex items-center gap-1.5 group/metric" title="Total de descargas globales">
-              <Download size={16} className="text-primary-400/80 dark:text-primary-500/80 group-hover/metric:text-primary-500 transition-colors" />
-              <span className="group-hover/metric:text-primary-600 dark:group-hover/metric:text-primary-400 transition-colors">{formatNumber(calculatedTotal)}</span>
-            </div>
-          </div>
-        </div>
 
       </div>
 

@@ -1,766 +1,729 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { 
-  Bell, CheckCircle, XCircle, Loader2, 
-  Eye, Clock, Filter, Inbox, EyeOff, AlertCircle, Heart, MessageCircle, Download, Globe, Lock, ChevronDown, Search,
-  Wrench, Map, Gamepad2, Boxes, Package, User
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  Bell, Search, X, Inbox, Mail, MailOpen, Trash2, CheckCheck, RefreshCw,
+  ChevronRight
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuth, useNotifications } from '../context/AuthContext';
-import { getUserNotifications, markNotificationAsRead, markNotificationAsUnread, deleteNotification, invalidateNotificationsCache, getUserPublicProfile } from '../services/api';
+import {
+  getUserNotifications,
+  markNotificationAsRead,
+  markNotificationAsUnread,
+  markAllNotificationsAsRead,
+  deleteNotification,
+  invalidateNotificationsCache,
+  getUserPublicProfile,
+  prefetchUserProfiles
+} from '../services/api';
 import AvatarRenderer from '../components/AvatarRenderer';
+import LoadingSpinner from '../components/LoadingSpinner';
+import { useToast } from '../hooks/useToast';
+import { getNotificationView, getTimeAgo, CONTENT_TYPE_LABELS } from '../utils/notifications';
+import { thumbUrl } from '../utils/image';
 
-// --- MAPEO DE ICONOS POR TIPO DE CONTENIDO ---
-const CONTENT_TYPE_ICONS = {
-  'complemento': Wrench,
-  'mapa': Map,
-  'minijuego': Gamepad2,
-  'modpack': Boxes,
-  'paquete': Package,
-  'personaje': User
-};
+const PER_PAGE = 20;
 
-const CONTENT_TYPE_COLORS = {
-  'complemento': 'from-blue-500 to-indigo-600',
-  'mapa': 'from-emerald-500 to-teal-600',
-  'minijuego': 'from-amber-500 to-orange-600',
-  'modpack': 'from-red-500 to-rose-600',
-  'paquete': 'from-cyan-500 to-blue-600',
-  'personaje': 'from-purple-500 to-pink-600'
-};
+const TABS = [
+  { id: 'all', label: 'Todas' },
+  { id: 'unread', label: 'No leídas' },
+  { id: 'read', label: 'Leídas' }
+];
 
-// --- UTILIDAD DE TIEMPO ---
-const getTimeAgo = (dateString) => {
+// Agrupa por día para dar contexto temporal a la bandeja.
+const getDayGroup = (dateString) => {
   const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now - date;
-  const diffSecs = Math.floor(diffMs / 1000);
-  const diffMins = Math.floor(diffSecs / 60);
-  const diffHours = Math.floor(diffMins / 60);
-  const diffDays = Math.floor(diffHours / 24);
+  if (Number.isNaN(date.getTime())) return { key: 'older', label: 'Anteriores' };
 
-  if (diffSecs < 60) return 'Ahora mismo';
-  if (diffMins < 60) return `Hace ${diffMins} min`;
-  if (diffHours < 24) return `Hace ${diffHours} h`;
-  if (diffDays === 1) return `Ayer`;
-  return date.toLocaleDateString();
+  const startOfDay = (value) =>
+    new Date(value.getFullYear(), value.getMonth(), value.getDate()).getTime();
+  const diffDays = Math.round((startOfDay(new Date()) - startOfDay(date)) / 86400000);
+
+  if (diffDays <= 0) return { key: 'today', label: 'Hoy' };
+  if (diffDays === 1) return { key: 'yesterday', label: 'Ayer' };
+  if (diffDays < 7) return { key: 'week', label: 'Esta semana' };
+  return { key: 'older', label: 'Anteriores' };
 };
+
+const NotificationSkeleton = () => (
+  <div className="space-y-2.5">
+    {[0, 1, 2, 3].map((i) => (
+      <div
+        key={i}
+        className="animate-pulse rounded-2xl border border-gray-200/70 bg-white p-3 dark:border-white/[0.06] dark:bg-[#171819] sm:p-4"
+        style={{ animationDelay: `${i * 60}ms` }}
+      >
+        <div className="flex items-start gap-3">
+          <div className="h-11 w-11 shrink-0 rounded-full bg-gray-200 dark:bg-gray-700" />
+          <div className="flex-1 space-y-2.5 py-0.5">
+            <div className="flex items-center gap-2">
+              <div className="h-4 w-16 rounded-md bg-gray-200 dark:bg-gray-700" />
+              <div className="h-2.5 w-12 rounded-full bg-gray-200 dark:bg-gray-700" />
+            </div>
+            <div className="h-3.5 w-4/5 rounded-full bg-gray-200 dark:bg-gray-700" />
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-lg bg-gray-200 dark:bg-gray-700" />
+              <div className="space-y-1.5">
+                <div className="h-2.5 w-28 rounded-full bg-gray-200 dark:bg-gray-700" />
+                <div className="h-2 w-16 rounded-full bg-gray-200 dark:bg-gray-700" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    ))}
+  </div>
+);
 
 const Notificaciones = () => {
   const { user } = useAuth();
   const { unreadCount, refreshNotifications } = useNotifications();
+  const { showToast } = useToast();
   const navigate = useNavigate();
+
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
-  const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
-  const [actorCache, setActorCache] = useState({}); // Cache para información de actores
-  const filterDropdownRef = useRef(null);
-  const NOTIFICATIONS_PER_PAGE = 20;
+  const [hasMore, setHasMore] = useState(false);
+  const [actorCache, setActorCache] = useState({});
+  const [pendingDelete, setPendingDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const searchRef = useRef(null);
 
-  // --- CONFIGURACIÓN DE LOS TIPOS DE NOTIFICACIONES ---
-  const getNotificationConfig = (notification) => {
-    // Prioridad para tipos de notificaciones de interacción
-    if (notification.type === 'like') {
-      return {
-        icon: Heart,
-        color: "text-red-500",
-        bg: "bg-red-100 dark:bg-red-900/30",
-        label: "Nuevo like",
-        desc: `A ${notification.actorName || 'Alguien'} le gustó tu contenido.`
-      };
-    }
-    
-    if (notification.type === 'comment') {
-      return {
-        icon: MessageCircle,
-        color: "text-blue-500",
-        bg: "bg-blue-100 dark:bg-blue-900/30",
-        label: "Nuevo comentario",
-        desc: `${notification.actorName || 'Alguien'} comentó: "${notification.commentText || '...'}"`
-      };
-    }
-    
-    if (notification.type === 'download') {
-      return {
-        icon: Download,
-        color: "text-green-500",
-        bg: "bg-green-100 dark:bg-green-900/30",
-        label: "Nueva descarga",
-        desc: `${notification.actorName || 'Alguien'} descargó tu contenido.`
-      };
-    }
-    
-    if (notification.type === 'visibility') {
-      const visibility = notification.visibilidad;
-      if (visibility === 'publico') {
-        return {
-          icon: Globe,
-          color: "text-green-500",
-          bg: "bg-green-100 dark:bg-green-900/30",
-          label: "Visibilidad: Público",
-          desc: "Tu contenido ahora es visible para toda la comunidad."
-        };
-      } else if (visibility === 'privado') {
-        return {
-          icon: Lock,
-          color: "text-orange-500",
-          bg: "bg-orange-100 dark:bg-orange-900/30",
-          label: "Visibilidad: Privado",
-          desc: "Tu contenido ahora es privado y solo tú puedes verlo."
-        };
-      } else {
-        return {
-          icon: Eye,
-          color: "text-blue-500",
-          bg: "bg-blue-100 dark:bg-blue-900/30",
-          label: "Visibilidad cambiada",
-          desc: "La visibilidad de tu contenido ha sido actualizada."
-        };
-      }
-    }
-    
-    // Configuración para notificaciones de estado del contenido
-    const status = notification.status || notification.estado;
-    const isAdmin = user?.role === 'admin';
-    const modType = notification.modtype || 'mod';
-    const modTitle = notification.modtitle || 'contenido';
-    
-    // Obtener icono específico según el tipo de contenido
-    const ContentTypeIcon = CONTENT_TYPE_ICONS[modType] || Package;
-    const contentTypeColor = CONTENT_TYPE_COLORS[modType] || 'from-gray-500 to-gray-600';
-    
-    // Colores según estado para el icono
-    const getStatusColor = (status) => {
-      if (status === 'published' || status === 'aceptado') return 'text-green-500';
-      if (status === 'published_editing' || status === 'aceptado_con_edicion') return 'text-blue-500';
-      if (status === 'pending' || status === 'revision') return 'text-yellow-600';
-      if (status === 'rejected' || status === 'rechazado') return 'text-red-500';
-      return 'text-gray-500';
-    };
-    
-    const getStatusBg = (status) => {
-      if (status === 'published' || status === 'aceptado') return 'bg-green-100 dark:bg-green-900/30';
-      if (status === 'published_editing' || status === 'aceptado_con_edicion') return 'bg-blue-100 dark:bg-blue-900/30';
-      if (status === 'pending' || status === 'revision') return 'bg-yellow-100 dark:bg-yellow-900/30';
-      if (status === 'rejected' || status === 'rechazado') return 'bg-red-100 dark:bg-red-900/30';
-      return 'bg-gray-100 dark:bg-[#1D1F23]';
-    };
-    
-    switch (status) {
-      case 'published':
-      case 'aceptado':
-        return { 
-          icon: ContentTypeIcon, 
-          color: getStatusColor(status), 
-          bg: getStatusBg(status), 
-          label: "Publicado",
-          desc: isAdmin ? `El ${modType} "${modTitle}" ha sido publicado.` : "Tu aporte ya es visible para la comunidad."
-        };
-      case 'published_editing':
-      case 'aceptado_con_edicion':
-        return { 
-          icon: ContentTypeIcon, 
-          color: getStatusColor(status), 
-          bg: getStatusBg(status), 
-          label: "Publicado (En revisión)",
-          desc: isAdmin ? `El ${modType} "${modTitle}" está en revisión con versión pública.` : "La versión anterior sigue pública mientras revisamos tus nuevos cambios."
-        };
-      case 'pending':
-      case 'revision':
-        return { 
-          icon: ContentTypeIcon, 
-          color: getStatusColor(status), 
-          bg: getStatusBg(status), 
-          label: isAdmin ? "Pendiente de revisión" : "En revisión",
-          desc: isAdmin ? `Tienes un ${modType} pendiente de revisión` : `Tu ${modType} "${modTitle}" se ha enviado para revisión.`
-        };
-      case 'rejected':
-      case 'rechazado':
-        return { 
-          icon: ContentTypeIcon, 
-          color: getStatusColor(status), 
-          bg: getStatusBg(status), 
-          label: "Rechazado",
-          desc: isAdmin ? `El ${modType} "${modTitle}" ha sido rechazado.` : "No cumple con las normas. Haz clic para ver detalles y corregir."
-        };
-      case 'inactive':
-        return { 
-          icon: ContentTypeIcon, 
-          color: getStatusColor(status), 
-          bg: getStatusBg(status), 
-          label: "Inactivo",
-          desc: isAdmin ? `El ${modType} "${modTitle}" ha sido pausado.` : "Este contenido ha sido pausado y no es visible."
-        };
-      default:
-        return { 
-          icon: ContentTypeIcon, 
-          color: getStatusColor(status), 
-          bg: getStatusBg(status), 
-          label: "Aviso",
-          desc: "Actualización de sistema."
-        };
-    }
-  };
-
-  useEffect(() => {
-    const fetchNotifications = async () => {
-      if (!user?.id) {
-        setLoading(false);
-        setNotifications([]);
-        return;
-      }
-      try {
-        setLoading(true);
-        // Invalidar cache al cargar para evitar duplicados
-        invalidateNotificationsCache(user.id);
-        
-        // Cargar notificaciones con paginación
-        const data = await getUserNotifications(user.id, false, NOTIFICATIONS_PER_PAGE, 0, true);
-        setNotifications(data);
-        
-        // Refrescar conteo global
-        refreshNotifications();
-        
-        // Verificar si hay más notificaciones
-        setHasMore(data.length === NOTIFICATIONS_PER_PAGE);
-      } catch (error) {
-        console.error("Error:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchNotifications();
-  }, [user?.id]); // Solo depende del user.id para evitar ejecuciones múltiples
-
-  // Cargar más notificaciones (scroll infinito)
-  const loadMore = async () => {
-    if (!user?.id || loading || !hasMore) return;
-    
-    try {
-      const nextPage = page + 1;
-      const offset = nextPage * NOTIFICATIONS_PER_PAGE;
-      const data = await getUserNotifications(user.id, false, NOTIFICATIONS_PER_PAGE, offset, true);
-      
-      // Evitar duplicados verificando IDs
-      setNotifications(prev => {
-        const existingIds = new Set(prev.map(n => n.id));
-        const newItems = data.filter(n => !existingIds.has(n.id));
-        return [...prev, ...newItems];
-      });
-      
-      setPage(nextPage);
-      setHasMore(data.length === NOTIFICATIONS_PER_PAGE);
-    } catch (error) {
-      console.error("Error cargando más notificaciones:", error);
-    }
-  };
-
-  const handleMarkAsRead = async (notifId) => {
-    try {
-      setNotifications(prev => prev.map(n => n.id === notifId ? { ...n, leida: true } : n));
-      await markNotificationAsRead(notifId, user?.id);
-      invalidateNotificationsCache(user?.id);
-      refreshNotifications(); // Refrescar conteo global
-    } catch (error) { console.error(error); }
-  };
-
-  const handleDelete = async (notifId) => {
-    if (!window.confirm("¿Eliminar esta notificación?")) return;
-    try {
-      setNotifications(prev => prev.filter(n => n.id !== notifId));
-      await deleteNotification(notifId);
-      invalidateNotificationsCache(user?.id);
-      refreshNotifications(); // Refrescar conteo global
-    } catch (error) { console.error(error); }
-  };
-
-  // Marcar todas como leídas
-  const handleMarkAllAsRead = async () => {
-    if (!user?.id) return;
-    try {
-      setNotifications(prev => prev.map(n => ({ ...n, leida: true })));
-      
-      // Marcar cada notificación individualmente (más eficiente que crear una función RPC)
-      const unreadIds = notifications.filter(n => !n.leida).map(n => n.id);
-      await Promise.all(unreadIds.map(id => markNotificationAsRead(id, user?.id)));
-      invalidateNotificationsCache(user?.id);
-      refreshNotifications(); // Refrescar conteo global
-    } catch (error) {
-      console.error("Error marcando todas como leídas:", error);
-    }
-  };
-
-  // Marcar todas como no leídas
-  const handleMarkAllAsUnread = async () => {
-    if (!user?.id) return;
-    try {
-      setNotifications(prev => prev.map(n => ({ ...n, leida: false })));
-      
-      // Marcar cada notificación individualmente
-      const readIds = notifications.filter(n => n.leida).map(n => n.id);
-      await Promise.all(readIds.map(id => markNotificationAsUnread(id, user?.id)));
-      invalidateNotificationsCache(user?.id);
-      refreshNotifications(); // Refrescar conteo global
-    } catch (error) {
-      console.error("Error marcando todas como no leídas:", error);
-    }
-  };
-
-  // Marcar como no leída (individual)
-  const handleMarkAsUnread = async (notifId) => {
-    if (!user?.id) return;
-    try {
-      setNotifications(prev => prev.map(n => n.id === notifId ? { ...n, leida: false } : n));
-      await markNotificationAsUnread(notifId, user?.id);
-      invalidateNotificationsCache(user?.id);
-      refreshNotifications(); // Refrescar conteo global
-    } catch (error) {
-      console.error("Error marcando como no leída:", error);
-    }
-  };
-
-  // Cierre del dropdown al dar clic afuera
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (filterDropdownRef.current && !filterDropdownRef.current.contains(event.target)) {
-        setIsFilterDropdownOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const filteredNotifs = notifications.filter(n => {
-    // Filtro por estado
-    if (filter === 'unread') return !n.leida;
-    if (filter === 'read') return n.leida;
-    
-    // Filtro por búsqueda
-    if (searchTerm) {
-      const searchLower = searchTerm.toLowerCase();
-      const contentTitle = (n.modtitle || '').toLowerCase();
-      const actorName = (n.actorname || '').toLowerCase();
-      const commentText = (n.commenttext || '').toLowerCase();
-      const notifType = (n.type || '').toLowerCase();
-      
-      return contentTitle.includes(searchLower) || 
-             actorName.includes(searchLower) || 
-             commentText.includes(searchLower) ||
-             notifType.includes(searchLower);
-    }
-    
-    return true;
-  });
-
-  // Cargar información de actores para las notificaciones
-  useEffect(() => {
-    const loadActorsInfo = async () => {
-      const actorIds = notifications.map(n => n.actorid).filter(Boolean);
-      const uniqueActorIds = [...new Set(actorIds)];
-      
-      for (const actorId of uniqueActorIds) {
-        if (!actorCache[actorId]) {
-          const info = await getUserPublicProfile(actorId);
-          if (info) {
-            setActorCache(prev => ({ ...prev, [actorId]: info }));
-          }
-        }
-      }
-    };
-    
-    if (notifications.length > 0) {
-      loadActorsInfo();
-    }
-  }, [notifications]);
-
-  if (loading) return (
-    <div className="h-full flex items-center justify-center min-h-[50vh]">
-      <Loader2 className="animate-spin text-primary-600" size={48} />
-    </div>
+  const getActor = useCallback(
+    (notif) => actorCache[notif.actorid] || null,
+    [actorCache]
   );
 
-  // Componente personalizado para renderizar notificaciones
-  const renderNotificationItem = (notif) => {
-    const config = getNotificationConfig(notif);
-    const StatusIcon = config.icon;
-    
-    // Obtener información del actor del cache (getUserPublicProfile devuelve { uid, nombre, imagen, verificado })
-    const actorInfo = actorCache[notif.actorid] || { nombre: notif.actorname, imagen: notif.actoravatar };
-    
-    // Generar título y descripción según tipo
-    let title = '';
-    let description = config.desc;
-    
-    if (notif.type === 'like') {
-      title = `A ${actorInfo.nombre || 'Alguien'} le gustó tu ${notif.modtype}`;
-    } else if (notif.type === 'comment') {
-      title = `${actorInfo.nombre || 'Alguien'} comentó en tu ${notif.modtype}`;
-    } else if (notif.type === 'download') {
-      title = `${actorInfo.nombre || 'Alguien'} descargó tu ${notif.modtype}`;
-    } else if (notif.type === 'visibility') {
-      title = `Visibilidad de tu ${notif.modtype} cambiada`;
-    } else if (notif.type === 'status') {
-      // Para notificaciones de status, usar la descripción de config que ya está personalizada por rol
-      title = '';
-    } else {
-      title = `Tu ${notif.modtype} "${notif.modtitle}" se ha enviado para revisión`;
-    }
-    
-    // Renderizado especial para comentarios con avatar
-    if (notif.type === 'comment') {
-      const isReply = !!notif.parentid;
-      
-      return (
-        <div 
-          key={notif.id}
-          onClick={async () => {
-            // Marcar como leída antes de navegar
-            if (!notif.leida) {
-              await markNotificationAsRead(notif.id, user?.id);
-              invalidateNotificationsCache(user?.id);
-              refreshNotifications();
-            }
-            navigate(`/view/${notif.modid}`);
-          }}
-          className={clsx(
-            "group relative flex gap-3 p-3 rounded-xl border cursor-pointer shadow-sm",
-            !notif.leida 
-              ? "bg-white dark:bg-[#1e1e1e] border border-gray-300 dark:border-transparent hover:bg-gray-50 dark:hover:bg-[#282828]" 
-              : "bg-gray-50/40 dark:bg-[#151515] border-gray-200 dark:border-gray-800 opacity-90 hover:bg-gray-100 dark:hover:bg-[#1a1a1a]"
-          )}
-        >
-          {/* AVATAR DEL USUARIO */}
-          <div className="shrink-0">
-            <div className="w-10 h-10 rounded-full">
-              <AvatarRenderer 
-                avatar={actorInfo.imagen} 
-                name={actorInfo.nombre} 
-              />
-            </div>
-          </div>
+  // --- CARGA INICIAL ---
+  useEffect(() => {
+    let active = true;
 
-          {/* CONTENIDO DEL COMENTARIO */}
-          <div className="flex-1 min-w-0">
-            {/* HEADER: Nombre */}
-            <div className="flex items-center justify-between mb-1">
-              <h4 className="text-xs font-bold text-gray-900 dark:text-white">
-                {actorInfo.nombre || 'Alguien'}
-              </h4>
-              {/* Botón marcar como no leída */}
-              {notif.leida && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleMarkAsUnread(notif.id);
-                  }}
-                  className="text-xs text-blue-500 hover:text-blue-700 font-medium"
-                  title="Marcar como no leída"
-                >
-                  Marcar como no leída
-                </button>
-              )}
-            </div>
+    const run = async () => {
+      if (!user?.id) {
+        setNotifications([]);
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      invalidateNotificationsCache(user.id);
+      try {
+        const data = await getUserNotifications(user.id, false, PER_PAGE, 0, true);
+        if (!active) return;
+        setNotifications(data);
+        setPage(0);
+        setHasMore(data.length === PER_PAGE);
+        refreshNotifications();
+      } catch (error) {
+        console.error('Error cargando notificaciones:', error);
+        if (active) showToast('No se pudieron cargar las notificaciones', 'error');
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
 
-            {/* COMENTARIO O RESPUESTA */}
-            <p className="text-xs text-gray-700 dark:text-gray-300 line-clamp-2">
-              {isReply ? `Respuesta: "${notif.commenttext || '...'}"` : `"${notif.commenttext || '...'}"`}
-            </p>
+    run();
+    return () => { active = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
-            {/* TIEMPO */}
-            <span className="text-[10px] text-gray-400">
-              {getTimeAgo(notif.creado)}
-            </span>
-          </div>
+  // --- PERFILES DE QUIENES INTERACTÚAN ---
+  useEffect(() => {
+    const ids = [...new Set(notifications.map((n) => n.actorid).filter(Boolean))]
+      .filter((id) => !actorCache[id]);
+    if (ids.length === 0) return;
 
-          {/* IMAGEN DEL CONTENIDO */}
-          {notif.modimage && (
-            <div className="relative h-20 aspect-video shrink-0">
-              <img 
-                src={notif.modimage} 
-                alt={notif.modtitle}
-                className="w-full h-full rounded-lg object-cover"
-              />
-            </div>
-          )}
-        </div>
+    let active = true;
+    (async () => {
+      await prefetchUserProfiles(ids);
+      const entries = await Promise.all(
+        ids.map(async (id) => [id, await getUserPublicProfile(id)])
       );
+      if (!active) return;
+      setActorCache((prev) => {
+        const next = { ...prev };
+        entries.forEach(([id, info]) => { if (info) next[id] = info; });
+        return next;
+      });
+    })();
+
+    return () => { active = false; };
+  }, [notifications, actorCache]);
+
+  // --- RECARGAR ---
+  const handleRefresh = async () => {
+    if (!user?.id || refreshing) return;
+    setRefreshing(true);
+    invalidateNotificationsCache(user.id);
+    try {
+      const data = await getUserNotifications(user.id, false, PER_PAGE, 0, true);
+      setNotifications(data);
+      setPage(0);
+      setHasMore(data.length === PER_PAGE);
+      refreshNotifications();
+    } catch (error) {
+      console.error('Error actualizando notificaciones:', error);
+      showToast('No se pudieron actualizar las notificaciones', 'error');
+    } finally {
+      setRefreshing(false);
     }
-    
-    // Renderizado especial para likes con avatar
-    if (notif.type === 'like') {
-      return (
-        <div 
-          key={notif.id}
-          onClick={async () => {
-            // Marcar como leída antes de navegar
-            if (!notif.leida) {
-              await markNotificationAsRead(notif.id, user?.id);
-              invalidateNotificationsCache(user?.id);
-              refreshNotifications();
-            }
-            navigate(`/view/${notif.modid}`);
-          }}
-          className={clsx(
-            "group relative flex gap-3 p-3 rounded-xl border transition-all duration-300 cursor-pointer",
-            !notif.leida 
-              ? "bg-white dark:bg-[#1e1e1e] border-primary-200 dark:border-primary-900/40 shadow-md shadow-primary-500/5" 
-              : "bg-gray-50/40 dark:bg-[#151515] border-gray-200 dark:border-gray-800 opacity-90"
-          )}
-        >
-          {/* AVATAR DEL USUARIO */}
-          <div className="shrink-0">
-            <div className="w-10 h-10 rounded-full">
-              <AvatarRenderer 
-                avatar={actorInfo.imagen} 
-                name={actorInfo.nombre} 
-              />
-            </div>
-          </div>
+  };
 
-          {/* CONTENIDO DEL LIKE */}
-          <div className="flex-1 min-w-0">
-            {/* HEADER: Nombre */}
-            <div className="flex items-center justify-between mb-1">
-              <h4 className="text-xs font-bold text-gray-900 dark:text-white">
-                {actorInfo.nombre || 'Alguien'}
-              </h4>
-              {/* Botón marcar como no leída */}
-              {notif.leida && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleMarkAsUnread(notif.id);
-                  }}
-                  className="text-[10px] text-blue-500 hover:text-blue-700 font-medium"
-                  title="Marcar como no leída"
-                >
-                  Marcar como no leída
-                </button>
-              )}
-            </div>
+  // --- CARGAR MÁS ---
+  const loadMore = async () => {
+    if (!user?.id || loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    try {
+      const nextPage = page + 1;
+      const data = await getUserNotifications(user.id, false, PER_PAGE, nextPage * PER_PAGE, true);
+      setNotifications((prev) => {
+        const existing = new Set(prev.map((n) => n.id));
+        return [...prev, ...data.filter((n) => !existing.has(n.id))];
+      });
+      setPage(nextPage);
+      setHasMore(data.length === PER_PAGE);
+    } catch (error) {
+      console.error('Error cargando más notificaciones:', error);
+      showToast('No se pudieron cargar más notificaciones', 'error');
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
-            {/* MENSAJE DE LIKE */}
-            <p className="text-xs text-gray-700 dark:text-gray-300 mb-1">
-              Le gustó tu {notif.modtype}
-            </p>
+  // --- ABRIR NOTIFICACIÓN ---
+  const handleOpen = (notif) => {
+    if (!notif.modid) return;
+    if (!notif.leida) {
+      setNotifications((prev) => prev.map((n) => (n.id === notif.id ? { ...n, leida: true } : n)));
+      markNotificationAsRead(notif.id, user?.id)
+        .then(() => refreshNotifications())
+        .catch(() => {});
+    }
+    navigate(`/view/${notif.modid}`);
+  };
 
-            {/* TIEMPO */}
-            <span className="text-[10px] text-gray-400">
-              {getTimeAgo(notif.creado)}
-            </span>
-          </div>
+  // --- LEÍDA / NO LEÍDA ---
+  const handleToggleRead = async (notif) => {
+    const nextRead = !notif.leida;
+    setNotifications((prev) => prev.map((n) => (n.id === notif.id ? { ...n, leida: nextRead } : n)));
+    try {
+      if (nextRead) {
+        await markNotificationAsRead(notif.id, user?.id);
+      } else {
+        await markNotificationAsUnread(notif.id, user?.id);
+      }
+      invalidateNotificationsCache(user?.id);
+      refreshNotifications();
+      showToast(nextRead ? 'Marcada como leída' : 'Marcada como no leída', 'info');
+    } catch (error) {
+      console.error('Error actualizando la notificación:', error);
+      setNotifications((prev) => prev.map((n) => (n.id === notif.id ? { ...n, leida: notif.leida } : n)));
+      showToast('No se pudo actualizar la notificación', 'error');
+    }
+  };
 
-          {/* IMAGEN DEL CONTENIDO */}
-          {notif.modimage && (
-            <div className="relative h-20 aspect-video shrink-0">
-              <img 
-                src={notif.modimage} 
-                alt={notif.modtitle}
-                className="w-full h-full rounded-lg object-cover"
-              />
-            </div>
-          )}
-        </div>
+  // --- MARCAR TODAS COMO LEÍDAS ---
+  const handleMarkAllAsRead = async () => {
+    if (!user?.id) return;
+    const unreadIds = new Set(notifications.filter((n) => !n.leida).map((n) => n.id));
+    if (unreadIds.size === 0 && unreadCount === 0) return;
+
+    setNotifications((prev) => prev.map((n) => ({ ...n, leida: true })));
+    try {
+      await markAllNotificationsAsRead(user.id);
+      refreshNotifications();
+      showToast('Todas las notificaciones marcadas como leídas');
+    } catch (error) {
+      console.error('Error marcando todas como leídas:', error);
+      setNotifications((prev) => prev.map((n) => (unreadIds.has(n.id) ? { ...n, leida: false } : n)));
+      showToast('No se pudieron marcar todas como leídas', 'error');
+    }
+  };
+
+  // --- ELIMINAR ---
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
+    const target = pendingDelete;
+    setDeleting(true);
+    setNotifications((prev) => prev.filter((n) => n.id !== target.id));
+    try {
+      await deleteNotification(target.id);
+      invalidateNotificationsCache(user?.id);
+      refreshNotifications();
+      showToast('Notificación eliminada');
+      setPendingDelete(null);
+    } catch (error) {
+      console.error('Error eliminando notificación:', error);
+      setNotifications((prev) =>
+        [target, ...prev].sort((a, b) => new Date(b.creado) - new Date(a.creado))
       );
+      showToast('No se pudo eliminar la notificación', 'error');
+    } finally {
+      setDeleting(false);
     }
-    
-    // Renderizado normal para otros tipos de notificaciones
-    return (
-      <div 
-        key={notif.id}
-        onClick={async () => {
-          // Marcar como leída antes de navegar
-          if (!notif.leida) {
-            await markNotificationAsRead(notif.id, user?.id);
-            invalidateNotificationsCache(user?.id);
-            refreshNotifications();
-          }
-          // Siempre navegar a vista del contenido
-          navigate(`/view/${notif.modid}`);
-        }}
-        className={clsx(
-          "group relative flex gap-3 p-3 rounded-xl border transition-all duration-300 cursor-pointer shadow-sm",
-          !notif.leida 
-            ? "bg-white dark:bg-[#1e1e1e] border-gray-200 dark:border-transparent" 
-            : "bg-gray-50/40 dark:bg-[#151515] border-gray-200 dark:border-gray-800 opacity-90"
-        )}
-      >
-        {/* ICONO */}
-        <div className="shrink-0">
-          <div className={clsx("p-2 rounded-lg shrink-0", config.bg, config.color)}>
-            <StatusIcon size={18} className={notif.status === 'pending' ? 'animate-pulse' : ''} />
-          </div>
-        </div>
+  };
 
-        {/* CONTENIDO */}
-        <div className="flex-1 min-w-0">
-          {/* HEADER: Tipo */}
-          <div className="flex items-center justify-between mb-1">
-            <span className={clsx("text-[10px] font-black uppercase tracking-wider", config.color)}>
-              {config.label}
-            </span>
-            {/* Botón marcar como no leída */}
-            {notif.leida && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleMarkAsUnread(notif.id);
-                }}
-                className="text-[10px] text-blue-500 hover:text-blue-700 font-medium"
-                title="Marcar como no leída"
-              >
-                Marcar como no leída
-              </button>
-            )}
-          </div>
+  // --- FILTRO + BÚSQUEDA COMBINADOS ---
+  const filtered = notifications.filter((notif) => {
+    if (filter === 'unread' && notif.leida) return false;
+    if (filter === 'read' && !notif.leida) return false;
 
-          {/* TÍTULO/DESCRIPCIÓN */}
-          <h3 className="text-xs font-bold text-gray-800 dark:text-gray-100 leading-tight line-clamp-2">
-            {title || description}
-          </h3>
+    const query = searchTerm.trim().toLowerCase();
+    if (!query) return true;
 
-          {/* TIEMPO */}
-          <span className="text-[10px] text-gray-400">
-            {getTimeAgo(notif.creado)}
-          </span>
-        </div>
+    const actor = getActor(notif);
+    const view = getNotificationView(notif, actor, user?.role);
+    return [
+      notif.modtitle,
+      notif.modtype,
+      notif.commenttext,
+      notif.type,
+      view.label,
+      view.title,
+      actor?.nombre
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase()
+      .includes(query);
+  });
 
-        {/* IMAGEN DEL CONTENIDO */}
-        {notif.modimage && (
-          <div className="relative h-20 aspect-video shrink-0">
-            <img 
-              src={notif.modimage} 
-              alt={notif.modtitle}
-              className="w-full h-full rounded-lg object-cover"
-            />
-          </div>
-        )}
-      </div>
-    );
+  const counts = {
+    all: notifications.length,
+    unread: notifications.filter((n) => !n.leida).length,
+    read: notifications.filter((n) => n.leida).length
+  };
+
+  const readPercent = counts.all > 0 ? Math.round((counts.read / counts.all) * 100) : 0;
+
+  const groups = [];
+  filtered.forEach((notif) => {
+    const { key, label } = getDayGroup(notif.creado);
+    const last = groups[groups.length - 1];
+    if (last && last.key === key) last.items.push(notif);
+    else groups.push({ key, label, items: [notif] });
+  });
+
+  const hasFilters = filter !== 'all' || searchTerm.trim().length > 0;
+  const clearFilters = () => {
+    setFilter('all');
+    setSearchTerm('');
+    searchRef.current?.focus();
   };
 
   return (
-    <div className="flex flex-col p-2 md:p-4 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
-      
-      {/* HEADER */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-2 md:mb-6">
+    <div className="mx-auto flex w-full max-w-4xl flex-col px-2 py-4 animate-fade-in-up md:px-4 md:py-6" style={{ animationDuration: '200ms' }}>
 
-        <h1 className="flex text-xl md:text-2xl font-bold text-gray-800 dark:text-white items-center gap-3">
-          <div className={clsx("w-9 h-9 rounded-xl flex items-center justify-center shadow-sm text-white", `bg-gradient-to-br from-blue-500 to-cyan-500`)}>
-              <Bell size={20} strokeWidth={2.5} />
+      {/* CABECERA */}
+      <section className="relative mb-4 overflow-hidden rounded-3xl border border-gray-200/80 bg-white p-4 shadow-sm dark:border-white/[0.06] dark:bg-[#171819] sm:p-5">
+        <div className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-primary-500/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-24 left-1/3 h-40 w-40 rounded-full bg-indigo-500/10 blur-3xl" />
+
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-500 to-indigo-500 text-white shadow-lg shadow-primary-500/25">
+              <Bell size={23} strokeWidth={2.5} />
+              {counts.unread > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full border-2 border-white bg-red-500 dark:border-[#171819]" />
+              )}
+            </div>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-xl font-black tracking-tight text-gray-900 dark:text-white md:text-2xl">
+                  Notificaciones
+                </h1>
+                {counts.unread > 0 && (
+                  <span className="rounded-full bg-primary-100 px-2 py-0.5 text-[10px] font-bold text-primary-700 dark:bg-primary-500/20 dark:text-primary-300">
+                    {counts.unread > 99 ? '99+' : counts.unread} sin leer
+                  </span>
+                )}
+              </div>
+              <p className="truncate text-xs text-gray-500 dark:text-gray-400 sm:text-sm">
+                Likes, comentarios y novedades de tu contenido.
+              </p>
+            </div>
           </div>
-          Notificaciones
-        </h1>
-          
-        <div className="flex gap-2">
-          {notifications.filter(n => !n.leida).length > 0 && (
-            <button
-              onClick={handleMarkAllAsRead}
-              className="px-4 py-2 rounded-xl text-xs font-bold transition-all bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-900/50 border border-green-200 dark:border-green-800"
-            >
-              Marcar todas como leídas
-            </button>
-          )}
-          {notifications.filter(n => n.leida).length > 0 && (
-            <button
-              onClick={handleMarkAllAsUnread}
-              className="px-4 py-2 rounded-xl text-xs font-bold transition-all bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-800"
-            >
-              Marcar todas como no leídas
-            </button>
-          )}
-        </div>
-      </div>
 
-      {/* BARRA DE FILTROS */}
-      <div className="mb-6 flex flex-row gap-3 items-center">
-        {/* Búsqueda */}
-        <div className="relative w-full md:flex-1">
-          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input 
-            type="text" 
-            placeholder="Buscar notificaciones..." 
-            value={searchTerm} 
-            onChange={(e) => setSearchTerm(e.target.value)} 
-            className="w-full pl-10 pr-4 py-2.5 h-10 rounded-xl bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all text-sm" 
-          />
-        </div>
-
-        {/* Filtro de estado */}
-        <div className="hidden md:block relative w-full md:w-auto" ref={filterDropdownRef}>
-          <div className="relative w-full md:w-56 lg:w-64">
-            <Filter size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <div className="flex shrink-0 items-center gap-2">
             <button
               type="button"
-              onClick={() => setIsFilterDropdownOpen(!isFilterDropdownOpen)}
-              className="w-full pl-10 pr-10 py-2.5 h-10 rounded-xl bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none appearance-none cursor-pointer transition-all text-sm font-medium text-left"
+              onClick={handleRefresh}
+              disabled={refreshing}
+              title="Actualizar notificaciones"
+              aria-label="Actualizar notificaciones"
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 transition-all hover:border-primary-300 hover:text-primary-600 disabled:opacity-60 dark:border-white/10 dark:bg-white/5 dark:text-gray-400 dark:hover:border-primary-500/40 dark:hover:text-primary-400"
             >
-              <span className="truncate block">
-                {filter === 'all' ? 'Todas las notificaciones' : filter === 'unread' ? 'No leídas' : 'Leídas'}
-              </span>
+              <RefreshCw size={15} className={clsx(refreshing && 'animate-spin')} />
             </button>
-            <ChevronDown size={16} className={clsx("absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none transition-transform duration-200", isFilterDropdownOpen && "rotate-180")} />
+            <button
+              type="button"
+              onClick={handleMarkAllAsRead}
+              disabled={unreadCount === 0 && counts.unread === 0}
+              className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-xl bg-primary-600 px-3 text-xs font-bold text-white shadow-sm shadow-primary-600/25 transition-all hover:bg-primary-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400 disabled:shadow-none dark:disabled:bg-white/5 dark:disabled:text-gray-600 sm:flex-none"
+            >
+              <CheckCheck size={15} />
+              Marcar leídas
+            </button>
           </div>
+        </div>
 
-          {isFilterDropdownOpen && (
-            <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent rounded-xl shadow-lg z-50 p-1">
-              <div className="flex flex-col gap-0.5">
-                {[
-                  { val: 'all', label: 'Todas las notificaciones' },
-                  { val: 'unread', label: 'No leídas' },
-                  { val: 'read', label: 'Leídas' }
-                ].map((opt) => (
-                  <button
-                    key={opt.val}
-                    type="button"
-                    onClick={() => { setFilter(opt.val); setIsFilterDropdownOpen(false); }}
-                    className={clsx(
-                      "w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                      filter === opt.val 
-                        ? "text-gray-800 dark:text-white bg-gray-200 dark:bg-gray-700 font-semibold" 
-                        : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                    )}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
+        {counts.all > 0 && (
+          <div className="relative mt-4 flex items-center gap-2.5">
+            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-gray-100 dark:bg-white/10">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-primary-500 to-indigo-500 transition-all duration-500"
+                style={{ width: `${readPercent}%` }}
+              />
             </div>
+            <span className="shrink-0 text-[10px] font-semibold text-gray-400 dark:text-gray-500">
+              {counts.read} de {counts.all} leídas
+            </span>
+          </div>
+        )}
+      </section>
+
+      {/* FILTROS */}
+      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex w-full gap-1 rounded-xl bg-gray-100 p-1 dark:bg-white/5 lg:w-auto">
+          {TABS.map((tab) => {
+            const active = filter === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setFilter(tab.id)}
+                aria-pressed={active}
+                className={clsx(
+                  'flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all lg:flex-none',
+                  active
+                    ? 'bg-primary-600 text-white shadow-sm shadow-primary-600/25'
+                    : 'text-gray-500 hover:bg-white/60 hover:text-gray-800 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-200'
+                )}
+              >
+                {tab.label}
+                <span
+                  className={clsx(
+                    'rounded-full px-1.5 py-0.5 text-[10px] font-bold',
+                    active
+                      ? 'bg-white/20 text-white'
+                      : 'bg-gray-200/80 text-gray-500 dark:bg-white/10 dark:text-gray-400'
+                  )}
+                >
+                  {counts[tab.id]}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="relative w-full lg:w-64">
+          <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            ref={searchRef}
+            type="text"
+            aria-label="Buscar notificaciones"
+            placeholder="Buscar notificaciones..."
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            className="h-10 w-full rounded-xl border border-gray-200 bg-white pl-9 pr-9 text-sm text-gray-700 outline-none transition-all placeholder:text-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:border-white/10 dark:bg-[#1D1F23] dark:text-gray-200"
+          />
+          {searchTerm && (
+            <button
+              type="button"
+              onClick={() => setSearchTerm('')}
+              className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-white/10"
+              title="Limpiar búsqueda"
+              aria-label="Limpiar búsqueda"
+            >
+              <X size={14} />
+            </button>
           )}
         </div>
       </div>
 
-      {/* LISTADO */}
-      <div className="grid gap-4">
-        {filteredNotifs.length > 0 ? (
-          filteredNotifs.map(renderNotificationItem)
-        ) : (
-          <div className="flex flex-col items-center justify-center py-24 bg-white dark:bg-[#1e1e1e] border-4 border-dashed border-gray-100 dark:border-gray-800/50 rounded-[40px] text-center">
-            <div className="w-24 h-24 bg-gray-50 dark:bg-[#252525] rounded-full flex items-center justify-center mb-6 text-gray-200 dark:text-gray-700">
-               <Inbox size={48} />
+      {/* LISTA */}
+      {loading ? (
+        <NotificationSkeleton />
+      ) : filtered.length > 0 ? (
+        <div className="space-y-5">
+          {groups.map((group) => (
+            <section key={group.key}>
+              <div className="mb-2 flex items-center gap-2 px-1">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+                  {group.label}
+                </span>
+                <span className="h-px flex-1 bg-gradient-to-r from-gray-200 to-transparent dark:from-white/10" />
+                <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-600">
+                  {group.items.length}
+                </span>
+              </div>
+
+              <div className="space-y-2.5">
+                {group.items.map((notif, index) => {
+                  const actor = getActor(notif);
+                  const view = getNotificationView(notif, actor, user?.role);
+                  const Icon = view.Icon;
+                  const canOpen = Boolean(notif.modid);
+                  const contentType = CONTENT_TYPE_LABELS[notif.modtype] || 'contenido';
+
+                  return (
+                    <article
+                      key={notif.id}
+                      style={{
+                        animationDelay: `${Math.min(index, 8) * 30}ms`,
+                        animationDuration: '220ms'
+                      }}
+                      className={clsx(
+                        'group relative flex items-start gap-2.5 overflow-hidden rounded-2xl border p-3 transition-all duration-200 animate-fade-in-up sm:gap-3 sm:p-4',
+                        notif.leida
+                          ? 'border-gray-200/80 bg-white hover:border-gray-300 dark:border-white/[0.06] dark:bg-[#171819] dark:hover:border-white/10'
+                          : 'border-primary-200/80 bg-gradient-to-r from-primary-50/70 via-white to-white shadow-sm shadow-primary-500/5 hover:border-primary-300 hover:shadow-md hover:shadow-primary-500/10 dark:border-primary-500/20 dark:from-primary-500/[0.08] dark:via-[#1a1b1e] dark:to-[#1a1b1e] dark:hover:border-primary-500/30'
+                      )}
+                    >
+                      {!notif.leida && (
+                        <span className="absolute inset-y-3 left-0 w-[3px] rounded-r-full bg-gradient-to-b from-primary-400 to-primary-600" />
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => handleOpen(notif)}
+                        disabled={!canOpen}
+                        className="flex min-w-0 flex-1 items-start gap-3 text-left disabled:cursor-default"
+                      >
+                        {/* ICONO / AVATAR */}
+                        <div className="relative shrink-0">
+                          {view.hasActor && notif.actorid ? (
+                            <>
+                              <div className="h-11 w-11 overflow-hidden rounded-full ring-2 ring-white shadow-sm dark:ring-[#171819]">
+                                <AvatarRenderer avatar={actor?.imagen} name={actor?.nombre} />
+                              </div>
+                              <span className={clsx(
+                                'absolute -bottom-1 -right-1 flex h-[18px] w-[18px] items-center justify-center rounded-full ring-2 ring-white dark:ring-[#171819]',
+                                view.badge
+                              )}>
+                                <Icon size={10} strokeWidth={2.5} />
+                              </span>
+                            </>
+                          ) : (
+                            <div className={clsx('flex h-11 w-11 items-center justify-center rounded-2xl ring-1 ring-black/5 dark:ring-white/5', view.tile)}>
+                              <Icon size={20} />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* TEXTO */}
+                        <div className="min-w-0 flex-1 pr-1">
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                            <span className={clsx('inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider', view.pill)}>
+                              {view.label}
+                            </span>
+                            <span className="text-[11px] font-medium text-gray-400 dark:text-gray-500">
+                              {getTimeAgo(notif.creado)}
+                            </span>
+                          </div>
+
+                          <h2 className={clsx(
+                            'mt-1 text-sm leading-snug line-clamp-2 sm:text-[15px]',
+                            notif.leida
+                              ? 'text-gray-700 dark:text-gray-300'
+                              : 'font-semibold text-gray-900 dark:text-white'
+                          )}>
+                            {view.title}
+                          </h2>
+
+                          {view.quote && (
+                            <p className="mt-2 line-clamp-2 rounded-lg border-l-2 border-blue-400/50 bg-blue-50/60 px-2.5 py-1.5 text-[11px] italic text-gray-600 dark:bg-blue-500/10 dark:text-gray-300 sm:text-xs">
+                              “{view.quote}”
+                            </p>
+                          )}
+
+                          {notif.modtitle ? (
+                            <div className="mt-2 flex items-center gap-2">
+                              <div className="h-9 w-9 shrink-0 overflow-hidden rounded-lg border border-gray-200/70 dark:border-white/10">
+                                {notif.modimage ? (
+                                  <img
+                                    src={thumbUrl(notif.modimage, 160)}
+                                    alt={notif.modtitle}
+                                    loading="lazy"
+                                    decoding="async"
+                                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                    onError={(event) => { event.currentTarget.src = '/default.jpg'; }}
+                                  />
+                                ) : (
+                                  <div className={clsx('flex h-full w-full items-center justify-center', view.tile)}>
+                                    <Icon size={15} />
+                                  </div>
+                                )}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="truncate text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+                                  {notif.modtitle}
+                                </p>
+                                <p className="text-[10px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                                  {contentType}
+                                </p>
+                              </div>
+                              {canOpen && (
+                                <ChevronRight
+                                  size={15}
+                                  className="ml-auto shrink-0 text-gray-300 transition-all group-hover:translate-x-0.5 group-hover:text-primary-500 dark:text-gray-600 dark:group-hover:text-primary-400"
+                                />
+                              )}
+                            </div>
+                          ) : (
+                            view.body && (
+                              <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-500">
+                                {view.body}
+                              </p>
+                            )
+                          )}
+                        </div>
+                      </button>
+
+                      {/* ACCIONES */}
+                      <div className="flex shrink-0 flex-col items-center gap-0.5 self-start pt-0.5 transition-opacity duration-200 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleRead(notif)}
+                          title={notif.leida ? 'Marcar como no leída' : 'Marcar como leída'}
+                          aria-label={notif.leida ? 'Marcar como no leída' : 'Marcar como leída'}
+                          className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-primary-50 hover:text-primary-600 dark:hover:bg-primary-500/15 dark:hover:text-primary-400"
+                        >
+                          {notif.leida ? <Mail size={15} /> : <MailOpen size={15} />}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPendingDelete(notif)}
+                          title="Eliminar notificación"
+                          aria-label="Eliminar notificación"
+                          className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/15 dark:hover:text-red-400"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
+
+          {hasMore && (
+            <div className="flex justify-center pt-1">
+              <button
+                type="button"
+                onClick={loadMore}
+                disabled={loadingMore}
+                className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-xs font-bold text-gray-600 transition-all hover:border-primary-300 hover:text-primary-600 disabled:cursor-wait disabled:opacity-60 dark:border-white/10 dark:bg-[#1a1b1e] dark:text-gray-300 dark:hover:border-primary-500/40 dark:hover:text-primary-400"
+              >
+                {loadingMore ? <LoadingSpinner variant="inline" size={14} /> : <RefreshCw size={14} />}
+                {loadingMore ? 'Cargando...' : 'Cargar más'}
+              </button>
             </div>
-            <h3 className="text-2xl font-black text-gray-800 dark:text-gray-200 tracking-tight">Bandeja despejada</h3>
-            <p className="text-gray-500 dark:text-gray-400 mt-2 font-medium">No hay notificaciones para mostrar</p>
+          )}
+        </div>
+      ) : (
+        /* ESTADO VACÍO */
+        <div className="relative flex flex-col items-center justify-center overflow-hidden rounded-3xl border border-dashed border-gray-200 bg-white px-6 py-16 text-center dark:border-white/10 dark:bg-[#171819]">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(99,102,241,0.10),transparent_60%)]" />
+
+          <div className="relative mb-5">
+            <div className="absolute -inset-3 rounded-full bg-primary-500/5 dark:bg-primary-500/10" />
+            <span className="absolute -right-3 -top-1 h-3 w-3 rounded-full bg-primary-400/40" />
+            <span className="absolute -bottom-1 -left-4 h-2 w-2 rounded-full bg-indigo-400/40" />
+            <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-primary-100 bg-primary-50 text-primary-500 shadow-sm dark:border-primary-500/20 dark:bg-primary-500/10 dark:text-primary-400">
+              <Inbox size={30} />
+            </div>
           </div>
-        )}
-        
-        {/* Botón cargar más */}
-        {hasMore && filteredNotifs.length > 0 && (
-          <div className="flex justify-center mt-6">
+
+          <h2 className="relative text-lg font-bold text-gray-800 dark:text-gray-200">
+            {searchTerm
+              ? 'Sin resultados'
+              : filter === 'unread'
+                ? 'Estás al día'
+                : filter === 'read'
+                  ? 'Nada por aquí'
+                  : 'Bandeja vacía'}
+          </h2>
+          <p className="relative mt-1.5 max-w-sm text-sm text-gray-500 dark:text-gray-400">
+            {searchTerm
+              ? `No encontramos notificaciones para “${searchTerm}”.`
+              : filter === 'unread'
+                ? 'No tienes notificaciones sin leer.'
+                : filter === 'read'
+                  ? 'Todavía no has leído ninguna notificación.'
+                  : 'Cuando alguien interactúe con tu contenido, lo verás aquí.'}
+          </p>
+          {hasFilters && (
             <button
-              onClick={loadMore}
-              disabled={loading}
-              className="px-8 py-3 bg-gray-100 dark:bg-[#1a1a1a] hover:bg-gray-200 dark:hover:bg-[#2a2a2a] text-gray-700 dark:text-gray-300 font-bold rounded-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              type="button"
+              onClick={clearFilters}
+              className="relative mt-5 inline-flex items-center gap-2 rounded-xl bg-primary-600 px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-primary-700"
             >
-              {loading ? <Loader2 className="animate-spin" size={16} /> : 'Cargar más'}
+              <X size={14} />
+              Limpiar filtros
             </button>
+          )}
+        </div>
+      )}
+
+      {/* MODAL DE ELIMINACIÓN */}
+      {pendingDelete && (
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fade-in-up"
+          style={{ animationDuration: '150ms' }}
+          onClick={() => !deleting && setPendingDelete(null)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-notification-title"
+            onClick={(event) => event.stopPropagation()}
+            className="w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-[#1e1f22]"
+          >
+            <div className="relative mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100 text-red-600 dark:bg-red-500/15 dark:text-red-400">
+              <span className="absolute -inset-2 rounded-full border border-red-200/60 dark:border-red-500/20" />
+              <Trash2 size={22} />
+            </div>
+            <h2 id="delete-notification-title" className="text-center text-base font-bold text-gray-900 dark:text-white">
+              Eliminar notificación
+            </h2>
+            <p className="mt-1.5 text-center text-sm text-gray-500 dark:text-gray-400">
+              Esta acción no se puede deshacer.
+            </p>
+
+            {pendingDelete.modtitle && (
+              <p className="mt-3 line-clamp-2 rounded-xl bg-gray-50 px-3 py-2 text-center text-xs font-medium text-gray-600 dark:bg-white/5 dark:text-gray-300">
+                {pendingDelete.modtitle}
+              </p>
+            )}
+
+            <div className="mt-5 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setPendingDelete(null)}
+                disabled={deleting}
+                className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-bold text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-50 dark:border-white/10 dark:bg-transparent dark:text-gray-300 dark:hover:bg-white/5"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={confirmDelete}
+                disabled={deleting}
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-red-700 disabled:opacity-60"
+              >
+                {deleting ? <LoadingSpinner variant="inline" size={14} /> : <Trash2 size={14} />}
+                Eliminar
+              </button>
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -2,11 +2,10 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { getUserLikedContent } from '../services/api';
 import Card from '../components/Card';
-import { 
-  Heart, Loader2, Search, ChevronDown, ArrowUpDown, Settings
-} from 'lucide-react';
+import { Heart, Search, ChevronDown, ArrowUpDown, Settings } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuth } from '../context/AuthContext';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 const MisLikes = () => {
   const { user } = useAuth();
@@ -107,11 +106,7 @@ const MisLikes = () => {
     );
   }
 
-  if (loading) return (
-    <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4">
-      <Loader2 className="animate-spin text-primary-600" size={48}/>
-    </div>
-  );
+  if (loading) return <LoadingSpinner variant="page" />;
 
   return (
     <div className="animate-fade-in-up" style={{ animationDuration: '200ms' }}>

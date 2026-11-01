@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Star, Loader2, Trophy } from 'lucide-react'; // Agregué Trophy para darle estilo
+import { Star, Trophy } from 'lucide-react'; // Agregué Trophy para darle estilo
 import DataContainer from '../components/DataContainer';
 import Card from '../components/Card';
 import { getAllContent } from '../services/api';
@@ -38,18 +38,13 @@ const Destacados = () => {
     loadData();
   }, []);
 
-  if (loading) return (
-    <div className="h-full flex items-center justify-center min-h-[50vh]">
-      <Loader2 className="animate-spin text-primary-600" size={48} />
-    </div>
-  );
-
   return (
     <DataContainer
       title="Destacados" // Cambio de título para reflejar el contenido
       icon={Trophy}         // Icono de Trofeo queda mejor para un Top
       gradientClass="from-amber-500 to-orange-600"
       items={items}
+      loading={loading}
       searchKey="titulo"
       renderItem={(item, index) => {
         // Calculamos el total aquí también para pasárselo a la Card

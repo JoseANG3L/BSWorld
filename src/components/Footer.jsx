@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Info, Mail, Heart, Github, Twitter, Instagram, Facebook, Shield, FileText, HelpCircle, Zap } from 'lucide-react';
+import { FEATURES } from '../config/features';
 
 const Footer = () => {
   return (
@@ -39,12 +40,14 @@ const Footer = () => {
                 Inicio
               </Link>
             </li>
-            <li>
-              <Link to="/comunidad" className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-                <Zap size={14} />
-                Comunidad
-              </Link>
-            </li>
+            {FEATURES.comunidad && (
+              <li>
+                <Link to="/comunidad" className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+                  <Zap size={14} />
+                  Comunidad
+                </Link>
+              </li>
+            )}
             <li>
               <Link to="/mods" className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
                 <Zap size={14} />

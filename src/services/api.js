@@ -10,6 +10,14 @@ const CACHE_TTL = 5 * 60 * 1000; // 5 minutos de TTL para cache
 // ---------------------------------------------------------
 // 1-3. CONTENIDO (Obtención)
 // ---------------------------------------------------------
+
+// Columnas necesarias para las tarjetas/listas (evita traer SELECT * pesado)
+const CARD_COLUMNS = 'id,titulo,imagen,descargas,creadores,tags,aporte,vistas,likes_count,tipo,creado,estado,visibilidad,parent_id';
+
+// Caché en memoria con TTL: evita refetchear la tabla completa al navegar
+const contentCache = { data: null, timestamp: 0 };
+const statsCache = { data: null, timestamp: 0 };
+const CONTENT_TTL = 2 * 60 * 1000; // 2 minutos
 export const getContentByType = async (tipo) => {
   const { data, error } = await supabase
     .from('content')
@@ -23,15 +31,28 @@ export const getContentByType = async (tipo) => {
   return data;
 };
 
-export const getPublicContent = async () => {
+export const getPublicContent = async (forceRefresh = false) => {
+  if (!forceRefresh && contentCache.data && Date.now() - contentCache.timestamp < CONTENT_TTL) {
+    return contentCache.data;
+  }
   const { data, error } = await supabase
     .from('content')
-    .select('*')
+    .select(CARD_COLUMNS)
     .eq('estado', 'aceptado')
     .eq('visibilidad', 'publico')
     .is('parent_id', null)
     .order('creado', { ascending: false });
-  return error ? [] : data;
+  if (error) return contentCache.data || [];
+  contentCache.data = data;
+  contentCache.timestamp = Date.now();
+  return data;
+};
+
+export const invalidateContentCache = () => {
+  contentCache.data = null;
+  contentCache.timestamp = 0;
+  statsCache.data = null;
+  statsCache.timestamp = 0;
 };
 
 export const getAdminContent = async () => {
@@ -151,6 +172,7 @@ export const updateContent = async (id, data) => {
     .update({ ...data, actualizado: new Date().toISOString() })
     .eq('id', id);
   if (error) throw error;
+  invalidateContentCache();
 };
 
 // --- SISTEMA DE VERSIONES/REVISIONES ---
@@ -261,8 +283,9 @@ export const approveRevision = async (revisionId) => {
       .from('content')
       .delete()
       .eq('id', revisionId);
-    
+
     if (deleteError) throw deleteError;
+    invalidateContentCache();
     
     // Notificar al creador que la revisión fue aprobada
     const ownerId = revision.aporte?.uid || revision.aporte;
@@ -309,8 +332,9 @@ export const rejectRevision = async (revisionId, reason = '') => {
       .from('content')
       .delete()
       .eq('id', revisionId);
-    
+
     if (deleteError) throw deleteError;
+    invalidateContentCache();
     
     // Notificar al creador que la revisión fue rechazada
     const ownerId = revision.aporte?.uid || revision.aporte;
@@ -370,6 +394,7 @@ export const getContentRevisions = async (originalId) => {
 export const deleteContent = async (id) => {
   const { error } = await supabase.from('content').delete().eq('id', id);
   if (error) throw error;
+  invalidateContentCache();
   return true;
 };
 
@@ -380,6 +405,7 @@ export const createContent = async (data, isUserSubmission = false) => {
   const payload = { ...data, id: newId, creado: data.creado || new Date().toISOString(), estado: finalStatus, vistas: 0 };
   const { error } = await supabase.from('content').insert(payload);
   if (error) throw error;
+  invalidateContentCache();
   
   // Notificar al usuario que subió el contenido si está en revisión
   if (finalStatus === 'revision' || finalStatus === 'pending') {
@@ -412,22 +438,34 @@ export const createContent = async (data, isUserSubmission = false) => {
 // 5. ESTADÍSTICAS (Vistas y Descargas)
 // ---------------------------------------------------------
 export const registerView = async (contentId) => {
-  // En Supabase, para incrementar, es mejor usar una función RPC o un update simple
-  // Aquí obtenemos el valor actual e incrementamos
-  const { data } = await supabase.from('content').select('vistas').eq('id', contentId).single();
-  await supabase.from('content').update({ vistas: (data?.vistas || 0) + 1 }).eq('id', contentId);
+  // RPC con permisos elevados (funciona con RLS); fallback directo pre-migración
+  try {
+    const { error } = await supabase.rpc('register_view', { p_content_id: contentId });
+    if (error) throw error;
+    return;
+  } catch {
+    const { data } = await supabase.from('content').select('vistas').eq('id', contentId).single();
+    await supabase.from('content').update({ vistas: (data?.vistas || 0) + 1 }).eq('id', contentId);
+  }
 };
 
 export const registerDownload = async (contentId, downloadUrl, userId = null) => {
-  const { data } = await supabase.from('content').select('descargas, aporte, titulo, imagen, tipo').eq('id', contentId).single();
-  if (data?.descargas) {
-    const updated = data.descargas.map(d => d.url === downloadUrl ? { ...d, count: (d.count || 0) + 1 } : d);
-    await supabase.from('content').update({ descargas: updated }).eq('id', contentId);
-    
-    // Crear notificación de descarga si hay un usuario autenticado
-    if (userId) {
-      await createDownloadNotificationForContent(userId, contentId, data);
+  try {
+    const { error } = await supabase.rpc('register_download_count', { p_content_id: contentId, p_url: downloadUrl });
+    if (error) throw error;
+  } catch {
+    // Fallback pre-migración
+    const { data } = await supabase.from('content').select('descargas, aporte, titulo, imagen, tipo').eq('id', contentId).single();
+    if (data?.descargas) {
+      const updated = data.descargas.map(d => d.url === downloadUrl ? { ...d, count: (d.count || 0) + 1 } : d);
+      await supabase.from('content').update({ descargas: updated }).eq('id', contentId);
     }
+  }
+  
+  // Crear notificación de descarga si hay un usuario autenticado
+  if (userId) {
+    const { data } = await supabase.from('content').select('aporte, titulo, imagen, tipo').eq('id', contentId).single();
+    if (data) await createDownloadNotificationForContent(userId, contentId, data);
   }
 };
 
@@ -453,49 +491,102 @@ const createDownloadNotificationForContent = async (actorId, contentId, content)
   }
 };
 
-export const getGlobalStats = async () => {
+export const getGlobalStats = async (forceRefresh = false) => {
+  if (!forceRefresh && statsCache.data && Date.now() - statsCache.timestamp < CONTENT_TTL) {
+    return statsCache.data;
+  }
   const { count: usersCount } = await supabase.from('users').select('*', { count: 'exact', head: true });
-  const { data: content } = await supabase.from('content').select('descargas, estado').eq('estado', 'aceptado').eq('visibilidad', 'publico').is('parent_id', null);
+  // Solo la columna necesaria para sumar descargas (no toda la fila)
+  const { data: content } = await supabase.from('content').select('descargas').eq('estado', 'aceptado').eq('visibilidad', 'publico').is('parent_id', null);
   
   let totalDownloads = 0;
-  content.forEach(c => {
+  (content || []).forEach(c => {
     if(c.descargas) totalDownloads += c.descargas.reduce((acc, curr) => acc + (curr.count || 0), 0);
   });
-  return { users: usersCount || 0, downloads: totalDownloads, mods: content.length };
+  const stats = { users: usersCount || 0, downloads: totalDownloads, mods: content?.length || 0 };
+  statsCache.data = stats;
+  statsCache.timestamp = Date.now();
+  return stats;
 };
 
 // ---------------------------------------------------------
 // 6. USUARIOS Y CACHÉ
 // ---------------------------------------------------------
 
-// Modifica la función en tu archivo de servicios api.js
+// Precarga en UNA sola consulta los perfiles de una lista de ids.
+// Evita N peticiones (una por tarjeta) en la primera carga.
+export const prefetchUserProfiles = async (uids) => {
+  const uniqueIds = [...new Set((uids || []).filter(Boolean))].filter(uid => !userCache[uid] && !pendingUserFetches[uid]);
+  if (uniqueIds.length === 0) return;
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .in('id', uniqueIds);
+    if (error || !data) return;
+    data.forEach(u => {
+      userCache[u.id] = {
+        uid: u.id,
+        nombre: u.username,
+        imagen: u.avatar || null,
+        banner: u.banner || null,
+        verificado: !!u.verificado,
+        createdat: u.createdat || null,
+        descripcion: u.descripcion || null,
+        youtube: u.youtube || null,
+        twitter: u.twitter || null,
+        instagram: u.instagram || null,
+        linkedin: u.linkedin || null,
+        github: u.github || null,
+        discord: u.discord || null,
+        website: u.website || null
+      };
+    });
+  } catch (error) {
+    console.error("Error precargando perfiles:", error);
+  }
+};
+
+// Perfil público de un usuario (con caché en memoria + deduplicación
+// de peticiones simultáneas: 20 tarjetas del mismo autor = 1 consulta)
+const pendingUserFetches = {};
 export const getUserPublicProfile = async (uid) => {
   if (!uid) return null;
   if (userCache[uid]) return userCache[uid];
+  if (pendingUserFetches[uid]) return pendingUserFetches[uid];
 
-  const { data, error } = await supabase.from('users').select('*').eq('id', uid).single();
-  
-  if (data && !error) {
-    const profile = { 
-      uid: data.id, 
-      nombre: data.username, 
-      imagen: data.avatar || null,
-      banner: data.banner || null,
-      verificado: !!data.verificado,
-      createdat: data.createdat || null,
-      descripcion: data.descripcion || null,
-      youtube: data.youtube || null,
-      twitter: data.twitter || null,
-      instagram: data.instagram || null,
-      linkedin: data.linkedin || null,
-      github: data.github || null,
-      discord: data.discord || null,
-      website: data.website || null
-    };
-    userCache[uid] = profile;
-    return profile;
-  }
-  return null;
+  const fetchProfile = (async () => {
+    try {
+      const { data, error } = await supabase.from('users').select('*').eq('id', uid).single();
+
+      if (data && !error) {
+        const profile = {
+          uid: data.id,
+          nombre: data.username,
+          imagen: data.avatar || null,
+          banner: data.banner || null,
+          verificado: !!data.verificado,
+          createdat: data.createdat || null,
+          descripcion: data.descripcion || null,
+          youtube: data.youtube || null,
+          twitter: data.twitter || null,
+          instagram: data.instagram || null,
+          linkedin: data.linkedin || null,
+          github: data.github || null,
+          discord: data.discord || null,
+          website: data.website || null
+        };
+        userCache[uid] = profile;
+        return profile;
+      }
+      return null;
+    } finally {
+      delete pendingUserFetches[uid];
+    }
+  })();
+
+  pendingUserFetches[uid] = fetchProfile;
+  return fetchProfile;
 };
 
 export const getUserByUsername = async (username) => {
@@ -879,6 +970,25 @@ export const markNotificationAsUnread = async (notificationId, userId) => {
     return true;
   } catch (error) {
     console.error("Error marcando notificación como no leída:", error);
+    throw error;
+  }
+};
+
+// Marca de una sola vez TODAS las notificaciones del usuario como leídas.
+export const markAllNotificationsAsRead = async (userId) => {
+  if (!userId) return false;
+  try {
+    const { error } = await supabase
+      .from('notifications')
+      .update({ leida: true })
+      .eq('userid', userId)
+      .eq('leida', false);
+
+    if (error) throw error;
+    invalidateNotificationsCache(userId);
+    return true;
+  } catch (error) {
+    console.error("Error marcando todas las notificaciones como leídas:", error);
     throw error;
   }
 };

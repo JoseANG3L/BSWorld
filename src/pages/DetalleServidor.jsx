@@ -1,11 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import {
-  ArrowLeft, Users, Globe, Server, Activity, MapPin, Clock,
-  Copy, Check, ShieldCheck, Star, MessageCircle, Share2, ExternalLink,
-  Loader2, AlertCircle, Info, Lock, Unlock, Heart
-} from 'lucide-react';
+import { ArrowLeft, Users, Globe, Server, Activity, MapPin, Clock, Copy, Check, ShieldCheck, Star, MessageCircle, Share2, ExternalLink, AlertCircle, Info, Lock, Unlock, Heart } from 'lucide-react';
 import { clsx } from 'clsx';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 const DetalleServidor = () => {
   const { id } = useParams();
@@ -257,7 +254,7 @@ const DetalleServidor = () => {
   if (loading) {
     return (
       <div className="h-full flex items-center justify-center min-h-[50vh]">
-        <Loader2 className="animate-spin text-primary-600" size={48} />
+        <LoadingSpinner variant="inline" size={48} />
       </div>
     );
   }

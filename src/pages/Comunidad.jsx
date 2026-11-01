@@ -2,13 +2,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { getAllUsers, getForumPosts, createForumPost, updateForumPost, deleteForumPost, likeForumPost, getForumPostLikes, getForumReplies, getForumPostById } from '../services/api';
 import CreatorCard from '../components/CreatorCard';
 import ForumPost from '../components/ForumPost';
-import { Loader2, MessageSquare, Plus, X, Image as ImageIcon, Tag, Vote, ChevronDown, Check, Trash2, Crown, Users, Search } from 'lucide-react';
+import { MessageSquare, Plus, X, Image as ImageIcon, Tag, Vote, ChevronDown, Check, Trash2, Crown, Users, Search } from 'lucide-react';
 import DataContainer from '../components/DataContainer';
 import { useAuth } from '../context/AuthContext';
 import AvatarRenderer from '../components/AvatarRenderer';
 import { createPortal } from 'react-dom';
 import { clsx } from 'clsx';
 import Login from '../pages/Login';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 const ForumSection = () => {
   const { user } = useAuth();
@@ -164,10 +165,7 @@ const ForumSection = () => {
       </div>
 
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-8 gap-3">
-          <Loader2 className="animate-spin text-primary-600" size={24} />
-          <p className="text-sm text-gray-500 dark:text-gray-400">Cargando publicaciones...</p>
-        </div>
+        <LoadingSpinner variant="section" />
       ) : posts.length > 0 ? (
         <DataContainer
           title="Foro de la Comunidad"
@@ -443,7 +441,7 @@ const ForumSection = () => {
                         : "bg-primary-600 hover:bg-primary-700 text-white"
                     )}
                   >
-                    {submitting ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} strokeWidth={3} />}
+                    {submitting ? <LoadingSpinner variant="inline" size={14} /> : <Plus size={14} strokeWidth={3} />}
                     <span>Publicar</span>
                   </button>
                 </div>
@@ -545,11 +543,7 @@ const Comunidad = () => {
     fetchUsers();
   }, []);
 
-  if (loading) return (
-    <div className="h-full flex items-center justify-center min-h-[50vh]">
-      <Loader2 className="animate-spin text-primary-600" size={48} />
-    </div>
-  );
+  if (loading) return <LoadingSpinner variant="page" />;
 
   return (
     <div className="flex flex-col p-2 md:p-4 animate-fade-in-up" style={{ animationDuration: '200ms' }}>

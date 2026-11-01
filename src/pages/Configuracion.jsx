@@ -1,48 +1,113 @@
 import React, { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { supabase } from '../services/supabaseClient'; // 1. Importación corregida
-import { 
-  User, Camera, Save, Calendar, Shield, Loader2, CheckCircle, AlertCircle, 
-  Image as ImageIcon, Palette, LayoutGrid, Link as LinkIcon, Edit2,
-  Youtube, Twitter, Instagram, Linkedin, Github, Globe, MessageCircle, Trash2
+import { supabase } from '../services/supabaseClient';
+import {
+  User, Camera, Save, Calendar, Shield, CheckCircle, AlertCircle, Palette,
+  Link as LinkIcon, Youtube, Twitter, Instagram, Linkedin, Github, Globe,
+  MessageCircle, Trash2, Eye, EyeOff, ExternalLink, Check, RotateCcw, Lock
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { ICON_MAP } from '../components/AvatarRenderer';
+import LoadingSpinner from '../components/LoadingSpinner';
+import { useToast } from '../hooks/useToast';
 
 // --- CONSTANTES ---
 const AVATAR_ICONS_MAP = ICON_MAP;
 const AVATAR_ICON_NAMES = Object.keys(AVATAR_ICONS_MAP);
 
 const AVATAR_COLORS = [
-  '#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', 
-  '#3b82f6', '#6366f1', '#a855f7', '#ec4899', '#64748b', 
+  '#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4',
+  '#3b82f6', '#6366f1', '#a855f7', '#ec4899', '#64748b',
   '#18181b', '#78350f', '#881337', '#1e3a8a', '#134e4a'
 ];
 
-const PRESET_BANNERS = [
-  "https://images.unsplash.com/photo-1558591710-4b4a1ae0f04d?q=80&w=1000&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1000&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?q=80&w=1000&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=1000&auto=format&fit=crop",
+const SOCIAL_FIELDS = [
+  { name: 'youtube', label: 'YouTube', icon: Youtube, placeholder: 'https://youtube.com/@tu-canal', accent: 'group-focus-within:text-red-500' },
+  { name: 'twitter', label: 'Twitter / X', icon: Twitter, placeholder: 'https://x.com/tu-usuario', accent: 'group-focus-within:text-sky-400' },
+  { name: 'instagram', label: 'Instagram', icon: Instagram, placeholder: 'https://instagram.com/tu-usuario', accent: 'group-focus-within:text-pink-500' },
+  { name: 'discord', label: 'Discord', icon: MessageCircle, placeholder: 'https://discord.gg/servidor', accent: 'group-focus-within:text-indigo-500' },
+  { name: 'github', label: 'GitHub', icon: Github, placeholder: 'https://github.com/tu-usuario', accent: 'group-focus-within:text-gray-700 dark:group-focus-within:text-gray-200' },
+  { name: 'linkedin', label: 'LinkedIn', icon: Linkedin, placeholder: 'https://linkedin.com/in/tu-usuario', accent: 'group-focus-within:text-blue-600' },
+  { name: 'website', label: 'Sitio web', icon: Globe, placeholder: 'https://tu-sitio.com', accent: 'group-focus-within:text-purple-500' }
 ];
 
-const PRESET_COLORS = [
-  "linear-gradient(to right, #4f46e5, #9333ea)", 
-  "linear-gradient(to right, #2563eb, #06b6d4)", 
-  "linear-gradient(to right, #ea580c, #eab308)", 
-  "linear-gradient(to right, #db2777, #7c3aed)", 
-  "linear-gradient(to right, #059669, #10b981)", 
-  "#1e293b", 
-  "#000000", 
+const INPUT_CLASS = 'w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800 outline-none transition-all placeholder:text-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:border-white/10 dark:bg-white/5 dark:text-gray-100 dark:placeholder:text-gray-500';
+
+const getPasswordStrength = (password) => {
+  if (!password) return 0;
+  let score = 0;
+  if (password.length >= 6) score += 1;
+  if (password.length >= 10) score += 1;
+  if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score += 1;
+  if (/\d/.test(password)) score += 1;
+  if (/[^A-Za-z0-9]/.test(password)) score += 1;
+  return Math.min(score, 4);
+};
+
+const STRENGTH_META = [
+  { label: '', color: 'bg-gray-200 dark:bg-white/10' },
+  { label: 'Débil', color: 'bg-red-500' },
+  { label: 'Regular', color: 'bg-amber-500' },
+  { label: 'Buena', color: 'bg-lime-500' },
+  { label: 'Fuerte', color: 'bg-emerald-500' }
 ];
+
+const SectionCard = ({ icon, title, description, children, tone = 'default', action }) => {
+  const Icon = icon;
+
+  return (
+  <section
+    className={clsx(
+      'overflow-hidden rounded-2xl border shadow-sm',
+      tone === 'danger'
+        ? 'border-red-200 bg-red-50/40 dark:border-red-900/40 dark:bg-red-950/10'
+        : 'border-gray-200 bg-white dark:border-gray-800 dark:bg-[#1a1b1e]'
+    )}
+  >
+    <div
+      className={clsx(
+        'flex items-start gap-3 border-b px-4 py-4 sm:px-5',
+        tone === 'danger'
+          ? 'border-red-100 dark:border-red-900/30'
+          : 'border-gray-100 dark:border-gray-800'
+      )}
+    >
+      <div
+        className={clsx(
+          'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl',
+          tone === 'danger'
+            ? 'bg-red-100 text-red-600 dark:bg-red-500/15 dark:text-red-400'
+            : 'bg-primary-50 text-primary-600 dark:bg-primary-500/15 dark:text-primary-400'
+        )}
+      >
+        <Icon size={18} />
+      </div>
+      <div className="min-w-0 flex-1">
+        <h2 className={clsx(
+          'text-sm font-bold sm:text-base',
+          tone === 'danger' ? 'text-red-700 dark:text-red-300' : 'text-gray-900 dark:text-white'
+        )}>
+          {title}
+        </h2>
+        {description && (
+          <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{description}</p>
+        )}
+      </div>
+      {action}
+    </div>
+    <div className="p-4 sm:p-5">{children}</div>
+  </section>
+  );
+};
 
 const Configuracion = () => {
   const { user, updateUserProfile } = useAuth();
-  
-  const [formData, setFormData] = useState({ 
-    username: '', 
-    avatar: '', 
+  const { showToast } = useToast();
+
+  const [formData, setFormData] = useState({
+    username: '',
+    avatar: '',
     banner: '',
     descripcion: '',
     youtube: '',
@@ -53,111 +118,110 @@ const Configuracion = () => {
     discord: '',
     website: ''
   });
+  const [initialForm, setInitialForm] = useState(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
-  const [showModal, setShowModal] = useState(false);
 
-  const [bannerTab, setBannerTab] = useState('presets'); 
   const [avatarTab, setAvatarTab] = useState('url');
-
   const [selectedIcon, setSelectedIcon] = useState('User');
   const [selectedColor, setSelectedColor] = useState('#3b82f6');
 
-  // Estados para cambio de contraseña
-  const [passwordData, setPasswordData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [passwordData, setPasswordData] = useState({ newPassword: '', confirmPassword: '' });
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordMessage, setPasswordMessage] = useState({ type: '', text: '' });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Estados para eliminar cuenta
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [showDeleteSection, setShowDeleteSection] = useState(false);
 
-  // Bloqueo de scroll cuando el modal está abierto
   useEffect(() => {
-    if (showModal) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [showModal]);
+    if (!user) return;
 
-  useEffect(() => {
-    if (user) {
-      setFormData({
-        username: user.username || '',
-        avatar: user.avatar || '',
-        banner: user.banner || '',
-        descripcion: user.descripcion || '',
-        youtube: user.youtube || '',
-        twitter: user.twitter || '',
-        instagram: user.instagram || '',
-        linkedin: user.linkedin || '',
-        github: user.github || '',
-        discord: user.discord || '',
-        website: user.website || ''
-      });
-      
-      if (user.avatar && user.avatar.startsWith('design|')) {
-          const parts = user.avatar.split('|');
-          if(parts.length === 3) {
-              setAvatarTab('design');
-              setSelectedIcon(parts[1]);
-              setSelectedColor(parts[2]);
-          }
+    const nextForm = {
+      username: user.username || '',
+      avatar: user.avatar || '',
+      banner: user.banner || '',
+      descripcion: user.descripcion || '',
+      youtube: user.youtube || '',
+      twitter: user.twitter || '',
+      instagram: user.instagram || '',
+      linkedin: user.linkedin || '',
+      github: user.github || '',
+      discord: user.discord || '',
+      website: user.website || ''
+    };
+
+    setFormData(nextForm);
+    setInitialForm(nextForm);
+
+    if (user.avatar && user.avatar.startsWith('design|')) {
+      const parts = user.avatar.split('|');
+      if (parts.length === 3) {
+        setAvatarTab('design');
+        setSelectedIcon(parts[1]);
+        setSelectedColor(parts[2]);
       }
     }
   }, [user]);
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const isDirty = initialForm
+    ? JSON.stringify(formData) !== JSON.stringify(initialForm)
+    : false;
+
+  const filledSocials = SOCIAL_FIELDS.filter((social) => formData[social.name]?.trim()).length;
+  const completion = Math.round(
+    (([formData.username, formData.descripcion, formData.avatar].filter(Boolean).length + (filledSocials > 0 ? 1 : 0)) / 4) * 100
+  );
+
+  const handleChange = (event) => {
+    setMessage({ type: '', text: '' });
+    setFormData({ ...formData, [event.target.name]: event.target.value });
   };
 
   const updateAvatarDesign = (newIcon, newColor) => {
     setSelectedIcon(newIcon);
     setSelectedColor(newColor);
-    setFormData(prev => ({
-        ...prev, 
-        avatar: `design|${newIcon}|${newColor}`
+    setFormData((prev) => ({
+      ...prev,
+      avatar: `design|${newIcon}|${newColor}`
     }));
   };
 
-  const updateBanner = (val) => {
-      setFormData(prev => ({ ...prev, banner: val }));
+  const resetProfile = () => {
+    if (!initialForm) return;
+    setFormData(initialForm);
+    setMessage({ type: '', text: '' });
+    if (initialForm.avatar?.startsWith('design|')) {
+      const [, icon, color] = initialForm.avatar.split('|');
+      setSelectedIcon(icon || 'User');
+      setSelectedColor(color || '#3b82f6');
+    }
+    showToast('Cambios descartados', 'info');
   };
 
-  const handlePasswordChange = async (e) => {
-    e.preventDefault();
+  const handlePasswordChange = async (event) => {
+    event.preventDefault();
     setPasswordLoading(true);
     setPasswordMessage({ type: '', text: '' });
 
     try {
-      if (!user) {
-        throw new Error('No hay sesión activa');
-      }
+      if (!user) throw new Error('No hay sesión activa');
 
       if (passwordData.newPassword !== passwordData.confirmPassword) {
         throw new Error('Las contraseñas nuevas no coinciden');
       }
-
       if (passwordData.newPassword.length < 6) {
         throw new Error('La contraseña debe tener al menos 6 caracteres');
       }
 
-      const { data, error } = await supabase.auth.updateUser({
-        password: passwordData.newPassword
-      });
+      const { error } = await supabase.auth.updateUser({ password: passwordData.newPassword });
+      if (error) throw error;
 
-      if (error) {
-        console.error('Error updating password:', error);
-        throw error;
-      }
-
-      setPasswordMessage({ type: 'success', text: 'Contraseña actualizada correctamente' });
-      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      setPasswordData({ newPassword: '', confirmPassword: '' });
+      setPasswordMessage({ type: '', text: '' });
+      showToast('Contraseña actualizada correctamente');
     } catch (error) {
       console.error('Password change error:', error);
       setPasswordMessage({ type: 'error', text: error.message || 'Error al cambiar contraseña' });
@@ -168,36 +232,26 @@ const Configuracion = () => {
 
   const handleDeleteAccount = async () => {
     if (deleteConfirmation !== 'ELIMINAR') {
-      setPasswordMessage({ type: 'error', text: 'Debes escribir ELIMINAR para confirmar' });
+      showToast('Debes escribir ELIMINAR para confirmar', 'error');
       return;
     }
 
     setDeleteLoading(true);
-
     try {
-      if (!user) {
-        throw new Error('No hay sesión activa');
-      }
+      if (!user) throw new Error('No hay sesión activa');
 
-      // 1. Eliminar de la tabla users
       const { error: dbError } = await supabase
         .from('users')
         .delete()
         .eq('id', user.id);
 
-      if (dbError) {
-        console.error('Error deleting from users table:', dbError);
-        throw dbError;
-      }
+      if (dbError) throw dbError;
 
-      // 2. Cerrar sesión
       await supabase.auth.signOut();
-      
-      // 3. Redirigir a home
       window.location.href = '/';
     } catch (error) {
       console.error('Delete account error:', error);
-      setPasswordMessage({ type: 'error', text: 'Error al eliminar cuenta: ' + (error.message || 'Error desconocido') });
+      showToast('Error al eliminar cuenta: ' + (error.message || 'Error desconocido'), 'error');
     } finally {
       setDeleteLoading(false);
     }
@@ -205,68 +259,60 @@ const Configuracion = () => {
 
   const renderPreviewAvatar = () => {
     const avatarSrc = formData.avatar;
-    
+
     if (avatarSrc && avatarSrc.startsWith('design|')) {
-        const parts = avatarSrc.split('|');
-        const iconName = parts[1];
-        const colorHex = parts[2];
-        const IconComp = AVATAR_ICONS_MAP[iconName] || User;
-        
-        return (
-            <div className="w-full h-full flex items-center justify-center text-white select-none rounded-full" style={{ backgroundColor: colorHex }}>
-                <IconComp style={{ width: '55%', height: '55%' }} strokeWidth={1.5} />
-            </div>
-        );
+      const parts = avatarSrc.split('|');
+      const IconComp = AVATAR_ICONS_MAP[parts[1]] || User;
+      const colorHex = parts[2] || '#3b82f6';
+
+      return (
+        <div className="flex h-full w-full select-none items-center justify-center rounded-full text-white" style={{ backgroundColor: colorHex }}>
+          <IconComp style={{ width: '55%', height: '55%' }} strokeWidth={1.5} />
+        </div>
+      );
     }
-    
+
     return (
-        <img 
-            src={avatarSrc || "https://via.placeholder.com/150"} 
-            alt="Avatar" 
-            className="w-full h-full object-cover rounded-full"
-            referrerPolicy="no-referrer"
-            crossOrigin="anonymous"
-        />
+      <img
+        src={avatarSrc || '/default.jpg'}
+        alt="Avatar"
+        className="h-full w-full rounded-full object-cover"
+        referrerPolicy="no-referrer"
+      />
     );
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     setLoading(true);
     setMessage({ type: '', text: '' });
 
     try {
-      if (!user) throw new Error("No hay sesión activa");
+      if (!user) throw new Error('No hay sesión activa');
 
-      // 1. Verificar si el username ya existe (solo si cambió)
       if (formData.username !== user.username) {
         const { data: existingUser } = await supabase
-          .from("users")
-          .select("username")
-          .ilike("username", formData.username)
+          .from('users')
+          .select('username')
+          .ilike('username', formData.username)
           .neq('id', user.id)
           .maybeSingle();
 
-        if (existingUser) {
-          throw new Error("El nombre de usuario ya está en uso");
-        }
+        if (existingUser) throw new Error('El nombre de usuario ya está en uso');
       }
 
-      // 2. Actualizar Auth de Supabase
       const { error: authError } = await supabase.auth.updateUser({
         data: { username: formData.username, avatar: formData.avatar }
       });
       if (authError) {
-        // Traducir errores comunes de Supabase
         if (authError.message.includes('duplicate')) {
-          throw new Error("El nombre de usuario ya está en uso");
+          throw new Error('El nombre de usuario ya está en uso');
         }
-        throw new Error("Error al actualizar autenticación: " + authError.message);
+        throw new Error('Error al actualizar autenticación: ' + authError.message);
       }
 
-      // 3. Actualizar Tabla 'users' de Supabase
       const { error: dbError } = await supabase
-        .from("users")
+        .from('users')
         .update({
           username: formData.username,
           avatar: formData.avatar,
@@ -281,16 +327,12 @@ const Configuracion = () => {
           website: formData.website
         })
         .eq('id', user.id);
-      
+
       if (dbError) {
-        // Traducir errores comunes de la base de datos
-        if (dbError.code === '23505') {
-          throw new Error("El nombre de usuario ya está en uso");
-        }
-        throw new Error("Error al actualizar perfil: " + dbError.message);
+        if (dbError.code === '23505') throw new Error('El nombre de usuario ya está en uso');
+        throw new Error('Error al actualizar perfil: ' + dbError.message);
       }
 
-      // 4. Actualizar el contexto del usuario localmente
       updateUserProfile({
         username: formData.username,
         avatar: formData.avatar,
@@ -298,427 +340,540 @@ const Configuracion = () => {
         descripcion: formData.descripcion
       });
 
-      setShowModal(true);
-
+      setInitialForm(formData);
+      showToast('Perfil actualizado correctamente');
     } catch (error) {
       console.error('Profile update error:', error);
-      
-      // Mensajes de error en español
+
       let errorMessage = 'Error al actualizar perfil';
       if (error.message) {
-        if (error.message.includes('username') || error.message.includes('usuario')) {
-          errorMessage = error.message;
-        } else if (error.message.includes('duplicate')) {
+        if (error.message.includes('duplicate')) {
           errorMessage = 'El nombre de usuario ya está en uso';
-        } else if (error.message.includes('auth')) {
-          errorMessage = 'Error de autenticación';
         } else if (error.message.includes('network')) {
           errorMessage = 'Error de conexión. Verifica tu internet';
         } else {
           errorMessage = error.message;
         }
       }
-      
       setMessage({ type: 'error', text: errorMessage });
     } finally {
       setLoading(false);
     }
   };
 
-  const joinDate = user?.createdat 
+  const joinDate = user?.createdat
     ? new Date(user.createdat).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })
     : 'Desconocida';
 
-  const isBannerUrl = formData.banner && (formData.banner.startsWith('http') || formData.banner.startsWith('data:image'));
+  const isDesignAvatar = formData.avatar?.startsWith('design|');
+  const banner = formData.banner;
+  const bannerStyle = banner
+    ? banner.startsWith('linear-gradient')
+      ? { backgroundImage: banner }
+      : { backgroundImage: `url(${banner})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+    : undefined;
 
   return (
-    <div className="w-full max-w-4xl mx-auto flex flex-col p-2 md:p-4 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
+    <div className="mx-auto flex w-full max-w-6xl flex-col px-2 py-4 animate-fade-in-up md:px-4 md:py-6" style={{ animationDuration: '200ms' }}>
 
-      <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-2 md:mb-4">
-        <h1 className="flex text-xl md:text-2xl font-bold text-gray-800 dark:text-white items-center gap-3">
-          <div className={clsx("w-9 h-9 rounded-xl flex items-center justify-center shadow-sm text-white bg-primary-600")}>
-              <User size={22} strokeWidth={2.5} />
+      {/* CABECERA */}
+      <header className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-500 to-indigo-500 text-white shadow-lg shadow-primary-500/25">
+            <User size={22} strokeWidth={2.5} />
           </div>
-          Configuración
-        </h1>
-      </div>
-
-      <div className="space-y-4 md:space-y-6 pb-4">
-
-        <div className="pb-1 md:pb-2 text-center">
-            
-            {/* VISTA PREVIA AVATAR */}
-            <div className="relative w-24 h-24 sm:w-32 sm:h-32 mx-auto">
-              {/* Contenedor con aspect-square y rounded-full para asegurar circularidad */}
-              <div className="w-full h-full rounded-full shadow-xl overflow-hidden aspect-square shrink-0 transition-transform duration-300">
-                {/* Render interno */}
-                <div className="w-full h-full rounded-full overflow-hidden">
-                    {renderPreviewAvatar()}
-                </div>
-              </div>
-            </div>
-
-            <h2 className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white truncate mt-2 md:mt-3">
-              {formData.username || "Usuario"}
-            </h2>
-            <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400 mb-2 md:mb-4 truncate">{user?.email}</p>
-
-            <div className="flex flex-col gap-2">
-              <div className={clsx("text-[10px] md:text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all", user?.role === 'admin' ? "text-purple-700 dark:text-purple-300" : "text-gray-600 dark:text-gray-400")}>
-                <Shield size={12} /> {user?.role === 'admin' ? 'Administrador' : 'Miembro'}
-              </div>
-              <div className="text-blue-600 dark:text-blue-300 text-[10px] md:text-xs font-medium flex items-center justify-center gap-2">
-                <Calendar size={12} /> Miembro desde: {joinDate}
-              </div>
-            </div>
+          <div>
+            <h1 className="text-xl font-black tracking-tight text-gray-900 dark:text-white md:text-2xl">Configuración</h1>
+            <p className="text-xs text-gray-500 dark:text-gray-400 sm:text-sm">
+              Administra tu perfil, enlaces y seguridad.
+            </p>
+          </div>
         </div>
 
-        {/* =========================================================
-            FORMULARIO DE EDICIÓN
-           ========================================================= */}
-        <div>
-          <h3 className="flex items-center gap-3 text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-4 sm:mb-6 pt-4 md:pt-6 border-t border-gray-200 dark:border-gray-700">
-            <Edit2 size={18} className="text-primary-500" /> Editar Perfil
-          </h3>
+        <Link
+          to={`/u/${user?.username || ''}`}
+          className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-xs font-bold text-gray-700 transition-all hover:border-primary-300 hover:text-primary-600 dark:border-gray-700 dark:bg-white/5 dark:text-gray-200 dark:hover:border-primary-700 dark:hover:text-primary-400"
+        >
+          <ExternalLink size={14} />
+          Ver perfil público
+        </Link>
+      </header>
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-2 md:gap-4">
-              
-              {/* 1. USERNAME */}
-              <div>
-                <label className="block text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2.5">Nombre de Usuario</label>
-                <div className="relative group">
-                  <User className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary-500 transition-colors" size={16} />
-                  <input type="text" name="username" required value={formData.username} onChange={handleChange} className="w-full pl-9 sm:pl-12 pr-3 sm:pr-4 py-2.5 sm:py-3.5 rounded-lg sm:rounded-xl bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all text-sm dark:text-white" />
+      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[300px_minmax(0,1fr)]">
+
+        {/* VISTA PREVIA */}
+        <aside className="lg:sticky lg:top-20">
+          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-[#1a1b1e]">
+            <div
+              className="h-24 bg-gradient-to-r from-primary-500 to-indigo-500"
+              style={bannerStyle}
+            />
+
+            <div className="px-4 pb-4">
+              <div className="-mt-10 mb-3 flex items-end justify-between">
+                <div className="h-20 w-20 overflow-hidden rounded-full bg-white shadow-lg ring-4 ring-white dark:bg-[#2a2c31] dark:ring-[#1a1b1e]">
+                  {renderPreviewAvatar()}
                 </div>
+                <span className={clsx(
+                  'mb-1 inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-wide',
+                  user?.role === 'admin'
+                    ? 'bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300'
+                    : 'bg-gray-100 text-gray-600 dark:bg-white/10 dark:text-gray-300'
+                )}>
+                  <Shield size={11} />
+                  {user?.role === 'admin' ? 'Admin' : 'Miembro'}
+                </span>
               </div>
 
-              {/* 2. AVATAR CONFIGURATION */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Avatar</label>
-                
-                <div className="flex gap-1.5 mb-3 p-1 bg-gray-100 dark:bg-[#1D1F23] rounded-lg w-full">
-                    <button type="button" onClick={() => setAvatarTab('url')} className={clsx("flex-1 px-3 py-2 rounded-md text-xs font-medium transition-all flex items-center justify-center gap-1.5", avatarTab === 'url' ? "bg-white dark:bg-[#2a2d34] shadow-sm text-primary-600 dark:text-white" : "text-gray-500 hover:text-gray-700 dark:text-gray-400")}>
-                        <LinkIcon size={12} /> URL
-                    </button>
-                    <button type="button" onClick={() => setAvatarTab('design')} className={clsx("flex-1 px-3 py-2 rounded-md text-xs font-medium transition-all flex items-center justify-center gap-1.5", avatarTab === 'design' ? "bg-white dark:bg-[#2a2d34] shadow-sm text-primary-600 dark:text-white" : "text-gray-500 hover:text-gray-700 dark:text-gray-400")}>
-                        <Palette size={12} /> Diseñar
-                    </button>
+              <h2 className="truncate text-lg font-bold text-gray-900 dark:text-white">
+                {formData.username || 'Usuario'}
+              </h2>
+              <p className="truncate text-xs text-gray-500 dark:text-gray-400">{user?.email}</p>
+
+              <div className="mt-3 flex items-center gap-1.5 text-[11px] font-medium text-gray-500 dark:text-gray-400">
+                <Calendar size={12} className="text-primary-500" />
+                Miembro desde {joinDate}
+              </div>
+
+              {formData.descripcion && (
+                <p className="mt-3 line-clamp-3 text-xs leading-relaxed text-gray-600 dark:text-gray-400">
+                  {formData.descripcion}
+                </p>
+              )}
+
+              <div className="mt-4">
+                <div className="mb-1.5 flex items-center justify-between text-[11px] font-semibold">
+                  <span className="text-gray-500 dark:text-gray-400">Perfil completado</span>
+                  <span className={completion === 100 ? 'text-emerald-600 dark:text-emerald-400' : 'text-primary-600 dark:text-primary-400'}>
+                    {completion}%
+                  </span>
+                </div>
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-white/10">
+                  <div
+                    className={clsx(
+                      'h-full rounded-full transition-all duration-500',
+                      completion === 100 ? 'bg-emerald-500' : 'bg-gradient-to-r from-primary-500 to-indigo-500'
+                    )}
+                    style={{ width: `${completion}%` }}
+                  />
+                </div>
+                {completion < 100 && (
+                  <p className="mt-1.5 text-[10px] text-gray-400 dark:text-gray-500">
+                    Añade una descripción, avatar y al menos una red social.
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        {/* CONTENIDO */}
+        <div className="min-w-0 space-y-5">
+
+          <form id="profile-form" onSubmit={handleSubmit} className="space-y-5">
+            {message.text && (
+              <div className={clsx(
+                'flex items-start gap-2 rounded-xl border px-3.5 py-3 text-xs font-medium sm:text-sm',
+                message.type === 'success'
+                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-500/10 dark:text-emerald-300'
+                  : 'border-red-200 bg-red-50 text-red-700 dark:border-red-900/40 dark:bg-red-500/10 dark:text-red-300'
+              )}>
+                {message.type === 'success' ? <CheckCircle size={16} className="mt-0.5 shrink-0" /> : <AlertCircle size={16} className="mt-0.5 shrink-0" />}
+                <span>{message.text}</span>
+              </div>
+            )}
+
+            {/* PERFIL */}
+            <SectionCard
+              icon={User}
+              title="Perfil público"
+              description="Así te verán los demás en BSWorld."
+            >
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="username" className="mb-1.5 block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                    Nombre de usuario
+                  </label>
+                  <div className="group relative">
+                    <User className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 transition-colors group-focus-within:text-primary-500" size={16} />
+                    <input
+                      id="username"
+                      type="text"
+                      name="username"
+                      required
+                      maxLength={20}
+                      value={formData.username}
+                      onChange={handleChange}
+                      className={clsx(INPUT_CLASS, 'pl-10')}
+                      placeholder="Tu nombre de usuario"
+                    />
+                  </div>
+                  <p className="mt-1 text-[11px] text-gray-400 dark:text-gray-500">
+                    Máximo 20 caracteres. Se usa en la URL de tu perfil.
+                  </p>
                 </div>
 
                 <div>
-                    {avatarTab === 'url' && (
-                        <div className="relative group">
-                          <Camera className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary-500 transition-colors" size={16} />
-                          <input type="text" name="avatar" placeholder="https://..." value={formData.avatar} onChange={handleChange} className="w-full pl-9 sm:pl-12 pr-3 sm:pr-4 py-2.5 sm:py-3.5 rounded-lg sm:rounded-xl bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all text-sm dark:text-white" />
+                  <label htmlFor="descripcion" className="mb-1.5 block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                    Descripción
+                  </label>
+                  <div className="relative">
+                    <textarea
+                      id="descripcion"
+                      name="descripcion"
+                      value={formData.descripcion}
+                      onChange={handleChange}
+                      placeholder="Cuéntanos algo sobre ti, tus mods o tu estilo..."
+                      rows="3"
+                      maxLength="200"
+                      className={clsx(INPUT_CLASS, 'resize-none pb-6')}
+                    />
+                    <span className="pointer-events-none absolute bottom-2 right-3 text-[10px] font-medium text-gray-400">
+                      {formData.descripcion?.length || 0}/200
+                    </span>
+                  </div>
+                </div>
+
+                {/* AVATAR */}
+                <div>
+                  <span className="mb-1.5 block text-xs font-semibold text-gray-700 dark:text-gray-300">Avatar</span>
+
+                  <div className="mb-3 flex w-full gap-1 rounded-xl bg-gray-100 p-1 dark:bg-white/5">
+                    <button
+                      type="button"
+                      onClick={() => setAvatarTab('url')}
+                      aria-pressed={avatarTab === 'url'}
+                      className={clsx(
+                        'flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold transition-all',
+                        avatarTab === 'url'
+                          ? 'bg-white text-primary-600 shadow-sm dark:bg-[#2a2c31] dark:text-primary-400'
+                          : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'
+                      )}
+                    >
+                      <LinkIcon size={13} /> URL
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAvatarTab('design')}
+                      aria-pressed={avatarTab === 'design'}
+                      className={clsx(
+                        'flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold transition-all',
+                        avatarTab === 'design'
+                          ? 'bg-white text-primary-600 shadow-sm dark:bg-[#2a2c31] dark:text-primary-400'
+                          : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'
+                      )}
+                    >
+                      <Palette size={13} /> Diseñar
+                    </button>
+                  </div>
+
+                  {avatarTab === 'url' ? (
+                    <div className="group relative">
+                      <Camera className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 transition-colors group-focus-within:text-primary-500" size={16} />
+                      <input
+                        type="text"
+                        name="avatar"
+                        placeholder="https://ejemplo.com/mi-avatar.png"
+                        value={isDesignAvatar ? '' : formData.avatar}
+                        onChange={handleChange}
+                        className={clsx(INPUT_CLASS, 'pl-10')}
+                      />
+                    </div>
+                  ) : (
+                    <div className="space-y-4 rounded-xl border border-gray-200 bg-gray-50/60 p-3 dark:border-white/10 dark:bg-white/[0.03] sm:p-4">
+                      <div>
+                        <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">1. Icono</p>
+                        <div className="grid grid-cols-8 gap-1.5 sm:grid-cols-10">
+                          {AVATAR_ICON_NAMES.map((name) => {
+                            const Icon = AVATAR_ICONS_MAP[name];
+                            const selected = selectedIcon === name;
+                            return (
+                              <button
+                                key={name}
+                                type="button"
+                                onClick={() => updateAvatarDesign(name, selectedColor)}
+                                aria-pressed={selected}
+                                className={clsx(
+                                  'flex aspect-square items-center justify-center rounded-lg border transition-all',
+                                  selected
+                                    ? 'border-primary-500 bg-primary-50 text-primary-600 shadow-sm dark:border-primary-400 dark:bg-primary-500/15 dark:text-primary-300'
+                                    : 'border-gray-200 bg-white text-gray-400 hover:border-gray-300 hover:text-gray-600 dark:border-white/10 dark:bg-white/5 dark:text-gray-500 dark:hover:text-gray-300'
+                                )}
+                                title={name}
+                              >
+                                <Icon size={18} strokeWidth={1.5} />
+                              </button>
+                            );
+                          })}
                         </div>
-                    )}
+                      </div>
 
-                    {avatarTab === 'design' && (
-                        <div className="bg-white dark:bg-[#1D1F23] p-2 md:p-4 rounded-lg space-y-3">
-                            <div>
-                                <p className="text-xs font-bold text-gray-500 uppercase mb-2">1. Icono</p>
-                                <div className="grid grid-cols-6 md:grid-cols-8 lg:grid-cols-12 gap-1.5">
-                                    {AVATAR_ICON_NAMES.map((name) => {
-                                        const Icon = AVATAR_ICONS_MAP[name];
-                                        return (
-                                            <button 
-                                                key={name} 
-                                                type="button" 
-                                                onClick={() => updateAvatarDesign(name, selectedColor)} 
-                                                className={clsx(
-                                                    "aspect-square rounded-lg flex items-center justify-center transition-all border-2 shadow-sm", 
-                                                    selectedIcon === name 
-                                                        ? "border-primary-500 bg-white dark:bg-primary-800/50" 
-                                                        : "bg-white dark:bg-gray-800/50 border-gray-300 dark:border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                                                )}
-                                            >
-                                                <Icon size={20} strokeWidth={1.5} />
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                            <div>
-                                <p className="text-xs font-bold text-gray-500 uppercase mb-2">2. Color</p>
-                                <div className="flex flex-wrap gap-1.5">
-                                    {AVATAR_COLORS.map((color) => (
-                                        <button 
-                                            key={color} 
-                                            type="button" 
-                                            onClick={() => updateAvatarDesign(selectedIcon, color)} 
-                                            className={clsx(
-                                                "w-10 h-10 rounded-full border-2 transition-all shadow-sm", 
-                                                selectedColor === color ? "border-white" : "border-transparent"
-                                            )} 
-                                            style={{ backgroundColor: color }} 
-                                        />
-                                    ))}
-                                </div>
-                            </div>
+                      <div>
+                        <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">2. Color</p>
+                        <div className="flex flex-wrap gap-2">
+                          {AVATAR_COLORS.map((color) => {
+                            const selected = selectedColor === color;
+                            return (
+                              <button
+                                key={color}
+                                type="button"
+                                onClick={() => updateAvatarDesign(selectedIcon, color)}
+                                aria-pressed={selected}
+                                aria-label={`Color ${color}`}
+                                className={clsx(
+                                  'flex h-8 w-8 items-center justify-center rounded-full transition-all',
+                                  selected
+                                    ? 'scale-110 ring-2 ring-primary-500 ring-offset-2 ring-offset-white dark:ring-offset-[#1a1b1e]'
+                                    : 'ring-1 ring-black/10 hover:scale-105 dark:ring-white/15'
+                                )}
+                                style={{ backgroundColor: color }}
+                              >
+                                {selected && <Check size={14} className="text-white drop-shadow" strokeWidth={3} />}
+                              </button>
+                            );
+                          })}
                         </div>
-                    )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
+            </SectionCard>
 
-              {/* 2.5. DESCRIPCIÓN */}
-              <div>
-                <label className="block text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2.5">Descripción</label>
-                <div className="relative group">
-                  <Edit2 className="absolute left-3 sm:left-4 top-3 sm:top-4 text-gray-400 group-focus-within:text-primary-500 transition-colors" size={16} />
-                  <textarea 
-                    name="descripcion" 
-                    value={formData.descripcion} 
-                    onChange={handleChange} 
-                    placeholder="Escribe una breve descripción sobre ti..." 
-                    rows="3"
-                    maxLength="200"
-                    className="w-full pl-9 sm:pl-12 pr-3 sm:pr-4 py-2.5 sm:py-3 rounded-lg sm:rounded-xl bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all text-sm dark:text-white resize-none"
-                  />
-                  <div className="absolute right-3 bottom-2 text-xs text-gray-400">
-                    {formData.descripcion?.length || 0}/200
-                  </div>
-                </div>
+            {/* REDES SOCIALES */}
+            <SectionCard
+              icon={LinkIcon}
+              title="Redes sociales"
+              description="Enlaces que aparecerán en tu perfil."
+            >
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {SOCIAL_FIELDS.map((social) => {
+                  const Icon = social.icon;
+                  return (
+                    <div key={social.name} className="group">
+                      <label htmlFor={social.name} className="mb-1.5 block text-[11px] font-semibold text-gray-600 dark:text-gray-400">
+                        {social.label}
+                      </label>
+                      <div className="relative">
+                        <Icon className={clsx('pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 transition-colors', social.accent)} size={15} />
+                        <input
+                          id={social.name}
+                          type="url"
+                          name={social.name}
+                          placeholder={social.placeholder}
+                          value={formData[social.name]}
+                          onChange={handleChange}
+                          className={clsx(INPUT_CLASS, 'pl-10')}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </SectionCard>
+
+            {/* BARRA DE GUARDADO */}
+            <div className="sticky bottom-20 z-30 flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white/95 p-3 shadow-lg backdrop-blur-md dark:border-gray-700 dark:bg-[#1c1d20]/95 sm:flex-row sm:items-center sm:justify-between lg:bottom-6">
+              <div className="flex items-center gap-2 text-xs font-medium">
+                <span className={clsx('h-2 w-2 rounded-full', isDirty ? 'bg-amber-400' : 'bg-emerald-500')} />
+                <span className={isDirty ? 'text-amber-700 dark:text-amber-300' : 'text-gray-500 dark:text-gray-400'}>
+                  {isDirty ? 'Tienes cambios sin guardar' : 'Perfil al día'}
+                </span>
               </div>
 
-              {/* 3. REDES SOCIALES */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Redes Sociales</label>
-                
-                <div className="space-y-3">
-                  {/* YouTube */}
-                  <div className="relative group">
-                    <Youtube className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-red-500 transition-colors" size={16} />
-                    <input 
-                      type="url" 
-                      name="youtube" 
-                      placeholder="YouTube URL" 
-                      value={formData.youtube} 
-                      onChange={handleChange} 
-                      className="w-full pl-10 pr-3 py-2.5 rounded-lg bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-all text-sm dark:text-white" 
-                    />
-                  </div>
-
-                  {/* Twitter */}
-                  <div className="relative group">
-                    <Twitter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-400 transition-colors" size={16} />
-                    <input 
-                      type="url" 
-                      name="twitter" 
-                      placeholder="Twitter/X URL" 
-                      value={formData.twitter} 
-                      onChange={handleChange} 
-                      className="w-full pl-10 pr-3 py-2.5 rounded-lg bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400 transition-all text-sm dark:text-white" 
-                    />
-                  </div>
-
-                  {/* Instagram */}
-                  <div className="relative group">
-                    <Instagram className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-pink-500 transition-colors" size={16} />
-                    <input 
-                      type="url" 
-                      name="instagram" 
-                      placeholder="Instagram URL" 
-                      value={formData.instagram} 
-                      onChange={handleChange} 
-                      className="w-full pl-10 pr-3 py-2.5 rounded-lg bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent outline-none focus:ring-2 focus:ring-pink-500/50 focus:border-pink-500 transition-all text-sm dark:text-white" 
-                    />
-                  </div>
-
-                  {/* LinkedIn */}
-                  <div className="relative group">
-                    <Linkedin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-600 transition-colors" size={16} />
-                    <input 
-                      type="url" 
-                      name="linkedin" 
-                      placeholder="LinkedIn URL" 
-                      value={formData.linkedin} 
-                      onChange={handleChange} 
-                      className="w-full pl-10 pr-3 py-2.5 rounded-lg bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent outline-none focus:ring-2 focus:ring-blue-600/50 focus:border-blue-600 transition-all text-sm dark:text-white" 
-                    />
-                  </div>
-
-                  {/* GitHub */}
-                  <div className="relative group">
-                    <Github className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-gray-700 transition-colors" size={16} />
-                    <input 
-                      type="url" 
-                      name="github" 
-                      placeholder="GitHub URL" 
-                      value={formData.github} 
-                      onChange={handleChange} 
-                      className="w-full pl-10 pr-3 py-2.5 rounded-lg bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent outline-none focus:ring-2 focus:ring-gray-600/50 focus:border-gray-600 transition-all text-sm dark:text-white" 
-                    />
-                  </div>
-
-                  {/* Discord */}
-                  <div className="relative group">
-                    <MessageCircle className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors" size={16} />
-                    <input 
-                      type="url" 
-                      name="discord" 
-                      placeholder="Discord URL" 
-                      value={formData.discord} 
-                      onChange={handleChange} 
-                      className="w-full pl-10 pr-3 py-2.5 rounded-lg bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all text-sm dark:text-white" 
-                    />
-                  </div>
-
-                  {/* Website */}
-                  <div className="relative group">
-                    <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-purple-500 transition-colors" size={16} />
-                    <input 
-                      type="url" 
-                      name="website" 
-                      placeholder="Website URL" 
-                      value={formData.website} 
-                      onChange={handleChange} 
-                      className="w-full pl-10 pr-3 py-2.5 rounded-lg bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 transition-all text-sm dark:text-white" 
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Botón Guardar */}
-              <div>
-                <button type="submit" disabled={loading} className={clsx("px-5 py-2.5 rounded-lg sm:rounded-xl text-white font-bold flex items-center justify-center gap-2 transition-all w-full md:w-auto shadow-lg hover:shadow-xl text-sm sm:text-base", loading ? "bg-gray-400 cursor-not-allowed" : "bg-primary-600 hover:bg-primary-700")}>
-                  {loading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
-                  {loading ? "Guardando..." : "Guardar Cambios"}
+              <div className="flex gap-2">
+                {isDirty && (
+                  <button
+                    type="button"
+                    onClick={resetProfile}
+                    disabled={loading}
+                    className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-xs font-bold text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:bg-transparent dark:text-gray-300 dark:hover:bg-white/5 sm:flex-none"
+                  >
+                    <RotateCcw size={14} />
+                    Descartar
+                  </button>
+                )}
+                <button
+                  type="submit"
+                  disabled={loading || !isDirty}
+                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary-600 px-4 py-2 text-xs font-bold text-white shadow-sm shadow-primary-600/25 transition-all hover:bg-primary-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400 disabled:shadow-none dark:disabled:bg-white/5 dark:disabled:text-gray-600 sm:flex-none"
+                >
+                  {loading ? <LoadingSpinner variant="inline" size={14} /> : <Save size={14} />}
+                  {loading ? 'Guardando...' : 'Guardar cambios'}
                 </button>
               </div>
-
-            </form>
-        </div>
-
-        {/* SECCIÓN DE CAMBIO DE CONTRASEÑA */}
-        <div>
-          <h3 className="flex items-center gap-3 text-base sm:text-lg font-bold text-gray-900 dark:text-white mb-3 sm:mb-4 pt-4 md:pt-6 border-t border-gray-200 dark:border-gray-700">
-            <Shield size={16} className="text-primary-500" /> Cambiar Contraseña
-          </h3>
-
-          {passwordMessage.text && (
-            <div className={clsx("mb-3 sm:mb-4 p-2.5 sm:p-3 rounded-lg sm:rounded-xl flex items-center gap-2 text-xs sm:text-sm", passwordMessage.type === 'success' ? "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300" : "bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300")}>
-              {passwordMessage.type === 'success' ? <CheckCircle size={14} /> : <AlertCircle size={14} />} {passwordMessage.text}
             </div>
-          )}
-
-          <form onSubmit={handlePasswordChange} className="flex flex-col gap-3 sm:gap-4">
-            <div>
-              <label className="block text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2">Nueva Contraseña</label>
-              <input
-                type="password"
-                value={passwordData.newPassword}
-                onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all text-sm dark:text-white"
-                placeholder="Mínimo 6 caracteres"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2">Confirmar Contraseña</label>
-              <input
-                type="password"
-                value={passwordData.confirmPassword}
-                onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all text-sm dark:text-white"
-                placeholder="Repite la nueva contraseña"
-                required
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={passwordLoading}
-              className={clsx("px-5 py-2.5 rounded-lg md:rounded-xl text-white font-bold flex items-center justify-center gap-2 transition-all w-full sm:w-fit text-sm sm:text-base", passwordLoading ? "bg-gray-400 cursor-not-allowed" : "bg-primary-600 hover:bg-primary-700")}
-            >
-              {passwordLoading ? <Loader2 className="animate-spin" size={14} /> : <Shield size={14} />}
-              {passwordLoading ? "Actualizando..." : "Cambiar Contraseña"}
-            </button>
           </form>
-        </div>
 
-        {/* SECCIÓN DE ELIMINAR CUENTA */}
-        <div>
-          <h3 className="flex items-center gap-3 text-base sm:text-lg font-bold text-red-600 dark:text-red-400 mb-3 sm:mb-4 pt-4 md:pt-6 border-t border-red-200 dark:border-red-800">
-            <AlertCircle size={16} /> Zona de Peligro
-          </h3>
+          {/* SEGURIDAD */}
+          <SectionCard
+            icon={Lock}
+            title="Contraseña"
+            description="Actualiza la contraseña de tu cuenta."
+          >
+            <form onSubmit={handlePasswordChange} className="space-y-4">
+              {passwordMessage.text && (
+                <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-xs font-medium text-red-700 dark:border-red-900/40 dark:bg-red-500/10 dark:text-red-300">
+                  <AlertCircle size={15} className="mt-0.5 shrink-0" />
+                  {passwordMessage.text}
+                </div>
+              )}
 
-          {!showDeleteSection ? (
-            <button
-              type="button"
-              onClick={() => setShowDeleteSection(true)}
-              className="px-5 py-2.5 rounded-lg md:rounded-xl flex items-center justify-center gap-2 bg-red-100 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 font-bold hover:bg-red-200 dark:hover:bg-red-900/30 transition-all text-sm sm:text-base"
-            >
-              <Trash2 size={14} />
-              Eliminar mi cuenta
-            </button>
-          ) : (
-            <div className="space-y-3 sm:space-y-4">
-              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                Esta acción es irreversible. Todos tus datos serán eliminados permanentemente.
-              </p>
-              <div>
-                <label className="block text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5 sm:mb-2">
-                  Escribe <span className="font-bold text-red-600">ELIMINAR</span> para confirmar
-                </label>
-                <input
-                  type="text"
-                  value={deleteConfirmation}
-                  onChange={(e) => setDeleteConfirmation(e.target.value)}
-                  className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-white dark:bg-[#1D1F23] border border-red-200 dark:border-red-900 outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-all text-sm dark:text-white"
-                  placeholder="ELIMINAR"
-                />
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="new-password" className="mb-1.5 block text-[11px] font-semibold text-gray-600 dark:text-gray-400">
+                    Nueva contraseña
+                  </label>
+                  <div className="relative">
+                    <Lock className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={15} />
+                    <input
+                      id="new-password"
+                      type={showPassword ? 'text' : 'password'}
+                      value={passwordData.newPassword}
+                      onChange={(event) => setPasswordData({ ...passwordData, newPassword: event.target.value })}
+                      className={clsx(INPUT_CLASS, 'pl-10 pr-10')}
+                      placeholder="Mínimo 6 caracteres"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-1 text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-gray-200"
+                      aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                    >
+                      {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="confirm-password" className="mb-1.5 block text-[11px] font-semibold text-gray-600 dark:text-gray-400">
+                    Confirmar contraseña
+                  </label>
+                  <div className="relative">
+                    <Lock className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={15} />
+                    <input
+                      id="confirm-password"
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      value={passwordData.confirmPassword}
+                      onChange={(event) => setPasswordData({ ...passwordData, confirmPassword: event.target.value })}
+                      className={clsx(INPUT_CLASS, 'pl-10 pr-10')}
+                      placeholder="Repite la contraseña"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword((prev) => !prev)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-1 text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-gray-200"
+                      aria-label={showConfirmPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                    >
+                      {showConfirmPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                    </button>
+                  </div>
+                </div>
               </div>
-              <div className="flex gap-2 sm:gap-3">
+
+              {passwordData.newPassword && (
+                <div className="flex items-center gap-2">
+                  <div className="flex flex-1 gap-1">
+                    {[1, 2, 3, 4].map((level) => (
+                      <span
+                        key={level}
+                        className={clsx(
+                          'h-1 flex-1 rounded-full transition-colors',
+                          getPasswordStrength(passwordData.newPassword) >= level
+                            ? STRENGTH_META[getPasswordStrength(passwordData.newPassword)].color
+                            : 'bg-gray-200 dark:bg-white/10'
+                        )}
+                      />
+                    ))}
+                  </div>
+                  <span className="w-12 text-right text-[10px] font-semibold text-gray-500 dark:text-gray-400">
+                    {STRENGTH_META[getPasswordStrength(passwordData.newPassword)].label}
+                  </span>
+                </div>
+              )}
+
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={passwordLoading}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-gray-900 px-4 py-2 text-xs font-bold text-white transition-all hover:bg-gray-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
+                >
+                  {passwordLoading ? <LoadingSpinner variant="inline" size={14} /> : <Shield size={14} />}
+                  {passwordLoading ? 'Actualizando...' : 'Actualizar contraseña'}
+                </button>
+              </div>
+            </form>
+          </SectionCard>
+
+          {/* ZONA DE PELIGRO */}
+          <SectionCard
+            icon={AlertCircle}
+            title="Zona de peligro"
+            description="Acciones irreversibles sobre tu cuenta."
+            tone="danger"
+          >
+            {!showDeleteSection ? (
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  Eliminar tu cuenta borrará tu perfil y datos asociados de forma permanente.
+                </p>
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowDeleteSection(false);
-                    setDeleteConfirmation('');
-                  }}
-                  className="px-5 py-2.5 rounded-lg sm:rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-bold hover:bg-gray-200 dark:hover:bg-gray-600 transition-all text-sm sm:text-base"
+                  onClick={() => setShowDeleteSection(true)}
+                  className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-3.5 py-2 text-xs font-bold text-red-600 transition-colors hover:bg-red-50 dark:border-red-900/50 dark:bg-transparent dark:text-red-400 dark:hover:bg-red-500/10"
                 >
-                  Cancelar
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDeleteAccount}
-                  disabled={deleteLoading || deleteConfirmation !== 'ELIMINAR'}
-                  className={clsx("px-5 py-2.5 rounded-lg sm:rounded-xl text-white font-bold flex items-center justify-center gap-2 transition-all text-sm sm:text-base", deleteLoading || deleteConfirmation !== 'ELIMINAR' ? "bg-red-400 cursor-not-allowed" : "bg-red-600 hover:bg-red-700")}
-                >
-                  {deleteLoading ? <Loader2 className="animate-spin" size={14} /> : <AlertCircle size={14} />}
-                  {deleteLoading ? "Eliminando..." : "Eliminar Cuenta Definitivamente"}
+                  <Trash2 size={14} />
+                  Eliminar mi cuenta
                 </button>
               </div>
-            </div>
-          )}
-        </div>
+            ) : (
+              <div className="space-y-4">
+                <p className="rounded-xl bg-red-100/60 px-3.5 py-3 text-xs font-medium text-red-700 dark:bg-red-500/10 dark:text-red-300">
+                  Esta acción es irreversible. Todos tus datos serán eliminados permanentemente.
+                </p>
 
+                <div>
+                  <label htmlFor="delete-confirmation" className="mb-1.5 block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                    Escribe <span className="font-black text-red-600 dark:text-red-400">ELIMINAR</span> para confirmar
+                  </label>
+                  <input
+                    id="delete-confirmation"
+                    type="text"
+                    value={deleteConfirmation}
+                    onChange={(event) => setDeleteConfirmation(event.target.value)}
+                    className={clsx(INPUT_CLASS, 'border-red-200 focus:border-red-500 focus:ring-red-500/20 dark:border-red-900/50')}
+                    placeholder="ELIMINAR"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowDeleteSection(false);
+                      setDeleteConfirmation('');
+                    }}
+                    className="inline-flex items-center justify-center rounded-xl border border-gray-200 bg-white px-4 py-2 text-xs font-bold text-gray-600 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-transparent dark:text-gray-300 dark:hover:bg-white/5"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDeleteAccount}
+                    disabled={deleteLoading || deleteConfirmation !== 'ELIMINAR'}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {deleteLoading ? <LoadingSpinner variant="inline" size={14} /> : <Trash2 size={14} />}
+                    {deleteLoading ? 'Eliminando...' : 'Eliminar cuenta definitivamente'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </SectionCard>
+        </div>
       </div>
-
-      {/* MODAL DE ÉXITO */}
-      {showModal && createPortal(
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="bg-white dark:bg-[#1e1e1e] rounded-2xl p-6 md:p-8 max-w-md w-full shadow-2xl animate-scale-in">
-            <div className="flex flex-col items-center text-center">
-              <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-4">
-                <CheckCircle size={32} className="text-green-600 dark:text-green-400" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-                ¡Perfil actualizado!
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-6">
-                Tus cambios han sido guardados correctamente.
-              </p>
-              <button
-                onClick={() => setShowModal(false)}
-                className="px-6 py-3 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-semibold transition-all w-full"
-              >
-                Aceptar
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
     </div>
   );
 };

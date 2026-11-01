@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { 
-  Mail, Lock, User, ArrowRight, Loader2, AlertCircle, 
-  Eye, EyeOff, X 
-} from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, AlertCircle, Eye, EyeOff, X } from 'lucide-react';
 import { FaGoogle, FaGithub, FaDiscord } from 'react-icons/fa';
 import { clsx } from 'clsx';
 import { createPortal } from 'react-dom';
+import LoadingSpinner from '../components/LoadingSpinner';
+import { useToast } from '../hooks/useToast';
 
 const AVATAR_COLORS = [
   '#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', 
@@ -19,6 +18,7 @@ const Login = ({ isOpen = true, onClose, initialRegister = false }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { login, signup, signInWithProvider } = useAuth();
+  const { showToast } = useToast();
 
   const [isRegistering, setIsRegistering] = useState(initialRegister);
   const [showPassword, setShowPassword] = useState(false);
@@ -102,8 +102,10 @@ const Login = ({ isOpen = true, onClose, initialRegister = false }) => {
         if (formData.password.length < 6) throw { code: 'weak-password' };
         if (formData.username.length > 20) throw { code: 'username-too-long' };
         await signup(formData.email, formData.password, formData.username, formData.avatar);
+        showToast('¡Cuenta creada! Bienvenido a BSWorld');
       } else {
         await login(formData.email, formData.password);
+        showToast('Sesión iniciada. ¡Bienvenido!');
       }
       
       if (onClose) {
@@ -154,24 +156,25 @@ const Login = ({ isOpen = true, onClose, initialRegister = false }) => {
   if (!isOpen) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] bg-white dark:bg-dark-bg flex flex-col animate-fade-in" style={{ animationDuration: '200ms' }}>
+    <div className="fixed inset-0 z-[100] flex min-h-[100dvh] flex-col overflow-x-hidden overflow-y-auto bg-gray-50 dark:bg-dark-bg animate-fade-in" style={{ animationDuration: '200ms' }}>
       
       {/* BOTÓN EQUIS DE CIERRE FLOTANTE EN LA ESQUINA SUPERIOR DERECHA */}
       <button
         type="button"
         onClick={handleClose}
-        className="absolute top-4 right-4 z-50 p-2 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+        className="fixed top-3 right-3 z-50 flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white/90 text-gray-500 shadow-md backdrop-blur transition-colors hover:text-gray-900 dark:border-gray-700 dark:bg-[#1c1c1c]/90 dark:text-gray-400 dark:hover:text-white md:top-4 md:right-4"
         title="Cerrar"
+        aria-label="Cerrar"
       >
         <X size={20} />
       </button>
 
       {/* CONTENEDOR FULLSCREEN */}
-      <div className="w-full h-full flex flex-col md:flex-row overflow-hidden">
+      <div className="flex min-h-[100dvh] w-full flex-1 flex-col md:flex-row">
         
         {/* PANEL IZQUIERDO DECORATIVO (Visible en desktop) */}
         <div className={clsx(
-          "hidden md:flex md:w-1/2 lg:w-3/5 p-12 lg:p-16 flex-col justify-between text-white relative transition-all duration-500",
+          "relative hidden min-h-[100dvh] flex-col justify-between p-12 text-white transition-all duration-500 md:flex md:w-1/2 lg:w-3/5 lg:p-16",
           isRegistering ? "bg-gradient-to-br from-purple-700 via-purple-600 to-indigo-700" : "bg-gradient-to-br from-primary-700 via-primary-600 to-indigo-700"
         )}>
           <div className="space-y-2">
@@ -196,9 +199,9 @@ const Login = ({ isOpen = true, onClose, initialRegister = false }) => {
         </div>
 
         {/* PANEL DERECHO: FORMULARIO BÚSQUEDA / LOGIN */}
-        <div className="w-full md:w-1/2 lg:w-2/5 p-6 md:p-12 overflow-y-auto custom-scrollbar flex flex-col justify-center bg-white dark:bg-dark-bg pt-16 md:pt-0">
-          <div className="w-full max-w-md mx-auto my-auto">
-          
+        <div className="flex min-h-[100dvh] w-full flex-1 flex-col justify-start px-5 pb-4 pt-12 md:w-1/2 md:justify-center md:px-12 md:py-12 lg:w-2/5">
+          <div className="mx-auto w-full max-w-md md:p-0">
+
             <div className="text-center md:text-left mb-6">
               <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
                 {isRegistering ? "Crear Cuenta" : "Iniciar Sesión"}
@@ -329,12 +332,12 @@ const Login = ({ isOpen = true, onClose, initialRegister = false }) => {
                       : "bg-primary-600 hover:bg-primary-700 shadow-primary-600/10"
                 )}
               >
-                {loading ? <Loader2 className="animate-spin" size={18} /> : (isRegistering ? "Crear Cuenta" : "Iniciar Sesión")}
+                {loading ? <LoadingSpinner variant="inline" size={18} /> : (isRegistering ? "Crear Cuenta" : "Iniciar Sesión")}
                 {!loading && <ArrowRight size={18} />}
               </button>
             </form>
 
-            <div className="mt-6 pt-4 border-t border-gray-100 dark:border-gray-800 text-center">
+            <div className="mt-6 pt-4 pb-4 border-t border-gray-100 dark:border-gray-800 text-center">
               <p className="text-gray-500 dark:text-gray-400 text-xs mb-1">
                 {isRegistering ? "¿Ya eres parte del equipo?" : "¿Aún no tienes cuenta?"}
               </p>

@@ -164,7 +164,7 @@ const Contacto = () => {
                       : "bg-primary-600 hover:bg-primary-700 hover:scale-[1.01] active:scale-[0.99]"
                   )}
                 >
-                  {formStatus === 'submitting' ? <Loader2 className="animate-spin" /> : <Send size={20} />}
+                  {formStatus === 'submitting' ? <LoadingSpinner variant="inline" size={20} /> : <Send size={20} />}
                   {formStatus === 'submitting' ? 'Enviando...' : 'Enviar Mensaje'}
                 </button>
               </form>

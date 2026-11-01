@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { createPortal } from 'react-dom';
-import { Edit3, Trash2, Loader2, Filter, Search, ArrowUpDown, ChevronDown, X, Check, Eye, Heart, MessageCircle, Layers, CheckCircle, XCircle, CheckSquare, Square, Download, Wrench, Map, Gamepad2, Boxes, Package, User } from 'lucide-react';
+import { Edit3, Trash2, Filter, Search, ArrowUpDown, ChevronDown, X, Check, Eye, Heart, MessageCircle, Layers, CheckCircle, XCircle, CheckSquare, Square, Download, Wrench, Map, Gamepad2, Boxes, Package, User } from 'lucide-react';
 import { getCommentCountByContent, getUserPublicProfile, updateContent, searchUsers, deleteContent } from '../services/api';
 import { clsx } from 'clsx';
+import LoadingSpinner from './LoadingSpinner';
 
 const CATEGORIAS = {
   complemento: { nombre: 'Complemento', icon: Wrench, color: 'text-blue-500', borderColor: 'border-blue-500/80' },
@@ -533,7 +534,7 @@ const ContentTable = ({
   if (loading) {
     return (
       <div className="h-[60vh] flex items-center justify-center">
-        <Loader2 className="animate-spin text-primary-600" size={48} />
+        <LoadingSpinner variant="inline" size={48} />
       </div>
     );
   }
@@ -1066,7 +1067,7 @@ const ContentTable = ({
                       <td className="p-3 text-center">
                         {updatingId === item.id ? (
                           <div className="flex items-center justify-center gap-1.5 text-[11px] font-semibold text-gray-400 py-1">
-                            <Loader2 size={12} className="animate-spin text-primary-500" /> Procesando...
+                            <LoadingSpinner variant="inline" size={12} /> Procesando...
                           </div>
                         ) : (
                           <span className={`px-2 py-0.5 text-xs font-bold rounded-md ${statusConfig.style}`}>
@@ -1106,7 +1107,7 @@ const ContentTable = ({
                               title="Eliminar"
                             >
                               {updatingId === item.id ? (
-                                <Loader2 size={18} strokeWidth={2} className="animate-spin" />
+                                <LoadingSpinner variant="inline" size={18} />
                               ) : (
                                 <Trash2 size={18} strokeWidth={2} />
                               )}

@@ -1,11 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Save, Plus, Trash2, Image as ImageIcon, Tag, User, CheckCircle, X, 
-  ChevronRight, ChevronLeft, AlertTriangle, Loader2, PlayCircle, 
-  ChevronDown, FileText, Upload, Link as LinkIcon, Lock, Globe, Eye,
-  Sparkles, Check, Gamepad2, Map, Boxes, Package, Wrench, Edit3
-} from 'lucide-react';
+import { Save, Plus, Trash2, Image as ImageIcon, Tag, User, CheckCircle, X, ChevronRight, ChevronLeft, AlertTriangle, PlayCircle, ChevronDown, FileText, Upload, Link as LinkIcon, Lock, Globe, Eye, Sparkles, Check, Gamepad2, Map, Boxes, Package, Wrench, Edit3 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { 
   createContent
@@ -18,8 +13,8 @@ import CreatorsInput from '../components/CreatorsInput';
 import TagsInput from '../components/TagsInput';
 import DownloadsInput from '../components/DownloadsInput';
 import GalleryInput from '../components/GalleryInput';
-import { encryptionService, initializeEncryption } from '../services/encryption';
 import { createPortal } from 'react-dom';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 const DOWNLOAD_LABELS = ["API 9 (1.7.44+)", "API 8 (1.7.20+)", "API 7 (1.7.5+)", "API 6 (1.6.4+)", "API 4 (1.4.150+)"];
 const RECOMMENDED_TAGS = ["api 9", "api 8", "api 7", "api 6", "api 4", "divertido", "multijugador", "pvp"];
@@ -41,8 +36,6 @@ const SubirMod = ({ isOpen, onClose }) => {
   
   const [loading, setLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
-  const [encryptionKey, setEncryptionKey] = useState(null);
-  const [isEncryptionReady, setIsEncryptionReady] = useState(false);
 
   // --- CONTROL DE ERRORES VISUALES EN ROJO ---
   const [errors, setErrors] = useState({
@@ -174,21 +167,6 @@ const SubirMod = ({ isOpen, onClose }) => {
   }, [isOpen, user?.id, user?.uid]);
 
   useEffect(() => {
-    let isMounted = true;
-    const initEncryption = async () => {
-      try {
-        const key = await initializeEncryption();
-        if (isMounted) {
-          setEncryptionKey(key);
-          setIsEncryptionReady(true);
-        }
-      } catch (error) { console.error('Error inicializando encriptación:', error); }
-    };
-    initEncryption();
-    return () => { isMounted = false; };
-  }, []);
-
-  useEffect(() => {
     const hasData = formData.titulo || formData.descripcion || formData.imagen || formData.tags.length > 0 || formData.galeria.length > 0 || formData.descargas.some(d => d.url) || selectedCreators.length > 0;
     setHasChanges(hasData);
   }, [formData, selectedCreators]);
@@ -274,11 +252,6 @@ const SubirMod = ({ isOpen, onClose }) => {
       return;
     }
     
-    if (!isEncryptionReady || !encryptionKey) {
-      setModal({ isOpen: true, type: 'error', title: 'Seguridad', message: 'Inicializando motor de encriptación. Intenta en un segundo.' });
-      return;
-    }
-
     setLoading(true);
     try {
       let finalEstado;
@@ -293,15 +266,9 @@ const SubirMod = ({ isOpen, onClose }) => {
         else finalEstado = 'revision';
       }
 
-      let processedDescargas = formData.descargas.filter(d => d.url !== '');
-      processedDescargas = await Promise.all(
-        processedDescargas.map(async (d) => {
-          try {
-            const encryptedUrl = await encryptionService.encryptUrl(d.url, encryptionKey);
-            return { label: d.nombre, url: encryptedUrl };
-          } catch (error) { return { label: d.nombre, url: d.url }; }
-        })
-      );
+      const processedDescargas = formData.descargas
+        .filter(d => d.url !== '')
+        .map((d) => ({ label: d.nombre, url: d.url }));
 
       const payload = {
         titulo: formData.titulo,
@@ -526,7 +493,6 @@ const SubirMod = ({ isOpen, onClose }) => {
             })}
           </div>
         </div>
-
 
         {/* CONTENIDO PRINCIPAL POR PASO */}
         <div className="flex-1 p-2 md:p-4 overflow-y-auto custom-scrollbar bg-white dark:bg-dark-bg">
@@ -834,17 +800,17 @@ const SubirMod = ({ isOpen, onClose }) => {
                     <button 
                       type="button" 
                       onClick={() => handleSubmitForm('publish')} 
-                      disabled={loading || !isEncryptionReady} 
+                      disabled={loading} 
                       className="px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-bold flex items-center gap-1.5 shadow-sm disabled:opacity-50 transition-colors"
                     >
-                      {loading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />} Publicar Mod
+                      {loading ? <LoadingSpinner variant="inline" size={16} /> : <Save size={16} />} Publicar Mod
                     </button>
                   ) : (
                     <>
                       <button 
                         type="button" 
                         onClick={() => handleSubmitForm('draft')} 
-                        disabled={loading || !isEncryptionReady} 
+                        disabled={loading} 
                         className="px-4 py-2 bg-gray-100 dark:bg-[#1D1F23] text-gray-700 dark:text-gray-200 font-bold text-sm rounded-xl hover:bg-gray-200 dark:hover:bg-gray-800 transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50"
                       >
                         <FileText size={16} /> Borrador
@@ -852,10 +818,10 @@ const SubirMod = ({ isOpen, onClose }) => {
                       <button 
                         type="button" 
                         onClick={() => handleSubmitForm('pending')} 
-                        disabled={loading || !isEncryptionReady} 
+                        disabled={loading} 
                         className="px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white font-bold text-sm rounded-xl transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50"
                       >
-                        {loading ? <Loader2 className="animate-spin" size={16} /> : <Upload size={16} />} Publicar
+                        {loading ? <LoadingSpinner variant="inline" size={16} /> : <Upload size={16} />} Publicar
                       </button>
                     </>
                   )}

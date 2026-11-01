@@ -1,22 +1,16 @@
 // VERSIÓN CORRECTA - SMART MARKDOWN RENDERER CON BLOQUEO DE SCROLL
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import {
-    Download, Calendar, Tag, User, Users, ArrowLeft, Globe,
-    Share2, ShieldCheck, MessageCircle, Facebook, Twitter, Eye,
-    Image as ImageIcon, Layers, Loader2, ChevronLeft, ChevronRight, PlayCircle,
-    Link as LinkIcon, Mail, Send, Check, Copy, Youtube, AlertCircle, Code,
-    Info, Lock, Unlock, Heart, X, Edit, GitCompare, Wrench, Map, Gamepad2, Boxes, Package
-} from 'lucide-react';
+import { Download, Calendar, Tag, User, Users, ArrowLeft, Globe, Share2, ShieldCheck, MessageCircle, Facebook, Twitter, Eye, Image as ImageIcon, Layers, ChevronLeft, ChevronRight, PlayCircle, Link as LinkIcon, Mail, Send, Check, Copy, Youtube, AlertCircle, Code, Info, Heart, X, Edit, Wrench, Map, Gamepad2, Boxes, Package } from 'lucide-react';
 import { clsx } from 'clsx';
-import { getContentById, registerDownload, registerView, getUserPublicProfile, toggleLike, isLikedByUser, getRecommendedContent, updateContent, approveRevision, rejectRevision } from '../services/api';
+import { getContentById, registerDownload, registerView, getUserPublicProfile, toggleLike, isLikedByUser, getRecommendedContent } from '../services/api';
 import AvatarRenderer from '../components/AvatarRenderer';
 import { useAuth } from '../context/AuthContext';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import CommentSection from '../components/CommentSection';
-import { encryptionService, initializeEncryption } from '../services/encryption';
+import { thumbUrl } from '../utils/image';
 import { createPortal } from 'react-dom';
-import Modal from '../components/Modal';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 const CATEGORIAS = {
     complemento: { nombre: 'Complemento', icon: Wrench, color: 'text-blue-600 dark:text-blue-400', bgColor: 'bg-blue-50 dark:bg-blue-900/20', borderColor: 'border-blue-400 dark:border-blue-800' },
@@ -27,128 +21,6 @@ const CATEGORIAS = {
     personaje: { nombre: 'Personaje', icon: User, color: 'text-purple-600 dark:text-purple-400', bgColor: 'bg-purple-50 dark:bg-purple-900/20', borderColor: 'border-purple-400 dark:border-purple-800' }
 };
 
-// --- SUB-COMPONENTE: CAMPOS DE CONTENIDO PARA COMPARACIÓN ---
-const ContentFields = ({ content, original, showChanges = false }) => {
-    const hasChanged = (field, isArray = false) => {
-        if (!showChanges || !original) return false;
-        if (isArray) {
-            return JSON.stringify(content?.[field] || []) !== JSON.stringify(original?.[field] || []);
-        }
-        return content?.[field] !== original?.[field];
-    };
-
-    const getFieldClassName = (field, isArray = false) => {
-        if (!showChanges) return "bg-gray-50 dark:bg-[#1D1F23] rounded-xl p-3 border border-transparent";
-        return clsx(
-            "bg-gray-50 dark:bg-[#1D1F23] rounded-xl p-3 transition-all duration-300 border border-transparent",
-            hasChanged(field, isArray) 
-                ? "bg-blue-100 dark:bg-blue-900/20 border border-blue-400 dark:border-blue-500 shadow-md" 
-                : ""
-        );
-    };
-
-    const getTextClassName = (field) => {
-        if (!showChanges) return "text-gray-900 dark:text-white";
-        return clsx(
-            hasChanged(field) 
-                ? "text-blue-900 dark:text-blue-100" 
-                : "text-gray-900 dark:text-white"
-        );
-    };
-
-    return (
-        <div className="space-y-3">
-            <div className={getFieldClassName('imagen')}>
-                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 block">Imagen Principal</label>
-                {content?.imagen ? (
-                    <div className="relative w-full aspect-video rounded-lg overflow-hidden">
-                        <img
-                            src={content.imagen}
-                            alt="Imagen principal"
-                            className="w-full h-full object-cover"
-                            loading="lazy"
-                        />
-                    </div>
-                ) : (
-                    <span className="text-gray-400 dark:text-gray-500 text-sm">Sin imagen</span>
-                )}
-            </div>
-            
-            <div className={getFieldClassName('galeria', true)}>
-                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 block">Galería</label>
-                <div className="grid grid-cols-4 gap-2">
-                    {content?.galeria?.length > 0 ? (
-                        content.galeria.map((img, i) => (
-                            <div key={i} className="relative aspect-video rounded-lg overflow-hidden">
-                                <img
-                                    src={img}
-                                    alt={`Galería ${i + 1}`}
-                                    className="w-full h-full object-cover"
-                                    loading="lazy"
-                                />
-                            </div>
-                        ))
-                    ) : (
-                        <span className="text-gray-400 dark:text-gray-500 text-sm col-span-4">Sin galería</span>
-                    )}
-                </div>
-            </div>
-            
-            <div className={getFieldClassName('titulo')}>
-                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">Título</label>
-                <p className={clsx("font-medium text-sm", getTextClassName('titulo'))}>{content?.titulo || '-'}</p>
-            </div>
-            
-            <div className={getFieldClassName('descripcion')}>
-                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">Descripción</label>
-                <div className={clsx("prose dark:prose-invert prose-xs max-h-32 overflow-y-auto", getTextClassName('descripcion'))}>
-                    <MarkdownRenderer content={content?.descripcion || ''} />
-                </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-2">
-                <div className={getFieldClassName('tipo')}>
-                    <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">Tipo</label>
-                    <p className={clsx("font-medium capitalize text-sm", getTextClassName('tipo'))}>{content?.tipo || '-'}</p>
-                </div>
-                <div className={getFieldClassName('visibilidad')}>
-                    <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">Visibilidad</label>
-                    <p className={clsx("font-medium capitalize text-sm", getTextClassName('visibilidad'))}>
-                        {content?.visibilidad === 'no-listado' ? 'No listado' : content?.visibilidad || '-'}
-                    </p>
-                </div>
-            </div>
-            
-            <div className={getFieldClassName('tags', true)}>
-                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">Tags</label>
-                <div className="flex flex-wrap gap-1.5">
-                    {content?.tags?.map((tag, i) => (
-                        <span key={i} className="px-2 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-xs font-medium">
-                            {tag}
-                        </span>
-                    )) || <span className="text-gray-400 dark:text-gray-500 text-xs">Sin tags</span>}
-                </div>
-            </div>
-            
-            <div className={getFieldClassName('descargas', true)}>
-                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">Descargas</label>
-                <div className="space-y-1.5">
-                    {content?.descargas?.map((d, i) => (
-                        <div key={i} className="flex items-center justify-between text-xs">
-                            <span className="text-gray-700 dark:text-gray-300 font-medium">{d.label}</span>
-                            <span className={clsx(
-                                "px-2 py-0.5 rounded text-xs font-semibold",
-                                d.url ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400" : "bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400"
-                            )}>
-                                {d.url ? '✓' : '-'}
-                            </span>
-                        </div>
-                    )) || <span className="text-gray-400 dark:text-gray-500 text-xs">Sin descargas</span>}
-                </div>
-            </div>
-        </div>
-    );
-};
 
 // --- SUB-COMPONENTE: AVATAR INTELIGENTE DE CREADOR ---
 const SmartCreatorAvatar = ({ creador, className = "w-10 h-10 md:w-11 md:h-11" }) => {
@@ -444,9 +316,9 @@ const DetalleContenido = () => {
     const [loading, setLoading] = useState(true);
     const [downloading, setDownloading] = useState(null);
     const [selectedIndex, setSelectedIndex] = useState(0);
+    const [mainImgStage, setMainImgStage] = useState(0); // 0 miniatura, 1 original, 2 default
+    const [thumbStage, setThumbStage] = useState({}); // por miniatura: 0 miniatura, 1 original, 2 default
     const [copied, setCopied] = useState(false);
-    const [encryptionKey, setEncryptionKey] = useState(null);
-    const [decrypting, setDecrypting] = useState(false);
     const [descriptionExpanded, setDescriptionExpanded] = useState(false);
     const [isLiked, setIsLiked] = useState(false);
     const [likeLoading, setLikeLoading] = useState(false);
@@ -457,25 +329,12 @@ const DetalleContenido = () => {
     const [loadingRecommended, setLoadingRecommended] = useState(false);
     const [descriptionOverflow, setDescriptionOverflow] = useState(false);
     const descriptionRef = useRef(null);
+    const activeThumbRef = useRef(null);
     const viewRegistered = useRef(false);
-    const [imageErrors, setImageErrors] = useState({});
-    
-    // Estados para moderación de admin
-    const [updatingStatus, setUpdatingStatus] = useState(false);
-    const [rejectModal, setRejectModal] = useState({
-        isOpen: false,
-        motivo: ''
-    });
-    const [acceptModal, setAcceptModal] = useState(false);
-    const [compareModal, setCompareModal] = useState({
-        isOpen: false,
-        original: null,
-        revision: null
-    });
 
     // 👇 BLOQUEO DE SCROLL EN EL BODY CUANDO EL MODAL ESTÁ ABIERTO
     useEffect(() => {
-        if (showCreatorsModal || showShareModal || showLoginModal || compareModal.isOpen) {
+        if (showCreatorsModal || showShareModal || showLoginModal) {
             document.body.style.overflow = 'hidden';
         } else {
             document.body.style.overflow = 'unset';
@@ -484,7 +343,7 @@ const DetalleContenido = () => {
         return () => {
             document.body.style.overflow = 'unset';
         };
-    }, [showCreatorsModal, showShareModal, showLoginModal, compareModal.isOpen]);
+    }, [showCreatorsModal, showShareModal, showLoginModal]);
 
     // 👇 VERIFICAR SI LA DESCRIPCIÓN DESBORDA EL CONTENEDOR
     useEffect(() => {
@@ -515,13 +374,6 @@ const DetalleContenido = () => {
                     setIsLiked(liked);
                 }
 
-                try {
-                    const key = await initializeEncryption();
-                    setEncryptionKey(key);
-                } catch (error) {
-                    console.error('Error inicializando encriptación:', error);
-                }
-
                 const viewKey = `viewed_${id}`;
                 const hasViewedSession = sessionStorage.getItem(viewKey);
 
@@ -549,6 +401,14 @@ const DetalleContenido = () => {
         };
         fetchData();
     }, [id, navigate, user]);
+
+    // Reiniciar etapa de la imagen principal al cambiar de medio
+    useEffect(() => { setMainImgStage(0); }, [selectedIndex]);
+
+    // 👇 CENTRAR LA MINIATURA ACTIVA EN LA TIRA CON SCROLL
+    useEffect(() => {
+        activeThumbRef.current?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    }, [selectedIndex]);
 
     const galleryItems = item ? [
         item.imagen,
@@ -629,31 +489,18 @@ const DetalleContenido = () => {
 
     const handleDownload = async (download) => {
         if (!item) return;
-        
-        const url = download.url;
-        const isEncrypted = download.encrypted;
-        
-        setDownloading(url);
-        setDecrypting(isEncrypted);
-        
-        try {
-            let finalUrl = url;
-            
-            if (isEncrypted && encryptionKey) {
-                try {
-                    finalUrl = await encryptionService.decryptUrl(url, encryptionKey);
-                } catch (decryptError) {
-                    console.error('Error desencriptando URL:', decryptError);
-                    finalUrl = url;
-                }
-            }
 
+        const url = download.url;
+
+        setDownloading(url);
+
+        try {
             const COOLDOWN_TIME = 60000;
             const storageKey = `download_limit_${id}_${url}`;
             const lastDownloadTime = localStorage.getItem(storageKey);
             const now = Date.now();
 
-            window.open(finalUrl, '_blank');
+            window.open(url, '_blank');
 
             if (lastDownloadTime && (now - parseInt(lastDownloadTime)) < COOLDOWN_TIME) return;
 
@@ -671,7 +518,6 @@ const DetalleContenido = () => {
         } finally {
             setTimeout(() => {
                 setDownloading(null);
-                setDecrypting(false);
             }, 2000);
         }
     };
@@ -699,180 +545,23 @@ const DetalleContenido = () => {
         return num.toString();
     };
 
-    // Funciones de moderación para admin
-    const handleAcceptClick = () => {
-        setAcceptModal(true);
-    };
-
-    const handleAcceptConfirm = async () => {
-        setUpdatingStatus(true);
-        try {
-            // Si es una revisión, usar approveRevision
-            if (item?.parent_id) {
-                await approveRevision(id);
-                // Recargar el contenido original
-                const originalData = await getContentById(item.parent_id, user?.id, user?.role);
-                setItem(originalData);
-                // Navegar al contenido original
-                navigate(`/view/${item.parent_id}`);
-            } else {
-                // Solo actualizar si el estado actual no es 'aceptado'
-                if (item?.estado !== 'aceptado') {
-                    await updateContent(id, { estado: 'aceptado' });
-                    setItem(prev => ({ ...prev, estado: 'aceptado' }));
-                }
-            }
-            setAcceptModal(false);
-        } catch (error) {
-            console.error('Error al aceptar:', error);
-            alert('Error al aceptar el contenido.');
-        } finally {
-            setUpdatingStatus(false);
-        }
-    };
-
-    const handleRejectClick = () => {
-        setRejectModal({ isOpen: true, motivo: '' });
-    };
-
-    const handleCompareClick = async () => {
-        if (!item?.parent_id) return;
-        
-        try {
-            const [originalData, revisionData] = await Promise.all([
-                getContentById(item.parent_id, user?.id, user?.role),
-                getContentById(item.id, user?.id, user?.role)
-            ]);
-            
-            setCompareModal({
-                isOpen: true,
-                original: originalData,
-                revision: revisionData
-            });
-        } catch (error) {
-            console.error('Error cargando datos para comparación:', error);
-            alert('Error al cargar los datos para comparación.');
-        }
-    };
-
-    const handleRejectConfirm = async () => {
-        if (!rejectModal.motivo.trim()) {
-            alert('Por favor ingresa el motivo del rechazo.');
-            return;
-        }
-
-        setUpdatingStatus(true);
-        try {
-            // Si es una revisión, usar rejectRevision
-            if (item?.parent_id) {
-                await rejectRevision(id, rejectModal.motivo);
-                // Recargar el contenido original
-                const originalData = await getContentById(item.parent_id, user?.id, user?.role);
-                setItem(originalData);
-                // Navegar al contenido original
-                navigate(`/view/${item.parent_id}`);
-            } else {
-                await updateContent(id, { 
-                    estado: 'rechazado',
-                    mensaje_rechazo: rejectModal.motivo 
-                });
-                setItem(prev => ({ 
-                    ...prev, 
-                    estado: 'rechazado', 
-                    mensaje_rechazo: rejectModal.motivo 
-                }));
-            }
-            setRejectModal({ isOpen: false, motivo: '' });
-        } catch (error) {
-            console.error('Error al rechazar:', error);
-            alert('Error al rechazar el contenido.');
-        } finally {
-            setUpdatingStatus(false);
-        }
-    };
-
     const estado = item?.estado || item?.status || 'borrador';
-    const canModerate = user?.role === 'admin' && (estado === 'revision' || estado === 'pending' || estado === 'en_revision' || estado === 'rechazado' || estado === 'aceptado');
     const isOwner = user?.id === (item?.aporte?.uid || item?.aporte);
     const canEdit = isOwner && (estado === 'borrador' || estado === 'draft');
 
-    if (loading) return (
-        <div className="h-full flex items-center justify-center min-h-[50vh]">
-            <Loader2 className="animate-spin text-primary-600" size={48} />
-        </div>
-    );
+    if (loading) return <LoadingSpinner variant="page" />;
     if (!item) return null;
 
     return (
         <div className="max-w-7xl mx-auto w-full flex flex-col gap-2 lg:gap-4 p-2 pb-4 lg:p-4 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
 
-            {/* BANNER DE MODERACIÓN PARA ADMIN */}
-            {canModerate && (
-                <div className={clsx(
-                    "border rounded-xl p-3 flex items-center justify-between",
-                    estado === 'rechazado' 
-                        ? "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900/40" 
-                        : estado === 'aceptado'
-                        ? "bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-900/40"
-                        : "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900/40"
-                )}>
-                    <div className="flex items-center gap-2">
-                        <ShieldCheck size={18} className={clsx(
-                            estado === 'rechazado' ? "text-red-600 dark:text-red-400" : 
-                            estado === 'aceptado' ? "text-green-600 dark:text-green-400" :
-                            "text-amber-600 dark:text-amber-400"
-                        )} />
-                        <span className={clsx("text-sm font-semibold", 
-                            estado === 'rechazado' ? "text-red-800 dark:text-red-200" : 
-                            estado === 'aceptado' ? "text-green-800 dark:text-green-200" :
-                            "text-amber-800 dark:text-amber-200"
-                        )}>
-                            {estado === 'rechazado' ? 'Contenido rechazado' : 
-                             estado === 'aceptado' ? 'Contenido aceptado' :
-                             'Contenido en revisión'}
-                        </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        {item?.parent_id && (
-                            <button 
-                                onClick={handleCompareClick}
-                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-all active:scale-95"
-                            >
-                                <GitCompare size={16} />
-                                <span>Comparar</span>
-                            </button>
-                        )}
-                        {estado !== 'aceptado' && (
-                            <button 
-                                onClick={handleAcceptClick}
-                                disabled={updatingStatus}
-                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold bg-green-600 hover:bg-green-700 text-white transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                {updatingStatus ? <Loader2 size={14} className="animate-spin" /> : <Check size={16} />}
-                                <span>Aceptar</span>
-                            </button>
-                        )}
-                        {estado !== 'rechazado' && (
-                            <button 
-                                onClick={handleRejectClick}
-                                disabled={updatingStatus}
-                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold bg-red-600 hover:bg-red-700 text-white transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                {updatingStatus ? <Loader2 size={14} className="animate-spin" /> : <X size={16} />}
-                                <span>Rechazar</span>
-                            </button>
-                        )}
-                    </div>
-                </div>
-            )}
-            
             <div className="flex flex-col lg:flex-row gap-2 lg:gap-4">
 
                 {/* COLUMNA IZQUIERDA - CONTENIDO PRINCIPAL (MÓVIL: TODAS LAS SECCIONES, DESKTOP: GALERÍA, HEADER, DESCRIPCIÓN, COMENTARIOS) */}
-                <div className="w-full flex flex-col gap-2 md:gap-4">
+                <div className="w-full min-w-0 flex flex-col gap-2 md:gap-4">
 
                     {/* VISOR DE GALERÍA */}
-                    <div className="w-full lg:order-1">
+                    <div className="w-full min-w-0 lg:order-1">
                         <div className="bg-black relative rounded-xl overflow-hidden group">
                             {youtubeId ? (
                                 <iframe 
@@ -895,18 +584,19 @@ const DetalleContenido = () => {
                                 />
                             ) : (
                                 <img
-                                    src={imageErrors[selectedIndex] ? '/default.jpg' : currentMedia}
+                                    src={mainImgStage === 0 ? (thumbUrl(currentMedia, 1280) || '/default.jpg') : (mainImgStage === 1 ? currentMedia : '/default.jpg')}
                                     key={currentMedia}
                                     className="w-full aspect-video object-cover bg-black transition-opacity duration-300"
                                     style={{ opacity: 0 }}
                                     alt={item.titulo}
                                     loading="lazy"
+                                    decoding="async"
+                                    fetchPriority="high"
                                     onLoad={(e) => { e.target.style.opacity = 1; }}
                                     onError={(e) => {
-                                        if (!imageErrors[selectedIndex]) {
-                                            console.warn('Error loading main image:', currentMedia);
-                                            setImageErrors(prev => ({ ...prev, [selectedIndex]: true }));
-                                            e.target.src = '/default.jpg';
+                                        if (mainImgStage < 2) {
+                                            setMainImgStage(mainImgStage + 1);
+                                        } else {
                                             e.target.style.opacity = 1;
                                         }
                                     }}
@@ -933,16 +623,20 @@ const DetalleContenido = () => {
 
                         {/* TIRA DE MINIATURAS */}
                         {galleryItems.length > 1 && (
-                            <div className="flex gap-2 scrollbar-hide snap-x mt-2 md:mt-4 overflow-x-auto">
+                            <div className="flex gap-2 scrollbar-hide snap-x snap-mandatory mt-2 md:mt-4 overflow-x-auto w-full max-w-full pb-1">
                                 {galleryItems.map((mediaItem, index) => {
                                     const isYt = getYouTubeId(mediaItem);
                                     const isVid = isVideo(mediaItem);
-                                    const thumbSrc = isYt ? `https://img.youtube.com/vi/${isYt}/mqdefault.jpg` : mediaItem;
+                                    const ytThumb = isYt ? `https://img.youtube.com/vi/${isYt}/mqdefault.jpg` : null;
+                                    const proxied = !isYt ? thumbUrl(mediaItem, 320) : null;
+                                    const tStage = thumbStage[index] || 0;
+                                    const thumbSrc = ytThumb || (tStage === 0 ? (proxied || mediaItem) : (tStage === 1 ? mediaItem : '/default.jpg'));
                                     const isActive = index === selectedIndex;
                                     
                                     return (
                                         <button
                                             key={index}
+                                            ref={isActive ? activeThumbRef : null}
                                             onClick={() => setSelectedIndex(index)}
                                             className={clsx(
                                                 "relative flex-shrink-0 w-24 md:w-36 aspect-video rounded-lg transition-all duration-200 snap-start border shadow-sm ring-1 overflow-hidden",
@@ -957,17 +651,17 @@ const DetalleContenido = () => {
                                                 </div>
                                             )}
                                             <img
-                                                src={imageErrors[index] ? '/default.jpg' : thumbSrc}
+                                                src={thumbSrc}
                                                 alt={`Miniatura ${index + 1}`}
                                                 className="w-full h-full object-cover transition-opacity duration-300"
                                                 style={{ opacity: 0 }}
                                                 loading="lazy"
+                                                decoding="async"
                                                 onLoad={(e) => { e.target.style.opacity = 1; }}
                                                 onError={(e) => {
-                                                    if (!imageErrors[index]) {
-                                                        console.warn('Error loading thumbnail:', thumbSrc);
-                                                        setImageErrors(prev => ({ ...prev, [index]: true }));
-                                                        e.target.src = '/default.jpg';
+                                                    if (tStage < 2) {
+                                                        setThumbStage(prev => ({ ...prev, [index]: tStage + 1 }));
+                                                    } else {
                                                         e.target.style.opacity = 1;
                                                     }
                                                 }}
@@ -1156,9 +850,6 @@ const DetalleContenido = () => {
                                         <div className="flex flex-col truncate pr-2">
                                             <div className="flex items-center gap-2">
                                                 <span className="truncate font-bold text-sm text-white">{d.label}</span>
-                                                {d.encrypted && (
-                                                    <Lock size={12} className="text-blue-500 shrink-0" />
-                                                )}
                                             </div>
                                             <span className="text-[11px] flex items-center gap-1 text-white/80">
                                                 {formatNumber(d.count || 0)} descargas
@@ -1166,11 +857,7 @@ const DetalleContenido = () => {
                                         </div>
                                         <div className="shrink-0">
                                             {downloading === d.url ? (
-                                                decrypting ? (
-                                                    <Unlock size={17} className="text-primary-600 dark:text-primary-400 animate-pulse" />
-                                                ) : (
-                                                    <Loader2 size={17} className="text-gray-400 animate-spin" />
-                                                )
+                                                <LoadingSpinner variant="inline" size={17} />
                                             ) : (
                                                 <Download size={17} className="text-white" />
                                             )}
@@ -1199,7 +886,7 @@ const DetalleContenido = () => {
                             </h4>
                             {loadingRecommended ? (
                                 <div className="flex items-center justify-center py-4">
-                                    <Loader2 size={20} className="animate-spin text-gray-400" />
+                                    <LoadingSpinner variant="inline" size={20} />
                                 </div>
                             ) : (
                                 <div className="flex flex-col gap-2">
@@ -1239,9 +926,6 @@ const DetalleContenido = () => {
                                         <div className="flex flex-col truncate pr-2">
                                             <div className="flex items-center gap-2">
                                                 <span className="truncate font-bold text-sm text-white">{d.label}</span>
-                                                {d.encrypted && (
-                                                    <Lock size={12} className="text-blue-500 shrink-0" />
-                                                )}
                                             </div>
                                             <span className="text-[11px] flex items-center gap-1 text-white/80">
                                                 {formatNumber(d.count || 0)} descargas
@@ -1249,11 +933,7 @@ const DetalleContenido = () => {
                                         </div>
                                         <div className="shrink-0">
                                             {downloading === d.url ? (
-                                                decrypting ? (
-                                                    <Unlock size={17} className="text-primary-600 dark:text-primary-400 animate-pulse" />
-                                                ) : (
-                                                    <Loader2 size={17} className="text-gray-400 animate-spin" />
-                                                )
+                                                <LoadingSpinner variant="inline" size={17} />
                                             ) : (
                                                 <Download size={17} className="text-white" />
                                             )}
@@ -1316,7 +996,7 @@ const DetalleContenido = () => {
                             </h4>
                             {loadingRecommended ? (
                                 <div className="flex items-center justify-center py-4">
-                                    <Loader2 size={20} className="animate-spin text-gray-400" />
+                                    <LoadingSpinner variant="inline" size={20} />
                                 </div>
                             ) : (
                                 <div className="flex flex-col gap-2">
@@ -1478,102 +1158,6 @@ const DetalleContenido = () => {
                 document.body
             )}
 
-            {/* MODAL DE RECHAZO PARA ADMIN */}
-            {rejectModal.isOpen && createPortal(
-                <Modal 
-                    isOpen={rejectModal.isOpen}
-                    onClose={() => setRejectModal({ isOpen: false, motivo: '' })}
-                    onConfirm={handleRejectConfirm}
-                    title="Rechazar Contenido"
-                    message="Por favor, ingresa el motivo del rechazo. Este mensaje será visible para el creador del contenido."
-                    type="warning"
-                    showCancel={true}
-                    confirmText="Rechazar"
-                    cancelText="Cancelar"
-                >
-                    <textarea
-                        value={rejectModal.motivo}
-                        onChange={(e) => setRejectModal({ ...rejectModal, motivo: e.target.value })}
-                        placeholder="Describe el motivo del rechazo..."
-                        className="w-full p-3 rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-red-500 transition-all dark:text-white text-sm resize-none"
-                        rows={4}
-                    />
-                </Modal>,
-                document.body
-            )}
-
-            {/* MODAL DE CONFIRMACIÓN PARA ACEPTAR */}
-            {acceptModal && createPortal(
-                <Modal 
-                    isOpen={acceptModal}
-                    onClose={() => setAcceptModal(false)}
-                    onConfirm={handleAcceptConfirm}
-                    title="Aceptar Contenido"
-                    message="¿Estás seguro de que deseas aceptar este contenido? Será visible para todos los usuarios."
-                    type="success"
-                    showCancel={true}
-                    confirmText="Aceptar"
-                    cancelText="Cancelar"
-                />,
-                document.body
-            )}
-
-            {/* MODAL DE COMPARACIÓN DE VERSIONES */}
-            {compareModal.isOpen && createPortal(
-                <div className="fixed inset-0 z-[99999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-0 md:p-4 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
-                    <div className="bg-white dark:bg-dark-bg rounded-none md:rounded-2xl w-full md:max-w-5xl h-full overflow-hidden flex flex-col animate-fade-in-up" style={{ animationDuration: '200ms' }}>
-                        {/* Header */}
-                        <div className="p-2 md:p-4 border-b border-gray-200 dark:border-gray-800">
-                            <div className="flex items-center justify-between">
-                                <h1 className="flex text-xl md:text-2xl font-bold text-gray-800 dark:text-white items-center gap-3">
-                                    <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-sm text-white bg-gradient-to-br from-blue-500 to-purple-600">
-                                        <GitCompare size={20} strokeWidth={2.5} />
-                                    </div>
-                                    Comparar Versiones
-                                </h1>
-                                <button 
-                                    onClick={() => setCompareModal({ isOpen: false, original: null, revision: null })}
-                                    className="p-2 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                                >
-                                    <X size={22} />
-                                </button>
-                            </div>
-                        </div>
-                        
-                        {/* Content */}
-                        <div className="flex-1 overflow-y-auto p-2 md:p-4 bg-gray-50/50 dark:bg-[#0f0f0f]/50">
-                            <div className="flex gap-0">
-                                {/* Versión Original */}
-                                <div className="flex-1 pr-6">
-                                    <div className="flex items-center gap-3 pb-2 mb-2">
-                                        <div className="w-4 h-4 rounded-full bg-gradient-to-r from-green-400 to-emerald-500 shadow-md"></div>
-                                        <h3 className="font-bold text-gray-900 dark:text-white text-lg">Versión Original</h3>
-                                        <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-semibold rounded-full">Aceptada</span>
-                                    </div>
-                                    
-                                    <ContentFields content={compareModal.original} />
-                                </div>
-                                
-                                {/* Línea vertical divisoria */}
-                                <div className="w-px bg-gray-300 dark:bg-gray-700"></div>
-                                
-                                {/* Versión Revisión */}
-                                <div className="flex-1 pl-6">
-                                    <div className="flex items-center gap-3 pb-2 mb-2">
-                                        <div className="w-4 h-4 rounded-full bg-gradient-to-r from-blue-400 to-purple-500 shadow-md"></div>
-                                        <h3 className="font-bold text-gray-900 dark:text-white text-lg">Versión Revisión</h3>
-                                        <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-semibold rounded-full">Pendiente</span>
-                                    </div>
-                                    
-                                    <ContentFields content={compareModal.revision} original={compareModal.original} showChanges />
-                                </div>
-                            </div>
-                        </div>
-                        
-                    </div>
-                </div>,
-                document.body
-            )}
 
             {/* MODAL DE LOGIN */}
             {showLoginModal && createPortal(

@@ -1,8 +1,33 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkUnwrapImages from 'remark-unwrap-images';
 import { AlertCircle, Code, Check, Copy } from 'lucide-react';
+import { linkifyMentions, toInternalPath } from '../utils/linkify';
+
+// Enlaces internos navegan sin recargar; externos en pestaña nueva
+const SmartLink = ({ href, title, children }) => {
+  const internal = toInternalPath(href);
+  if (internal) {
+    return (
+      <Link to={internal} title={title} className="text-primary-500 hover:underline font-bold">
+        {children}
+      </Link>
+    );
+  }
+  return (
+    <a
+      className="text-primary-500 hover:underline font-bold"
+      target="_blank"
+      rel="noopener noreferrer"
+      href={href}
+      title={title}
+    >
+      {children}
+    </a>
+  );
+};
 
 // --- COMPONENTE PARA COPIAR CÓDIGO ---
 const CopyCodeButton = ({ text }) => {
@@ -252,16 +277,11 @@ const MarkdownRenderer = ({ content, className = '' }) => {
                                 </li>
                             ),
                             
-                            // ENLACES
-                            a: ({node, children, ...props}) => (
-                                <a 
-                                    className="text-primary-500 hover:underline font-bold" 
-                                    target="_blank" 
-                                    rel="noopener noreferrer" 
-                                    {...props}
-                                >
+                            // ENLACES (auto-detecta internos de la app)
+                            a: ({node, href, title, children}) => (
+                                <SmartLink href={href} title={title}>
                                     {children}
-                                </a>
+                                </SmartLink>
                             ),
                             
                             // TEXTO ENFATIZADO
@@ -328,7 +348,7 @@ const MarkdownRenderer = ({ content, className = '' }) => {
                             ),
                         }}
                     >
-                        {element.content}
+                        {linkifyMentions(element.content)}
                     </ReactMarkdown>
                 );
             })}

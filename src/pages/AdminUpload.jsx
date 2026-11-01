@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { createContent, getContentById, updateContent } from '../services/api'; 
+import LoadingSpinner from '../components/LoadingSpinner';
 import { useAuth } from '../context/AuthContext';
 import Card from '../components/Card';
 
@@ -183,7 +184,7 @@ const AdminUpload = () => {
     }
   };
 
-  if (fetching) return <div className="p-10 text-center">Cargando datos...</div>;
+  if (fetching) return <LoadingSpinner variant="page" />;
 
   return (
     <div className="max-w-7xl mx-auto pb-10 animate-fade-in-up px-4 md:px-0">

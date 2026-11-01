@@ -2,10 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getForumPostById, getForumReplies, deleteForumPost, likeForumPost, getForumPostLikes, updateForumPost } from '../services/api';
 import ForumPost from '../components/ForumPost';
-import { Loader2, ArrowLeft, MessageSquare, Heart, Share2, Bookmark, MoreHorizontal, Edit, Trash2, X } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Heart, Share2, Bookmark, MoreHorizontal, Edit, Trash2, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import AvatarRenderer from '../components/AvatarRenderer';
 import { clsx } from 'clsx';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 const ForoDetalle = () => {
   const { id } = useParams();
@@ -145,14 +146,7 @@ const ForoDetalle = () => {
     return date.toLocaleDateString('es-ES', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen gap-3">
-        <Loader2 className="animate-spin text-primary-600" size={32} />
-        <p className="text-sm text-gray-500 dark:text-gray-400">Cargando publicación...</p>
-      </div>
-    );
-  }
+  if (loading) return <LoadingSpinner variant="fullscreen" />;
 
   if (!post) {
     return (

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Edit3, Trash2, Eye, Calendar, Tag, Download, AlertCircle, Layers } from 'lucide-react';
+import LoadingSpinner from './LoadingSpinner';
 
 const ControlPanelCard = ({ 
   id, 
@@ -147,7 +148,7 @@ const ControlPanelCard = ({
               title="Eliminar"
             >
               {isDeleting ? (
-                <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
+                <LoadingSpinner variant="inline" size={16} />
               ) : (
                 <Trash2 size={16} />
               )}

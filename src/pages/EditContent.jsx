@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Save, ArrowLeft, Loader2, AlertTriangle, Plus, Edit, Trash2, Tag, User, X, ChevronDown } from 'lucide-react';
+import { Save, ArrowLeft, AlertTriangle, Plus, Edit, Trash2, Tag, User, X, ChevronDown } from 'lucide-react';
 import { getContentById, updateContent, searchUsers, getUserPublicProfile, getUserByUsername, createRevision } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import SimpleEditor from "../components/SimpleEditor";
@@ -9,8 +9,8 @@ import CreatorsInput from '../components/CreatorsInput';
 import TagsInput from '../components/TagsInput';
 import DownloadsInput from '../components/DownloadsInput';
 import GalleryInput from '../components/GalleryInput';
-import { encryptionService, initializeEncryption } from '../services/encryption';
 import { clsx } from 'clsx';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 const EditContent = () => {
   const { id } = useParams();
@@ -27,8 +27,6 @@ const EditContent = () => {
   const [error, setError] = useState(null);
   const [content, setContent] = useState(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [encryptionKey, setEncryptionKey] = useState(null);
-  const [isEncryptionReady, setIsEncryptionReady] = useState(false);
   
   const [errors, setErrors] = useState({
     titulo: false,
@@ -71,30 +69,25 @@ const EditContent = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Inicializar encriptación
-  useEffect(() => {
-    let isMounted = true;
-    const initEncryption = async () => {
-      try {
-        const key = await initializeEncryption();
-        if (isMounted) {
-          setEncryptionKey(key);
-          setIsEncryptionReady(true);
-        }
-      } catch (error) { console.error('Error inicializando encriptación:', error); }
-    };
-    initEncryption();
-    return () => { isMounted = false; };
-  }, []);
-
   // Cargar datos para edición
   useEffect(() => {
     const loadDataForEdit = async () => {
       try {
+        setError(null);
         const data = await getContentById(id, user?.id, user?.role);
         
         if (!data) {
           setError('No se encontró el contenido o no tienes permisos para editarlo');
+          return;
+        }
+
+        // Solo el dueño o un admin pueden editar (el id de la URL no es prueba)
+        if (!user?.id) return; // esperar a que cargue la sesión
+        const ownerId = data.aporte && typeof data.aporte === 'object'
+          ? (data.aporte.uid || data.aporte.id)
+          : data.aporte;
+        if (user.id !== ownerId && user?.role !== 'admin') {
+          setError('No tienes permiso para editar este contenido');
           return;
         }
         
@@ -179,6 +172,16 @@ const EditContent = () => {
     setSaving(true);
     setError(null);
 
+    // Defensa en profundidad: revalidar dueño/admin al guardar
+    const submitOwnerId = content?.aporte && typeof content.aporte === 'object'
+      ? (content.aporte.uid || content.aporte.id)
+      : content?.aporte;
+    if (!content || (user?.id !== submitOwnerId && user?.role !== 'admin')) {
+      setError('No tienes permiso para editar este contenido');
+      setSaving(false);
+      return;
+    }
+
     // Validaciones
     const hasTituloError = !formData.titulo.trim();
     const hasImagenError = !formData.imagen.trim();
@@ -191,27 +194,13 @@ const EditContent = () => {
       return;
     }
 
-    if (!isEncryptionReady || !encryptionKey) {
-      setError('Inicializando motor de encriptación. Intenta en un segundo.');
-      setSaving(false);
-      return;
-    }
-
     try {
       
-      // Encriptar URLs de descargas
-      let processedDescargas = formData.descargas.filter(d => d.url !== '');
-      processedDescargas = await Promise.all(
-        processedDescargas.map(async (d) => {
-          try {
-            const encryptedUrl = await encryptionService.encryptUrl(d.url, encryptionKey);
-            // Solo enviamos label al backend, ignoramos presetLabel
-            return { label: d.label || '', url: encryptedUrl };
-          } catch (error) { 
-            return { label: d.label || '', url: d.url }; 
-          }
-        })
-      );
+      // Descargas tal cual (solo label y url)
+      const processedDescargas = formData.descargas
+        .filter(d => d.url !== '')
+        // Solo enviamos label al backend, ignoramos presetLabel
+        .map((d) => ({ label: d.label || '', url: d.url }));
 
       const payload = {
         titulo: formData.titulo,
@@ -259,10 +248,10 @@ const EditContent = () => {
     navigate(-1);
   };
 
-  if (loading) {
+  if (loading || (!content && !error)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="animate-spin text-primary-600" size={48} />
+        <LoadingSpinner variant="inline" size={48} />
       </div>
     );
   }
@@ -313,7 +302,7 @@ const EditContent = () => {
           >
             {saving ? (
               <>
-                <Loader2 className="animate-spin" size={18} />
+                <LoadingSpinner variant="inline" size={18} />
                 Guardando...
               </>
             ) : (

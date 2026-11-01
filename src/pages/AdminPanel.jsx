@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { LayoutDashboard, Plus, FileBox, Users, Download, Loader2, Heart, MessageCircle } from 'lucide-react';
+import { LayoutDashboard, Plus, FileBox, Users, Download, Heart, MessageCircle } from 'lucide-react';
 import { supabase } from '../services/supabaseClient';
 import { deleteContent, updateContent, getAdminContent } from '../services/api';
 import { clsx } from 'clsx';
 import Modal from '../components/Modal';
 import ContentTable from '../components/ContentTable';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 const StatCard = ({ icon: Icon, label, value, gradient }) => (
   <div className="bg-white dark:bg-[#1e1e1e] p-5 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm flex items-center gap-4">
@@ -182,11 +183,7 @@ const AdminPanel = () => {
     fetchData();
   };
 
-  if (loading) return (
-    <div className="h-[60vh] flex items-center justify-center">
-      <Loader2 className="animate-spin text-primary-600" size={48} />
-    </div>
-  );
+  if (loading) return <LoadingSpinner variant="page" />;
 
   return (
     <>

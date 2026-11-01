@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import {
-  MessageSquare, Send, Trash2, Edit3, LogIn, X, Reply, Check, Clock, Heart,
-  ChevronDown, ChevronUp, Link as LinkIcon, User as UserIcon
-} from 'lucide-react';
+import { MessageSquare, Send, Trash2, Edit3, LogIn, X, Reply, Check, Heart, ChevronDown, ChevronUp, Link as LinkIcon, User as UserIcon } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -14,7 +11,9 @@ import {
   deleteComment
 } from '../services/api';
 import AvatarRenderer from './AvatarRenderer';
+import RichText from './RichText';
 import { createPortal } from 'react-dom';
+import LoadingSpinner from './LoadingSpinner';
 
 const CommentCard = ({ comment, contentId, onCommentMutated, isReply = false }) => {
   const { user } = useAuth();
@@ -183,7 +182,7 @@ const CommentCard = ({ comment, contentId, onCommentMutated, isReply = false }) 
             </button>
           </form>
         ) : (
-          <p>{comment.text}</p>
+          <p><RichText text={comment.text} /></p>
         )}
       </div>
 
@@ -430,7 +429,7 @@ const CommentSection = ({ contentId }) => {
               )}
             >
               {submitting ? (
-                <Clock size={17} className="animate-spin" />
+                <LoadingSpinner variant="inline" size={17} />
               ) : (
                 <Send size={17} />
               )}
@@ -463,10 +462,7 @@ const CommentSection = ({ contentId }) => {
 
       {/* Listado de Comentarios Principales */}
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-8 gap-3">
-          <Clock size={24} className="animate-spin text-primary-600 dark:text-primary-400" />
-          <p className="text-sm text-gray-500 dark:text-gray-400">Cargando comentarios...</p>
-        </div>
+        <LoadingSpinner variant="section" />
       ) : comments.length > 0 ? (
         <>
           <div className="flex flex-col gap-6 mt-1">

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Info, Eye, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Info, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getPublicContent, getUserPublicProfile } from '../services/api';
 import { clsx } from 'clsx';
 import AvatarRenderer from './AvatarRenderer';
+import LoadingSpinner from './LoadingSpinner';
 
 // --- SUB-COMPONENTE: AVATAR INTELIGENTE DE CREADOR ---
 const SmartCreatorAvatar = ({ creador, className = "w-10 h-10 md:w-12 md:h-12" }) => {
@@ -100,11 +101,7 @@ const Carousel = ({ title, limit = 6, tipo = null, autoPlayInterval = 5000 }) =>
     return num.toString();
   };
 
-  if (loading) return (
-    <div className="h-full flex items-center justify-center min-h-[40vh] md:min-h-[50vh]">
-      <Loader2 className="animate-spin text-primary-600" size={40} />
-    </div>
-  );
+  if (loading) return <LoadingSpinner variant="page" />;
 
   if (items.length === 0) return null;
 
