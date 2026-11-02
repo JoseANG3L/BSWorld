@@ -276,7 +276,7 @@ const NotificationBell = () => {
                         </div>
 
                         <p className={clsx(
-                          'mt-0.5 text-[13px] leading-snug line-clamp-2 sm:mt-1 sm:text-xs',
+                          'mt-0.5 text-sm leading-snug line-clamp-2 sm:mt-1 sm:text-xs',
                           notif.leida
                             ? 'text-gray-600 dark:text-gray-400'
                             : 'font-semibold text-gray-900 dark:text-white'
@@ -306,7 +306,7 @@ const NotificationBell = () => {
                                 <Icon size={10} />
                               </span>
                             )}
-                            <span className="truncate text-[11px] font-medium text-gray-500 dark:text-gray-400 sm:text-[10px]">
+                            <span className="truncate text-xs font-medium text-gray-500 dark:text-gray-400 sm:text-[10px]">
                               {notif.modtitle}
                             </span>
                             <span className="hidden shrink-0 text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500 sm:inline">

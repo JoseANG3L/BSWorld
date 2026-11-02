@@ -124,6 +124,7 @@ const Resultados = () => {
               title={query.trim() ? `Resultados para "${query.trim()}"` : 'Buscar'}
               icon={Search}
               gradientClass="from-primary-500 to-primary-700"
+              hideHeaderTitleOnMobile
               headerClassName="min-w-0 lg:max-w-[12rem]"
               headerTrailing={renderTabs()}
               items={contentResults}
@@ -143,6 +144,7 @@ const Resultados = () => {
               title={query.trim() ? `Resultados para "${query.trim()}"` : 'Buscar'}
               icon={Search}
               gradientClass="from-primary-500 to-primary-700"
+              hideHeaderTitleOnMobile
               headerClassName="min-w-0 lg:max-w-[12rem]"
               headerTrailing={renderTabs()}
               items={userResults}
@@ -160,6 +162,7 @@ const Resultados = () => {
               title={query.trim() ? `Resultados para "${query.trim()}"` : 'Buscar'}
               icon={Search}
               gradientClass="from-primary-500 to-primary-700"
+              hideHeaderTitleOnMobile
               headerClassName="min-w-0 lg:max-w-[12rem]"
               headerTrailing={renderTabs()}
               items={forumResults.map(post => ({
@@ -185,6 +188,7 @@ const Resultados = () => {
               title={query.trim() ? `Resultados para "${query.trim()}"` : 'Buscar'}
               icon={Search}
               gradientClass="from-primary-500 to-primary-700"
+              hideTitleOnMobile
               className="min-w-0 lg:max-w-[12rem]"
             />
             {renderTabs()}

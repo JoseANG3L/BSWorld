@@ -6,6 +6,7 @@ const PageHeader = ({
   icon: Icon,
   gradientClass = 'from-primary-500 to-primary-700',
   trailing,
+  hideTitleOnMobile = false,
   className
 }) => (
   <h1 className={clsx(
@@ -18,7 +19,10 @@ const PageHeader = ({
     )}>
       {React.createElement(Icon, { size: 20, strokeWidth: 2.5 })}
     </span>
-    <span className="min-w-0 truncate">{title}</span>
+    <span className={clsx(
+      'min-w-0 truncate',
+      hideTitleOnMobile && 'sr-only md:not-sr-only'
+    )}>{title}</span>
     {trailing}
   </h1>
 );

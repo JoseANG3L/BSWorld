@@ -27,6 +27,7 @@ const DataContainer = ({
   customSortOptions = null,
   searchPlaceholder = null,
   showHeader = true,
+  hideHeaderTitleOnMobile = false,
   headerClassName = 'shrink-0',
   headerTrailing = null,
   emptyMessage = 'No se encontraron resultados',
@@ -162,6 +163,7 @@ const DataContainer = ({
             title={title}
             icon={Icon}
             gradientClass={gradientClass}
+            hideTitleOnMobile={hideHeaderTitleOnMobile}
             className={headerClassName}
           />
         )}

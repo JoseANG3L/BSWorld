@@ -35,6 +35,7 @@ const Mods = () => {
       enableTypeFilter={true}
       typeKey="tipo"
       customTypes={['complemento', 'mapa', 'personaje', 'minijuego', 'modpack', 'paquete']}
+      hideHeaderTitleOnMobile
       renderItem={(item) => (
         <Card {...item} />
       )}
