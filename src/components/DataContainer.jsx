@@ -27,6 +27,9 @@ const DataContainer = ({
   customSortOptions = null,
   searchPlaceholder = null,
   showHeader = true,
+  headerClassName = 'shrink-0',
+  headerTrailing = null,
+  emptyMessage = 'No se encontraron resultados',
   loading = false,
   skeletonCount = 12
 }) => {
@@ -153,27 +156,28 @@ const DataContainer = ({
 
   return (
     <div className="flex flex-col p-2 md:p-4 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
-      <div className="mb-4 flex flex-col gap-2 md:mb-6 lg:flex-row lg:items-center lg:gap-3">
+      <div className="mb-4 flex min-w-0 flex-row flex-nowrap items-center gap-1 md:mb-6 md:gap-3">
         {showHeader && (
           <PageHeader
             title={title}
             icon={Icon}
             gradientClass={gradientClass}
-            className="shrink-0"
+            className={headerClassName}
           />
         )}
+        {showHeader && headerTrailing}
 
         {/* BARRA DE FILTROS */}
-        <div className="flex min-w-0 w-full flex-row flex-nowrap items-center gap-2 md:gap-3 lg:flex-1">
+        <div className="flex min-w-0 flex-1 basis-0 flex-row flex-nowrap items-center gap-1 md:gap-3">
           {/* Búsqueda */}
-          <div className="relative min-w-0 w-full md:flex-1">
+          <div className="relative min-w-0 flex-[2_1_0%]">
           <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input 
             type="text" 
             placeholder={searchPlaceholder || `Buscar por ${searchKey}...`} 
             value={busqueda} 
             onChange={(e) => setBusqueda(e.target.value)} 
-            className="w-full pl-10 pr-4 py-2.5 h-10 rounded-xl bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all text-sm" 
+            className="w-full min-w-0 pl-10 pr-2 md:pr-4 py-2.5 h-10 rounded-xl bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all text-sm"
           />
           </div>
 
@@ -195,8 +199,8 @@ const DataContainer = ({
 
           {/* Filtro de tipos (Desktop) */}
           {enableTypeFilter && availableTypes.length > 0 && (
-          <div className="hidden md:block relative w-full md:w-auto" ref={typeDropdownRef}>
-            <div className="relative w-full md:w-40 lg:w-44">
+          <div className="hidden md:block relative min-w-0 flex-1 basis-0" ref={typeDropdownRef}>
+            <div className="relative min-w-0 w-full">
               <Filter size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <button
                 type="button"
@@ -247,8 +251,8 @@ const DataContainer = ({
         )}
 
           {/* Ordenamiento (Desktop) */}
-          <div className="hidden md:flex items-center gap-2 w-full md:w-auto" ref={ordenDropdownRef}>
-          <div className="relative w-full md:w-40 lg:w-44">
+          <div className="hidden md:flex min-w-0 flex-1 basis-0 items-center gap-2" ref={ordenDropdownRef}>
+          <div className="relative min-w-0 w-full">
             <ArrowUpDown size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <button type="button" onClick={() => { setIsOrdenDropdownOpen(!isOrdenDropdownOpen); setIsTypeDropdownOpen(false); }} className="w-full pl-10 pr-10 py-2.5 h-10 rounded-xl bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none appearance-none cursor-pointer transition-all text-sm font-medium text-left">
               <span className="truncate block">
@@ -315,7 +319,7 @@ const DataContainer = ({
       ) : (
         <div className="flex flex-col items-center justify-center py-20 text-gray-400 dark:text-gray-600">
           <Search size={48} className="mb-4 opacity-20" />
-          <p className="text-lg font-medium">No se encontraron resultados</p>
+          <p className="text-lg font-medium">{emptyMessage}</p>
           <p className="text-sm">Intenta con otro término de búsqueda o limpiando filtros.</p>
         </div>
       )}

@@ -226,6 +226,7 @@ const MisMods = () => {
         adminMode={false}
         onBulkUpdate={handleBulkUpdate}
         mobileCardLayout
+        mobileBulkActionsMenu
       />
 
       {/* MODAL */}

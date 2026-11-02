@@ -97,101 +97,99 @@ const Resultados = () => {
     <ForumPost key={post.id} post={post} onPostMutated={() => {}} />
   );
 
+  const hasAnyResults = contentResults.length > 0 || userResults.length > 0 || forumResults.length > 0;
+  const renderTabs = () => (
+    <div className="min-w-0 max-w-[6rem] flex-[0_1_auto] overflow-x-auto scrollbar-hide sm:max-w-[9rem] md:max-w-[12rem] lg:max-w-[16rem]">
+      <div className="flex w-max items-center gap-2">
+      {tabsConfig.map((tab) => (
+        <TabButton
+          key={tab.id}
+          active={activeTab === tab.id}
+          onClick={() => setActiveTab(tab.id)}
+          icon={tab.icon}
+          label={tab.label}
+          count={tab.count}
+        />
+      ))}
+      </div>
+    </div>
+  );
+
   return (
     <div className="flex flex-col animate-fade-in-up" style={{ animationDuration: '200ms' }}>
-      {/* HEADER estilo DataContainer */}
-      <div className="flex flex-col gap-3 p-2 md:flex-row md:items-center md:justify-between md:p-4">
-        <PageHeader
-          title={query.trim() ? `Resultados para "${query.trim()}"` : 'Buscar'}
-          icon={Search}
-          gradientClass="from-primary-500 to-primary-700"
-          className="min-w-0 md:flex-1"
-        />
-
-        {/* TABS como pills con scroll (móvil y desktop) */}
-        <div className="flex max-w-full items-center gap-2 overflow-x-auto scrollbar-hide md:shrink-0">
-          {tabsConfig.map((tab) => (
-            <TabButton
-              key={tab.id}
-              active={activeTab === tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              icon={tab.icon}
-              label={tab.label}
-              count={tab.count}
+      {(hasAnyResults || loading) ? (
+        <>
+          {activeTab === 'contenido' && (
+            <DataContainer
+              title={query.trim() ? `Resultados para "${query.trim()}"` : 'Buscar'}
+              icon={Search}
+              gradientClass="from-primary-500 to-primary-700"
+              headerClassName="min-w-0 lg:max-w-[12rem]"
+              headerTrailing={renderTabs()}
+              items={contentResults}
+              loading={loading}
+              searchKey="titulo"
+              dateKey="creado"
+              renderItem={renderContentItem}
+              enableTypeFilter={true}
+              typeKey="tipo"
+              customTypes={['mapa', 'minijuego', 'modpack', 'complemento', 'paquete', 'personaje']}
+              emptyMessage="No se encontró contenido"
             />
-          ))}
-        </div>
-      </div>
+          )}
 
-      {/* RESULTADOS POR TAB */}
-      {activeTab === 'contenido' && (
-        contentResults.length > 0 || loading ? (
-          <DataContainer
-            title="Contenido Encontrado"
-            icon={Grid}
-            gradientClass="from-purple-500 to-pink-500"
-            items={contentResults}
-            loading={loading}
-            searchKey="titulo"
-            dateKey="creado"
-            renderItem={renderContentItem}
-            enableTypeFilter={true}
-            typeKey="tipo"
-            customTypes={['mapa', 'minijuego', 'modpack', 'complemento', 'paquete', 'personaje']}
-            showHeader={false}
-          />
-        ) : (
-          <EmptyState message="No se encontró contenido" />
-        )
-      )}
+          {activeTab === 'usuarios' && (
+            <DataContainer
+              title={query.trim() ? `Resultados para "${query.trim()}"` : 'Buscar'}
+              icon={Search}
+              gradientClass="from-primary-500 to-primary-700"
+              headerClassName="min-w-0 lg:max-w-[12rem]"
+              headerTrailing={renderTabs()}
+              items={userResults}
+              loading={loading}
+              searchKey="username"
+              dateKey="createdat"
+              renderItem={renderUserItem}
+              layout="grid"
+              emptyMessage="No se encontraron usuarios"
+            />
+          )}
 
-      {activeTab === 'usuarios' && (
-        userResults.length > 0 || loading ? (
-          <DataContainer
-            title="Usuarios Encontrados"
-            icon={Users}
-            gradientClass="from-green-500 to-teal-500"
-            items={userResults}
-            loading={loading}
-            searchKey="username"
-            dateKey="createdat"
-            renderItem={renderUserItem}
-            showHeader={false}
-            layout="grid"
-          />
-        ) : (
-          <EmptyState message="No se encontraron usuarios" />
-        )
-      )}
-
-      {activeTab === 'foro' && (
-        forumResults.length > 0 || loading ? (
-          <DataContainer
-            title="Posts del Foro"
-            icon={MessageSquare}
-            gradientClass="from-blue-500 to-purple-500"
-            items={forumResults.map(post => ({
-              ...post,
-              searchContent: `${post.title || ''} ${post.content || ''}`.toLowerCase()
-            }))}
-            searchKey="searchContent"
-            dateKey="created_at"
-            renderItem={renderForumItem}
-            enableTypeFilter={true}
-            typeKey="category"
-            customTypes={['General', 'Ayuda', 'Discusión', 'Anuncios', 'Proyectos', 'Off-topic']}
-            layout="forum-columns"
-            loading={loading}
-            showHeader={false}
-          />
-        ) : (
-          <EmptyState message="No se encontraron posts en el foro" />
-        )
-      )}
-
-      {/* ESTADO VACÍO / SIN TÉRMINO (solo cuando ya terminó de cargar) */}
-      {!loading && contentResults.length === 0 && userResults.length === 0 && forumResults.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-24 bg-gray-50 dark:bg-[#1e1e1e] rounded-3xl border border-gray-200 dark:border-gray-800 text-center">
+          {activeTab === 'foro' && (
+            <DataContainer
+              title={query.trim() ? `Resultados para "${query.trim()}"` : 'Buscar'}
+              icon={Search}
+              gradientClass="from-primary-500 to-primary-700"
+              headerClassName="min-w-0 lg:max-w-[12rem]"
+              headerTrailing={renderTabs()}
+              items={forumResults.map(post => ({
+                ...post,
+                searchContent: `${post.title || ''} ${post.content || ''}`.toLowerCase()
+              }))}
+              searchKey="searchContent"
+              dateKey="created_at"
+              renderItem={renderForumItem}
+              enableTypeFilter={true}
+              typeKey="category"
+              customTypes={['General', 'Ayuda', 'Discusión', 'Anuncios', 'Proyectos', 'Off-topic']}
+              layout="forum-columns"
+              loading={loading}
+              emptyMessage="No se encontraron posts en el foro"
+            />
+          )}
+        </>
+      ) : (
+        <>
+          <div className="flex min-w-0 flex-row flex-nowrap items-center gap-1 p-2 md:gap-3 md:p-4">
+            <PageHeader
+              title={query.trim() ? `Resultados para "${query.trim()}"` : 'Buscar'}
+              icon={Search}
+              gradientClass="from-primary-500 to-primary-700"
+              className="min-w-0 lg:max-w-[12rem]"
+            />
+            {renderTabs()}
+          </div>
+          <div className="flex flex-col items-center justify-center py-24 bg-gray-50 dark:bg-[#1e1e1e] rounded-3xl border border-gray-200 dark:border-gray-800 text-center">
            <div className="bg-gray-200 dark:bg-[#1D1F23] p-6 rounded-full mb-4">
               {query.trim() ? (
                 <Frown size={64} className="text-gray-400" />
@@ -213,7 +211,8 @@ const Resultados = () => {
            >
              Explorar mods
            </Link>
-        </div>
+          </div>
+        </>
       )}
     </div>
   );

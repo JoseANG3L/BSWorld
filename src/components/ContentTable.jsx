@@ -49,7 +49,8 @@ const ContentTable = ({
   updatingId,
   adminMode = false,
   onBulkUpdate,
-  mobileCardLayout = false
+  mobileCardLayout = false,
+  mobileBulkActionsMenu = false
 }) => {
   const [busqueda, setBusqueda] = useState('');
   const [orden, setOrden] = useState('recientes');
@@ -67,6 +68,7 @@ const ContentTable = ({
 
   // Estados para selección múltiple
   const [selectedIds, setSelectedIds] = useState([]);
+  const [isMobileBulkMenuOpen, setIsMobileBulkMenuOpen] = useState(false);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [bulkActionType, setBulkActionType] = useState(null); // 'titulo', 'categoria', 'creador', 'visibilidad', 'estado'
   const [bulkValue, setBulkValue] = useState('');
@@ -94,6 +96,7 @@ const ContentTable = ({
   const visibilidadDropdownRef = useRef(null);
   const statusDropdownRef = useRef(null);
   const ordenDropdownRef = useRef(null);
+  const mobileBulkMenuRef = useRef(null);
 
   // Obtener tipos disponibles
   const availableTypes = useMemo(() => {
@@ -182,10 +185,24 @@ const ContentTable = ({
       if (ordenDropdownRef.current && !ordenDropdownRef.current.contains(event.target)) {
         setIsOrdenDropdownOpen(false);
       }
+      if (mobileBulkMenuRef.current && !mobileBulkMenuRef.current.contains(event.target)) {
+        setIsMobileBulkMenuOpen(false);
+      }
+    };
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') setIsMobileBulkMenuOpen(false);
     };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
   }, []);
+
+  useEffect(() => {
+    if (selectedIds.length === 0) setIsMobileBulkMenuOpen(false);
+  }, [selectedIds.length]);
 
   // Bloqueo de scroll cuando el modal de filtros está abierto
   useEffect(() => {
@@ -331,13 +348,17 @@ const ContentTable = ({
     }
   };
 
-  const clearSelection = () => setSelectedIds([]);
+  const clearSelection = () => {
+    setSelectedIds([]);
+    setIsMobileBulkMenuOpen(false);
+  };
 
   const isAllSelected = filteredData.length > 0 && selectedIds.length === filteredData.length;
   const isSomeSelected = selectedIds.length > 0 && selectedIds.length < filteredData.length;
 
   // Abrir modal de edición en masa
   const openBulkModal = (actionType) => {
+    setIsMobileBulkMenuOpen(false);
     setBulkActionType(actionType);
     setBulkValue('');
     setIsBulkModalOpen(true);
@@ -798,7 +819,49 @@ const ContentTable = ({
               {selectedIds.length} {selectedIds.length === 1 ? 'elemento seleccionado' : 'elementos seleccionados'}
             </span>
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
+          {mobileBulkActionsMenu && (
+            <div className="relative lg:hidden" ref={mobileBulkMenuRef}>
+              <button
+                type="button"
+                onClick={() => setIsMobileBulkMenuOpen(prev => !prev)}
+                aria-haspopup="menu"
+                aria-expanded={isMobileBulkMenuOpen}
+                className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium bg-white dark:bg-gray-800 border border-primary-200 dark:border-primary-800 rounded-lg text-primary-700 dark:text-primary-300"
+              >
+                <MoreVertical size={16} />
+                Opciones
+              </button>
+              {isMobileBulkMenuOpen && (
+                <div
+                  role="menu"
+                  className="absolute right-0 top-full z-50 mt-2 w-52 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D1F23] p-1.5 shadow-xl"
+                >
+                  {[
+                    { label: 'Cambiar título', action: () => openBulkModal('titulo') },
+                    { label: 'Cambiar categoría', action: () => openBulkModal('categoria') },
+                    { label: 'Cambiar visibilidad', action: () => openBulkModal('visibilidad') },
+                    { label: 'Eliminar', action: () => openBulkModal('eliminar'), destructive: true },
+                    { label: 'Cancelar selección', action: clearSelection }
+                  ].map(option => (
+                    <button
+                      key={option.label}
+                      type="button"
+                      role="menuitem"
+                      onClick={option.action}
+                      className={`w-full rounded-lg px-3 py-2.5 text-left text-sm transition-colors ${
+                        option.destructive
+                          ? 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20'
+                          : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          <div className={`${mobileBulkActionsMenu ? 'hidden lg:flex' : 'flex'} items-center gap-2 flex-wrap`}>
             <button
               type="button"
               onClick={() => openBulkModal('titulo')}
