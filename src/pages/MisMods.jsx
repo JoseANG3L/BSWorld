@@ -225,6 +225,7 @@ const MisMods = () => {
         updatingId={deletingId}
         adminMode={false}
         onBulkUpdate={handleBulkUpdate}
+        mobileCardLayout
       />
 
       {/* MODAL */}

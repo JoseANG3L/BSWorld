@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Bell, CheckCheck, ChevronRight, Inbox, X } from 'lucide-react';
+import { Bell, ChevronRight, Inbox, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuth, useNotifications } from '../context/AuthContext';
 import {
   getUserNotifications,
   markNotificationAsRead,
-  markAllNotificationsAsRead,
   invalidateNotificationsCache,
   getUserPublicProfile,
   prefetchUserProfiles
@@ -51,7 +50,7 @@ const NotificationBell = () => {
     }
     if (showLoader) setLoading(true);
     try {
-      const data = await getUserNotifications(user.id, false, PANEL_LIMIT, 0, true);
+      const data = await getUserNotifications(user.id, true, PANEL_LIMIT, 0, true);
       setItems(data);
     } catch (error) {
       console.error('Error cargando notificaciones para el panel:', error);
@@ -99,6 +98,35 @@ const NotificationBell = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    if (!isOpen || !window.matchMedia('(max-width: 639px)').matches) return undefined;
+
+    const scrollY = window.scrollY;
+    const bodyStyles = {
+      position: document.body.style.position,
+      top: document.body.style.top,
+      left: document.body.style.left,
+      right: document.body.style.right,
+      width: document.body.style.width,
+      overflow: document.body.style.overflow
+    };
+    const htmlOverflow = document.documentElement.style.overflow;
+
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.left = '0';
+    document.body.style.right = '0';
+    document.body.style.width = '100%';
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+
+    return () => {
+      Object.assign(document.body.style, bodyStyles);
+      document.documentElement.style.overflow = htmlOverflow;
+      window.scrollTo(0, scrollY);
+    };
+  }, [isOpen]);
+
   const togglePanel = () => {
     const next = !isOpen;
     setIsOpen(next);
@@ -112,7 +140,7 @@ const NotificationBell = () => {
     setIsOpen(false);
     if (!notif.leida) {
       try {
-        setItems((prev) => prev.map((n) => (n.id === notif.id ? { ...n, leida: true } : n)));
+        setItems((prev) => prev.filter((n) => n.id !== notif.id));
         await markNotificationAsRead(notif.id, user?.id);
         invalidateNotificationsCache(user?.id);
         refreshNotifications();
@@ -121,19 +149,6 @@ const NotificationBell = () => {
       }
     }
     if (notif.modid) navigate(`/view/${notif.modid}`);
-  };
-
-  const handleMarkAllAsRead = async (event) => {
-    event.stopPropagation();
-    if (!user?.id) return;
-    try {
-      setItems((prev) => prev.map((n) => ({ ...n, leida: true })));
-      await markAllNotificationsAsRead(user.id);
-      refreshNotifications();
-    } catch (error) {
-      console.error('Error marcando todas como leídas:', error);
-      fetchRecent();
-    }
   };
 
   if (!user) return null;
@@ -165,11 +180,11 @@ const NotificationBell = () => {
       {/* PANEL */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-[70] flex h-dvh w-full flex-col overflow-hidden bg-white shadow-lg shadow-black/5 animate-fade-in-up dark:bg-[#1c1d20] sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:mt-3 sm:h-auto sm:max-h-none sm:w-[min(23rem,calc(100vw-1.5rem))] sm:rounded-2xl sm:border sm:border-gray-200 sm:shadow-2xl sm:shadow-black/10 sm:dark:border-white/[0.08]"
+          className="fixed inset-0 z-[70] flex h-dvh w-full flex-col overscroll-contain overflow-hidden bg-white shadow-lg shadow-black/5 animate-fade-in-up dark:bg-[#1c1d20] sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:mt-3 sm:h-auto sm:max-h-none sm:w-[min(23rem,calc(100vw-1.5rem))] sm:rounded-2xl sm:border sm:border-gray-200 sm:shadow-2xl sm:shadow-black/10 sm:dark:border-white/[0.08]"
           style={{ animationDuration: '180ms' }}
         >
           {/* CABECERA */}
-          <div className="flex items-center justify-between gap-2 border-b border-gray-100 bg-gray-50/70 px-2.5 py-2 dark:border-white/[0.06] dark:bg-white/[0.02] sm:px-3.5 sm:py-3">
+          <div className="flex items-center justify-between gap-2 border-b border-gray-100 bg-gray-50/70 px-3 py-1.5 dark:border-white/[0.06] dark:bg-white/[0.02] sm:px-3.5 sm:py-3">
             <div className="flex min-w-0 items-center gap-2 sm:gap-2.5">
               <div className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary-600 text-white sm:h-8 sm:w-8 sm:rounded-xl sm:bg-gradient-to-br sm:from-primary-500 sm:to-indigo-500 sm:shadow-sm sm:shadow-primary-500/25">
                 <Bell size={14} strokeWidth={2.5} />
@@ -178,10 +193,10 @@ const NotificationBell = () => {
                 )}
               </div>
               <div className="min-w-0">
-                <h3 className="truncate text-sm font-bold text-gray-900 dark:text-white">
+                <h3 className="truncate text-base font-bold text-gray-900 dark:text-white sm:text-sm">
                   Notificaciones
                 </h3>
-                <p className="truncate text-[10px] font-medium text-gray-400 dark:text-gray-500">
+                <p className="truncate text-[11px] font-medium text-gray-500 dark:text-gray-400 sm:text-[10px]">
                   {unreadCount > 0
                     ? `${unreadCount > 99 ? '99+' : unreadCount} sin leer`
                     : 'Todo al día'}
@@ -189,16 +204,6 @@ const NotificationBell = () => {
               </div>
             </div>
 
-            {unreadCount > 0 && (
-              <button
-                type="button"
-                onClick={handleMarkAllAsRead}
-                className="flex shrink-0 items-center gap-1 rounded-lg px-1.5 py-1 text-[10px] font-bold text-primary-600 transition-colors hover:bg-primary-50 dark:text-primary-400 dark:hover:bg-primary-500/10 sm:px-2 sm:text-[11px]"
-              >
-                <CheckCheck size={12} />
-                Marcar leídas
-              </button>
-            )}
             <button
               type="button"
               onClick={() => setIsOpen(false)}
@@ -211,7 +216,7 @@ const NotificationBell = () => {
           </div>
 
           {/* LISTA */}
-          <div className="custom-scrollbar flex min-h-0 flex-1 flex-col overflow-y-auto sm:max-h-[min(24rem,calc(100vh-9rem))] sm:flex-none">
+          <div className="custom-scrollbar flex min-h-0 flex-1 flex-col overscroll-contain overflow-y-auto sm:max-h-[min(24rem,calc(100vh-9rem))] sm:flex-none">
             {loading ? (
               <BellSkeleton />
             ) : items.length > 0 ? (
@@ -228,7 +233,7 @@ const NotificationBell = () => {
                       key={notif.id}
                       onClick={() => handleOpenNotification(notif)}
                       className={clsx(
-                        'group relative flex w-full items-start gap-2.5 px-2 py-2 text-left transition-colors sm:gap-3 sm:px-3.5 sm:py-3',
+                        'group relative flex w-full items-start gap-2.5 px-2.5 py-2.5 text-left transition-colors sm:gap-3 sm:px-3.5 sm:py-3',
                         'hover:bg-gray-50 dark:hover:bg-white/[0.04]',
                         !notif.leida && 'bg-gradient-to-r from-primary-50/70 to-white dark:from-primary-500/[0.08] dark:to-transparent'
                       )}
@@ -243,8 +248,8 @@ const NotificationBell = () => {
                             <div className="h-8 w-8 overflow-hidden rounded-full ring-1 ring-white/80 dark:ring-[#1c1d20] sm:h-9 sm:w-9 sm:ring-2">
                               <AvatarRenderer avatar={actorInfo?.imagen} name={actorInfo?.nombre} />
                             </div>
-                            <span className={clsx('absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full ring-1 ring-white dark:ring-[#1c1d20] sm:h-[18px] sm:w-[18px] sm:ring-2', view.badge)}>
-                              <Icon size={8} strokeWidth={2.5} />
+                            <span className={clsx('absolute -bottom-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full ring-1 ring-white dark:ring-[#1c1d20] sm:h-[18px] sm:w-[18px] sm:ring-2', view.badge)}>
+                              <Icon size={9} strokeWidth={2.5} />
                             </span>
                           </>
                         ) : (
@@ -257,12 +262,12 @@ const NotificationBell = () => {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1">
                           <span className={clsx(
-                            'inline-flex items-center rounded px-1 py-0.5 text-[8px] font-bold uppercase tracking-wider sm:px-1.5 sm:text-[9px]',
+                            'inline-flex items-center rounded px-1 py-0.5 text-[9px] font-bold uppercase tracking-wide sm:px-1.5 sm:text-[9px]',
                             view.pill
                           )}>
                             {view.label}
                           </span>
-                          <span className="text-[9px] font-medium text-gray-400 dark:text-gray-500 sm:text-[10px]">
+                          <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 sm:text-[10px]">
                             {getTimeAgo(notif.creado)}
                           </span>
                           {!notif.leida && (
@@ -271,7 +276,7 @@ const NotificationBell = () => {
                         </div>
 
                         <p className={clsx(
-                          'mt-0.5 text-[11px] leading-snug line-clamp-2 sm:mt-1 sm:text-xs',
+                          'mt-0.5 text-[13px] leading-snug line-clamp-2 sm:mt-1 sm:text-xs',
                           notif.leida
                             ? 'text-gray-600 dark:text-gray-400'
                             : 'font-semibold text-gray-900 dark:text-white'
@@ -280,31 +285,31 @@ const NotificationBell = () => {
                         </p>
 
                         {view.quote && (
-                          <p className="mt-0.5 line-clamp-1 border-l-2 border-blue-400/40 pl-1.5 text-[9px] italic text-gray-400 dark:text-gray-500 sm:mt-1 sm:text-[10px]">
+                          <p className="mt-1 line-clamp-2 border-l-2 border-blue-400/40 pl-1.5 text-xs italic text-gray-500 dark:text-gray-400 sm:line-clamp-1 sm:text-[10px]">
                             “{view.quote}”
                           </p>
                         )}
 
                         {notif.modtitle && (
-                          <div className="mt-1 flex items-center gap-1.5 sm:mt-1.5">
+                          <div className="mt-0.5 flex items-center gap-1.5 sm:mt-1.5">
                             {notif.modimage ? (
                               <img
                                 src={thumbUrl(notif.modimage, 80)}
                                 alt=""
                                 loading="lazy"
                                 decoding="async"
-                                className="h-4 w-4 shrink-0 rounded object-cover sm:h-5 sm:w-5"
+                                className="hidden h-5 w-5 shrink-0 rounded object-cover sm:block"
                                 onError={(event) => { event.currentTarget.src = '/default.jpg'; }}
                               />
                             ) : (
-                              <span className={clsx('flex h-4 w-4 shrink-0 items-center justify-center rounded sm:h-5 sm:w-5', view.tile)}>
-                                <Icon size={9} />
+                              <span className={clsx('hidden h-5 w-5 shrink-0 items-center justify-center rounded sm:flex', view.tile)}>
+                                <Icon size={10} />
                               </span>
                             )}
-                            <span className="truncate text-[9px] font-medium text-gray-400 dark:text-gray-500 sm:text-[10px]">
+                            <span className="truncate text-[11px] font-medium text-gray-500 dark:text-gray-400 sm:text-[10px]">
                               {notif.modtitle}
                             </span>
-                            <span className="shrink-0 text-[8px] uppercase tracking-wide text-gray-300 dark:text-gray-600 sm:text-[9px]">
+                            <span className="hidden shrink-0 text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500 sm:inline">
                               {contentType}
                             </span>
                           </div>
@@ -322,8 +327,8 @@ const NotificationBell = () => {
                     <Inbox size={20} />
                   </div>
                 </div>
-                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Todo al día</p>
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-500">
+                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">No tienes notificaciones sin leer</p>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 sm:text-xs">
                   Aquí verás los likes, comentarios y novedades de tu contenido.
                 </p>
               </div>
@@ -334,9 +339,9 @@ const NotificationBell = () => {
           <Link
             to="/notificaciones"
             onClick={() => setIsOpen(false)}
-            className="flex items-center justify-center gap-1 border-t border-gray-100 bg-gray-50/50 px-2.5 py-2 text-[11px] font-bold text-primary-600 transition-colors hover:bg-primary-50 dark:border-white/[0.06] dark:bg-white/[0.01] dark:text-primary-400 dark:hover:bg-primary-500/10 sm:gap-1.5 sm:px-4 sm:py-2.5 sm:text-xs"
+            className="flex items-center justify-center gap-1 border-t border-gray-100 bg-gray-50/50 px-2.5 py-2 text-[13px] font-bold text-primary-600 transition-colors hover:bg-primary-50 dark:border-white/[0.06] dark:bg-white/[0.01] dark:text-primary-400 dark:hover:bg-primary-500/10 sm:gap-1.5 sm:px-4 sm:py-2.5 sm:text-xs"
           >
-            Ver todas las notificaciones
+            Ver todas
             <ChevronRight size={13} />
           </Link>
         </div>

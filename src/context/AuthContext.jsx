@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { supabase } from "../services/supabaseClient";
 import { getUnreadNotificationsCount, invalidateNotificationsCache } from "../services/api";
 
@@ -259,7 +259,7 @@ export const AuthProvider = ({ children }) => {
   // --- NOTIFICACIONES GLOBALES ---
 
   // Funciones de notificaciones globales
-  const fetchUnreadCount = async () => {
+  const fetchUnreadCount = useCallback(async () => {
     if (!user?.id) {
       setUnreadCount(0);
       return;
@@ -271,23 +271,40 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error("Error cargando conteo de notificaciones:", error);
     }
-  };
+  }, [user]);
 
-  const refreshNotifications = () => {
+  const refreshNotifications = useCallback(() => {
     fetchUnreadCount();
-  };
+  }, [fetchUnreadCount]);
 
-  // Cargar notificaciones cuando el usuario cambia
+  // Mantener el conteo global sincronizado con los cambios de la tabla.
   useEffect(() => {
-    if (user?.id) {
-      fetchUnreadCount();
-      // Refrescar cada 2 minutos
-      const interval = setInterval(fetchUnreadCount, 120000);
-      return () => clearInterval(interval);
-    } else {
-      setUnreadCount(0);
-    }
-  }, [user?.id]);
+    if (!user?.id) return undefined;
+
+    const channel = supabase
+      .channel(`notifications-count-${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "notifications",
+          filter: `userid=eq.${user.id}`
+        },
+        fetchUnreadCount
+      )
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          fetchUnreadCount();
+        } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          console.error(`Error en la suscripción al conteo de notificaciones: ${status}`);
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, fetchUnreadCount]);
 
   return (
     <AuthContext.Provider value={{ user, login, signup, logout, loading, signInWithProvider, updateUserProfile }}>

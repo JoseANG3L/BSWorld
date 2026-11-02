@@ -4,6 +4,7 @@ import CreatorCard from '../components/CreatorCard';
 import ForumPost from '../components/ForumPost';
 import { MessageSquare, Plus, X, Image as ImageIcon, Tag, Vote, ChevronDown, Check, Trash2, Crown, Users, Search } from 'lucide-react';
 import DataContainer from '../components/DataContainer';
+import PageHeader from '../components/PageHeader';
 import { useAuth } from '../context/AuthContext';
 import AvatarRenderer from '../components/AvatarRenderer';
 import { createPortal } from 'react-dom';
@@ -548,17 +549,16 @@ const Comunidad = () => {
   return (
     <div className="flex flex-col p-2 md:p-4 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
       {/* Header con Tabs */}
-      <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-4 md:mb-5">
-        <h1 className="flex text-xl md:text-2xl font-bold text-gray-800 dark:text-white items-center gap-3">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-sm text-white bg-gradient-to-br from-yellow-600 to-orange-500">
-            <Crown size={20} strokeWidth={2.5} />
-          </div>
-          Comunidad
-        </h1>
-      </div>
+      <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between md:mb-5">
+        <PageHeader
+          title="Comunidad"
+          icon={Crown}
+          gradientClass="from-yellow-600 to-orange-500"
+          className="shrink-0"
+        />
 
-      {/* Tabs */}
-      <div className="flex w-full md:w-auto mb-4 border-b border-gray-200 dark:border-gray-700">
+        {/* Tabs */}
+        <div className="flex w-full border-b border-gray-200 dark:border-gray-700 md:w-auto">
         <button
           onClick={() => setActiveTab('foro')}
           className={clsx(
@@ -583,6 +583,7 @@ const Comunidad = () => {
           <Users size={16} />
           Usuarios
         </button>
+      </div>
       </div>
 
       {/* Contenido según tab activo */}

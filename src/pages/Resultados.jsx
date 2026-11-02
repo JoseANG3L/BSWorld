@@ -7,6 +7,7 @@ import CreatorCard from '../components/CreatorCard';
 import ForumPost from '../components/ForumPost';
 import { getAllContent, getAllUsers, getForumPosts } from '../services/api';
 import DataContainer from '../components/DataContainer';
+import PageHeader from '../components/PageHeader';
 
 const Resultados = () => {
   const [searchParams] = useSearchParams();
@@ -96,28 +97,19 @@ const Resultados = () => {
     <ForumPost key={post.id} post={post} onPostMutated={() => {}} />
   );
 
-  const totalCount = contentResults.length + userResults.length + forumResults.length;
-
   return (
     <div className="flex flex-col animate-fade-in-up" style={{ animationDuration: '200ms' }}>
       {/* HEADER estilo DataContainer */}
-      <div className="flex flex-col md:flex-row md:justify-between md:items-center p-2 md:p-4">
-        <h1 className="flex text-xl md:text-2xl font-bold text-gray-800 dark:text-white items-center gap-3">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-sm text-white bg-gradient-to-br from-primary-500 to-primary-700">
-            <Search size={20} strokeWidth={2.5} />
-          </div>
-          {query.trim() ? (
-            <span className="truncate">Resultados para "{query.trim()}"</span>
-          ) : (
-            'Buscar'
-          )}
-          <span className="text-sm font-normal text-gray-500 dark:text-gray-400 self-end mb-1 ml-1">({totalCount})</span>
-        </h1>
-      </div>
+      <div className="flex flex-col gap-3 p-2 md:flex-row md:items-center md:justify-between md:p-4">
+        <PageHeader
+          title={query.trim() ? `Resultados para "${query.trim()}"` : 'Buscar'}
+          icon={Search}
+          gradientClass="from-primary-500 to-primary-700"
+          className="min-w-0 md:flex-1"
+        />
 
-      {/* TABS como pills con scroll (móvil y desktop) */}
-      <div className="px-2 md:px-4">
-        <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide max-w-full">
+        {/* TABS como pills con scroll (móvil y desktop) */}
+        <div className="flex max-w-full items-center gap-2 overflow-x-auto scrollbar-hide md:shrink-0">
           {tabsConfig.map((tab) => (
             <TabButton
               key={tab.id}

@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { createPortal } from 'react-dom';
-import { Edit3, Trash2, Filter, Search, ArrowUpDown, ChevronDown, X, Check, Eye, Heart, MessageCircle, Layers, CheckCircle, XCircle, CheckSquare, Square, Download, Wrench, Map, Gamepad2, Boxes, Package, User } from 'lucide-react';
+import { Edit3, Trash2, Filter, Search, ArrowUpDown, ChevronDown, X, Check, Eye, Heart, MessageCircle, Layers, CheckCircle, XCircle, CheckSquare, Square, Download, Wrench, Map, Gamepad2, Boxes, Package, User, MoreVertical } from 'lucide-react';
 import { getCommentCountByContent, getUserPublicProfile, updateContent, searchUsers, deleteContent } from '../services/api';
 import { clsx } from 'clsx';
 import LoadingSpinner from './LoadingSpinner';
+import PageHeader from './PageHeader';
 
 const CATEGORIAS = {
   complemento: { nombre: 'Complemento', icon: Wrench, color: 'text-blue-500', borderColor: 'border-blue-500/80' },
@@ -47,7 +48,8 @@ const ContentTable = ({
   onDelete,
   updatingId,
   adminMode = false,
-  onBulkUpdate
+  onBulkUpdate,
+  mobileCardLayout = false
 }) => {
   const [busqueda, setBusqueda] = useState('');
   const [orden, setOrden] = useState('recientes');
@@ -541,33 +543,18 @@ const ContentTable = ({
 
   return (
     <div className="flex flex-col p-2 md:p-4 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
-      {/* HEADER */}
-      <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-2 md:mb-6 gap-3">
-        <h1 className="flex text-xl md:text-2xl font-bold text-gray-800 dark:text-white items-center gap-3">
-          <div className={clsx("w-9 h-9 rounded-xl flex items-center justify-center shadow-sm text-white", `bg-gradient-to-br ${gradientClass}`)}>
-              <Icon size={20} strokeWidth={2.5} />
-          </div>
-          {title}
-          <span className="text-sm font-normal text-gray-500 dark:text-gray-400 self-end mb-1 ml-1">({filteredData.length})</span>
-        </h1>
-        
-        {/* Estadísticas en el header */}
-        {headerStats && (
-          <div className="flex flex-wrap gap-2 md:gap-3">
-            {headerStats.map((stat, index) => (
-              <div key={index} className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-transparent">
-                <stat.icon size={16} className={clsx("text-gray-600 dark:text-gray-400", stat.iconColor)} />
-                <span className="text-xs font-bold text-gray-900 dark:text-white">{formatNumber(stat.value)}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      <div className="mb-4 flex flex-col gap-2 md:mb-8 xl:flex-row xl:items-center xl:gap-3">
+        <PageHeader
+          title={title}
+          icon={Icon}
+          gradientClass={gradientClass}
+          className="shrink-0"
+        />
 
       {/* BARRA DE FILTROS */}
-      <div className="mb-2 md:mb-6 flex flex-row gap-2 md:gap-3 items-start md:items-center">
+      <div className="flex min-w-0 w-full flex-row flex-nowrap items-center gap-2 md:gap-3 xl:flex-1">
         {/* Búsqueda */}
-        <div className="relative w-full md:flex-1">
+        <div className="relative min-w-0 w-full flex-1">
           <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
@@ -579,24 +566,25 @@ const ContentTable = ({
         </div>
 
         {/* Botón para abrir modal de filtros en móvil */}
-        <div className="md:hidden">
+        <div className="xl:hidden">
           <button
             type="button"
             onClick={handleOpenFiltersModal}
-            className="relative px-4 py-2.5 h-10 rounded-xl bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-sm font-medium flex items-center gap-2 shrink-0"
+            className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-gray-300 bg-white text-gray-700 transition-all hover:bg-gray-100 dark:border-transparent dark:bg-[#1D1F23] dark:text-gray-200 dark:hover:bg-gray-800"
+            aria-label="Abrir filtros"
+            title="Filtros"
           >
             <Filter size={18} className="text-gray-500 dark:text-gray-400" />
-            <span>Filtros</span>
             {(selectedTypes.length > 0 || selectedVisibilidad.length > 0 || selectedStatus.length > 0 || orden !== 'recientes') && (
-              <span className="w-2 h-2 rounded-full bg-primary-500 shrink-0"></span>
+              <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-primary-500"></span>
             )}
           </button>
         </div>
 
         {/* Filtro de tipos (Desktop) */}
         {columns.category && availableTypes.length > 0 && (
-          <div className="hidden md:block relative w-full md:w-auto" ref={typeDropdownRef}>
-            <div className="relative w-full md:w-56 lg:w-64">
+          <div className="hidden xl:block relative shrink-0" ref={typeDropdownRef}>
+            <div className="relative w-40">
               <Filter size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <button
                 type="button"
@@ -653,8 +641,8 @@ const ContentTable = ({
 
         {/* Filtro de visibilidad (Desktop) */}
         {columns.visibility && (
-          <div className="hidden md:block relative w-full md:w-auto" ref={visibilidadDropdownRef}>
-            <div className="relative w-full md:w-56 lg:w-64">
+          <div className="hidden xl:block relative shrink-0" ref={visibilidadDropdownRef}>
+            <div className="relative w-40">
               <Filter size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <button
                 type="button"
@@ -706,8 +694,8 @@ const ContentTable = ({
 
         {/* Filtro de estado (Desktop, solo admin) */}
         {adminMode && columns.status && (
-          <div className="hidden md:block relative w-full md:w-auto" ref={statusDropdownRef}>
-            <div className="relative w-full md:w-48">
+          <div className="hidden xl:block relative shrink-0" ref={statusDropdownRef}>
+            <div className="relative w-40">
               <Filter size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <button
                 type="button"
@@ -758,8 +746,8 @@ const ContentTable = ({
         )}
 
         {/* Ordenamiento (Desktop) */}
-        <div className="hidden md:flex items-center gap-2 w-full md:w-auto" ref={ordenDropdownRef}>
-          <div className="relative w-full md:w-56 lg:w-64">
+        <div className="hidden xl:flex shrink-0 items-center gap-2" ref={ordenDropdownRef}>
+          <div className="relative w-40">
             <ArrowUpDown size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <button type="button" onClick={() => { setIsOrdenDropdownOpen(!isOrdenDropdownOpen); setIsTypeDropdownOpen(false); setIsVisibilidadDropdownOpen(false); setIsStatusDropdownOpen(false); }} className="w-full pl-10 pr-10 py-2.5 h-10 rounded-xl bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none appearance-none cursor-pointer transition-all text-sm font-medium text-left">
               <span className="truncate block">
@@ -787,6 +775,19 @@ const ContentTable = ({
           </div>
         </div>
       </div>
+      </div>
+
+      {/* Estadísticas del encabezado */}
+      {headerStats && (
+      <div className="mb-4 flex flex-wrap gap-2 md:gap-3">
+        {headerStats.map((stat, index) => (
+          <div key={index} className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-transparent">
+            <stat.icon size={16} className={clsx("text-gray-600 dark:text-gray-400", stat.iconColor)} />
+            <span className="text-xs font-bold text-gray-900 dark:text-white">{formatNumber(stat.value)}</span>
+          </div>
+        ))}
+      </div>
+      )}
 
       {/* BARRA DE ACCIONES GLOBALES */}
       {selectedIds.length > 0 && (
@@ -854,7 +855,146 @@ const ContentTable = ({
           <p className="text-sm">Intenta con otra búsqueda o limpiando filtros.</p>
         </div>
       ) : (
-        <div className="overflow-x-auto">
+        <>
+        {mobileCardLayout && (
+          <div className="lg:hidden">
+            <div className="mb-2 flex justify-end">
+              <button
+                type="button"
+                onClick={toggleSelectAll}
+                className="px-2 py-1 text-xs font-medium text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400"
+              >
+                {isAllSelected ? 'Quitar selección' : 'Seleccionar todo'}
+              </button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {filteredData.map((item) => {
+                const estado = item.estado || item.status || 'borrador';
+                const statusConfig = getStatusConfig(estado);
+                const visibilidad = getVisibilityConfig(item.visibilidad || 'publico');
+                const mainImage = item.imagen || (item.imagenes && item.imagenes[0]) || null;
+                const totalDownloads = (item.descargas || []).reduce((acc, curr) => acc + (curr.count || 0), 0);
+
+                return (
+                  <article
+                    key={item.id}
+                    className={clsx(
+                      "relative min-w-0 rounded-xl border p-2.5 transition-colors",
+                      selectedIds.includes(item.id)
+                        ? "border-primary-300 bg-primary-50 dark:border-primary-800 dark:bg-primary-900/10"
+                        : "border-gray-200 bg-white dark:border-gray-800 dark:bg-[#1D1F23]"
+                    )}
+                  >
+                    <div className="flex items-start gap-2.5">
+                      {columns.image && (
+                        <Link to={`/view/${item.id}`} className="h-14 w-[76px] shrink-0 overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-900">
+                          {mainImage ? (
+                            <img src={mainImage} alt={item.titulo || 'Imagen del mod'} className="h-full w-full object-cover" loading="lazy" />
+                          ) : (
+                            <span className="flex h-full w-full items-center justify-center text-gray-400">
+                              <Layers size={18} />
+                            </span>
+                          )}
+                        </Link>
+                      )}
+
+                      <div className="min-w-0 flex-1">
+                        {columns.title && (
+                          <Link
+                            to={`/view/${item.id}`}
+                            className="block truncate pr-1 text-sm font-semibold text-gray-900 hover:text-primary-600 dark:text-white dark:hover:text-primary-400"
+                          >
+                            {item.titulo || 'Sin título'}
+                          </Link>
+                        )}
+                        {columns.creator && (
+                          <p className="mt-0.5 truncate text-xs text-gray-500 dark:text-gray-400">
+                            {item.creadores?.[0]?.nombre || item.creadores?.[0]?.username || 'Creador no disponible'}
+                          </p>
+                        )}
+                        <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+                          {columns.category && (() => {
+                            const categoriaInfo = CATEGORIAS[item.tipo] || { nombre: item.tipo || 'Complemento', icon: null, color: 'text-gray-500' };
+                            const CategoriaIcon = categoriaInfo.icon;
+                            return (
+                              <span className={`inline-flex items-center gap-1 text-[11px] font-medium ${categoriaInfo.color}`}>
+                                {CategoriaIcon && <CategoriaIcon size={12} />}
+                                {categoriaInfo.nombre}
+                              </span>
+                            );
+                          })()}
+                          {columns.status && (
+                            <span className={`rounded-md border px-1.5 py-0.5 text-[10px] font-semibold ${statusConfig.style}`}>
+                              {statusConfig.label}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex shrink-0 items-center gap-0.5">
+                        <button
+                          type="button"
+                          onClick={() => toggleSelect(item.id)}
+                          aria-label={selectedIds.includes(item.id) ? 'Deseleccionar mod' : 'Seleccionar mod'}
+                          className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
+                        >
+                          {selectedIds.includes(item.id)
+                            ? <CheckSquare size={17} className="text-primary-600 dark:text-primary-400" />
+                            : <Square size={17} />}
+                        </button>
+                        {columns.actions && (actions.view || actions.edit || actions.delete) && (
+                          <details className="group relative">
+                            <summary
+                              aria-label={`Opciones de ${item.titulo || 'mod'}`}
+                              className="flex cursor-pointer list-none rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-800 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white [&::-webkit-details-marker]:hidden"
+                            >
+                              <MoreVertical size={18} />
+                            </summary>
+                            <div className="absolute right-0 top-full z-30 mt-1 min-w-36 overflow-hidden rounded-xl border border-gray-200 bg-white p-1 shadow-xl dark:border-gray-700 dark:bg-[#25272b]">
+                              {actions.view && (
+                                <Link to={`/view/${item.id}`} className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800">
+                                  <Eye size={14} /> Ver
+                                </Link>
+                              )}
+                              {actions.edit && (
+                                <Link to={`/edit/${item.id}`} className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800">
+                                  <Edit3 size={14} /> Editar
+                                </Link>
+                              )}
+                              {actions.delete && (
+                                <button
+                                  type="button"
+                                  onClick={() => onDelete && onDelete(item.id, item.titulo)}
+                                  disabled={updatingId === item.id}
+                                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs text-red-600 hover:bg-red-50 disabled:opacity-50 dark:text-red-400 dark:hover:bg-red-900/20"
+                                >
+                                  {updatingId === item.id ? <LoadingSpinner variant="inline" size={14} /> : <Trash2 size={14} />}
+                                  Eliminar
+                                </button>
+                              )}
+                            </div>
+                          </details>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-gray-100 pt-2 text-[11px] text-gray-500 dark:border-gray-800 dark:text-gray-400">
+                      {columns.visibility && <span className={visibilidad.style}>{visibilidad.label}</span>}
+                      {columns.date && item.creado && (
+                        <span>{new Date(item.creado).toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
+                      )}
+                      {columns.views && <span className="inline-flex items-center gap-1"><Eye size={12} />{formatNumber(item.vistas || 0)}</span>}
+                      {columns.likes && <span className="inline-flex items-center gap-1"><Heart size={12} />{formatNumber(item.likes_count || 0)}</span>}
+                      {columns.comments && <span className="inline-flex items-center gap-1"><MessageCircle size={12} />{formatNumber(commentCounts[item.id] || 0)}</span>}
+                      {columns.downloads && <span className="inline-flex items-center gap-1"><Download size={12} />{formatNumber(totalDownloads)}</span>}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </div>
+        )}
+        <div className={clsx("overflow-x-auto", mobileCardLayout && "hidden lg:block")}>
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="text-gray-500 dark:text-gray-500 text-[10px] font-bold uppercase tracking-wider border-b border-gray-300 dark:border-gray-800">
@@ -1122,6 +1262,7 @@ const ContentTable = ({
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       {/* MODAL DE FILTROS EN MÓVIL */}

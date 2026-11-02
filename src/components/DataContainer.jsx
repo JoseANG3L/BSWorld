@@ -4,6 +4,7 @@ import { Search, Filter, ArrowUpDown, Sparkles, X, ChevronDown, Check } from 'lu
 import { clsx } from 'clsx';
 import { prefetchUserProfiles } from '../services/api';
 import { CardSkeleton, PostSkeleton } from './CardSkeleton';
+import PageHeader from './PageHeader';
 
 const capitalizeText = (str) => {
   if (!str) return '';
@@ -152,23 +153,20 @@ const DataContainer = ({
 
   return (
     <div className="flex flex-col p-2 md:p-4 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
-      {/* HEADER */}
-      {showHeader && (
-        <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-2 md:mb-6">
-          <h1 className="flex text-xl md:text-2xl font-bold text-gray-800 dark:text-white items-center gap-3">
-            <div className={clsx("w-9 h-9 rounded-xl flex items-center justify-center shadow-sm text-white", `bg-gradient-to-br ${gradientClass}`)}>
-                <Icon size={20} strokeWidth={2.5} />
-            </div>
-            {title}
-            <span className="text-sm font-normal text-gray-500 dark:text-gray-400 self-end mb-1 ml-1">({loading ? '···' : itemsFiltrados.length})</span>
-          </h1>
-        </div>
-      )}
+      <div className="mb-4 flex flex-col gap-2 md:mb-6 lg:flex-row lg:items-center lg:gap-3">
+        {showHeader && (
+          <PageHeader
+            title={title}
+            icon={Icon}
+            gradientClass={gradientClass}
+            className="shrink-0"
+          />
+        )}
 
-      {/* BARRA DE FILTROS */}
-      <div className="mb-2 md:mb-5 flex flex-row gap-2 md:gap-3 items-start md:items-center">
-        {/* Búsqueda */}
-        <div className="relative w-full md:flex-1">
+        {/* BARRA DE FILTROS */}
+        <div className="flex min-w-0 w-full flex-row flex-nowrap items-center gap-2 md:gap-3 lg:flex-1">
+          {/* Búsqueda */}
+          <div className="relative min-w-0 w-full md:flex-1">
           <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input 
             type="text" 
@@ -177,27 +175,28 @@ const DataContainer = ({
             onChange={(e) => setBusqueda(e.target.value)} 
             className="w-full pl-10 pr-4 py-2.5 h-10 rounded-xl bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all text-sm" 
           />
-        </div>
+          </div>
 
-        {/* Botón para abrir modal de filtros en móvil */}
-        <div className="md:hidden">
+          {/* Botón para abrir modal de filtros en móvil */}
+          <div className="md:hidden">
           <button
             type="button"
             onClick={handleOpenFiltersModal}
-            className="relative px-4 py-2.5 h-10 rounded-xl bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-sm font-medium flex items-center gap-2 shrink-0"
+            className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-gray-300 bg-white text-gray-700 transition-all hover:bg-gray-100 dark:border-transparent dark:bg-[#1D1F23] dark:text-gray-200 dark:hover:bg-gray-800"
+            aria-label="Abrir filtros"
+            title="Filtros"
           >
             <Filter size={18} className="text-gray-500 dark:text-gray-400" />
-            <span>Filtros</span>
             {(selectedTypes.length > 0 || orden !== 'recientes') && (
-              <span className="w-2 h-2 rounded-full bg-primary-500 shrink-0"></span>
+              <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-primary-500"></span>
             )}
           </button>
-        </div>
+          </div>
 
-        {/* Filtro de tipos (Desktop) */}
-        {enableTypeFilter && availableTypes.length > 0 && (
+          {/* Filtro de tipos (Desktop) */}
+          {enableTypeFilter && availableTypes.length > 0 && (
           <div className="hidden md:block relative w-full md:w-auto" ref={typeDropdownRef}>
-            <div className="relative w-full md:w-56 lg:w-64">
+            <div className="relative w-full md:w-40 lg:w-44">
               <Filter size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <button
                 type="button"
@@ -243,13 +242,13 @@ const DataContainer = ({
                   ))}
                 </div>
               </div>
-            )}
+              )}
           </div>
         )}
 
-        {/* Ordenamiento (Desktop) */}
-        <div className="hidden md:flex items-center gap-2 w-full md:w-auto" ref={ordenDropdownRef}>
-          <div className="relative w-full md:w-56 lg:w-64">
+          {/* Ordenamiento (Desktop) */}
+          <div className="hidden md:flex items-center gap-2 w-full md:w-auto" ref={ordenDropdownRef}>
+          <div className="relative w-full md:w-40 lg:w-44">
             <ArrowUpDown size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <button type="button" onClick={() => { setIsOrdenDropdownOpen(!isOrdenDropdownOpen); setIsTypeDropdownOpen(false); }} className="w-full pl-10 pr-10 py-2.5 h-10 rounded-xl bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none appearance-none cursor-pointer transition-all text-sm font-medium text-left">
               <span className="truncate block">
@@ -274,8 +273,9 @@ const DataContainer = ({
                 </div>
               </div>
             )}
+            </div>
           </div>
-        </div>
+      </div>
       </div>
 
       {/* RESULTADOS */}

@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Bell, Search, X, Inbox, Mail, MailOpen, Trash2, CheckCheck, RefreshCw,
-  ChevronRight
+  Bell, Inbox, Mail, MailOpen, Trash2, CheckCheck, RefreshCw
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuth, useNotifications } from '../context/AuthContext';
+import { supabase } from '../services/supabaseClient';
 import {
   getUserNotifications,
   markNotificationAsRead,
@@ -18,22 +18,17 @@ import {
 } from '../services/api';
 import AvatarRenderer from '../components/AvatarRenderer';
 import LoadingSpinner from '../components/LoadingSpinner';
+import NotificationFilters from '../components/NotificationFilters';
+import PageHeader from '../components/PageHeader';
 import { useToast } from '../hooks/useToast';
-import { getNotificationView, getTimeAgo, CONTENT_TYPE_LABELS } from '../utils/notifications';
-import { thumbUrl } from '../utils/image';
+import { getNotificationView, getTimeAgo } from '../utils/notifications';
 
 const PER_PAGE = 20;
-
-const TABS = [
-  { id: 'all', label: 'Todas' },
-  { id: 'unread', label: 'No leídas' },
-  { id: 'read', label: 'Leídas' }
-];
 
 // Agrupa por día para dar contexto temporal a la bandeja.
 const getDayGroup = (dateString) => {
   const date = new Date(dateString);
-  if (Number.isNaN(date.getTime())) return { key: 'older', label: 'Anteriores' };
+  if (Number.isNaN(date.getTime())) return { key: 'older', label: '' };
 
   const startOfDay = (value) =>
     new Date(value.getFullYear(), value.getMonth(), value.getDate()).getTime();
@@ -42,7 +37,7 @@ const getDayGroup = (dateString) => {
   if (diffDays <= 0) return { key: 'today', label: 'Hoy' };
   if (diffDays === 1) return { key: 'yesterday', label: 'Ayer' };
   if (diffDays < 7) return { key: 'week', label: 'Esta semana' };
-  return { key: 'older', label: 'Anteriores' };
+  return { key: 'older', label: '' };
 };
 
 const NotificationSkeleton = () => (
@@ -54,20 +49,14 @@ const NotificationSkeleton = () => (
         style={{ animationDelay: `${i * 60}ms` }}
       >
         <div className="flex items-start gap-3">
-          <div className="h-11 w-11 shrink-0 rounded-full bg-gray-200 dark:bg-gray-700" />
+          <div className="h-9 w-9 shrink-0 rounded-full bg-gray-200 dark:bg-gray-700" />
           <div className="flex-1 space-y-2.5 py-0.5">
             <div className="flex items-center gap-2">
-              <div className="h-4 w-16 rounded-md bg-gray-200 dark:bg-gray-700" />
+              <div className="h-3 w-16 rounded-md bg-gray-200 dark:bg-gray-700" />
               <div className="h-2.5 w-12 rounded-full bg-gray-200 dark:bg-gray-700" />
             </div>
             <div className="h-3.5 w-4/5 rounded-full bg-gray-200 dark:bg-gray-700" />
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-gray-200 dark:bg-gray-700" />
-              <div className="space-y-1.5">
-                <div className="h-2.5 w-28 rounded-full bg-gray-200 dark:bg-gray-700" />
-                <div className="h-2 w-16 rounded-full bg-gray-200 dark:bg-gray-700" />
-              </div>
-            </div>
+            <div className="h-2.5 w-2/5 rounded-full bg-gray-200 dark:bg-gray-700" />
           </div>
         </div>
       </div>
@@ -83,9 +72,9 @@ const Notificaciones = () => {
 
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [filter, setFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(false);
@@ -93,6 +82,7 @@ const Notificaciones = () => {
   const [pendingDelete, setPendingDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const searchRef = useRef(null);
+  const notificationsRequestRef = useRef(0);
 
   const getActor = useCallback(
     (notif) => actorCache[notif.actorid] || null,
@@ -109,20 +99,23 @@ const Notificaciones = () => {
         setLoading(false);
         return;
       }
+      const requestId = ++notificationsRequestRef.current;
       setLoading(true);
       invalidateNotificationsCache(user.id);
       try {
         const data = await getUserNotifications(user.id, false, PER_PAGE, 0, true);
-        if (!active) return;
+        if (!active || requestId !== notificationsRequestRef.current) return;
         setNotifications(data);
         setPage(0);
         setHasMore(data.length === PER_PAGE);
         refreshNotifications();
       } catch (error) {
         console.error('Error cargando notificaciones:', error);
-        if (active) showToast('No se pudieron cargar las notificaciones', 'error');
+        if (active && requestId === notificationsRequestRef.current) {
+          showToast('No se pudieron cargar las notificaciones', 'error');
+        }
       } finally {
-        if (active) setLoading(false);
+        if (active && requestId === notificationsRequestRef.current) setLoading(false);
       }
     };
 
@@ -130,6 +123,51 @@ const Notificaciones = () => {
     return () => { active = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
+
+  // --- ACTUALIZACIÓN EN TIEMPO REAL ---
+  useEffect(() => {
+    if (!user?.id) return undefined;
+
+    let active = true;
+    const channel = supabase
+      .channel(`notifications-page-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+          filter: `userid=eq.${user.id}`
+        },
+        async () => {
+          if (!active) return;
+          const requestId = ++notificationsRequestRef.current;
+          const limit = (page + 1) * PER_PAGE;
+          invalidateNotificationsCache(user.id);
+          try {
+            const data = await getUserNotifications(user.id, false, limit, 0, true);
+            if (!active || requestId !== notificationsRequestRef.current) return;
+            setNotifications(data);
+            setHasMore(data.length === limit);
+          } catch (error) {
+            console.error('Error actualizando notificaciones en tiempo real:', error);
+            if (active && requestId === notificationsRequestRef.current) {
+              showToast('No se pudieron actualizar las notificaciones', 'error');
+            }
+          }
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.error(`Error en la suscripción de notificaciones: ${status}`);
+        }
+      });
+
+    return () => {
+      active = false;
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, page, showToast]);
 
   // --- PERFILES DE QUIENES INTERACTÚAN ---
   useEffect(() => {
@@ -154,32 +192,15 @@ const Notificaciones = () => {
     return () => { active = false; };
   }, [notifications, actorCache]);
 
-  // --- RECARGAR ---
-  const handleRefresh = async () => {
-    if (!user?.id || refreshing) return;
-    setRefreshing(true);
-    invalidateNotificationsCache(user.id);
-    try {
-      const data = await getUserNotifications(user.id, false, PER_PAGE, 0, true);
-      setNotifications(data);
-      setPage(0);
-      setHasMore(data.length === PER_PAGE);
-      refreshNotifications();
-    } catch (error) {
-      console.error('Error actualizando notificaciones:', error);
-      showToast('No se pudieron actualizar las notificaciones', 'error');
-    } finally {
-      setRefreshing(false);
-    }
-  };
-
   // --- CARGAR MÁS ---
   const loadMore = async () => {
     if (!user?.id || loadingMore || !hasMore) return;
     setLoadingMore(true);
+    const requestId = ++notificationsRequestRef.current;
     try {
       const nextPage = page + 1;
       const data = await getUserNotifications(user.id, false, PER_PAGE, nextPage * PER_PAGE, true);
+      if (requestId !== notificationsRequestRef.current) return;
       setNotifications((prev) => {
         const existing = new Set(prev.map((n) => n.id));
         return [...prev, ...data.filter((n) => !existing.has(n.id))];
@@ -272,6 +293,20 @@ const Notificaciones = () => {
     if (filter === 'unread' && notif.leida) return false;
     if (filter === 'read' && !notif.leida) return false;
 
+    if (dateFilter !== 'all') {
+      const notificationDate = new Date(notif.creado);
+      if (Number.isNaN(notificationDate.getTime())) return false;
+      const now = new Date();
+      if (dateFilter === 'today') {
+        if (notificationDate.toDateString() !== now.toDateString()) return false;
+      } else {
+        const days = dateFilter === '7days' ? 7 : 30;
+        const fromDate = new Date(now);
+        fromDate.setDate(fromDate.getDate() - days);
+        if (notificationDate < fromDate || notificationDate > now) return false;
+      }
+    }
+
     const query = searchTerm.trim().toLowerCase();
     if (!query) return true;
 
@@ -292,13 +327,7 @@ const Notificaciones = () => {
       .includes(query);
   });
 
-  const counts = {
-    all: notifications.length,
-    unread: notifications.filter((n) => !n.leida).length,
-    read: notifications.filter((n) => n.leida).length
-  };
-
-  const readPercent = counts.all > 0 ? Math.round((counts.read / counts.all) * 100) : 0;
+  const hasUnreadNotifications = notifications.some((notification) => !notification.leida);
 
   const groups = [];
   filtered.forEach((notif) => {
@@ -308,168 +337,73 @@ const Notificaciones = () => {
     else groups.push({ key, label, items: [notif] });
   });
 
-  const hasFilters = filter !== 'all' || searchTerm.trim().length > 0;
+  const hasFilters = filter !== 'all' || dateFilter !== 'all' || searchTerm.trim().length > 0;
   const clearFilters = () => {
     setFilter('all');
+    setDateFilter('all');
     setSearchTerm('');
     searchRef.current?.focus();
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col px-2 py-4 animate-fade-in-up md:px-4 md:py-6" style={{ animationDuration: '200ms' }}>
+    <div className="flex w-full flex-col px-2 py-4 animate-fade-in-up md:px-4 md:py-6" style={{ animationDuration: '200ms' }}>
 
       {/* CABECERA */}
-      <section className="relative mb-4 overflow-hidden rounded-3xl border border-gray-200/80 bg-white p-4 shadow-sm dark:border-white/[0.06] dark:bg-[#171819] sm:p-5">
-        <div className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-primary-500/10 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-24 left-1/3 h-40 w-40 rounded-full bg-indigo-500/10 blur-3xl" />
+      <section className="mb-4 flex flex-wrap items-center gap-3 lg:flex-nowrap">
+        <PageHeader
+          title="Notificaciones"
+          icon={Bell}
+          gradientClass="from-purple-500 to-pink-500"
+          className="order-0 shrink-0 gap-2"
+        />
 
-        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-500 to-indigo-500 text-white shadow-lg shadow-primary-500/25">
-              <Bell size={23} strokeWidth={2.5} />
-              {counts.unread > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full border-2 border-white bg-red-500 dark:border-[#171819]" />
-              )}
-            </div>
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-xl font-black tracking-tight text-gray-900 dark:text-white md:text-2xl">
-                  Notificaciones
-                </h1>
-                {counts.unread > 0 && (
-                  <span className="rounded-full bg-primary-100 px-2 py-0.5 text-[10px] font-bold text-primary-700 dark:bg-primary-500/20 dark:text-primary-300">
-                    {counts.unread > 99 ? '99+' : counts.unread} sin leer
-                  </span>
-                )}
-              </div>
-              <p className="truncate text-xs text-gray-500 dark:text-gray-400 sm:text-sm">
-                Likes, comentarios y novedades de tu contenido.
-              </p>
-            </div>
-          </div>
+        <NotificationFilters
+          filter={filter}
+          dateFilter={dateFilter}
+          onFilterChange={setFilter}
+          onDateFilterChange={setDateFilter}
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          searchRef={searchRef}
+          className="order-2 w-full lg:order-1 lg:flex-1"
+        />
 
-          <div className="flex shrink-0 items-center gap-2">
-            <button
-              type="button"
-              onClick={handleRefresh}
-              disabled={refreshing}
-              title="Actualizar notificaciones"
-              aria-label="Actualizar notificaciones"
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 transition-all hover:border-primary-300 hover:text-primary-600 disabled:opacity-60 dark:border-white/10 dark:bg-white/5 dark:text-gray-400 dark:hover:border-primary-500/40 dark:hover:text-primary-400"
-            >
-              <RefreshCw size={15} className={clsx(refreshing && 'animate-spin')} />
-            </button>
+        <div className="order-1 ml-auto flex shrink-0 items-center gap-1.5 lg:order-2 lg:ml-0">
+          {(unreadCount > 0 || hasUnreadNotifications) && (
             <button
               type="button"
               onClick={handleMarkAllAsRead}
-              disabled={unreadCount === 0 && counts.unread === 0}
-              className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-xl bg-primary-600 px-3 text-xs font-bold text-white shadow-sm shadow-primary-600/25 transition-all hover:bg-primary-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400 disabled:shadow-none dark:disabled:bg-white/5 dark:disabled:text-gray-600 sm:flex-none"
+              className="inline-flex h-9 items-center justify-center gap-1 rounded-lg bg-primary-600 px-2.5 text-xs font-semibold text-white transition-colors hover:bg-primary-700"
             >
-              <CheckCheck size={15} />
-              Marcar leídas
-            </button>
-          </div>
-        </div>
-
-        {counts.all > 0 && (
-          <div className="relative mt-4 flex items-center gap-2.5">
-            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-gray-100 dark:bg-white/10">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-primary-500 to-indigo-500 transition-all duration-500"
-                style={{ width: `${readPercent}%` }}
-              />
-            </div>
-            <span className="shrink-0 text-[10px] font-semibold text-gray-400 dark:text-gray-500">
-              {counts.read} de {counts.all} leídas
-            </span>
-          </div>
-        )}
-      </section>
-
-      {/* FILTROS */}
-      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex w-full gap-1 rounded-xl bg-gray-100 p-1 dark:bg-white/5 lg:w-auto">
-          {TABS.map((tab) => {
-            const active = filter === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setFilter(tab.id)}
-                aria-pressed={active}
-                className={clsx(
-                  'flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all lg:flex-none',
-                  active
-                    ? 'bg-primary-600 text-white shadow-sm shadow-primary-600/25'
-                    : 'text-gray-500 hover:bg-white/60 hover:text-gray-800 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-200'
-                )}
-              >
-                {tab.label}
-                <span
-                  className={clsx(
-                    'rounded-full px-1.5 py-0.5 text-[10px] font-bold',
-                    active
-                      ? 'bg-white/20 text-white'
-                      : 'bg-gray-200/80 text-gray-500 dark:bg-white/10 dark:text-gray-400'
-                  )}
-                >
-                  {counts[tab.id]}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="relative w-full lg:w-64">
-          <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            ref={searchRef}
-            type="text"
-            aria-label="Buscar notificaciones"
-            placeholder="Buscar notificaciones..."
-            value={searchTerm}
-            onChange={(event) => setSearchTerm(event.target.value)}
-            className="h-10 w-full rounded-xl border border-gray-200 bg-white pl-9 pr-9 text-sm text-gray-700 outline-none transition-all placeholder:text-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:border-white/10 dark:bg-[#1D1F23] dark:text-gray-200"
-          />
-          {searchTerm && (
-            <button
-              type="button"
-              onClick={() => setSearchTerm('')}
-              className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-white/10"
-              title="Limpiar búsqueda"
-              aria-label="Limpiar búsqueda"
-            >
-              <X size={14} />
+              <CheckCheck size={14} />
+              <span className="hidden sm:inline">Marcar todas</span>
+              <span className="sm:hidden">Leídas</span>
             </button>
           )}
         </div>
-      </div>
+      </section>
 
       {/* LISTA */}
       {loading ? (
         <NotificationSkeleton />
       ) : filtered.length > 0 ? (
-        <div className="space-y-5">
+        <div className="space-y-4">
           {groups.map((group) => (
             <section key={group.key}>
-              <div className="mb-2 flex items-center gap-2 px-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">
-                  {group.label}
-                </span>
-                <span className="h-px flex-1 bg-gradient-to-r from-gray-200 to-transparent dark:from-white/10" />
-                <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-600">
-                  {group.items.length}
-                </span>
-              </div>
+              {group.label && (
+                <div className="mb-1.5 px-1">
+                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                    {group.label}
+                  </span>
+                </div>
+              )}
 
-              <div className="space-y-2.5">
+              <div className="overflow-hidden rounded-xl border border-gray-200 bg-white divide-y divide-gray-100 dark:border-white/[0.06] dark:bg-[#171819] dark:divide-white/[0.06]">
                 {group.items.map((notif, index) => {
                   const actor = getActor(notif);
                   const view = getNotificationView(notif, actor, user?.role);
                   const Icon = view.Icon;
                   const canOpen = Boolean(notif.modid);
-                  const contentType = CONTENT_TYPE_LABELS[notif.modtype] || 'contenido';
-
                   return (
                     <article
                       key={notif.id}
@@ -478,10 +412,10 @@ const Notificaciones = () => {
                         animationDuration: '220ms'
                       }}
                       className={clsx(
-                        'group relative flex items-start gap-2.5 overflow-hidden rounded-2xl border p-3 transition-all duration-200 animate-fade-in-up sm:gap-3 sm:p-4',
+                        'group relative flex items-start gap-2.5 overflow-hidden p-3 transition-colors duration-200 animate-fade-in-up sm:gap-3 sm:p-3.5',
                         notif.leida
-                          ? 'border-gray-200/80 bg-white hover:border-gray-300 dark:border-white/[0.06] dark:bg-[#171819] dark:hover:border-white/10'
-                          : 'border-primary-200/80 bg-gradient-to-r from-primary-50/70 via-white to-white shadow-sm shadow-primary-500/5 hover:border-primary-300 hover:shadow-md hover:shadow-primary-500/10 dark:border-primary-500/20 dark:from-primary-500/[0.08] dark:via-[#1a1b1e] dark:to-[#1a1b1e] dark:hover:border-primary-500/30'
+                          ? 'hover:bg-gray-50 dark:hover:bg-white/[0.03]'
+                          : 'bg-primary-50/60 hover:bg-primary-50 dark:bg-primary-500/[0.06] dark:hover:bg-primary-500/[0.09]'
                       )}
                     >
                       {!notif.leida && (
@@ -498,19 +432,19 @@ const Notificaciones = () => {
                         <div className="relative shrink-0">
                           {view.hasActor && notif.actorid ? (
                             <>
-                              <div className="h-11 w-11 overflow-hidden rounded-full ring-2 ring-white shadow-sm dark:ring-[#171819]">
+                              <div className="h-9 w-9 overflow-hidden rounded-full ring-1 ring-white shadow-sm dark:ring-[#171819]">
                                 <AvatarRenderer avatar={actor?.imagen} name={actor?.nombre} />
                               </div>
                               <span className={clsx(
-                                'absolute -bottom-1 -right-1 flex h-[18px] w-[18px] items-center justify-center rounded-full ring-2 ring-white dark:ring-[#171819]',
+                                'absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full ring-1 ring-white dark:ring-[#171819]',
                                 view.badge
                               )}>
-                                <Icon size={10} strokeWidth={2.5} />
+                                <Icon size={9} strokeWidth={2.5} />
                               </span>
                             </>
                           ) : (
-                            <div className={clsx('flex h-11 w-11 items-center justify-center rounded-2xl ring-1 ring-black/5 dark:ring-white/5', view.tile)}>
-                              <Icon size={20} />
+                            <div className={clsx('flex h-9 w-9 items-center justify-center rounded-xl ring-1 ring-black/5 dark:ring-white/5', view.tile)}>
+                              <Icon size={17} />
                             </div>
                           )}
                         </div>
@@ -518,7 +452,7 @@ const Notificaciones = () => {
                         {/* TEXTO */}
                         <div className="min-w-0 flex-1 pr-1">
                           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                            <span className={clsx('inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider', view.pill)}>
+                            <span className={clsx('text-[10px] font-semibold', view.pill)}>
                               {view.label}
                             </span>
                             <span className="text-[11px] font-medium text-gray-400 dark:text-gray-500">
@@ -527,7 +461,7 @@ const Notificaciones = () => {
                           </div>
 
                           <h2 className={clsx(
-                            'mt-1 text-sm leading-snug line-clamp-2 sm:text-[15px]',
+                            'mt-1 text-sm leading-snug line-clamp-2',
                             notif.leida
                               ? 'text-gray-700 dark:text-gray-300'
                               : 'font-semibold text-gray-900 dark:text-white'
@@ -536,43 +470,16 @@ const Notificaciones = () => {
                           </h2>
 
                           {view.quote && (
-                            <p className="mt-2 line-clamp-2 rounded-lg border-l-2 border-blue-400/50 bg-blue-50/60 px-2.5 py-1.5 text-[11px] italic text-gray-600 dark:bg-blue-500/10 dark:text-gray-300 sm:text-xs">
+                            <p className="mt-1 line-clamp-1 text-xs text-gray-500 dark:text-gray-400">
                               “{view.quote}”
                             </p>
                           )}
 
                           {notif.modtitle ? (
-                            <div className="mt-2 flex items-center gap-2">
-                              <div className="h-9 w-9 shrink-0 overflow-hidden rounded-lg border border-gray-200/70 dark:border-white/10">
-                                {notif.modimage ? (
-                                  <img
-                                    src={thumbUrl(notif.modimage, 160)}
-                                    alt={notif.modtitle}
-                                    loading="lazy"
-                                    decoding="async"
-                                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                                    onError={(event) => { event.currentTarget.src = '/default.jpg'; }}
-                                  />
-                                ) : (
-                                  <div className={clsx('flex h-full w-full items-center justify-center', view.tile)}>
-                                    <Icon size={15} />
-                                  </div>
-                                )}
-                              </div>
-                              <div className="min-w-0">
-                                <p className="truncate text-[11px] font-semibold text-gray-600 dark:text-gray-300">
-                                  {notif.modtitle}
-                                </p>
-                                <p className="text-[10px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
-                                  {contentType}
-                                </p>
-                              </div>
-                              {canOpen && (
-                                <ChevronRight
-                                  size={15}
-                                  className="ml-auto shrink-0 text-gray-300 transition-all group-hover:translate-x-0.5 group-hover:text-primary-500 dark:text-gray-600 dark:group-hover:text-primary-400"
-                                />
-                              )}
+                            <div className="mt-1.5 min-w-0">
+                              <p className="truncate text-xs text-gray-500 dark:text-gray-400">
+                                {notif.modtitle}
+                              </p>
                             </div>
                           ) : (
                             view.body && (
@@ -629,20 +536,17 @@ const Notificaciones = () => {
       ) : (
         /* ESTADO VACÍO */
         <div className="relative flex flex-col items-center justify-center overflow-hidden rounded-3xl border border-dashed border-gray-200 bg-white px-6 py-16 text-center dark:border-white/10 dark:bg-[#171819]">
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(99,102,241,0.10),transparent_60%)]" />
-
-          <div className="relative mb-5">
-            <div className="absolute -inset-3 rounded-full bg-primary-500/5 dark:bg-primary-500/10" />
-            <span className="absolute -right-3 -top-1 h-3 w-3 rounded-full bg-primary-400/40" />
-            <span className="absolute -bottom-1 -left-4 h-2 w-2 rounded-full bg-indigo-400/40" />
-            <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-primary-100 bg-primary-50 text-primary-500 shadow-sm dark:border-primary-500/20 dark:bg-primary-500/10 dark:text-primary-400">
-              <Inbox size={30} />
+          <div className="relative mb-4">
+            <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-gray-100 text-gray-400 dark:bg-white/5 dark:text-gray-500">
+              <Inbox size={26} />
             </div>
           </div>
 
           <h2 className="relative text-lg font-bold text-gray-800 dark:text-gray-200">
             {searchTerm
               ? 'Sin resultados'
+              : dateFilter !== 'all'
+                ? 'Sin notificaciones en este periodo'
               : filter === 'unread'
                 ? 'Estás al día'
                 : filter === 'read'
@@ -652,6 +556,8 @@ const Notificaciones = () => {
           <p className="relative mt-1.5 max-w-sm text-sm text-gray-500 dark:text-gray-400">
             {searchTerm
               ? `No encontramos notificaciones para “${searchTerm}”.`
+              : dateFilter !== 'all'
+                ? 'Prueba con otro periodo o limpia los filtros.'
               : filter === 'unread'
                 ? 'No tienes notificaciones sin leer.'
                 : filter === 'read'

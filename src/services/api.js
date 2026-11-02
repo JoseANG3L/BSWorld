@@ -881,7 +881,8 @@ export const getUserNotifications = async (userId, onlyUnread = false, limit = 5
     
     return data || [];
   } catch (error) {
-    return [];
+    console.error('Error al obtener notificaciones:', error);
+    throw error;
   }
 };
 

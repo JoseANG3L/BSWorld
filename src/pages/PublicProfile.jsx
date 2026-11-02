@@ -418,12 +418,13 @@ const PublicProfile = () => {
             <button
               type="button"
               onClick={handleOpenFiltersModal}
-              className="relative px-4 py-2.5 h-10 rounded-xl bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-sm font-medium flex items-center gap-2 shrink-0"
+              className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-gray-300 bg-white text-gray-700 transition-all hover:bg-gray-100 dark:border-transparent dark:bg-[#1D1F23] dark:text-gray-200 dark:hover:bg-gray-800"
+              aria-label="Abrir filtros"
+              title="Filtros"
             >
               <Filter size={18} className="text-gray-500 dark:text-gray-400" />
-              <span>Filtros</span>
               {(selectedTypes.length > 0 || orden !== 'recientes') && (
-                <span className="w-2 h-2 rounded-full bg-primary-500 shrink-0"></span>
+                <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-primary-500"></span>
               )}
             </button>
           </div>

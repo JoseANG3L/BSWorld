@@ -9,6 +9,7 @@ import CreatorsInput from '../components/CreatorsInput';
 import TagsInput from '../components/TagsInput';
 import DownloadsInput from '../components/DownloadsInput';
 import GalleryInput from '../components/GalleryInput';
+import PageHeader from '../components/PageHeader';
 import { clsx } from 'clsx';
 import LoadingSpinner from '../components/LoadingSpinner';
 
@@ -278,12 +279,7 @@ const EditContent = () => {
         {/* Header */}
       <div className="flex md:flex-row flex-col items-center justify-between gap-2 md:gap-4 mb-2 md:mb-4">
 
-        <h1 className="flex text-xl md:text-2xl font-bold text-gray-800 dark:text-white items-center gap-3">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-sm text-white bg-gradient-to-br from-primary-500 to-primary-600">
-              <Edit size={20} strokeWidth={2.5} />
-          </div>
-          Editar Contenido
-        </h1>
+        <PageHeader title="Editar Contenido" icon={Edit} gradientClass="from-primary-500 to-primary-600" />
 
         {/* Botones de acción */}
         <div className="flex gap-3 mt-2 md:mt-0">

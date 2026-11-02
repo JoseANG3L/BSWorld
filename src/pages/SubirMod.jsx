@@ -15,6 +15,7 @@ import DownloadsInput from '../components/DownloadsInput';
 import GalleryInput from '../components/GalleryInput';
 import { createPortal } from 'react-dom';
 import LoadingSpinner from '../components/LoadingSpinner';
+import PageHeader from '../components/PageHeader';
 
 const DOWNLOAD_LABELS = ["API 9 (1.7.44+)", "API 8 (1.7.20+)", "API 7 (1.7.5+)", "API 6 (1.6.4+)", "API 4 (1.4.150+)"];
 const RECOMMENDED_TAGS = ["api 9", "api 8", "api 7", "api 6", "api 4", "divertido", "multijugador", "pvp"];
@@ -391,12 +392,7 @@ const SubirMod = ({ isOpen, onClose }) => {
         {/* HEADER SIMPLE */}
         <div className="flex-shrink-0 bg-white dark:bg-dark-bg border-b border-gray-200 dark:border-gray-800 px-2 md:px-4 pt-3">
           <div className="flex items-center justify-between mb-3">
-            <h1 className="flex text-xl md:text-2xl font-bold text-gray-800 dark:text-white items-center gap-3">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-sm text-white bg-gradient-to-br from-primary-500 to-primary-600">
-                  <Upload size={20} strokeWidth={2.5} />
-              </div>
-              Nuevo Mod
-            </h1>
+            <PageHeader title="Nuevo Mod" icon={Upload} gradientClass="from-primary-500 to-primary-600" />
             <button type="button" onClick={handleClose} className="p-2 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
               <X size={22} />
             </button>
