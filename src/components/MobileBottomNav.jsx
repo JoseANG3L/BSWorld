@@ -25,6 +25,7 @@ const MobileBottomNav = () => {
               <Link
                 key={item.to}
                 to={item.to}
+                aria-label={item.label}
                 className={clsx(
                   "flex flex-col items-center justify-center -mt-6 transition-all duration-300",
                   isActive && "scale-105"
@@ -40,6 +41,7 @@ const MobileBottomNav = () => {
             <Link
               key={item.to}
               to={item.to}
+              aria-label={item.label}
               className={clsx(
                 "flex flex-col items-center justify-center gap-0.5 px-2 pt-1 pb-1.5 transition-all duration-200",
                 isActive
@@ -57,27 +59,29 @@ const MobileBottomNav = () => {
         })}
 
         {/* Notificaciones */}
-        <Link
-          to="/notificaciones"
-          className={clsx(
-            "flex flex-col items-center justify-center gap-0.5 px-2 pt-1 pb-1.5 transition-all duration-200",
-            location.pathname === "/notificaciones"
-              ? "text-primary-600 dark:text-primary-400"
-              : "text-gray-500 dark:text-gray-400"
-          )}
-        >
+        <div className="flex items-center justify-center px-2">
           {user ? (
-            <div className="relative">
-              <NotificationBell />
-            </div>
+            <NotificationBell />
           ) : (
-            <Bell size={20} strokeWidth={location.pathname === "/notificaciones" ? 2.5 : 2} />
+            <Link
+              to="/login"
+              aria-label="Iniciar sesión para ver notificaciones"
+              className={clsx(
+                "flex h-9 w-9 items-center justify-center rounded-full transition-all duration-200",
+                location.pathname === "/notificaciones"
+                  ? "text-primary-600 dark:text-primary-400"
+                  : "text-gray-500 dark:text-gray-400"
+              )}
+            >
+              <Bell size={20} strokeWidth={location.pathname === "/notificaciones" ? 2.5 : 2} />
+            </Link>
           )}
-        </Link>
+        </div>
 
         {/* Cuenta */}
         <Link
           to={user ? `/u/${user.username}` : "/login"}
+          aria-label={user ? "Mi perfil" : "Iniciar sesión"}
           className={clsx(
             "flex flex-col items-center justify-center gap-0.5 px-2 pt-1 pb-1.5 transition-all duration-200",
             location.pathname.startsWith("/u/") || location.pathname === "/login"

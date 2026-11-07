@@ -367,6 +367,7 @@ const ContentTable = ({
   // Ejecutar edición en masa
   const handleBulkUpdate = async () => {
     if (!bulkActionType || selectedIds.length === 0) return;
+    if (bulkActionType === 'creador' && !bulkValue.trim()) return;
 
     // Caso especial para eliminación masiva
     if (bulkActionType === 'eliminar') {
@@ -406,8 +407,7 @@ const ContentTable = ({
           updateData.estado = bulkValue;
           break;
         case 'creador':
-          // Para creador, necesitamos manejarlo de forma especial
-          // Por ahora, lo dejamos pendiente
+          updateData.aporte = bulkValue.trim();
           break;
       }
 
@@ -1101,8 +1101,6 @@ const ContentTable = ({
                 const visibilityConfig = getVisibilityConfig(visibilidad);
                 const totalDownloads = (item.descargas || []).reduce((acc, curr) => acc + (curr.count || 0), 0);
                 const mainImage = item.imagen || (item.imagenes && item.imagenes[0]) || null;
-                const canApprove = adminMode && (estado === 'revision' || estado === 'pending');
-                
                 return (
                   <tr key={item.id} className={`hover:bg-gray-50 dark:hover:bg-gray-900/30 transition-colors ${selectedIds.includes(item.id) ? 'bg-primary-50 dark:bg-primary-900/10' : ''}`}>
                     {/* Checkbox de selección */}
@@ -1181,15 +1179,16 @@ const ContentTable = ({
                     {/* Creador */}
                     {columns.creator && (
                       <td className="p-3 text-center text-gray-600 dark:text-gray-400">
-                        <div 
-                          className="truncate max-w-[120px]"
-                          // onClick={() => openEditModal(item, 'creador')}
-                          // title="Clic para editar creador"
+                        <button
+                          type="button"
+                          className="truncate max-w-[120px] hover:text-primary-600 dark:hover:text-primary-400"
+                          onClick={() => openEditModal(item, 'creador')}
+                          title="Clic para editar creador"
                         >
                           {item.creadores && item.creadores.length > 0 
                             ? item.creadores[0].nombre || item.creadores[0].username || 'N/A'
                             : 'N/A'}
-                        </div>
+                        </button>
                       </td>
                     )}
                     
@@ -1675,7 +1674,7 @@ const ContentTable = ({
                       type="text"
                       value={bulkValue}
                       onChange={(e) => setBulkValue(e.target.value)}
-                      placeholder="ID del creador..."
+                      placeholder="ID o UUID del creador..."
                       className="w-full p-3 rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white text-sm"
                     />
                   )}
@@ -1695,7 +1694,7 @@ const ContentTable = ({
               <button
                 type="button"
                 onClick={handleBulkUpdate}
-                disabled={bulkActionType !== 'eliminar' && !bulkValue}
+                disabled={bulkActionType !== 'eliminar' && !bulkValue.trim()}
                 className={clsx(
                   "flex-1 py-2.5 px-4 rounded-xl text-white font-semibold text-sm transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed",
                   bulkActionType === 'eliminar' ? "bg-red-600 hover:bg-red-700" : "bg-primary-600 hover:bg-primary-700"

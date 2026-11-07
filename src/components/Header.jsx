@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, lazy, Suspense } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Search, Sun, Moon, User, Menu, LogOut, ShieldCheck, UserPlus, LogIn, Settings, Upload, 
-  LayoutGrid, Gamepad2, ChevronDown, Home, Crown, Bell, Info, Mail, Earth, Server, Heart 
+  LayoutGrid, Gamepad2, ChevronDown, Home, Crown, Bell, Info, Mail, Earth, Heart
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuth } from '../context/AuthContext';
@@ -18,7 +18,6 @@ const menuItems = [
   { to: "/", icon: Home, label: "Inicio" },
   { to: "/mods", icon: Gamepad2, label: "Mods" },
   { to: "/comunidad", icon: Crown, label: "Comunidad" },
-  // { to: "/servidores", icon: Server, label: "Servidores" },
 ].filter((item) => item.to !== "/comunidad" || FEATURES.comunidad);
 
 const Header = ({ toggleTheme, isDarkMode }) => {
@@ -114,21 +113,6 @@ const Header = ({ toggleTheme, isDarkMode }) => {
               );
             })}
 
-            <div className="border-t border-gray-300 dark:border-gray-700 my-1"></div>
-
-            {/* Dark Mode / Light Mode */}
-            <button
-              type="button"
-              onClick={toggleTheme}
-              className={clsx(
-                "w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors",
-                "text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-primary-600 dark:hover:text-primary-400"
-              )}
-              title={isDarkMode ? "Modo Claro" : "Modo Oscuro"}
-            >
-              {isDarkMode ? <Sun size={16} strokeWidth={2} /> : <Moon size={16} strokeWidth={2} />}
-              <span>{isDarkMode ? "Modo Claro" : "Modo Oscuro"}</span>
-            </button>
           </div>
         )}
       </div>
@@ -219,7 +203,7 @@ const Header = ({ toggleTheme, isDarkMode }) => {
         {/* SUBIR MOD */}
         <button 
           onClick={handleSubirModClick}
-          className="hidden md:flex items-center justify-center w-9 h-9 xl:w-auto xl:h-auto px-0 py-0 xl:px-4 xl:py-2 bg-primary-600 hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-800 text-white rounded-full xl:rounded-lg text-sm font-semibold transition-colors shadow-sm gap-2"
+          className="hidden lg:flex items-center justify-center w-9 h-9 xl:w-auto xl:h-auto px-0 py-0 xl:px-4 xl:py-2 bg-primary-600 hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-800 text-white rounded-full xl:rounded-lg text-sm font-semibold transition-colors shadow-sm gap-2"
           aria-label="Subir contenido"
         >
           <Upload size={16} strokeWidth={3} />
@@ -232,17 +216,30 @@ const Header = ({ toggleTheme, isDarkMode }) => {
           onClick={toggleTheme}
           className={clsx("w-9 h-9 hidden lg:flex items-center justify-center rounded-full bg-white dark:bg-[#252525] border border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400 transition-all shadow-sm", "hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400")}
           title={isDarkMode ? "Modo Claro" : "Modo Oscuro"}
+          aria-label={isDarkMode ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
         >
           {isDarkMode ? <Sun size={18} strokeWidth={2.5} /> : <Moon size={18} strokeWidth={2.5} />}
         </button>
 
-        {/* NOTIFICACIONES (siempre visibles en cualquier tamaño) */}
-        {user && <NotificationBell />}
+        <button
+          type="button"
+          onClick={toggleTheme}
+          className="flex lg:hidden w-9 h-9 items-center justify-center rounded-full bg-white dark:bg-[#252525] border border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400 transition-all shadow-sm hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400"
+          title={isDarkMode ? "Modo Claro" : "Modo Oscuro"}
+          aria-label={isDarkMode ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+        >
+          {isDarkMode ? <Sun size={18} strokeWidth={2.5} /> : <Moon size={18} strokeWidth={2.5} />}
+        </button>
+
+        {/* En móvil, las notificaciones están en la navegación inferior. */}
+        <div className="hidden lg:block">
+          {user && <NotificationBell />}
+        </div>
 
         <div className="h-6 w-px hidden md:block bg-gray-400 dark:bg-gray-600 mx-1"></div>
 
         {/* DROPDOWN PERFIL CON USERNAME VISIBLE */}
-        <div className="relative" ref={profileRef}>
+        <div className="relative hidden lg:block" ref={profileRef}>
           <button 
             onClick={() => setIsProfileOpen(!isProfileOpen)} 
             className="relative group flex items-center transition-colors rounded-full"
@@ -287,6 +284,7 @@ const Header = ({ toggleTheme, isDarkMode }) => {
                   {[
                     { to: `/u/${user.username}`, icon: User, label: 'Mi Perfil' },
                     { to: '/mis-mods', icon: LayoutGrid, label: 'Mis Mods' },
+                    { to: '/mis-likes', icon: Heart, label: 'Mis Likes' },
                     { to: '/notificaciones', icon: Bell, label: 'Notificaciones' },
                     ...(user?.role === 'admin' ? [{ to: '/admin', icon: ShieldCheck, label: 'Panel Admin' }] : [])
                   ].map((item) => (
@@ -348,16 +346,6 @@ const Header = ({ toggleTheme, isDarkMode }) => {
       </div>
     </header>
 
-    <button
-      type="button"
-      onClick={handleSubirModClick}
-      className="fixed bottom-4 right-4 z-40 flex h-11 w-11 items-center justify-center rounded-full bg-primary-600 text-white shadow-lg shadow-primary-900/20 transition-colors hover:bg-primary-700 active:scale-95 dark:bg-primary-700 dark:hover:bg-primary-600 md:hidden"
-      title="Subir contenido"
-      aria-label="Subir contenido"
-    >
-      <Upload size={19} strokeWidth={2.25} />
-    </button>
-    
     {/* MODALES (carga diferida) */}
     <Suspense fallback={null}>
       <SubirMod isOpen={isSubirModOpen} onClose={() => setIsSubirModOpen(false)} />

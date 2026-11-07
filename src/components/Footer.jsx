@@ -15,16 +15,16 @@ const Footer = () => {
             Conecta con la comunidad y lleva tu experiencia al siguiente nivel.
           </p>
           <div className="flex items-center gap-3">
-            <a href="#" className="p-2 rounded-lg bg-gray-100 dark:bg-[#1D1F23] text-gray-600 dark:text-gray-400 hover:bg-primary-100 dark:hover:bg-primary-900/30 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+            <a href="https://github.com/JoseANG3L" target="_blank" rel="noopener noreferrer" aria-label="GitHub" className="p-2 rounded-lg bg-gray-100 dark:bg-[#1D1F23] text-gray-600 dark:text-gray-400 hover:bg-primary-100 dark:hover:bg-primary-900/30 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
               <Github size={18} />
             </a>
-            <a href="#" className="p-2 rounded-lg bg-gray-100 dark:bg-[#1D1F23] text-gray-600 dark:text-gray-400 hover:bg-primary-100 dark:hover:bg-primary-900/30 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+            <a href="https://x.com/byANG3L_HD" target="_blank" rel="noopener noreferrer" aria-label="X" className="p-2 rounded-lg bg-gray-100 dark:bg-[#1D1F23] text-gray-600 dark:text-gray-400 hover:bg-primary-100 dark:hover:bg-primary-900/30 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
               <Twitter size={18} />
             </a>
-            <a href="#" className="p-2 rounded-lg bg-gray-100 dark:bg-[#1D1F23] text-gray-600 dark:text-gray-400 hover:bg-primary-100 dark:hover:bg-primary-900/30 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+            <a href="https://www.instagram.com/ijoseang3l/" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="p-2 rounded-lg bg-gray-100 dark:bg-[#1D1F23] text-gray-600 dark:text-gray-400 hover:bg-primary-100 dark:hover:bg-primary-900/30 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
               <Instagram size={18} />
             </a>
-            <a href="#" className="p-2 rounded-lg bg-gray-100 dark:bg-[#1D1F23] text-gray-600 dark:text-gray-400 hover:bg-primary-100 dark:hover:bg-primary-900/30 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+            <a href="https://www.facebook.com/jose.angel.625627/" target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="p-2 rounded-lg bg-gray-100 dark:bg-[#1D1F23] text-gray-600 dark:text-gray-400 hover:bg-primary-100 dark:hover:bg-primary-900/30 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
               <Facebook size={18} />
             </a>
           </div>
@@ -52,6 +52,42 @@ const Footer = () => {
               <Link to="/mods" className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
                 <Zap size={14} />
                 Mods
+              </Link>
+            </li>
+            <li>
+              <Link to="/mapas" className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+                <Zap size={14} />
+                Mapas
+              </Link>
+            </li>
+            <li>
+              <Link to="/minijuegos" className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+                <Zap size={14} />
+                Minijuegos
+              </Link>
+            </li>
+            <li>
+              <Link to="/modpacks" className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+                <Zap size={14} />
+                Modpacks
+              </Link>
+            </li>
+            <li>
+              <Link to="/paquetes" className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+                <Zap size={14} />
+                Paquetes
+              </Link>
+            </li>
+            <li>
+              <Link to="/personajes" className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+                <Zap size={14} />
+                Personajes
+              </Link>
+            </li>
+            <li>
+              <Link to="/destacados" className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+                <Zap size={14} />
+                Destacados
               </Link>
             </li>
             <li>

@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
-  Home, Map, Gamepad2, Wrench, Boxes, Package, Crown,
-  User, Info, Mail, ChevronLeft, ChevronRight, Earth, Trophy, Server
+  Home, Wrench, Crown, Info, Mail, ChevronLeft, ChevronRight, Earth
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -18,7 +17,6 @@ const menuItems = [
   { to: "/mods", icon: Wrench, label: "Mods" },
   // { to: "/paquetes", icon: Package, label: "Paquetes" },
   // { to: "/personajes", icon: User, label: "Personajes" },
-  { to: "/servidores", icon: Server, label: "Servidores" },
   { to: "/acerca-de", icon: Info, label: "Acerca de" },
   { to: "/contacto", icon: Mail, label: "Contacto" },
 ].filter((item) => item.to !== "/comunidad" || FEATURES.comunidad);
@@ -40,15 +38,15 @@ const SidebarItem = ({ to, icon: Icon, label, isCollapsed }) => (
     {({ isActive }) => (
       <>
         {/* 🌟 Iconos regresados a 18px para mejor visibilidad */}
-        <Icon
-          size={18}
-          strokeWidth={2.5}
-          className={clsx(
+        {React.createElement(Icon, {
+          size: 18,
+          strokeWidth: 2.5,
+          className: clsx(
             "transition-transform duration-300 ease-out flex-shrink-0",
             isActive ? "text-primary-600 dark:text-primary-100" : "icon-boing text-gray-400 dark:text-gray-500",
             "group-hover:text-primary-600 dark:group-hover:text-primary-100"
-          )}
-        />
+          )
+        })}
         
         <span className={clsx(
           "relative z-10 transition-all duration-300 ease-in-out overflow-hidden tracking-wide",

@@ -14,7 +14,7 @@ const AVATAR_COLORS = [
   '#18181b', '#78350f', '#881337', '#1e3a8a', '#134e4a'
 ];
 
-const Login = ({ isOpen = true, onClose, initialRegister = false }) => {
+const Login = ({ isOpen = true, onClose, onSuccess, initialRegister = false }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { login, signup, signInWithProvider } = useAuth();
@@ -24,8 +24,7 @@ const Login = ({ isOpen = true, onClose, initialRegister = false }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const randomIndex = Math.floor(Math.random() * AVATAR_COLORS.length);
-  const randomColor = AVATAR_COLORS[randomIndex];
+  const [randomColor] = useState(() => AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)]);
 
   const [formData, setFormData] = useState({
     email: '',
@@ -75,7 +74,7 @@ const Login = ({ isOpen = true, onClose, initialRegister = false }) => {
     });
     setShowPassword(false);
     setShowConfirmPassword(false);
-  }, [location.search, location.state, initialRegister]);
+  }, [location.search, location.state, initialRegister, randomColor]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -108,7 +107,9 @@ const Login = ({ isOpen = true, onClose, initialRegister = false }) => {
         showToast('Sesión iniciada. ¡Bienvenido!');
       }
       
-      if (onClose) {
+      if (onSuccess) {
+        onSuccess();
+      } else if (onClose) {
         onClose();
       } else {
         navigate("/");

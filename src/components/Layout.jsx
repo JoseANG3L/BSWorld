@@ -1,12 +1,10 @@
 import React from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 import Header from './Header';
 import MobileBottomNav from './MobileBottomNav';
 import Footer from './Footer';
 
 const Layout = ({ toggleTheme, isDarkMode }) => {
-  const location = useLocation();
-
   return (
     <div className="flex flex-col min-h-screen transition-colors duration-300 relative">
       <Header 
@@ -19,16 +17,12 @@ const Layout = ({ toggleTheme, isDarkMode }) => {
         <Outlet />
         
         <Footer />
-        {/* 💡 Oculto en móviles, visible solo en pantallas grandes */}
-        {/* <div className="hidden lg:block">
-          <Footer />
-        </div> */}
       </main>
       
       {/* Navegación inferior fija en móvil */}
-      {/* <div className="fixed bottom-0 left-0 right-0 z-40 lg:hidden">
+      <div className="fixed bottom-0 left-0 right-0 z-40 lg:hidden">
         <MobileBottomNav />
-      </div> */}
+      </div>
     </div>
   );
 };

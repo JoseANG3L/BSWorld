@@ -1,16 +1,51 @@
-# React + Vite
+# BSWorld
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+BSWorld is a React single-page application for discovering, sharing, and downloading BombSquad content. It uses Vite for development/build tooling and Supabase for authentication and data.
 
-Currently, two official plugins are available:
+## Requirements
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- Node.js 20.19+ or 22.12+
+- A Supabase project with the application tables configured
 
-## React Compiler
+## Local development
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+1. Install dependencies:
 
-## Expanding the ESLint configuration
+   ```sh
+   npm install
+   ```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+2. Create a `.env` file in the project root and set the public Supabase project URL and anon key:
+
+   ```dotenv
+   VITE_SUPABASE_URL=https://your-project.supabase.co
+   VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
+   ```
+
+   Never put a Supabase `service_role` key in a `VITE_` variable or in client-side code.
+
+3. Start the development server:
+
+   ```sh
+   npm run dev
+   ```
+
+## Supabase setup
+
+The application expects its Supabase tables and authentication providers to be configured before use. In the Supabase SQL Editor, apply the SQL files against a project that has the required base tables, in this order:
+
+1. `add_social_columns.sql`
+2. `migrations/add_parent_id_to_content.sql`
+3. `migrations/content_security_rls.sql`
+4. `migrations/social_security_rls.sql`
+
+Configure the authentication providers and allowed redirect URLs in the Supabase dashboard. The frontend uses Supabase's anon key; row-level security policies must remain enabled for protected data.
+
+## Available commands
+
+- `npm run dev` — start Vite in development mode
+- `npm run build` — create a production build in `dist/`
+- `npm run preview` — serve the production build locally
+- `npm run lint` — run ESLint
+
+The host must serve `index.html` for unknown paths so React Router can handle direct links; the included `public/_redirects` file provides this fallback on Netlify.

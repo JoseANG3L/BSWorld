@@ -17,7 +17,13 @@ const LoginPage = lazy(() => import('./pages/LoginPage'));
 const AcercaDe = lazy(() => import('./pages/AcercaDe'));
 const Contacto = lazy(() => import('./pages/Contacto'));
 const Mods = lazy(() => import('./pages/Mods'));
+const Mapas = lazy(() => import('./pages/Mapas'));
+const Minijuegos = lazy(() => import('./pages/Minijuegos'));
+const Modpacks = lazy(() => import('./pages/Modpacks'));
+const Paquetes = lazy(() => import('./pages/Paquetes'));
+const Personajes = lazy(() => import('./pages/Personajes'));
 const MisMods = lazy(() => import('./pages/MisMods'));
+const MisLikes = lazy(() => import('./pages/MisLikes'));
 const AdminPanel = lazy(() => import('./pages/AdminPanel'));
 const Configuracion = lazy(() => import('./pages/Configuracion'));
 const Comunidad = lazy(() => import('./pages/Comunidad'));
@@ -79,6 +85,7 @@ function App() {
         <Suspense fallback={<LoadingSpinner variant="fullscreen" />}>
           <Routes>
             {/* RUTAS INDEPENDIENTES: Fuera del Layout principal */}
+            <Route path="/login" element={<LoginPage />} />
             <Route path="/login-page" element={<LoginPage />} />
             <Route path="/subir" element={<SubirModPage />} />
 
@@ -90,6 +97,12 @@ function App() {
               
               {/* --- CATEGORÍAS --- */}
               <Route path="mods" element={<Mods />} />
+              <Route path="mapas" element={<Mapas />} />
+              <Route path="minijuegos" element={<Minijuegos />} />
+              <Route path="modpacks" element={<Modpacks />} />
+              <Route path="paquetes" element={<Paquetes />} />
+              <Route path="personajes" element={<Personajes />} />
+              <Route path="destacados" element={<Destacados />} />
 
               {/* --- BUSCADOR --- */}
               <Route path="buscar" element={<Resultados />} /> 
@@ -111,7 +124,6 @@ function App() {
               <Route path="privacidad" element={<Privacidad />} />
               <Route path="cookies" element={<Cookies />} />
               <Route path="licencias" element={<Licencias />} />
-              <Route path="destacados" element={<Destacados />} />
               <Route path="/view/:id" element={<DetalleContenido />} />
 
               {/* --- RUTAS PROTEGIDAS --- */}
@@ -132,6 +144,12 @@ function App() {
                     <MisMods />
                   </ProtectedRoute>
                 } 
+              />
+              <Route path="mis-likes" element={
+                  <ProtectedRoute>
+                    <MisLikes />
+                  </ProtectedRoute>
+                }
               />
               <Route path="edit/:id" element={
                   <ProtectedRoute>
