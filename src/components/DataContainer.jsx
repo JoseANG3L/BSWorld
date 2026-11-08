@@ -5,6 +5,7 @@ import { clsx } from 'clsx';
 import { prefetchUserProfiles } from '../services/api';
 import { CardSkeleton, PostSkeleton } from './CardSkeleton';
 import PageHeader from './PageHeader';
+import FilterModalHeader from './FilterModalHeader';
 
 const capitalizeText = (str) => {
   if (!str) return '';
@@ -18,11 +19,16 @@ const DataContainer = ({
   gradientClass = "from-pink-500 to-purple-500",
   items = [],
   searchKey = 'nombre',
+  initialSearchValue = '',
+  searchMatchMode = 'contains',
+  sortKey = searchKey,
   dateKey = 'fecha',
   renderItem,
   enableTypeFilter = false,
   typeKey = 'tipo',
   customTypes = null,
+  typeFilterLabel = 'Tipos de Contenido',
+  allTypesLabel = 'Todos los tipos',
   layout = 'grid',
   customSortOptions = null,
   searchPlaceholder = null,
@@ -30,12 +36,13 @@ const DataContainer = ({
   hideHeaderTitleOnMobile = false,
   headerClassName = 'shrink-0',
   headerTrailing = null,
+  mobileFilterContent = null,
   emptyMessage = 'No se encontraron resultados',
   loading = false,
   skeletonCount = 12
 }) => {
   // 1. ESTADO INTERNO
-  const [busqueda, setBusqueda] = useState('');
+  const [busqueda, setBusqueda] = useState(initialSearchValue);
   const [orden, setOrden] = useState('recientes');
   const [visibleCount, setVisibleCount] = useState(12);
   const [selectedTypes, setSelectedTypes] = useState([]);
@@ -109,8 +116,13 @@ const DataContainer = ({
   // 2. LÓGICA DE FILTRADO
   const itemsFiltrados = useMemo(() => {
     let resultado = items.filter(item => {
-      const valor = item[searchKey];
-      return valor && valor.toLowerCase().includes(busqueda.toLowerCase());
+      const valor = String(item[searchKey] || '').toLowerCase();
+      const consulta = busqueda.toLowerCase().trim();
+      if (!consulta) return true;
+      if (searchMatchMode === 'any-term') {
+        return consulta.split(/\s+/).some((term) => valor.includes(term));
+      }
+      return valor.includes(consulta);
     });
 
     if (enableTypeFilter && selectedTypes.length > 0) {
@@ -125,8 +137,8 @@ const DataContainer = ({
     resultado.sort((a, b) => {
       if (orden === 'recientes') return new Date(b[dateKey]) - new Date(a[dateKey]);
       if (orden === 'antiguos') return new Date(a[dateKey]) - new Date(b[dateKey]);
-      if (orden === 'az') return a[searchKey].localeCompare(b[searchKey]);
-      if (orden === 'za') return b[searchKey].localeCompare(a[searchKey]);
+      if (orden === 'az') return String(a[sortKey] || '').localeCompare(String(b[sortKey] || ''));
+      if (orden === 'za') return String(b[sortKey] || '').localeCompare(String(a[sortKey] || ''));
       if (orden === 'mas_vistas') return (b.vistas || 0) - (a.vistas || 0);
       if (orden === 'mas_likes') return (b.likes_count || 0) - (a.likes_count || 0);
       if (orden === 'mas_descargas') {
@@ -138,7 +150,7 @@ const DataContainer = ({
     });
 
     return resultado;
-  }, [items, busqueda, orden, searchKey, dateKey, enableTypeFilter, selectedTypes, typeKey]);
+  }, [items, busqueda, orden, searchKey, searchMatchMode, sortKey, dateKey, enableTypeFilter, selectedTypes, typeKey]);
 
   const visibleItems = itemsFiltrados.slice(0, visibleCount);
   const hasMore = itemsFiltrados.length > visibleCount;
@@ -167,8 +179,6 @@ const DataContainer = ({
             className={headerClassName}
           />
         )}
-        {showHeader && headerTrailing}
-
         {/* BARRA DE FILTROS */}
         <div className="flex min-w-0 flex-1 basis-0 flex-row flex-nowrap items-center gap-1 md:gap-3">
           {/* Búsqueda */}
@@ -210,8 +220,8 @@ const DataContainer = ({
                 className="w-full pl-10 pr-10 py-2.5 h-10 rounded-xl bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none appearance-none cursor-pointer transition-all text-sm font-medium text-left"
               >
                 <span className="truncate block">
-                  {selectedTypes.length === 0 
-                    ? 'Todos los tipos' 
+                  {selectedTypes.length === 0
+                    ? allTypesLabel
                     : selectedTypes.length === 1 
                       ? capitalizeText(selectedTypes[0]) 
                       : `${selectedTypes.length} tipos`}
@@ -231,7 +241,7 @@ const DataContainer = ({
                     <div className={clsx("w-4 h-4 rounded border flex items-center justify-center transition-colors flex-shrink-0", selectedTypes.length === 0 ? "bg-primary-500 border-primary-500" : "border-gray-300 dark:border-gray-600")}>
                       {selectedTypes.length === 0 && <Check size={12} className="text-white" />}
                     </div>
-                    <span>Todos los tipos</span>
+                    <span>{allTypesLabel}</span>
                   </button>
                   {availableTypes.map((type) => (
                     <button
@@ -281,7 +291,8 @@ const DataContainer = ({
             )}
             </div>
           </div>
-      </div>
+            {showHeader && headerTrailing}
+          </div>
       </div>
 
       {/* RESULTADOS */}
@@ -337,23 +348,12 @@ const DataContainer = ({
             onClick={(e) => e.stopPropagation()}
             style={{ animationDuration: '200ms' }}
           >
-            {/* Cabecera */}
-            <div className="flex items-center justify-between pb-3 border-b border-gray-200 dark:border-gray-800">
-              <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                <Filter size={18} className="text-primary-600 dark:text-primary-400" />
-                <span>Filtros</span>
-              </h3>
-              <button
-                type="button"
-                onClick={() => setIsFiltersModalOpen(false)}
-                className="p-1 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
-              >
-                <X size={20} />
-              </button>
-            </div>
+            <FilterModalHeader onClose={() => setIsFiltersModalOpen(false)} />
 
             {/* Contenido desplazable */}
             <div className="flex-1 overflow-y-auto py-4 space-y-5 custom-scrollbar">
+              {mobileFilterContent}
+
               {/* Sección: Ordenar por */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
@@ -389,7 +389,7 @@ const DataContainer = ({
               {enableTypeFilter && availableTypes.length > 0 && (
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
-                    Tipos de Contenido
+                    {typeFilterLabel}
                   </label>
                   <div className="flex flex-col gap-1.5">
                     <button
@@ -405,7 +405,7 @@ const DataContainer = ({
                       <div className={clsx("w-4 h-4 rounded border flex items-center justify-center transition-colors shrink-0", tempSelectedTypes.length === 0 ? "bg-primary-500 border-primary-500" : "border-gray-300 dark:border-gray-600")}>
                         {tempSelectedTypes.length === 0 && <Check size={12} className="text-white" />}
                       </div>
-                      <span>Todos los tipos</span>
+                      <span>{allTypesLabel}</span>
                     </button>
 
                     {availableTypes.map((type) => {

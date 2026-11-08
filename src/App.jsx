@@ -23,7 +23,6 @@ const Modpacks = lazy(() => import('./pages/Modpacks'));
 const Paquetes = lazy(() => import('./pages/Paquetes'));
 const Personajes = lazy(() => import('./pages/Personajes'));
 const MisMods = lazy(() => import('./pages/MisMods'));
-const MisLikes = lazy(() => import('./pages/MisLikes'));
 const AdminPanel = lazy(() => import('./pages/AdminPanel'));
 const Configuracion = lazy(() => import('./pages/Configuracion'));
 const Comunidad = lazy(() => import('./pages/Comunidad'));
@@ -144,12 +143,6 @@ function App() {
                     <MisMods />
                   </ProtectedRoute>
                 } 
-              />
-              <Route path="mis-likes" element={
-                  <ProtectedRoute>
-                    <MisLikes />
-                  </ProtectedRoute>
-                }
               />
               <Route path="edit/:id" element={
                   <ProtectedRoute>

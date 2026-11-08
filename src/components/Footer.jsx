@@ -1,9 +1,11 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Info, Mail, Heart, Github, Twitter, Instagram, Facebook, Shield, FileText, HelpCircle, Zap } from 'lucide-react';
 import { FEATURES } from '../config/features';
 
 const Footer = () => {
+  const location = useLocation();
+
   return (
     <footer className="bg-white dark:bg-dark-bg border-t border-gray-200 dark:border-gray-800 pt-12 pb-6 px-4">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
@@ -91,7 +93,11 @@ const Footer = () => {
               </Link>
             </li>
             <li>
-              <Link to="/subir" className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+              <Link
+                to="/subir"
+                state={{ returnTo: `${location.pathname}${location.search}${location.hash}` }}
+                className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+              >
                 <Zap size={14} />
                 Subir Mod
               </Link>

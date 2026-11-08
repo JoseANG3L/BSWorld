@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, lazy, Suspense } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Search, Sun, Moon, User, LogOut, ShieldCheck, UserPlus, LogIn, Settings, Upload,
-  LayoutGrid, Gamepad2, ChevronDown, Home, Crown, Bell, Info, Mail, Earth, Heart
+  LayoutGrid, Gamepad2, ChevronDown, Home, Crown, Bell, Info, Mail, Earth
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuth } from '../context/AuthContext';
@@ -76,10 +76,10 @@ const Header = ({ toggleTheme, isDarkMode }) => {
 
   return (
     <>
-    <header className="flex items-center gap-1.5 md:gap-4 lg:gap-5 sticky top-0 z-40 px-2.5 md:px-3 lg:px-5 py-1.5 md:py-2 bg-white dark:bg-dark-bg transition-colors duration-300 border-b border-gray-200 dark:border-gray-800 shadow-sm">
+    <header className="flex items-center gap-1.5 md:gap-4 lg:gap-5 sticky top-0 z-40 px-1.5 md:px-3 lg:px-5 py-1.5 md:py-2 bg-white dark:bg-dark-bg transition-colors duration-300 border-b border-gray-200 dark:border-gray-800 shadow-sm">
 
       {/* ICONO BÚSQUEDA (Solo móvil, izquierda) */}
-      <button className="w-9 h-9 -ml-1.5 flex items-center justify-center md:hidden p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700" onClick={() => setIsFocused(true)}>
+      <button className="w-9 h-9 flex items-center justify-center md:hidden p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700" onClick={() => setIsFocused(true)}>
         <Search size={22} className="text-gray-600 dark:text-gray-400" />
       </button>
 
@@ -91,7 +91,7 @@ const Header = ({ toggleTheme, isDarkMode }) => {
           </button>
           <input
             type="text"
-            placeholder="Buscar mods"
+            placeholder="Buscar contenido"
             autoFocus
             onBlur={() => setIsFocused(false)}
             onKeyDown={handleSearch}
@@ -146,7 +146,7 @@ const Header = ({ toggleTheme, isDarkMode }) => {
         </div>
         <input
           type="text"
-          placeholder="Buscar mods"
+          placeholder="Buscar contenido"
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           onKeyDown={handleSearch}
@@ -189,7 +189,7 @@ const Header = ({ toggleTheme, isDarkMode }) => {
           title={isDarkMode ? "Modo Claro" : "Modo Oscuro"}
           aria-label={isDarkMode ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
         >
-          {isDarkMode ? <Sun size={20} strokeWidth={2.5} /> : <Moon size={18} strokeWidth={2.5} />}
+          {isDarkMode ? <Sun size={22} strokeWidth={2} /> : <Moon size={22} strokeWidth={2} />}
         </button>
 
         {/* En móvil, las notificaciones están en la navegación inferior. */}
@@ -245,7 +245,6 @@ const Header = ({ toggleTheme, isDarkMode }) => {
                   {[
                     { to: `/u/${user.username}`, icon: User, label: 'Mi Perfil' },
                     { to: '/mis-mods', icon: LayoutGrid, label: 'Mis Mods' },
-                    { to: '/mis-likes', icon: Heart, label: 'Mis Likes' },
                     { to: '/notificaciones', icon: Bell, label: 'Notificaciones' },
                     ...(user?.role === 'admin' ? [{ to: '/admin', icon: ShieldCheck, label: 'Panel Admin' }] : [])
                   ].map((item) => (

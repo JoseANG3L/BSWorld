@@ -37,6 +37,7 @@ const SubirMod = ({ isOpen, onClose }) => {
   
   const [loading, setLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
+  const [visibleViewport, setVisibleViewport] = useState(null);
 
   // --- CONTROL DE ERRORES VISUALES EN ROJO ---
   const [errors, setErrors] = useState({
@@ -72,6 +73,24 @@ const SubirMod = ({ isOpen, onClose }) => {
   const [imagenUrlError, setImagenUrlError] = useState(false);
 
   const [openDropdowns, setOpenDropdowns] = useState({});
+
+  useEffect(() => {
+    if (!isOpen || !window.visualViewport) return undefined;
+
+    const viewport = window.visualViewport;
+    const updateVisibleViewport = () => {
+      setVisibleViewport({ height: viewport.height, top: viewport.offsetTop });
+    };
+
+    updateVisibleViewport();
+    viewport.addEventListener('resize', updateVisibleViewport);
+    viewport.addEventListener('scroll', updateVisibleViewport);
+
+    return () => {
+      viewport.removeEventListener('resize', updateVisibleViewport);
+      viewport.removeEventListener('scroll', updateVisibleViewport);
+    };
+  }, [isOpen]);
 
   // Cierre de dropdowns al dar clic fuera
   useEffect(() => {
@@ -385,21 +404,30 @@ const SubirMod = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return createPortal(
-    <div className="fixed p-0 md:p-4 inset-0 h-[100dvh] w-screen bg-black/80 backdrop-blur-sm flex items-center justify-center z-[99999] overflow-hidden animate-fade-in-up" style={{ animationDuration: '200ms' }}>
+    <div
+      className="fixed p-0 md:p-4 inset-x-0 top-0 h-[100dvh] w-screen bg-black/80 backdrop-blur-sm flex items-center justify-center z-[99999] overflow-hidden animate-fade-in-up"
+      style={{
+        animationDuration: '200ms',
+        ...(visibleViewport && {
+          height: `${visibleViewport.height}px`,
+          top: `${visibleViewport.top}px`,
+        }),
+      }}
+    >
 
       <div className="w-full md:max-w-5xl h-full flex flex-col bg-white dark:bg-dark-bg rounded-none md:rounded-2xl overflow-hidden animate-fade-in-up" style={{ animationDuration: '200ms' }}>
         
         {/* HEADER SIMPLE */}
-        <div className="flex-shrink-0 bg-white dark:bg-dark-bg border-b border-gray-200 dark:border-gray-800 px-2 md:px-4 pt-3">
-          <div className="flex items-center justify-between mb-3">
-            <PageHeader title="Nuevo Mod" icon={Upload} gradientClass="from-primary-500 to-primary-600" />
+        <div className="flex-shrink-0 bg-white dark:bg-dark-bg border-b border-gray-200 dark:border-gray-800 px-2 md:px-4 pt-1.5 md:p-3">
+          <div className="flex items-center justify-between mb-2">
+            <PageHeader title="Subir Mod" icon={Upload} gradientClass="from-primary-500 to-primary-600" />
             <button type="button" onClick={handleClose} className="p-2 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
               <X size={22} />
             </button>
           </div>
           
           {/* Dropdown de navegación movil */}
-          <div className="sm:hidden w-full relative mb-1" ref={pasosDropdownRef}>
+          <div className="sm:hidden w-full relative mb-2" ref={pasosDropdownRef}>
             <div className="relative">
               <button
                 type="button"
@@ -491,12 +519,12 @@ const SubirMod = ({ isOpen, onClose }) => {
         </div>
 
         {/* CONTENIDO PRINCIPAL POR PASO */}
-        <div className="flex-1 p-2 md:p-4 overflow-y-auto custom-scrollbar bg-white dark:bg-dark-bg">
+        <div className="flex-1 min-h-0 p-2 md:p-4 overflow-y-auto custom-scrollbar bg-white dark:bg-dark-bg">
           
           {/* PASO 1: NOMBRE */}
           {currentStep === 0 && (
-            <div className="space-y-4 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
-              <div className="text-center md:text-left mb-4">
+            <div className="animate-fade-in-up" style={{ animationDuration: '200ms' }}>
+              <div className="text-center md:text-left mb-3 md:mb-4">
                 <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-1">¿Cómo se llama tu mod?</h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400">Ingresa un título claro y llamativo para que la comunidad lo encuentre rápidamente.</p>
               </div>
@@ -521,13 +549,13 @@ const SubirMod = ({ isOpen, onClose }) => {
 
           {/* PASO 2: TIPO DE MOD CON TARJETAS INTERACTIVAS */}
           {currentStep === 1 && (
-            <div className="space-y-4 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
-              <div className="text-center md:text-left mb-4">
-                <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-1">Selecciona el tipo de contenido</h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Elige la categoría principal a la que pertenece tu mod.</p>
+            <div className="animate-fade-in-up" style={{ animationDuration: '200ms' }}>
+              <div className="text-center md:text-left mb-3 md:mb-4">
+                <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-1">Selecciona el tipo de mod</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Elige la categoría principal de tu mod.</p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 md:gap-3">
                 {TIPO_CARDS.map((card) => {
                   const IconComp = card.icon;
                   const isSelected = formData.tipo === card.id;
@@ -537,7 +565,7 @@ const SubirMod = ({ isOpen, onClose }) => {
                       type="button"
                       onClick={() => setFormData(prev => ({ ...prev, tipo: card.id }))}
                       className={clsx(
-                        "p-4 rounded-2xl border text-left transition-all duration-300 flex items-start gap-3.5 relative overflow-hidden group",
+                        "p-2.5 md:p-4 rounded-2xl border text-left transition-all duration-300 flex items-start gap-2.5 md:gap-3.5 relative overflow-hidden group",
                         isSelected 
                           ? "border-primary-500 bg-primary-300/20 dark:bg-primary-600/20 ring-1 ring-primary-500 shadow-md" 
                           : "border-gray-300 dark:border-transparent bg-white dark:bg-[#1D1F23] hover:bg-gray-50 dark:hover:bg-[#232529]"
@@ -564,8 +592,8 @@ const SubirMod = ({ isOpen, onClose }) => {
 
           {/* PASO 3: CREADORES */}
           {currentStep === 2 && (
-            <div className="space-y-4 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
-              <div className="text-center md:text-left mb-4">
+            <div className="animate-fade-in-up" style={{ animationDuration: '200ms' }}>
+              <div className="text-center md:text-left mb-3 md:mb-4">
                 <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-1">Créditos y Autores</h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400">Añade a los usuarios que participaron o crearon este mod.</p>
               </div>
@@ -582,8 +610,8 @@ const SubirMod = ({ isOpen, onClose }) => {
 
           {/* PASO 4: DESCRIPCIÓN */}
           {currentStep === 3 && (
-            <div className="space-y-4 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
-              <div className="text-center md:text-left mb-4">
+            <div className="animate-fade-in-up" style={{ animationDuration: '200ms' }}>
+              <div className="text-center md:text-left mb-3 md:mb-4">
                 <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-1">Descripción e Instrucciones</h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400">Detalla las funciones, cómo instalarlo o los créditos extendidos.</p>
               </div>
@@ -594,8 +622,8 @@ const SubirMod = ({ isOpen, onClose }) => {
 
           {/* PASO 5: MULTIMEDIA */}
           {currentStep === 4 && (
-            <div className="space-y-5 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
-              <div className="text-center md:text-left mb-2">
+            <div className="animate-fade-in-up" style={{ animationDuration: '200ms' }}>
+              <div className="text-center md:text-left mb-3 md:mb-4">
                 <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-1">Imagen Principal y Galería</h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400">Pega enlaces directos de tus capturas de pantalla o videos demostrativos.</p>
               </div>
@@ -615,8 +643,8 @@ const SubirMod = ({ isOpen, onClose }) => {
 
           {/* PASO 6: ARCHIVOS Y ETIQUETAS */}
           {currentStep === 5 && (
-            <div className="space-y-5 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
-              <div className="text-center md:text-left mb-2">
+            <div className="animate-fade-in-up" style={{ animationDuration: '200ms' }}>
+              <div className="text-center md:text-left mb-3 md:mb-4">
                 <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-1">Archivos de Descarga y Tags</h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400">Configura los enlaces para obtener el contenido y sus etiquetas.</p>
               </div>
@@ -642,8 +670,8 @@ const SubirMod = ({ isOpen, onClose }) => {
 
           {/* PASO 7: PRIVACIDAD */}
           {currentStep === 6 && (
-            <div className="space-y-4 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
-              <div className="text-center md:text-left mb-4">
+            <div className="animate-fade-in-up" style={{ animationDuration: '200ms' }}>
+              <div className="text-center md:text-left mb-3 md:mb-4">
                 <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-1">Visibilidad del Aporte</h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400">Determina quién podrá acceder a este contenido.</p>
               </div>
@@ -682,8 +710,8 @@ const SubirMod = ({ isOpen, onClose }) => {
 
           {/* PASO 8: RESUMEN Y FINALIZAR (LISTADO DE MODIFICACIONES Y EDICIÓN RÁPIDA) */}
           {currentStep === 7 && (
-            <div className="space-y-4 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
-              <div className="text-center md:text-left mb-4">
+            <div className="animate-fade-in-up" style={{ animationDuration: '200ms' }}>
+              <div className="text-center md:text-left mb-3 md:mb-4">
                 <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-1">Resumen de la Publicación</h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400">Revisa la lista de modificaciones y presiona publicar si todo está correcto.</p>
               </div>

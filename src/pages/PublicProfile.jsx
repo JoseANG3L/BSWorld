@@ -3,7 +3,7 @@ import { useParams, Link, useLocation } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { getContentByCreator, getUserByUsername, getUserPublicProfile, getUserLikedContent } from '../services/api';
 import Card from '../components/Card';
-import { Calendar, Shield, UserX, Heart, Youtube, Twitter, Instagram, Linkedin, Github, Globe, MessageCircle, Download, Grid, Boxes, Map, Gamepad2, Package, Wrench, User, Search, ChevronDown, ArrowUpDown, Edit3, Settings, Filter, X, Check, Eye } from 'lucide-react';
+import { Calendar, Shield, UserX, Heart, Youtube, Twitter, Instagram, Linkedin, Github, Globe, MessageCircle, Download, Grid, Boxes, Map, Gamepad2, Package, Wrench, User, Search, ChevronDown, ArrowUpDown, Edit3, Settings, Filter, X, Check, Eye, Pencil } from 'lucide-react';
 import { clsx } from 'clsx';
 import AvatarRenderer from '../components/AvatarRenderer';
 import { useAuth } from '../context/AuthContext';
@@ -257,29 +257,25 @@ const PublicProfile = () => {
     <div className="flex flex-col p-2 md:p-4 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
       
       {/* SECCIÓN 1: PERFIL */}
-      <div className="flex flex-col md:flex-row items-center gap-2 md:gap-4 md:text-left justify-center md:justify-between mb-4 md:mb-6 px-2 md:px-4">
+      <div className="flex flex-col md:flex-row items-center gap-2 md:gap-4 md:text-left justify-center md:justify-between mb-2 md:mb-6 px-1 md:px-4">
         {/* AVATAR, NOMBRE, FECHA Y REDES IZQUIERDA */}
-        <div className="flex-1 flex flex-col md:flex-row items-center text-center gap-1 md:gap-6 min-w-0">
+        <div className="flex-1 flex flex-row items-start text-left gap-3 md:gap-6 min-w-0">
             {/* AVATAR */}
             <div className="relative group shrink-0 items-center text-center">
-              <div className="w-20 h-20 md:w-36 md:h-36 rounded-full shadow-lg overflow-hidden">
+              <div className="w-14 h-14 md:w-32 md:h-32 rounded-full shadow-lg overflow-hidden">
                   <AvatarRenderer avatar={displayAvatar} name={username} /> 
               </div>
               {profile?.role === 'admin' && (
-                  <div className="absolute bottom-0 right-0 bg-yellow-400 text-yellow-900 p-1 rounded-full border-2 border-white dark:border-[#121212]" title="Admin">
-                      <Shield size={12} fill="currentColor" />
+                  <div className="absolute bottom-0 right-0 bg-yellow-400 text-yellow-900 p-0.5 md:p-1 rounded-full border-2 border-white dark:border-[#121212]" title="Admin">
+                      <Shield size={10} className="md:w-3 md:h-3" fill="currentColor" />
                   </div>
               )}
             </div>
 
             {/* NOMBRE, FECHA Y REDES */}
-            <div className="flex flex-col min-w-0 items-center md:items-start">
-                <div className="flex items-center gap-3">
-                    {isOwnProfile && (
-                      <div className="w-8 h-8 md:hidden"></div>
-                    )}
-
-                    <h1 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white truncate">
+            <div className="flex flex-col min-w-0 flex-1 items-start">
+                <div className="w-full flex items-center justify-between md:justify-start gap-2">
+                    <h1 className="text-xl md:text-3xl font-black text-gray-900 dark:text-white truncate">
                       {username}
                     </h1>
                     
@@ -287,60 +283,60 @@ const PublicProfile = () => {
                     {isOwnProfile && (
                       <Link
                         to="/configuracion"
-                        className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100 dark:bg-[#1D1F23] hover:bg-gray-200 dark:hover:bg-gray-800 text-gray-800 dark:text-gray-200 transition-colors border border-gray-300 dark:border-gray-700 shadow-sm shrink-0"
+                        className="inline-flex items-center justify-center w-7 h-7 md:w-8 md:h-8 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800 text-gray-800 dark:text-gray-200 transition-colors border border-gray-300 dark:border-gray-700 shrink-0"
                       >
-                        <Settings size={16} />
+                        <Pencil size={16} />
                       </Link>
                     )}
                 </div>
                 
                 {/* FECHA DE MIEMBRO */}
-                <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                <div className="mt-0 md:mt-2 text-[10px] md:text-xs text-gray-500 dark:text-gray-400">
                     Miembro desde {joinDate}
                 </div>
 
                 {/* DESCRIPCIÓN */}
                 {profile?.descripcion && (
-                    <div className="mt-2 text-sm text-gray-800 dark:text-gray-200 line-clamp-2">
+                    <div className="mt-1 md:mt-2 text-xs md:text-sm text-gray-800 dark:text-gray-200 md:line-clamp-2">
                         {profile.descripcion}
                     </div>
                 )}
 
                 {/* REDES SOCIALES */}
-                <div className="flex items-center gap-2 mt-2.5 flex-wrap">
+                <div className="flex items-center gap-1.5 md:gap-2 mt-1 md:mt-2.5 flex-wrap">
                     {profile?.youtube && (
-                        <a href={profile.youtube} target="_blank" rel="noopener noreferrer" className="w-8 h-8 flex items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors">
-                            <Youtube size={18} />
+                        <a href={profile.youtube} target="_blank" rel="noopener noreferrer" aria-label="YouTube" className="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors">
+                            <Youtube size={14} className="md:w-[18px] md:h-[18px]" />
                         </a>
                     )}
                     {profile?.twitter && (
-                        <a href={profile.twitter} target="_blank" rel="noopener noreferrer" className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors">
-                            <Twitter size={18} />
+                        <a href={profile.twitter} target="_blank" rel="noopener noreferrer" aria-label="Twitter" className="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors">
+                            <Twitter size={14} className="md:w-[18px] md:h-[18px]" />
                         </a>
                     )}
                     {profile?.instagram && (
-                        <a href={profile.instagram} target="_blank" rel="noopener noreferrer" className="w-8 h-8 flex items-center justify-center rounded-full bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 hover:bg-pink-200 dark:hover:bg-pink-900/50 transition-colors">
-                            <Instagram size={18} />
+                        <a href={profile.instagram} target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center rounded-full bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 hover:bg-pink-200 dark:hover:bg-pink-900/50 transition-colors">
+                            <Instagram size={14} className="md:w-[18px] md:h-[18px]" />
                         </a>
                     )}
                     {profile?.linkedin && (
-                        <a href={profile.linkedin} target="_blank" rel="noopener noreferrer" className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors">
-                            <Linkedin size={18} />
+                        <a href={profile.linkedin} target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" className="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors">
+                            <Linkedin size={14} className="md:w-[18px] md:h-[18px]" />
                         </a>
                     )}
                     {profile?.github && (
-                        <a href={profile.github} target="_blank" rel="noopener noreferrer" className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
-                            <Github size={18} />
+                        <a href={profile.github} target="_blank" rel="noopener noreferrer" aria-label="GitHub" className="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                            <Github size={14} className="md:w-[18px] md:h-[18px]" />
                         </a>
                     )}
                     {profile?.discord && (
-                        <a href={profile.discord} target="_blank" rel="noopener noreferrer" className="w-8 h-8 flex items-center justify-center rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-colors">
-                            <MessageCircle size={18} />
+                        <a href={profile.discord} target="_blank" rel="noopener noreferrer" aria-label="Discord" className="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-colors">
+                            <MessageCircle size={14} className="md:w-[18px] md:h-[18px]" />
                         </a>
                     )}
                     {profile?.website && (
-                        <a href={profile.website} target="_blank" rel="noopener noreferrer" className="w-8 h-8 flex items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors">
-                            <Globe size={18} />
+                        <a href={profile.website} target="_blank" rel="noopener noreferrer" aria-label="Sitio web" className="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors">
+                            <Globe size={14} className="md:w-[18px] md:h-[18px]" />
                         </a>
                     )}
                 </div>
@@ -348,21 +344,21 @@ const PublicProfile = () => {
         </div>
 
         {/* ESTADÍSTICAS */}
-        <div className="flex items-center mt-1 md:mt-0 gap-5 md:gap-8 shrink-0">
-            <div className="flex flex-col items-center">
-                <Eye size={18} md:size={22} className="text-green-500 mb-1" />
-                <span className="font-bold text-gray-900 dark:text-white text-lg md:text-xl">{formatNumber(totalStats.vistas)}</span>
-                <span className="text-[10px] md:text-[11px] uppercase text-gray-500 dark:text-gray-400 font-medium">Vistas</span>
+        <div className="w-full md:w-auto flex items-center justify-around md:justify-start mt-0.5 md:mt-0 mb-1 md:mb-0 gap-2 md:gap-8 shrink-0 ">
+            <div className="flex items-center md:flex-col gap-1 md:gap-0">
+                <Eye size={14} className="md:w-[22px] md:h-[22px] text-green-500 md:mb-1" />
+                <span className="font-bold text-gray-900 dark:text-white text-sm md:text-xl">{formatNumber(totalStats.vistas)}</span>
+                <span className="text-[9px] md:text-[11px] uppercase text-gray-500 dark:text-gray-400 font-medium">Vistas</span>
             </div>
-            <div className="flex flex-col items-center">
-                <Download size={18} md:size={22} className="text-blue-500 mb-1" />
-                <span className="font-bold text-gray-900 dark:text-white text-lg md:text-xl">{formatNumber(totalStats.descargas)}</span>
-                <span className="text-[10px] md:text-[11px] uppercase text-gray-500 dark:text-gray-400 font-medium">Descargas</span>
+            <div className="flex items-center md:flex-col gap-1 md:gap-0">
+                <Download size={14} className="md:w-[22px] md:h-[22px] text-blue-500 md:mb-1" />
+                <span className="font-bold text-gray-900 dark:text-white text-sm md:text-xl">{formatNumber(totalStats.descargas)}</span>
+                <span className="text-[9px] md:text-[11px] uppercase text-gray-500 dark:text-gray-400 font-medium">Descargas</span>
             </div>
-            <div className="flex flex-col items-center">
-                <Heart size={18} md:size={22} className="text-red-500 mb-1" />
-                <span className="font-bold text-gray-900 dark:text-white text-lg md:text-xl">{formatNumber(totalStats.likes)}</span>
-                <span className="text-[10px] md:text-[11px] uppercase text-gray-500 dark:text-gray-400 font-medium">Likes</span>
+            <div className="flex items-center md:flex-col gap-1 md:gap-0">
+                <Heart size={14} className="md:w-[22px] md:h-[22px] text-red-500 md:mb-1" />
+                <span className="font-bold text-gray-900 dark:text-white text-sm md:text-xl">{formatNumber(totalStats.likes)}</span>
+                <span className="text-[9px] md:text-[11px] uppercase text-gray-500 dark:text-gray-400 font-medium">Likes</span>
             </div>
         </div>
       </div>

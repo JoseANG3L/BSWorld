@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabaseClient';
 import {
   User, Camera, Save, Calendar, Shield, CheckCircle, AlertCircle, Palette,
   Link as LinkIcon, Youtube, Twitter, Instagram, Linkedin, Github, Globe,
-  MessageCircle, Trash2, Eye, EyeOff, ExternalLink, Check, RotateCcw, Lock
+  MessageCircle, Trash2, Eye, EyeOff, Check, RotateCcw, Lock
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { ICON_MAP } from '../components/AvatarRenderer';
 import LoadingSpinner from '../components/LoadingSpinner';
+import PageHeader from '../components/PageHeader';
 import { useToast } from '../hooks/useToast';
 
 // --- CONSTANTES ---
@@ -59,15 +59,15 @@ const SectionCard = ({ icon, title, description, children, tone = 'default', act
   return (
   <section
     className={clsx(
-      'overflow-hidden rounded-2xl border shadow-sm',
+      'overflow-hidden border-b pb-2',
       tone === 'danger'
-        ? 'border-red-200 bg-red-50/40 dark:border-red-900/40 dark:bg-red-950/10'
-        : 'border-gray-200 bg-white dark:border-gray-800 dark:bg-[#1a1b1e]'
+        ? 'border-red-200 dark:border-red-900/40'
+        : 'border-gray-200 dark:border-gray-800'
     )}
   >
     <div
       className={clsx(
-        'flex items-start gap-3 border-b px-4 py-4 sm:px-5',
+        'flex items-start gap-3 border-b px-0 pb-4',
         tone === 'danger'
           ? 'border-red-100 dark:border-red-900/30'
           : 'border-gray-100 dark:border-gray-800'
@@ -96,7 +96,7 @@ const SectionCard = ({ icon, title, description, children, tone = 'default', act
       </div>
       {action}
     </div>
-    <div className="p-4 sm:p-5">{children}</div>
+    <div className="py-4">{children}</div>
   </section>
   );
 };
@@ -108,7 +108,6 @@ const Configuracion = () => {
   const [formData, setFormData] = useState({
     username: '',
     avatar: '',
-    banner: '',
     descripcion: '',
     youtube: '',
     twitter: '',
@@ -142,7 +141,6 @@ const Configuracion = () => {
     const nextForm = {
       username: user.username || '',
       avatar: user.avatar || '',
-      banner: user.banner || '',
       descripcion: user.descripcion || '',
       youtube: user.youtube || '',
       twitter: user.twitter || '',
@@ -316,7 +314,6 @@ const Configuracion = () => {
         .update({
           username: formData.username,
           avatar: formData.avatar,
-          banner: formData.banner,
           descripcion: formData.descripcion,
           youtube: formData.youtube,
           twitter: formData.twitter,
@@ -336,7 +333,6 @@ const Configuracion = () => {
       updateUserProfile({
         username: formData.username,
         avatar: formData.avatar,
-        banner: formData.banner,
         descripcion: formData.descripcion
       });
 
@@ -366,56 +362,39 @@ const Configuracion = () => {
     : 'Desconocida';
 
   const isDesignAvatar = formData.avatar?.startsWith('design|');
-  const banner = formData.banner;
-  const bannerStyle = banner
-    ? banner.startsWith('linear-gradient')
-      ? { backgroundImage: banner }
-      : { backgroundImage: `url(${banner})`, backgroundSize: 'cover', backgroundPosition: 'center' }
-    : undefined;
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col px-2 py-4 animate-fade-in-up md:px-4 md:py-6" style={{ animationDuration: '200ms' }}>
+    <div className="flex flex-col p-2 md:p-4 animate-fade-in-up mx-auto w-full max-w-6xl" style={{ animationDuration: '200ms' }}>
 
       {/* CABECERA */}
-      <header className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-500 to-indigo-500 text-white shadow-lg shadow-primary-500/25">
-            <User size={22} strokeWidth={2.5} />
-          </div>
-          <div>
-            <h1 className="text-xl font-black tracking-tight text-gray-900 dark:text-white md:text-2xl">Configuración</h1>
-            <p className="text-xs text-gray-500 dark:text-gray-400 sm:text-sm">
-              Administra tu perfil, enlaces y seguridad.
-            </p>
-          </div>
+      <header className="mb-3 md:mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <PageHeader
+            title="Configuración"
+            icon={User}
+            gradientClass="from-primary-500 to-indigo-500"
+            className="font-black tracking-tight"
+          />
         </div>
 
-        <Link
-          to={`/u/${user?.username || ''}`}
-          className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-xs font-bold text-gray-700 transition-all hover:border-primary-300 hover:text-primary-600 dark:border-gray-700 dark:bg-white/5 dark:text-gray-200 dark:hover:border-primary-700 dark:hover:text-primary-400"
-        >
-          <ExternalLink size={14} />
-          Ver perfil público
-        </Link>
       </header>
 
       <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[300px_minmax(0,1fr)]">
 
         {/* VISTA PREVIA */}
-        <aside className="lg:sticky lg:top-20">
-          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-[#1a1b1e]">
-            <div
-              className="h-24 bg-gradient-to-r from-primary-500 to-indigo-500"
-              style={bannerStyle}
-            />
-
-            <div className="px-4 pb-4">
-              <div className="-mt-10 mb-3 flex items-end justify-between">
-                <div className="h-20 w-20 overflow-hidden rounded-full bg-white shadow-lg ring-4 ring-white dark:bg-[#2a2c31] dark:ring-[#1a1b1e]">
-                  {renderPreviewAvatar()}
-                </div>
+        <aside className="border-b border-gray-200 pb-5 dark:border-gray-800 lg:sticky lg:top-20 lg:border-0 lg:pb-0">
+          <div>
+            <div className="flex items-center gap-3">
+              <div className="h-16 w-16 shrink-0 overflow-hidden rounded-full bg-gray-100 shadow-sm ring-2 ring-primary-100 dark:bg-[#2a2c31] dark:ring-primary-900/40">
+                {renderPreviewAvatar()}
+              </div>
+              <div className="min-w-0 flex-1">
+                <h2 className="truncate text-lg font-bold text-gray-900 dark:text-white">
+                  {formData.username || 'Usuario'}
+                </h2>
+                <p className="truncate text-xs text-gray-500 dark:text-gray-400">{user?.email}</p>
                 <span className={clsx(
-                  'mb-1 inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-wide',
+                  'mt-1 inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-wide',
                   user?.role === 'admin'
                     ? 'bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300'
                     : 'bg-gray-100 text-gray-600 dark:bg-white/10 dark:text-gray-300'
@@ -424,11 +403,7 @@ const Configuracion = () => {
                   {user?.role === 'admin' ? 'Admin' : 'Miembro'}
                 </span>
               </div>
-
-              <h2 className="truncate text-lg font-bold text-gray-900 dark:text-white">
-                {formData.username || 'Usuario'}
-              </h2>
-              <p className="truncate text-xs text-gray-500 dark:text-gray-400">{user?.email}</p>
+            </div>
 
               <div className="mt-3 flex items-center gap-1.5 text-[11px] font-medium text-gray-500 dark:text-gray-400">
                 <Calendar size={12} className="text-primary-500" />
@@ -463,7 +438,6 @@ const Configuracion = () => {
                   </p>
                 )}
               </div>
-            </div>
           </div>
         </aside>
 
@@ -580,10 +554,10 @@ const Configuracion = () => {
                       />
                     </div>
                   ) : (
-                    <div className="space-y-4 rounded-xl border border-gray-200 bg-gray-50/60 p-3 dark:border-white/10 dark:bg-white/[0.03] sm:p-4">
+                    <div className="space-y-4 py-1">
                       <div>
                         <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">1. Icono</p>
-                        <div className="grid grid-cols-8 gap-1.5 sm:grid-cols-10">
+                        <div className="grid grid-cols-5 gap-2 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-12">
                           {AVATAR_ICON_NAMES.map((name) => {
                             const Icon = AVATAR_ICONS_MAP[name];
                             const selected = selectedIcon === name;
@@ -601,7 +575,7 @@ const Configuracion = () => {
                                 )}
                                 title={name}
                               >
-                                <Icon size={18} strokeWidth={1.5} />
+                                <Icon size={24} className="h-5 w-5 sm:h-6 sm:w-6" strokeWidth={1.5} />
                               </button>
                             );
                           })}
@@ -673,7 +647,7 @@ const Configuracion = () => {
             </SectionCard>
 
             {/* BARRA DE GUARDADO */}
-            <div className="sticky bottom-20 z-30 flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white/95 p-3 shadow-lg backdrop-blur-md dark:border-gray-700 dark:bg-[#1c1d20]/95 sm:flex-row sm:items-center sm:justify-between lg:bottom-6">
+            <div className="sticky bottom-16 z-30 flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white/95 p-3 shadow-sm dark:border-gray-700 dark:bg-[#1c1d20]/95 sm:flex-row sm:items-center sm:justify-between sm:px-4 lg:bottom-6">
               <div className="flex items-center gap-2 text-xs font-medium">
                 <span className={clsx('h-2 w-2 rounded-full', isDirty ? 'bg-amber-400' : 'bg-emerald-500')} />
                 <span className={isDirty ? 'text-amber-700 dark:text-amber-300' : 'text-gray-500 dark:text-gray-400'}>

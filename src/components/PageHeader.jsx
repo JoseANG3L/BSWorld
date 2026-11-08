@@ -4,6 +4,9 @@ import { clsx } from 'clsx';
 const PageHeader = ({
   title,
   icon: Icon,
+  iconSize = 20,
+  iconClassName,
+  iconContainerClassName,
   gradientClass = 'from-primary-500 to-primary-700',
   trailing,
   hideTitleOnMobile = false,
@@ -15,9 +18,10 @@ const PageHeader = ({
   )}>
     <span className={clsx(
       'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-white shadow-sm',
+      iconContainerClassName,
       gradientClass
     )}>
-      {React.createElement(Icon, { size: 20, strokeWidth: 2.5 })}
+      {React.createElement(Icon, { size: iconSize, strokeWidth: 2.5, className: iconClassName })}
     </span>
     <span className={clsx(
       'min-w-0 truncate',

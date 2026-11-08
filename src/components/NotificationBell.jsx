@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Bell, ChevronRight, Inbox, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuth, useNotifications } from '../context/AuthContext';
+import PageHeader from './PageHeader';
 import {
   getUserNotifications,
   markNotificationAsRead,
@@ -187,33 +188,26 @@ const NotificationBell = ({ variant = 'default' }) => {
         >
           {/* CABECERA */}
           <div className="flex items-center justify-between gap-2 border-b border-gray-100 bg-gray-50/70 px-3 py-1.5 dark:border-white/[0.06] dark:bg-white/[0.02] sm:px-3.5 sm:py-3">
-            <div className="flex min-w-0 items-center gap-2 sm:gap-2.5">
-              <div className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary-600 text-white sm:h-8 sm:w-8 sm:rounded-xl sm:bg-gradient-to-br sm:from-primary-500 sm:to-indigo-500 sm:shadow-sm sm:shadow-primary-500/25">
-                <Bell size={14} strokeWidth={2.5} />
-                {unreadCount > 0 && (
-                  <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-red-500 dark:border-[#1c1d20]" />
-                )}
-              </div>
-              <div className="min-w-0">
-                <h3 className="truncate text-base font-bold text-gray-900 dark:text-white sm:text-sm">
-                  Notificaciones
-                </h3>
-                <p className="truncate text-[11px] font-medium text-gray-500 dark:text-gray-400 sm:text-[10px]">
-                  {unreadCount > 0
-                    ? `${unreadCount > 99 ? '99+' : unreadCount} sin leer`
-                    : 'Todo al día'}
-                </p>
-              </div>
+            <div className="min-w-0">
+              <PageHeader
+                title="Notificaciones"
+                icon={Bell}
+                iconSize={20}
+                iconClassName="h-5 w-5 sm:h-4 sm:w-4"
+                iconContainerClassName="!h-9 !w-9 !rounded-xl sm:!h-7 sm:!w-7 sm:!rounded-lg"
+                gradientClass="from-purple-500 to-pink-500"
+                className="!gap-2 !text-base md:!text-base"
+              />
             </div>
 
             <button
               type="button"
               onClick={() => setIsOpen(false)}
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-gray-500 transition-colors hover:bg-gray-200 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white sm:hidden"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-gray-500 transition-colors hover:bg-gray-200 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white sm:hidden"
               aria-label="Cerrar notificaciones"
               title="Cerrar"
             >
-              <X size={16} />
+              <X size={22} />
             </button>
           </div>
 
@@ -341,9 +335,9 @@ const NotificationBell = ({ variant = 'default' }) => {
           <Link
             to="/notificaciones"
             onClick={() => setIsOpen(false)}
-            className="flex items-center justify-center gap-1 border-t border-gray-100 bg-gray-50/50 px-2.5 py-2 text-[13px] font-bold text-primary-600 transition-colors hover:bg-primary-50 dark:border-white/[0.06] dark:bg-white/[0.01] dark:text-primary-400 dark:hover:bg-primary-500/10 sm:gap-1.5 sm:px-4 sm:py-2.5 sm:text-xs"
+            className="flex items-center justify-center gap-1 border-t border-gray-100 bg-gray-50/50 px-2.5 py-3.5 text-sm font-bold text-primary-600 transition-colors hover:bg-primary-50 dark:border-white/[0.06] dark:bg-white/[0.01] dark:text-primary-400 dark:hover:bg-primary-500/10 sm:gap-1.5 sm:px-4 sm:py-2.5 sm:text-xs"
           >
-            Ver todas
+            Ver todas las notificaciones
             <ChevronRight size={13} />
           </Link>
         </div>

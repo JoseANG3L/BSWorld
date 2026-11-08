@@ -32,6 +32,7 @@ const Mods = () => {
       items={mods}
       loading={loading}
       searchKey="titulo"
+      searchPlaceholder="Buscar mods"
       enableTypeFilter={true}
       typeKey="tipo"
       customTypes={['complemento', 'mapa', 'personaje', 'minijuego', 'modpack', 'paquete']}
