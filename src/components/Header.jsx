@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, lazy, Suspense } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { 
-  Search, Sun, Moon, User, Menu, LogOut, ShieldCheck, UserPlus, LogIn, Settings, Upload, 
+  Search, Sun, Moon, User, LogOut, ShieldCheck, UserPlus, LogIn, Settings, Upload,
   LayoutGrid, Gamepad2, ChevronDown, Home, Crown, Bell, Info, Mail, Earth, Heart
 } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -28,7 +28,6 @@ const Header = ({ toggleTheme, isDarkMode }) => {
 
   const [isFocused, setIsFocused] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [isNavMenuOpen, setIsNavMenuOpen] = useState(false);
   
   // ESTADOS DE MODALES
   const [isSubirModOpen, setIsSubirModOpen] = useState(false);
@@ -36,7 +35,6 @@ const Header = ({ toggleTheme, isDarkMode }) => {
   const [loginInitialRegister, setLoginInitialRegister] = useState(false);
 
   const profileRef = useRef(null);
-  const navMenuRef = useRef(null);
 
   // --- LÓGICA DE BÚSQUEDA ---
   const handleSearch = (e) => {
@@ -55,9 +53,6 @@ const Header = ({ toggleTheme, isDarkMode }) => {
     const handleClickOutside = (event) => {
       if (profileRef.current && !profileRef.current.contains(event.target)) {
         setIsProfileOpen(false);
-      }
-      if (navMenuRef.current && !navMenuRef.current.contains(event.target)) {
-        setIsNavMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -81,41 +76,7 @@ const Header = ({ toggleTheme, isDarkMode }) => {
 
   return (
     <>
-    <header className="flex items-center gap-1.5 md:gap-4 lg:gap-5 sticky top-0 z-40 px-2 md:px-3 lg:px-5 py-1.5 md:py-2 bg-white dark:bg-dark-bg transition-colors duration-300 border-b border-gray-200 dark:border-gray-800 shadow-sm">
-
-      {/* MENÚ HAMBURGUESA (Solo móvil) */}
-      <div className="lg:hidden relative" ref={navMenuRef}>
-        <button
-          onClick={() => setIsNavMenuOpen(!isNavMenuOpen)}
-          className="w-9 h-9 flex items-center justify-center rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-        >
-          <Menu size={26} />
-        </button>
-        {isNavMenuOpen && (
-          <div className="absolute left-0 mt-1.5 md:mt-3 w-56 bg-white dark:bg-[#1e1e1e] rounded-xl shadow-xl border border-gray-300 dark:border-transparent py-2 z-50 origin-top-left animate-fade-in-up" style={{ animationDuration: '200ms' }}>
-            {menuItems.map((item) => {
-              const isActive = location.pathname === item.to;
-              return (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  onClick={() => setIsNavMenuOpen(false)}
-                  className={clsx(
-                    "flex items-center gap-3 px-4 py-2.5 text-sm transition-colors",
-                    isActive
-                      ? "text-primary-600 dark:text-primary-400 font-semibold"
-                      : "text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-primary-600 dark:hover:text-primary-400"
-                  )}
-                >
-                  <item.icon size={16} strokeWidth={isActive ? 2.5 : 2} fill={isActive ? "currentColor" : "none"} />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
-
-          </div>
-        )}
-      </div>
+    <header className="flex items-center gap-1.5 md:gap-4 lg:gap-5 sticky top-0 z-40 px-2.5 md:px-3 lg:px-5 py-1.5 md:py-2 bg-white dark:bg-dark-bg transition-colors duration-300 border-b border-gray-200 dark:border-gray-800 shadow-sm">
 
       {/* ICONO BÚSQUEDA (Solo móvil, izquierda) */}
       <button className="w-9 h-9 -ml-1.5 flex items-center justify-center md:hidden p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700" onClick={() => setIsFocused(true)}>
@@ -144,7 +105,7 @@ const Header = ({ toggleTheme, isDarkMode }) => {
       )}
 
       {/* LOGO BSWorld */}
-      <Link to="/" className="flex items-center mx-auto md:mx-0 pb-1 shrink-0 group">
+      <Link to="/" className="absolute left-1/2 -translate-x-1/2 flex items-center pb-1 shrink-0 group md:static md:translate-x-0">
         <img 
           src={isDarkMode ? '/bsworld_dark.png' : '/bsworld.png'} 
           alt="BombSquad World" 
@@ -198,7 +159,7 @@ const Header = ({ toggleTheme, isDarkMode }) => {
       </div>
 
       {/* ACCIONES (Desktop) */}
-      <div className="flex items-center ml-0 md:ml-auto gap-1.5 md:gap-2 lg:gap-3 shrink-0">
+      <div className="flex items-center ml-auto gap-1.5 md:gap-2 lg:gap-3 shrink-0">
 
         {/* SUBIR MOD */}
         <button 
@@ -224,11 +185,11 @@ const Header = ({ toggleTheme, isDarkMode }) => {
         <button
           type="button"
           onClick={toggleTheme}
-          className="flex lg:hidden w-9 h-9 items-center justify-center rounded-full bg-white dark:bg-[#252525] border border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400 transition-all shadow-sm hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400"
+          className="flex lg:hidden w-9 h-9 items-center justify-center rounded-lg text-gray-600 dark:text-gray-400 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
           title={isDarkMode ? "Modo Claro" : "Modo Oscuro"}
           aria-label={isDarkMode ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
         >
-          {isDarkMode ? <Sun size={18} strokeWidth={2.5} /> : <Moon size={18} strokeWidth={2.5} />}
+          {isDarkMode ? <Sun size={20} strokeWidth={2.5} /> : <Moon size={18} strokeWidth={2.5} />}
         </button>
 
         {/* En móvil, las notificaciones están en la navegación inferior. */}

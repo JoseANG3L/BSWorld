@@ -31,7 +31,7 @@ const BellSkeleton = () => (
   </div>
 );
 
-const NotificationBell = () => {
+const NotificationBell = ({ variant = 'default' }) => {
   const { user } = useAuth();
   const { unreadCount, refreshNotifications } = useNotifications();
   const navigate = useNavigate();
@@ -160,16 +160,18 @@ const NotificationBell = () => {
         type="button"
         onClick={togglePanel}
         className={clsx(
-          'relative flex h-9 w-9 items-center justify-center rounded-full border text-sm shadow-sm transition-all',
-          'bg-white dark:bg-[#252525] border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400',
-          'hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400',
-          isOpen && 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
+          'relative flex h-9 w-9 items-center justify-center rounded-full transition-colors',
+          variant === 'plain'
+            ? 'text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400'
+            : 'border bg-white text-gray-500 shadow-sm dark:bg-[#252525] dark:text-gray-400 border-gray-300 dark:border-gray-700 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400',
+          isOpen && 'text-primary-600 dark:text-primary-400',
+          isOpen && variant !== 'plain' && 'bg-primary-50 dark:bg-primary-900/20'
         )}
         title="Notificaciones"
         aria-label={unreadCount > 0 ? `Notificaciones, ${unreadCount} sin leer` : 'Notificaciones'}
         aria-expanded={isOpen}
       >
-        <Bell size={18} strokeWidth={2.5} />
+        <Bell size={variant === 'plain' ? 20 : 18} strokeWidth={2.5} />
         {unreadCount > 0 && (
           <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-white bg-red-500 px-1 text-[10px] font-bold text-white shadow-sm dark:border-[#121212]">
             {unreadCount > 99 ? '99+' : unreadCount}

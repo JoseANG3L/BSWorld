@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Crown, Wrench, Upload, Bell, User } from 'lucide-react';
+import { Home, Crown, Gamepad2, Upload, Bell, User } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from './NotificationBell';
@@ -11,7 +11,7 @@ const MobileBottomNav = () => {
 
   const navItems = [
     { to: "/", icon: Home, label: "Inicio" },
-    { to: "/mods", icon: Wrench, label: "Mods" },
+    { to: "/mods", icon: Gamepad2, label: "Mods" },
     { to: "/subir", icon: Upload, label: "Subir", isCenter: true },
   ];
 
@@ -61,7 +61,7 @@ const MobileBottomNav = () => {
         {/* Notificaciones */}
         <div className="flex items-center justify-center px-2">
           {user ? (
-            <NotificationBell />
+            <NotificationBell variant="plain" />
           ) : (
             <Link
               to="/login"
