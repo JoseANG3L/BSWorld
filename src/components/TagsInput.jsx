@@ -81,7 +81,7 @@ const TagsInput = ({
       </div>
 
       {/* Tags recomendados */}
-      <div className="flex flex-row items-center gap-2">
+      <div className="flex flex-col items-start gap-2">
         <span className="text-xs text-gray-500 dark:text-gray-400 font-semibold">Tags recomendados:</span>
         <div className="flex flex-wrap gap-2">
           {recommendedTags

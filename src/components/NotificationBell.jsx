@@ -305,9 +305,6 @@ const NotificationBell = ({ variant = 'default' }) => {
                             <span className="truncate text-xs font-medium text-gray-500 dark:text-gray-400 sm:text-[10px]">
                               {notif.modtitle}
                             </span>
-                            <span className="hidden shrink-0 text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500 sm:inline">
-                              {contentType}
-                            </span>
                           </div>
                         )}
                       </div>

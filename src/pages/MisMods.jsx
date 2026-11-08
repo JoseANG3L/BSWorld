@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { PackageOpen, Eye, Heart, MessageCircle, Download } from 'lucide-react';
+import { PackageOpen, Eye, Heart, Download, FileBox, Wrench, UserRound, Map, Gamepad2, Boxes, Package } from 'lucide-react';
 import { getUserContent, deleteContent, getCommentCountByContent } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import Modal from '../components/Modal';
 import ContentTable from '../components/ContentTable';
+import { getPublishedContentStats } from '../utils/publishedContentStats';
 
 const MisMods = () => {
   const { user } = useAuth();
@@ -14,7 +15,7 @@ const MisMods = () => {
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState(null);
   const [hasLoaded, setHasLoaded] = useState(false);
-  const [stats, setStats] = useState({ total: 0, views: 0, likes: 0, comments: 0, downloads: 0 });
+  const [stats, setStats] = useState({ published: 0, publishedTypes: {}, views: 0, likes: 0, comments: 0, downloads: 0 });
 
   // --- ESTADO DEL MODAL ---
   const [modal, setModal] = useState({
@@ -64,9 +65,11 @@ const MisMods = () => {
         const itemDownloads = item.descargas?.reduce((subAcc, version) => subAcc + (version.count || 0), 0) || 0;
         return acc + itemDownloads;
       }, 0);
+      const publishedStats = getPublishedContentStats(modsData);
 
       setStats({
-        total: modsData.length,
+        published: publishedStats.total,
+        publishedTypes: publishedStats.byType,
         views: totalViews,
         likes: totalLikes,
         comments: totalComments,
@@ -75,7 +78,7 @@ const MisMods = () => {
     } catch (error) {
       console.error('Error al cargar mods:', error);
       setMods([]);
-      setStats({ total: 0, views: 0, likes: 0, comments: 0, downloads: 0 });
+      setStats({ published: 0, publishedTypes: {}, views: 0, likes: 0, comments: 0, downloads: 0 });
     } finally {
       setLoading(false);
     }
@@ -132,10 +135,12 @@ const MisMods = () => {
           const itemDownloads = item.descargas?.reduce((subAcc, version) => subAcc + (version.count || 0), 0) || 0;
           return acc + itemDownloads;
         }, 0);
+        const publishedStats = getPublishedContentStats(newMods);
 
         // Actualizar stats inmediatamente con lo que podemos calcular sin async
         setStats({
-          total: newMods.length,
+          published: publishedStats.total,
+          publishedTypes: publishedStats.byType,
           views: totalViews,
           likes: totalLikes,
           comments: 0, // Se actualizará después
@@ -192,14 +197,21 @@ const MisMods = () => {
       <ContentTable
         data={mods}
         loading={loading}
-        title="Panel de Control"
+        title="Mis Mods"
         icon={PackageOpen}
         gradientClass="from-green-600 to-emerald-700"
+        hideHeaderTitleOnMobile
         headerStats={[
-          { icon: Eye, label: 'Vistas', value: stats.views, iconColor: 'text-green-500' },
-          { icon: Heart, label: 'Likes', value: stats.likes, iconColor: 'text-red-500' },
-          { icon: MessageCircle, label: 'Comentarios', value: stats.comments, iconColor: 'text-blue-500' },
-          { icon: Download, label: 'Descargas', value: stats.downloads, iconColor: 'text-purple-500' }
+          { icon: FileBox, label: 'Publicado', value: stats.published, iconColor: 'text-blue-600 dark:text-blue-400', iconBgClass: 'bg-blue-50 dark:bg-blue-950/40' },
+          { icon: Wrench, label: 'Complementos', value: stats.publishedTypes.complemento || 0, iconColor: 'text-indigo-600 dark:text-indigo-400', iconBgClass: 'bg-indigo-50 dark:bg-indigo-950/40', group: 'type' },
+          { icon: UserRound, label: 'Personajes', value: stats.publishedTypes.personaje || 0, iconColor: 'text-purple-600 dark:text-purple-400', iconBgClass: 'bg-purple-50 dark:bg-purple-950/40', group: 'type' },
+          { icon: Map, label: 'Mapas', value: stats.publishedTypes.mapa || 0, iconColor: 'text-emerald-600 dark:text-emerald-400', iconBgClass: 'bg-emerald-50 dark:bg-emerald-950/40', group: 'type' },
+          { icon: Gamepad2, label: 'Minijuegos', value: stats.publishedTypes.minijuego || 0, iconColor: 'text-amber-600 dark:text-amber-400', iconBgClass: 'bg-amber-50 dark:bg-amber-950/40', group: 'type' },
+          { icon: Boxes, label: 'Modpacks', value: stats.publishedTypes.modpack || 0, iconColor: 'text-red-600 dark:text-red-400', iconBgClass: 'bg-red-50 dark:bg-red-950/40', group: 'type' },
+          { icon: Package, label: 'Paquetes', value: stats.publishedTypes.paquete || 0, iconColor: 'text-cyan-600 dark:text-cyan-400', iconBgClass: 'bg-cyan-50 dark:bg-cyan-950/40', group: 'type' },
+          { icon: Eye, label: 'Vistas', value: stats.views, iconColor: 'text-green-600 dark:text-green-400', iconBgClass: 'bg-green-50 dark:bg-green-950/40' },
+          { icon: Heart, label: 'Likes', value: stats.likes, iconColor: 'text-red-600 dark:text-red-400', iconBgClass: 'bg-red-50 dark:bg-red-950/40' },
+          { icon: Download, label: 'Descargas', value: stats.downloads, iconColor: 'text-purple-600 dark:text-purple-400', iconBgClass: 'bg-purple-50 dark:bg-purple-950/40' }
         ]}
         columns={{
           image: true,

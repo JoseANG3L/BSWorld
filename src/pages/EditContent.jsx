@@ -275,56 +275,26 @@ const EditContent = () => {
   }
 
   return (
-    <div className="flex flex-col p-2 md:p-4 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
+    <div className="mx-auto flex w-full max-w-6xl flex-col p-2 md:p-3 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
         {/* Header */}
-      <div className="flex md:flex-row flex-col items-center justify-between gap-2 md:gap-4 mb-2 md:mb-4">
-
+      <header className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between md:mb-4">
         <PageHeader title="Editar Contenido" icon={Edit} gradientClass="from-primary-500 to-primary-600" />
-
-        {/* Botones de acción */}
-        <div className="flex gap-3 mt-2 md:mt-0">
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-            className="py-2 px-4 text-sm rounded-xl border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-300 font-semibold hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-          >
-            Cancelar
-          </button>
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={saving}
-            className="py-2 px-4 text-sm rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {saving ? (
-              <>
-                <LoadingSpinner variant="inline" size={18} />
-                Guardando...
-              </>
-            ) : (
-              <>
-                <Save size={18} />
-                Guardar Cambios
-              </>
-            )}
-          </button>
-        </div>
-      </div>
+      </header>
 
       {/* Form */}
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} className="space-y-5 pb-3">
         {error && (
-          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+          <div className="rounded-lg border border-red-200 bg-red-50 p-2.5 dark:border-red-800 dark:bg-red-900/20">
             <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
           </div>
         )}
 
         {/* Grid de dos columnas */}
-        <div className="flex flex-col lg:flex-row gap-3 lg:gap-4">
+        <div className="flex flex-col gap-2.5 lg:flex-row lg:gap-3">
           {/* Columna Izquierda */}
-          <div className="w-full space-y-5 rounded-lg p-2 md:p-4 border border-gray-300 dark:border-transparent">
+          <div className="w-full space-y-4 rounded-xl border border-gray-200 dark:border-transparent">
             {/* Título */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Título *</label>
               <input
                 type="text"
@@ -332,7 +302,7 @@ const EditContent = () => {
                 value={formData.titulo}
                 onChange={handleChange}
                 className={clsx(
-                  "w-full px-4 py-2.5 text-sm bg-white dark:bg-[#1D1F23] shadow-sm border rounded-xl outline-none dark:text-white transition-all duration-300",
+                  "w-full rounded-xl border bg-white px-3.5 py-2 text-sm shadow-sm outline-none transition-all duration-300 dark:bg-[#1D1F23] dark:text-white",
                   errors.titulo ? "border-red-500" : "border-gray-300 dark:border-transparent",
                   "focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
                 )}
@@ -342,7 +312,7 @@ const EditContent = () => {
             </div>
 
             {/* Descripción */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Descripción</label>
               <SimpleEditor
                 value={formData.descripcion}
@@ -353,7 +323,10 @@ const EditContent = () => {
             </div>
 
             {/* Creadores */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                Créditos
+              </label>
               <CreatorsInput
                 creators={selectedCreators}
                 onChange={setSelectedCreators}
@@ -384,7 +357,7 @@ const EditContent = () => {
           <div className="hidden lg:block w-px bg-gray-300 dark:bg-gray-700"></div>
 
           {/* Columna Derecha */}
-          <div className="space-y-5 w-full lg:w-[420px] xl:w-[480px] 2xl:w-[520px] flex-shrink-0 rounded-lg p-2 md:p-4 border border-gray-300 dark:border-transparent">
+          <div className="w-full flex-shrink-0 space-y-4 rounded-xl border border-gray-200 dark:border-transparent lg:w-[390px] xl:w-[440px] 2xl:w-[480px]">
             
             {/* Imagen Principal y Galería Unificadas */}
             <GalleryInput
@@ -399,7 +372,7 @@ const EditContent = () => {
             {errors.imagen && <p className="text-xs text-red-500 font-semibold -mt-3">La imagen es obligatoria.</p>}
 
             {/* Tipo/Categoría */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Tipo</label>
               <div className="relative" ref={tipoDropdownRef}>
                 <button
@@ -446,7 +419,7 @@ const EditContent = () => {
             </div>
 
             {/* Visibilidad */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Visibilidad</label>
               <div className="relative" ref={visibilidadDropdownRef}>
                 <button
@@ -494,7 +467,7 @@ const EditContent = () => {
 
             {/* Estado (solo para admins) */}
             {user?.role === 'admin' && (
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Estado</label>
                 <div className="relative" ref={estadoDropdownRef}>
                   <button
@@ -546,6 +519,29 @@ const EditContent = () => {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+
+        <div className="sticky bottom-16 z-30 flex items-center justify-between gap-2 rounded-xl border border-gray-300 bg-white/95 p-2 shadow-sm backdrop-blur dark:border-transparent dark:bg-[#1c1d20]/95 sm:px-3 lg:bottom-6">
+          <span className="hidden text-xs font-medium text-gray-500 dark:text-gray-400 sm:block">
+            Guarda los cambios para actualizar.
+          </span>
+          <div className="flex w-full gap-2 sm:w-auto">
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="inline-flex flex-1 items-center justify-center rounded-xl border border-gray-200 bg-white px-4 py-2 text-xs font-bold text-gray-600 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-transparent dark:text-gray-300 dark:hover:bg-white/5 sm:flex-none"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary-600 px-4 py-2 text-xs font-bold text-white shadow-sm shadow-primary-600/25 transition-all hover:bg-primary-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
+            >
+              {saving ? <LoadingSpinner variant="inline" size={14} /> : <Save size={14} />}
+              {saving ? 'Guardando...' : 'Guardar cambios'}
+            </button>
           </div>
         </div>
       </form>

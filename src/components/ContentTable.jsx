@@ -6,6 +6,7 @@ import { getCommentCountByContent, getUserPublicProfile, updateContent, searchUs
 import { clsx } from 'clsx';
 import LoadingSpinner from './LoadingSpinner';
 import PageHeader from './PageHeader';
+import FilterModalHeader from './FilterModalHeader';
 
 const CATEGORIAS = {
   complemento: { nombre: 'Complemento', icon: Wrench, color: 'text-blue-500', borderColor: 'border-blue-500/80' },
@@ -50,7 +51,8 @@ const ContentTable = ({
   adminMode = false,
   onBulkUpdate,
   mobileCardLayout = false,
-  mobileBulkActionsMenu = false
+  mobileBulkActionsMenu = false,
+  hideHeaderTitleOnMobile = false
 }) => {
   const [busqueda, setBusqueda] = useState('');
   const [orden, setOrden] = useState('recientes');
@@ -564,22 +566,23 @@ const ContentTable = ({
 
   return (
     <div className="flex flex-col p-2 md:p-4 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
-      <div className="mb-4 flex flex-col gap-2 md:mb-8 xl:flex-row xl:items-center xl:gap-3">
+      <div className="mb-3 md:mb-4 flex min-w-0 flex-row flex-nowrap items-center gap-1 md:gap-3">
         <PageHeader
           title={title}
           icon={Icon}
           gradientClass={gradientClass}
+          hideTitleOnMobile={hideHeaderTitleOnMobile}
           className="shrink-0"
         />
 
       {/* BARRA DE FILTROS */}
-      <div className="flex min-w-0 w-full flex-row flex-nowrap items-center gap-2 md:gap-3 xl:flex-1">
+      <div className="flex min-w-0 flex-1 basis-0 flex-row flex-nowrap items-center gap-1 md:gap-3">
         {/* Búsqueda */}
         <div className="relative min-w-0 w-full flex-1">
           <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Buscar por nombre..."
+            placeholder="Buscar mods"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 h-10 rounded-xl bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all text-sm"
@@ -800,23 +803,56 @@ const ContentTable = ({
 
       {/* Estadísticas del encabezado */}
       {headerStats && (
-      <div className="mb-4 flex flex-wrap gap-2 md:gap-3">
-        {headerStats.map((stat, index) => (
-          <div key={index} className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-transparent">
-            <stat.icon size={16} className={clsx("text-gray-600 dark:text-gray-400", stat.iconColor)} />
-            <span className="text-xs font-bold text-gray-900 dark:text-white">{formatNumber(stat.value)}</span>
+      <div className="mb-3 space-y-2.5">
+        <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 xl:grid-cols-5 md:gap-2">
+          {headerStats.filter((stat) => stat.group !== 'type').map((stat) => (
+          <div
+            key={stat.label}
+            className="flex min-w-0 items-center justify-between gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 py-2 shadow-sm dark:border-transparent dark:bg-[#1e1e1e] md:px-3 md:py-2"
+          >
+            <div className="min-w-0">
+              <p className="truncate text-[9px] font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 md:text-[10px]">
+                {stat.label}
+              </p>
+              <p className="mt-0.5 text-base font-black leading-tight text-gray-900 dark:text-white md:text-lg">
+                {formatNumber(stat.value)}
+              </p>
+            </div>
+            <span className={clsx("flex h-7 w-7 shrink-0 items-center justify-center rounded-md", stat.iconBgClass || "bg-gray-100 dark:bg-gray-800")}>
+              <stat.icon size={15} className={stat.iconColor || "text-gray-600 dark:text-gray-400"} />
+            </span>
           </div>
-        ))}
+          ))}
+        </div>
+        {headerStats.some((stat) => stat.group === 'type') && (
+          <div className="rounded-lg border border-gray-200 bg-white p-2 dark:border-transparent dark:bg-[#1e1e1e]">
+            <p className="mb-1.5 text-[9px] font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+              Publicado por tipo
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {headerStats.filter((stat) => stat.group === 'type').map((stat) => (
+                <div
+                  key={stat.label}
+                  className={clsx("inline-flex items-center gap-1.5 rounded-md px-2 py-1", stat.iconBgClass || "bg-gray-100 dark:bg-gray-800")}
+                >
+                  <stat.icon size={13} className={stat.iconColor || "text-gray-600 dark:text-gray-400"} />
+                  <span className="text-[10px] font-medium text-gray-600 dark:text-gray-300">{stat.label}</span>
+                  <span className="text-[10px] font-bold text-gray-900 dark:text-white">{formatNumber(stat.value)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
       )}
 
       {/* BARRA DE ACCIONES GLOBALES */}
       {selectedIds.length > 0 && (
-        <div className="mb-4 p-3 bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 rounded-xl flex items-center justify-between gap-3 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
-          <div className="flex items-center gap-2">
-            <CheckSquare size={18} className="text-primary-600 dark:text-primary-400" />
-            <span className="text-sm font-semibold text-primary-700 dark:text-primary-300">
-              {selectedIds.length} {selectedIds.length === 1 ? 'elemento seleccionado' : 'elementos seleccionados'}
+        <div className="relative z-40 mb-4 flex items-center justify-between gap-1.5 rounded-xl border border-primary-200 bg-primary-50 p-1.5 dark:border-primary-800 dark:bg-primary-900/20 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
+          <div className="flex min-w-0 items-center gap-1.5">
+            <CheckSquare size={16} className="shrink-0 text-primary-600 dark:text-primary-400" />
+            <span className="text-xs font-semibold text-primary-700 dark:text-primary-300">
+              {selectedIds.length} seleccionados
             </span>
           </div>
           {mobileBulkActionsMenu && (
@@ -826,34 +862,36 @@ const ContentTable = ({
                 onClick={() => setIsMobileBulkMenuOpen(prev => !prev)}
                 aria-haspopup="menu"
                 aria-expanded={isMobileBulkMenuOpen}
-                className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium bg-white dark:bg-gray-800 border border-primary-200 dark:border-primary-800 rounded-lg text-primary-700 dark:text-primary-300"
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-primary-200 bg-white px-2 py-1.5 text-xs font-medium text-primary-700 dark:border-primary-800 dark:bg-gray-800 dark:text-primary-300"
               >
-                <MoreVertical size={16} />
+                <MoreVertical size={14} />
                 Opciones
               </button>
               {isMobileBulkMenuOpen && (
                 <div
                   role="menu"
-                  className="absolute right-0 top-full z-50 mt-2 w-52 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D1F23] p-1.5 shadow-xl"
+                  className="absolute right-0 top-full z-[60] mt-2 w-48 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D1F23] p-1 shadow-xl"
                 >
                   {[
-                    { label: 'Cambiar título', action: () => openBulkModal('titulo') },
-                    { label: 'Cambiar categoría', action: () => openBulkModal('categoria') },
-                    { label: 'Cambiar visibilidad', action: () => openBulkModal('visibilidad') },
-                    { label: 'Eliminar', action: () => openBulkModal('eliminar'), destructive: true },
-                    { label: 'Cancelar selección', action: clearSelection }
+                    { label: 'Cambiar título', icon: Edit3, action: () => openBulkModal('titulo') },
+                    { label: 'Cambiar categoría', icon: Layers, action: () => openBulkModal('categoria') },
+                    { label: 'Cambiar visibilidad', icon: Eye, action: () => openBulkModal('visibilidad') },
+                    ...(adminMode ? [{ label: 'Cambiar estado', icon: CheckCircle, action: () => openBulkModal('estado') }] : []),
+                    { label: 'Eliminar', icon: Trash2, action: () => openBulkModal('eliminar'), destructive: true },
+                    { label: 'Cancelar selección', icon: X, action: clearSelection }
                   ].map(option => (
                     <button
                       key={option.label}
                       type="button"
                       role="menuitem"
                       onClick={option.action}
-                      className={`w-full rounded-lg px-3 py-2.5 text-left text-sm transition-colors ${
+                      className={`flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm transition-colors ${
                         option.destructive
                           ? 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20'
                           : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
                       }`}
                     >
+                      <option.icon size={16} className="shrink-0" />
                       {option.label}
                     </button>
                   ))}
@@ -921,16 +959,26 @@ const ContentTable = ({
         <>
         {mobileCardLayout && (
           <div className="lg:hidden">
-            <div className="mb-2 flex justify-end">
+            <div className="mb-2 flex items-center">
               <button
                 type="button"
                 onClick={toggleSelectAll}
-                className="px-2 py-1 text-xs font-medium text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400"
+                aria-label={isAllSelected ? 'Quitar selección de todos los mods' : 'Seleccionar todos los mods'}
+                className="inline-flex items-center gap-2 rounded-lg px-2 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-primary-600 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-primary-400"
               >
-                {isAllSelected ? 'Quitar selección' : 'Seleccionar todo'}
+                {isAllSelected ? (
+                  <CheckSquare size={16} className="text-primary-600 dark:text-primary-400" />
+                ) : isSomeSelected ? (
+                  <div className="flex h-4 w-4 items-center justify-center rounded border-2 border-primary-600 bg-primary-200 dark:border-primary-400 dark:bg-primary-800">
+                    <div className="h-2 w-2 rounded-sm bg-primary-600 dark:bg-primary-400" />
+                  </div>
+                ) : (
+                  <Square size={16} className="text-gray-400" />
+                )}
+                <span>{isAllSelected ? 'Quitar selección' : 'Seleccionar todo'}</span>
               </button>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
               {filteredData.map((item) => {
                 const estado = item.estado || item.status || 'borrador';
                 const statusConfig = getStatusConfig(estado);
@@ -942,15 +990,25 @@ const ContentTable = ({
                   <article
                     key={item.id}
                     className={clsx(
-                      "relative min-w-0 rounded-xl border p-2.5 transition-colors",
+                      "relative min-w-0 rounded-xl border p-2 transition-colors",
                       selectedIds.includes(item.id)
                         ? "border-primary-300 bg-primary-50 dark:border-primary-800 dark:bg-primary-900/10"
-                        : "border-gray-200 bg-white dark:border-gray-800 dark:bg-[#1D1F23]"
+                        : "border-gray-200 bg-white dark:border-transparent dark:bg-[#1D1F23]"
                     )}
                   >
-                    <div className="flex items-start gap-2.5">
+                    <div className="flex items-start gap-2">
+                      <button
+                        type="button"
+                        onClick={() => toggleSelect(item.id)}
+                        aria-label={selectedIds.includes(item.id) ? 'Deseleccionar mod' : 'Seleccionar mod'}
+                        className="mt-1 shrink-0 rounded-lg p-1 text-gray-400 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
+                      >
+                        {selectedIds.includes(item.id)
+                          ? <CheckSquare size={16} className="text-primary-600 dark:text-primary-400" />
+                          : <Square size={16} />}
+                      </button>
                       {columns.image && (
-                        <Link to={`/view/${item.id}`} className="h-14 w-[76px] shrink-0 overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-900">
+                        <Link to={`/view/${item.id}`} className="h-12 w-16 shrink-0 overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-900">
                           {mainImage ? (
                             <img src={mainImage} alt={item.titulo || 'Imagen del mod'} className="h-full w-full object-cover" loading="lazy" />
                           ) : (
@@ -971,9 +1029,19 @@ const ContentTable = ({
                           </Link>
                         )}
                         {columns.creator && (
-                          <p className="mt-0.5 truncate text-xs text-gray-500 dark:text-gray-400">
-                            {item.creadores?.[0]?.nombre || item.creadores?.[0]?.username || 'Creador no disponible'}
-                          </p>
+                          <div className="mt-0.5 truncate text-[11px] text-gray-500 dark:text-gray-400">
+                            <span className="font-semibold text-gray-600 dark:text-gray-300">Creador:</span>{' '}
+                            {item.creadores?.map(creator => creator?.nombre || creator?.username).filter(Boolean).join(', ') || 'No disponible'}
+                          </div>
+                        )}
+                        {columns.aporte && (
+                          <div className="truncate text-[11px] text-gray-500 dark:text-gray-400">
+                            <span className="font-semibold text-gray-600 dark:text-gray-300">Aporte:</span>{' '}
+                            {(() => {
+                              const aporteId = item.creditos?.[0]?.uid || item.aporte?.uid || item.aporte;
+                              return item.aporte?.username || item.aporte?.nombre || usernames[aporteId] || 'No disponible';
+                            })()}
+                          </div>
                         )}
                         <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
                           {columns.category && (() => {
@@ -994,17 +1062,7 @@ const ContentTable = ({
                         </div>
                       </div>
 
-                      <div className="flex shrink-0 items-center gap-0.5">
-                        <button
-                          type="button"
-                          onClick={() => toggleSelect(item.id)}
-                          aria-label={selectedIds.includes(item.id) ? 'Deseleccionar mod' : 'Seleccionar mod'}
-                          className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
-                        >
-                          {selectedIds.includes(item.id)
-                            ? <CheckSquare size={17} className="text-primary-600 dark:text-primary-400" />
-                            : <Square size={17} />}
-                        </button>
+                      <div className="flex shrink-0 items-center gap-1">
                         {columns.actions && (actions.view || actions.edit || actions.delete) && (
                           <details className="group relative">
                             <summary
@@ -1013,15 +1071,15 @@ const ContentTable = ({
                             >
                               <MoreVertical size={18} />
                             </summary>
-                            <div className="absolute right-0 top-full z-30 mt-1 min-w-36 overflow-hidden rounded-xl border border-gray-200 bg-white p-1 shadow-xl dark:border-gray-700 dark:bg-[#25272b]">
+                            <div className="absolute right-0 top-full z-[60] mt-2 w-48 overflow-hidden rounded-xl border border-gray-200 bg-white p-1 shadow-xl dark:border-gray-700 dark:bg-[#1D1F23]">
                               {actions.view && (
-                                <Link to={`/view/${item.id}`} className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800">
-                                  <Eye size={14} /> Ver
+                                <Link to={`/view/${item.id}`} className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700">
+                                  <Eye size={16} /> Ver
                                 </Link>
                               )}
                               {actions.edit && (
-                                <Link to={`/edit/${item.id}`} className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800">
-                                  <Edit3 size={14} /> Editar
+                                <Link to={`/edit/${item.id}`} className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700">
+                                  <Edit3 size={16} /> Editar
                                 </Link>
                               )}
                               {actions.delete && (
@@ -1029,9 +1087,9 @@ const ContentTable = ({
                                   type="button"
                                   onClick={() => onDelete && onDelete(item.id, item.titulo)}
                                   disabled={updatingId === item.id}
-                                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs text-red-600 hover:bg-red-50 disabled:opacity-50 dark:text-red-400 dark:hover:bg-red-900/20"
+                                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 disabled:opacity-50 dark:text-red-400 dark:hover:bg-red-900/20"
                                 >
-                                  {updatingId === item.id ? <LoadingSpinner variant="inline" size={14} /> : <Trash2 size={14} />}
+                                  {updatingId === item.id ? <LoadingSpinner variant="inline" size={16} /> : <Trash2 size={16} />}
                                   Eliminar
                                 </button>
                               )}
@@ -1041,7 +1099,7 @@ const ContentTable = ({
                       </div>
                     </div>
 
-                    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-gray-100 pt-2 text-[11px] text-gray-500 dark:border-gray-800 dark:text-gray-400">
+                    <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-gray-100 pt-1.5 text-[11px] text-gray-500 dark:border-gray-800 dark:text-gray-400">
                       {columns.visibility && <span className={visibilidad.style}>{visibilidad.label}</span>}
                       {columns.date && item.creado && (
                         <span>{new Date(item.creado).toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
@@ -1330,7 +1388,7 @@ const ContentTable = ({
       {/* MODAL DE FILTROS EN MÓVIL */}
       {isFiltersModalOpen && createPortal(
         <div
-          className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 md:hidden"
+          className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 xl:hidden"
           onClick={() => setIsFiltersModalOpen(false)}
         >
           <div
@@ -1338,20 +1396,7 @@ const ContentTable = ({
             onClick={(e) => e.stopPropagation()}
             style={{ animationDuration: '200ms' }}
           >
-            {/* Cabecera */}
-            <div className="flex items-center justify-between pb-3 border-b border-gray-200 dark:border-gray-800">
-              <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                <Filter size={18} className="text-primary-600 dark:text-primary-400" />
-                <span>Filtros</span>
-              </h3>
-              <button
-                type="button"
-                onClick={() => setIsFiltersModalOpen(false)}
-                className="p-1 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
-              >
-                <X size={20} />
-              </button>
-            </div>
+            <FilterModalHeader onClose={() => setIsFiltersModalOpen(false)} />
 
             {/* Contenido desplazable */}
             <div className="flex-1 overflow-y-auto py-4 space-y-5 custom-scrollbar">

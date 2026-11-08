@@ -245,7 +245,6 @@ const Header = ({ toggleTheme, isDarkMode }) => {
                   {[
                     { to: `/u/${user.username}`, icon: User, label: 'Mi Perfil' },
                     { to: '/mis-mods', icon: LayoutGrid, label: 'Mis Mods' },
-                    { to: '/notificaciones', icon: Bell, label: 'Notificaciones' },
                     ...(user?.role === 'admin' ? [{ to: '/admin', icon: ShieldCheck, label: 'Panel Admin' }] : [])
                   ].map((item) => (
                     <Link

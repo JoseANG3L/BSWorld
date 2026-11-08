@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { LayoutDashboard, Plus, FileBox, Users, Download, Heart, MessageCircle } from 'lucide-react';
+import { LayoutDashboard, Plus, FileBox, Users, Download, Heart, Wrench, UserRound, Map, Gamepad2, Boxes, Package } from 'lucide-react';
 import { supabase } from '../services/supabaseClient';
 import { deleteContent, updateContent, getAdminContent } from '../services/api';
 import { clsx } from 'clsx';
 import Modal from '../components/Modal';
 import ContentTable from '../components/ContentTable';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { getPublishedContentStats } from '../utils/publishedContentStats';
 
 const StatCard = ({ icon: Icon, label, value, gradient }) => (
   <div className="bg-white dark:bg-[#1e1e1e] p-5 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm flex items-center gap-4">
@@ -22,7 +23,7 @@ const StatCard = ({ icon: Icon, label, value, gradient }) => (
 
 const AdminPanel = () => {
   const [content, setContent] = useState([]);
-  const [stats, setStats] = useState({ total: 0, users: 0, downloads: 0, likes: 0, comments: 0 });
+  const [stats, setStats] = useState({ published: 0, publishedTypes: {}, users: 0, downloads: 0, likes: 0, comments: 0 });
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState(null);
   
@@ -47,6 +48,7 @@ const AdminPanel = () => {
             const itemDownloads = item.descargas?.reduce((subAcc, version) => subAcc + (version.count || 0), 0) || 0;
             return acc + itemDownloads;
         }, 0);
+        const publishedStats = getPublishedContentStats(contentData);
 
         // Obtener conteo real de likes
         const { count: totalLikes, error: likesError } = await supabase
@@ -60,7 +62,8 @@ const AdminPanel = () => {
 
         setContent(contentData);
         setStats({
-          total: contentData.length,
+          published: publishedStats.total,
+          publishedTypes: publishedStats.byType,
           users: usersCount || 0,
           downloads: totalDownloads,
           likes: totalLikes || 0,
@@ -131,8 +134,10 @@ const AdminPanel = () => {
     if (window.confirm("¿Estás seguro de eliminar este contenido? Esta acción no se puede deshacer.")) {
       try {
         await deleteContent(id);
-        setContent(prev => prev.filter(item => item.id !== id));
-        setStats(prev => ({ ...prev, total: prev.total - 1 }));
+        const updatedContent = content.filter(item => item.id !== id);
+        setContent(updatedContent);
+        const publishedStats = getPublishedContentStats(updatedContent);
+        setStats(prev => ({ ...prev, published: publishedStats.total, publishedTypes: publishedStats.byType }));
       } catch (error) {
         alert("Error al eliminar el contenido.");
       }
@@ -155,6 +160,7 @@ const AdminPanel = () => {
             const itemDownloads = item.descargas?.reduce((subAcc, version) => subAcc + (version.count || 0), 0) || 0;
             return acc + itemDownloads;
         }, 0);
+        const publishedStats = getPublishedContentStats(contentData);
 
         // Obtener conteo real de likes
         const { count: totalLikes, error: likesError } = await supabase
@@ -168,7 +174,8 @@ const AdminPanel = () => {
 
         setContent(contentData);
         setStats({
-          total: contentData.length,
+          published: publishedStats.total,
+          publishedTypes: publishedStats.byType,
           users: usersCount || 0,
           downloads: totalDownloads,
           likes: totalLikes || 0,
@@ -191,16 +198,22 @@ const AdminPanel = () => {
       <ContentTable
         data={content}
         loading={loading}
-        title="Panel de Administración"
+        title="Panel Admin"
         icon={LayoutDashboard}
         gradientClass="from-blue-500 to-indigo-600"
+        hideHeaderTitleOnMobile
         showNewButton={false}
         headerStats={[
-          { icon: FileBox, label: 'Contenido', value: stats.total, iconColor: 'text-blue-500' },
-          { icon: Users, label: 'Usuarios', value: stats.users, iconColor: 'text-purple-500' },
-          { icon: Heart, label: 'Likes', value: stats.likes, iconColor: 'text-red-500' },
-          { icon: MessageCircle, label: 'Comentarios', value: stats.comments, iconColor: 'text-green-500' },
-          { icon: Download, label: 'Descargas', value: stats.downloads, iconColor: 'text-emerald-500' }
+          { icon: FileBox, label: 'Publicado', value: stats.published, iconColor: 'text-blue-600 dark:text-blue-400', iconBgClass: 'bg-blue-50 dark:bg-blue-950/40' },
+          { icon: Wrench, label: 'Complementos', value: stats.publishedTypes.complemento || 0, iconColor: 'text-indigo-600 dark:text-indigo-400', iconBgClass: 'bg-indigo-50 dark:bg-indigo-950/40', group: 'type' },
+          { icon: UserRound, label: 'Personajes', value: stats.publishedTypes.personaje || 0, iconColor: 'text-purple-600 dark:text-purple-400', iconBgClass: 'bg-purple-50 dark:bg-purple-950/40', group: 'type' },
+          { icon: Map, label: 'Mapas', value: stats.publishedTypes.mapa || 0, iconColor: 'text-emerald-600 dark:text-emerald-400', iconBgClass: 'bg-emerald-50 dark:bg-emerald-950/40', group: 'type' },
+          { icon: Gamepad2, label: 'Minijuegos', value: stats.publishedTypes.minijuego || 0, iconColor: 'text-amber-600 dark:text-amber-400', iconBgClass: 'bg-amber-50 dark:bg-amber-950/40', group: 'type' },
+          { icon: Boxes, label: 'Modpacks', value: stats.publishedTypes.modpack || 0, iconColor: 'text-red-600 dark:text-red-400', iconBgClass: 'bg-red-50 dark:bg-red-950/40', group: 'type' },
+          { icon: Package, label: 'Paquetes', value: stats.publishedTypes.paquete || 0, iconColor: 'text-cyan-600 dark:text-cyan-400', iconBgClass: 'bg-cyan-50 dark:bg-cyan-950/40', group: 'type' },
+          { icon: Users, label: 'Usuarios', value: stats.users, iconColor: 'text-purple-600 dark:text-purple-400', iconBgClass: 'bg-purple-50 dark:bg-purple-950/40' },
+          { icon: Heart, label: 'Likes', value: stats.likes, iconColor: 'text-red-600 dark:text-red-400', iconBgClass: 'bg-red-50 dark:bg-red-950/40' },
+          { icon: Download, label: 'Descargas', value: stats.downloads, iconColor: 'text-emerald-600 dark:text-emerald-400', iconBgClass: 'bg-emerald-50 dark:bg-emerald-950/40' }
         ]}
         columns={{
           image: true,
@@ -226,6 +239,8 @@ const AdminPanel = () => {
         updatingId={updatingId}
         adminMode={true}
         onBulkUpdate={handleBulkUpdate}
+        mobileCardLayout
+        mobileBulkActionsMenu
       />
 
       {/* MODAL DE RECHAZO */}

@@ -1,17 +1,39 @@
-import React, { lazy, Suspense, useState } from 'react';
+import React, { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Crown, Gamepad2, Upload, Bell, User } from 'lucide-react';
+import { Home, Crown, Gamepad2, Upload, Bell, User, LayoutGrid, ShieldCheck, LogOut } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../hooks/useToast';
 import NotificationBell from './NotificationBell';
 import AvatarRenderer from './AvatarRenderer';
 
 const SubirMod = lazy(() => import('../pages/SubirMod'));
 
 const MobileBottomNav = () => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const { showToast } = useToast();
   const location = useLocation();
   const [isSubirModOpen, setIsSubirModOpen] = useState(false);
+  const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
+  const accountMenuRef = useRef(null);
+
+  useEffect(() => {
+    const handlePointerDown = (event) => {
+      if (accountMenuRef.current && !accountMenuRef.current.contains(event.target)) {
+        setIsAccountMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') setIsAccountMenuOpen(false);
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
 
   const navItems = [
     { to: "/", icon: Home, label: "Inicio" },
@@ -90,28 +112,88 @@ const MobileBottomNav = () => {
         </div>
 
         {/* Cuenta */}
-        <Link
-          to={user ? `/u/${user.username}` : "/login"}
-          aria-label={user ? "Mi perfil" : "Iniciar sesión"}
-          className={clsx(
-            "flex h-full w-full items-center justify-center transition-all duration-200",
-            location.pathname.startsWith("/u/") || location.pathname === "/login"
-              ? "text-primary-600 dark:text-primary-400"
-              : "text-gray-500 dark:text-gray-400"
-          )}
-        >
+        <div className="relative flex h-full w-full items-center justify-center" ref={accountMenuRef}>
           {user ? (
-            <span className="h-8 w-8 overflow-hidden rounded-full">
-              <AvatarRenderer avatar={user.avatar} name={user.username} />
-            </span>
+            <>
+              <button
+                type="button"
+                aria-label="Menú de cuenta"
+                aria-haspopup="menu"
+                aria-expanded={isAccountMenuOpen}
+                onClick={() => setIsAccountMenuOpen((open) => !open)}
+                className={clsx(
+                  "flex h-full w-full items-center justify-center transition-all duration-200",
+                  (location.pathname.startsWith("/u/") || isAccountMenuOpen)
+                    ? "text-primary-600 dark:text-primary-400"
+                    : "text-gray-500 dark:text-gray-400"
+                )}
+              >
+                <span className="h-8 w-8 overflow-hidden rounded-full">
+                  <AvatarRenderer avatar={user.avatar} name={user.username} />
+                </span>
+              </button>
+              {isAccountMenuOpen && (
+                <div
+                  role="menu"
+                  aria-label="Menú de cuenta"
+                  className="absolute bottom-full right-0 mb-2 w-44 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-xl dark:border-gray-700 dark:bg-[#1e1e1e]"
+                >
+                  <div className="mb-1 border-b border-gray-100 px-3 pb-2 pt-1 dark:border-gray-800">
+                    <p className="truncate text-sm font-bold text-gray-900 dark:text-white">{user.username}</p>
+                    <p className="truncate text-xs text-gray-500 dark:text-gray-400">{user.email}</p>
+                  </div>
+                  {[
+                    { to: `/u/${user.username}`, icon: User, label: "Mi perfil" },
+                    { to: "/mis-mods", icon: LayoutGrid, label: "Mis mods" },
+                    ...(user.role === "admin" ? [{ to: "/admin", icon: ShieldCheck, label: "Panel admin" }] : []),
+                  ].map((item) => (
+                    <Link
+                      key={item.to}
+                      to={item.to}
+                      role="menuitem"
+                      onClick={() => setIsAccountMenuOpen(false)}
+                      className="flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700/60"
+                    >
+                      <item.icon size={16} />
+                      <span>{item.label}</span>
+                    </Link>
+                  ))}
+                  <div className="my-0.5 h-px bg-gray-100 dark:bg-gray-800" />
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      logout();
+                      setIsAccountMenuOpen(false);
+                      showToast('Sesión cerrada. ¡Hasta pronto!', 'info');
+                    }}
+                    className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm font-medium text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
+                  >
+                    <LogOut size={16} />
+                    <span>Cerrar sesión</span>
+                  </button>
+                </div>
+              )}
+            </>
           ) : (
-            <User
-              size={20}
-              strokeWidth={location.pathname === "/login" ? 2.5 : 2}
-              className={clsx("transition-all", location.pathname === "/login" && "scale-110")}
-            />
+            <Link
+              to="/login"
+              aria-label="Iniciar sesión"
+              className={clsx(
+                "flex h-full w-full items-center justify-center transition-all duration-200",
+                location.pathname === "/login"
+                  ? "text-primary-600 dark:text-primary-400"
+                  : "text-gray-500 dark:text-gray-400"
+              )}
+            >
+              <User
+                size={20}
+                strokeWidth={location.pathname === "/login" ? 2.5 : 2}
+                className={clsx("transition-all", location.pathname === "/login" && "scale-110")}
+              />
+            </Link>
           )}
-        </Link>
+        </div>
       </div>
     </nav>
     {user && (
