@@ -5,6 +5,7 @@ import { getUserContent, deleteContent, getCommentCountByContent } from '../serv
 import { useAuth } from '../context/AuthContext';
 import Modal from '../components/Modal';
 import ContentTable from '../components/ContentTable';
+import LoadingSpinner from '../components/LoadingSpinner';
 import { getPublishedContentStats } from '../utils/publishedContentStats';
 
 const MisMods = () => {
@@ -178,6 +179,8 @@ const MisMods = () => {
       setDeletingId(null);
     }
   };
+
+  if (loading) return <LoadingSpinner variant="page" />;
 
   if (!user) {
     return (

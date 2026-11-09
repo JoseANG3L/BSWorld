@@ -146,7 +146,7 @@ const ForoDetalle = () => {
     return date.toLocaleDateString('es-ES', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
-  if (loading) return <LoadingSpinner variant="fullscreen" />;
+  if (loading) return <LoadingSpinner variant="page" />;
 
   if (!post) {
     return (

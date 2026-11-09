@@ -39,30 +39,6 @@ const getDayGroup = (dateString) => {
   return { key: 'older', label: '' };
 };
 
-const NotificationSkeleton = () => (
-  <div className="space-y-2.5">
-    {[0, 1, 2, 3].map((i) => (
-      <div
-        key={i}
-        className="animate-pulse rounded-2xl border border-gray-200/70 bg-white p-3 dark:border-transparent dark:bg-[#171819] sm:p-4"
-        style={{ animationDelay: `${i * 60}ms` }}
-      >
-        <div className="flex items-start gap-3">
-          <div className="h-9 w-9 shrink-0 rounded-full bg-gray-200 dark:bg-gray-700" />
-          <div className="flex-1 space-y-2.5 py-0.5">
-            <div className="flex items-center gap-2">
-              <div className="h-3 w-16 rounded-md bg-gray-200 dark:bg-gray-700" />
-              <div className="h-2.5 w-12 rounded-full bg-gray-200 dark:bg-gray-700" />
-            </div>
-            <div className="h-3.5 w-4/5 rounded-full bg-gray-200 dark:bg-gray-700" />
-            <div className="h-2.5 w-2/5 rounded-full bg-gray-200 dark:bg-gray-700" />
-          </div>
-        </div>
-      </div>
-    ))}
-  </div>
-);
-
 const Notificaciones = () => {
   const { user } = useAuth();
   const { unreadCount, refreshNotifications } = useNotifications();
@@ -344,6 +320,8 @@ const Notificaciones = () => {
     searchRef.current?.focus();
   };
 
+  if (loading) return <LoadingSpinner variant="page" />;
+
   return (
     <div className="flex w-full flex-col p-2 animate-fade-in-up md:p-4" style={{ animationDuration: '200ms' }}>
 
@@ -385,9 +363,7 @@ const Notificaciones = () => {
       </section>
 
       {/* LISTA */}
-      {loading ? (
-        <NotificationSkeleton />
-      ) : filtered.length > 0 ? (
+      {filtered.length > 0 ? (
         <div className="space-y-4">
           {groups.map((group) => (
             <section key={group.key}>

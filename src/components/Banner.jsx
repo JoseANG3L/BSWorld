@@ -74,7 +74,7 @@ const Banner = () => {
   };
 
   return (
-    <div className="relative w-full h-auto md:h-[380px] lg:h-[460px] overflow-hidden">
+    <div className="relative w-full h-auto md:h-[340px] lg:h-[420px] overflow-hidden">
       {/* Background Image */}
       <div 
         className="absolute inset-0 bg-cover bg-center"

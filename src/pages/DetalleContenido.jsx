@@ -900,7 +900,7 @@ const DetalleContenido = () => {
                 </div>
 
                 {/* COLUMNA DERECHA (SOLO DESKTOP) */}
-                <div className="hidden lg:block lg:min-w-[420px] xl:min-w-[480px] 2xl:min-w-[520px] space-y-3 md:space-y-4">
+                <div className="hidden lg:block lg:min-w-[420px] xl:min-w-[480px] 2xl:min-w-[500px] space-y-3 md:space-y-4">
                     
                     {/* TARJETA DE DESCARGAS */}
                     <div className="bg-white dark:bg-[#1e1e1e] rounded-lg p-3 md:p-4 shadow-sm border border-gray-300 dark:border-transparent">

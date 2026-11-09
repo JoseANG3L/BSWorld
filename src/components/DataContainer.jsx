@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { Search, Filter, ArrowUpDown, Sparkles, X, ChevronDown, Check } from 'lucide-react';
 import { clsx } from 'clsx';
 import { prefetchUserProfiles } from '../services/api';
-import { CardSkeleton, PostSkeleton } from './CardSkeleton';
+import LoadingSpinner from './LoadingSpinner';
 import PageHeader from './PageHeader';
 import FilterModalHeader from './FilterModalHeader';
 
@@ -38,8 +38,7 @@ const DataContainer = ({
   headerTrailing = null,
   mobileFilterContent = null,
   emptyMessage = 'No se encontraron resultados',
-  loading = false,
-  skeletonCount = 12
+  loading = false
 }) => {
   // 1. ESTADO INTERNO
   const [busqueda, setBusqueda] = useState(initialSearchValue);
@@ -166,6 +165,8 @@ const DataContainer = ({
   };
 
   const clearTypes = () => setSelectedTypes([]);
+
+  if (loading) return <LoadingSpinner variant="page" />;
 
   return (
     <div className="flex flex-col p-2 md:p-4 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
@@ -296,19 +297,7 @@ const DataContainer = ({
       </div>
 
       {/* RESULTADOS */}
-      {loading ? (
-        <div className={clsx(
-          layout === 'vertical'
-            ? "flex flex-col gap-4 pb-4"
-            : layout === 'forum-columns'
-              ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-4"
-              : "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 md:gap-4 pb-4"
-        )}>
-          {Array.from({ length: layout === 'forum-columns' ? 6 : skeletonCount }).map((_, i) => (
-            layout === 'forum-columns' ? <PostSkeleton key={i} /> : <CardSkeleton key={i} />
-          ))}
-        </div>
-      ) : visibleItems.length > 0 ? (
+      {visibleItems.length > 0 ? (
         <>
           <div className={clsx(
             layout === 'vertical' 

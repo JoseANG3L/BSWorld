@@ -556,13 +556,7 @@ const ContentTable = ({
     }
   };
 
-  if (loading) {
-    return (
-      <div className="h-[60vh] flex items-center justify-center">
-        <LoadingSpinner variant="inline" size={48} />
-      </div>
-    );
-  }
+  if (loading) return <LoadingSpinner variant="page" />;
 
   return (
     <div className="flex flex-col p-2 md:p-4 animate-fade-in-up" style={{ animationDuration: '200ms' }}>

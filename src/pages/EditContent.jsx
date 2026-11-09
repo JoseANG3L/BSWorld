@@ -276,11 +276,7 @@ const EditContent = () => {
   };
 
   if (loading || (!content && !error)) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <LoadingSpinner variant="inline" size={48} />
-      </div>
-    );
+    return <LoadingSpinner variant="page" />;
   }
 
   if (error && !content) {

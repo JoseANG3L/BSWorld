@@ -402,6 +402,7 @@ const Card = ({
   const ownerId = aporte && typeof aporte === 'object' ? (aporte.uid || aporte.id) : aporte;
   const currentUserId = user?.id || user?.uid;
   const isOwner = Boolean(currentUserId && ownerId && String(currentUserId) === String(ownerId));
+  const canManageContent = isOwner || Boolean(currentUserId && user?.role === 'admin');
 
   // Miniatura rápida (WebP 640px) con caída a original y luego a default
   const thumb = useMemo(() => thumbUrl(imagen, 640), [imagen]);
@@ -477,7 +478,7 @@ const Card = ({
   };
 
   const handleDelete = async () => {
-    if (!isOwner || !id || isDeleting) return;
+    if (!canManageContent || !id || isDeleting) return;
     setIsDeleting(true);
     try {
       await deleteContent(id);
@@ -590,7 +591,7 @@ const Card = ({
         <LikeButton contentId={id} initialLikes={likes_count} variant="overlay" onChange={handleLikeChange} />
       </div>
 
-      <div className="flex flex-col flex-1 px-1 pt-1.5 md:pt-2 pb-1 md:pb-1.5 space-y-1.5 md:space-y-2">
+      <div className="flex flex-col flex-1 px-0.5 pt-1.5 md:pt-2 pb-1 md:pb-1.5 space-y-1.5 md:space-y-2">
 
         {/* 2. TÍTULO EN UNA LÍNEA Y CREADOR DEBAJO */}
         <div className="flex flex-col gap-1.5 min-w-0">
@@ -610,7 +611,7 @@ const Card = ({
             >
               <summary
                 aria-label={`Opciones de ${titulo || 'contenido'}`}
-                className="flex cursor-pointer list-none rounded-lg px-0 py-1 text-gray-500 transition-colors hover:text-gray-800 dark:text-gray-400 dark:hover:text-white [&::-webkit-details-marker]:hidden"
+                className="flex cursor-pointer list-none rounded-lg px-0 py-1 -mr-1 text-gray-500 transition-colors hover:text-gray-800 dark:text-gray-400 dark:hover:text-white [&::-webkit-details-marker]:hidden"
               >
                 <MoreVertical size={20} />
               </summary>
@@ -628,7 +629,7 @@ const Card = ({
                 >
                   <Share2 size={16} /> Compartir
                 </button>
-                {isOwner && (
+                {canManageContent && (
                   <>
                     <button
                       type="button"

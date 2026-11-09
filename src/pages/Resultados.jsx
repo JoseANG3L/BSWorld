@@ -8,6 +8,7 @@ import { getAllContent, getAllUsers } from '../services/api';
 import DataContainer from '../components/DataContainer';
 import PageHeader from '../components/PageHeader';
 import FilterModalHeader from '../components/FilterModalHeader';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 const Resultados = () => {
   const [searchParams] = useSearchParams();
@@ -145,9 +146,11 @@ const Resultados = () => {
     </div>
   );
 
+  if (loading) return <LoadingSpinner variant="page" />;
+
   return (
     <div className="flex flex-col animate-fade-in-up" style={{ animationDuration: '200ms' }}>
-      {(hasAnyResults || loading) ? (
+      {hasAnyResults ? (
         <>
           {activeTab === 'contenido' && (
             <DataContainer

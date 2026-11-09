@@ -251,13 +251,7 @@ const DetalleServidor = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="h-full flex items-center justify-center min-h-[50vh]">
-        <LoadingSpinner variant="inline" size={48} />
-      </div>
-    );
-  }
+  if (loading) return <LoadingSpinner variant="page" />;
 
   if (!servidor) {
     return (

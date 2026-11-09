@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Flame, ArrowRight } from 'lucide-react';
 import Banner from '../components/Banner.jsx';
 import Card from '../components/Card.jsx';
-import { CardSkeleton } from '../components/CardSkeleton.jsx';
+import LoadingSpinner from '../components/LoadingSpinner';
 import { getPublicContent, prefetchUserProfiles } from '../services/api';
 
 const Inicio = () => {
@@ -35,8 +35,8 @@ const Inicio = () => {
     loadHomeData();
   }, []);
 
-  // La página (Banner + cabecera) se muestra al instante;
-  // solo las tarjetas esperan a los datos (esqueleto intermedio)
+  if (loading) return <LoadingSpinner variant="page" />;
+
   return (
     <div className="flex flex-col animate-fade-in-up shadow-sm" style={{ animationDuration: '200ms' }}>
 
@@ -60,20 +60,12 @@ const Inicio = () => {
             </Link>
           </div>
 
-          {/* Grid de cards o esqueletos */}
-          {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-4">
-              {Array.from({ length: 10 }).map((_, i) => (
-                <CardSkeleton key={i} />
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-4">
-              {novedades.map((item, i) => (
-                <Card key={item.id} {...item} priority={i < 4} />
-              ))}
-            </div>
-          )}
+          {/* Grid de cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-4">
+            {novedades.map((item, i) => (
+              <Card key={item.id} {...item} priority={i < 4} />
+            ))}
+          </div>
         </div>
 
       </div>

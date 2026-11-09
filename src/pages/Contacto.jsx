@@ -4,6 +4,7 @@ import {
   ArrowRight, User, FileText, ChevronDown, Server, ExternalLink 
 } from 'lucide-react';
 import { clsx } from 'clsx';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 // --- COMPONENTE: TARJETA DE CONTACTO RÁPIDO ---
 const ContactOption = ({ icon: Icon, title, value, link, color, description }) => (
