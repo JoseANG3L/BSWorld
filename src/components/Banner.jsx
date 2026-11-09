@@ -116,18 +116,6 @@ const Banner = () => {
 
           {/* Categories */}
           <div className="flex flex-col gap-2 mb-2.5 animate-fade-in-up w-full" style={{ animationDuration: '400ms' }}>
-            <div className="flex justify-center gap-2">
-              {FEATURES.comunidad && (
-                <span className="inline-flex items-center gap-2 px-3 py-1 bg-primary-500/40 backdrop-blur-md text-white text-[11px] font-bold rounded-md border-2 border-primary-400 shadow-lg">
-                  <UsersIcon size={11} />
-                  Comunidad
-                </span>
-              )}
-              <span className="inline-flex items-center gap-2 px-3 py-1 bg-primary-500/40 backdrop-blur-md text-white text-[11px] font-bold rounded-md border-2 border-primary-400 shadow-lg">
-                <Server size={11} />
-                Servidores
-              </span>
-            </div>
 
             <div className="flex flex-wrap justify-center gap-1.5">
               {[
@@ -226,18 +214,6 @@ const Banner = () => {
 
             {/* Categories */}
             <div className="flex flex-col gap-3 mb-8 animate-fade-in-up w-full" style={{ animationDuration: '400ms' }}>
-              <div className="flex justify-start gap-3">
-                {FEATURES.comunidad && (
-                  <span className="inline-flex items-center gap-2 px-6 py-1.5 bg-primary-500/40 backdrop-blur-md text-white text-xs font-bold rounded-md border-2 border-primary-400 shadow-lg">
-                    <UsersIcon size={12} />
-                    Comunidad
-                  </span>
-                )}
-                <span className="inline-flex items-center gap-2 px-6 py-1.5 bg-primary-500/40 backdrop-blur-md text-white text-xs font-bold rounded-md border-2 border-primary-400 shadow-lg">
-                  <Server size={12} />
-                  Servidores
-                </span>
-              </div>
 
               <div className="flex flex-wrap justify-start gap-2">
                 {[

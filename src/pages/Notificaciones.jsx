@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Bell, Inbox, Mail, MailOpen, Trash2, CheckCheck, RefreshCw
+  Bell, Inbox, Trash2, CheckCheck, RefreshCw
 } from 'lucide-react';
-import { clsx } from 'clsx';
 import { useAuth, useNotifications } from '../context/AuthContext';
 import { supabase } from '../services/supabaseClient';
 import {
@@ -16,12 +15,12 @@ import {
   getUserPublicProfile,
   prefetchUserProfiles
 } from '../services/api';
-import AvatarRenderer from '../components/AvatarRenderer';
 import LoadingSpinner from '../components/LoadingSpinner';
+import NotificationCard from '../components/NotificationCard';
 import NotificationFilters from '../components/NotificationFilters';
 import PageHeader from '../components/PageHeader';
 import { useToast } from '../hooks/useToast';
-import { getNotificationView, getTimeAgo } from '../utils/notifications';
+import { getNotificationView } from '../utils/notifications';
 
 const PER_PAGE = 20;
 
@@ -45,7 +44,7 @@ const NotificationSkeleton = () => (
     {[0, 1, 2, 3].map((i) => (
       <div
         key={i}
-        className="animate-pulse rounded-2xl border border-gray-200/70 bg-white p-3 dark:border-white/[0.06] dark:bg-[#171819] sm:p-4"
+        className="animate-pulse rounded-2xl border border-gray-200/70 bg-white p-3 dark:border-transparent dark:bg-[#171819] sm:p-4"
         style={{ animationDelay: `${i * 60}ms` }}
       >
         <div className="flex items-start gap-3">
@@ -346,15 +345,16 @@ const Notificaciones = () => {
   };
 
   return (
-    <div className="flex w-full flex-col px-2 py-4 animate-fade-in-up md:px-4 md:py-6" style={{ animationDuration: '200ms' }}>
+    <div className="flex w-full flex-col p-2 animate-fade-in-up md:p-4" style={{ animationDuration: '200ms' }}>
 
       {/* CABECERA */}
-      <section className="mb-4 flex flex-wrap items-center gap-3 lg:flex-nowrap">
+      <section className="mb-3 md:mb-4 flex min-w-0 flex-row flex-nowrap items-center gap-1 md:gap-3">
         <PageHeader
           title="Notificaciones"
           icon={Bell}
-          gradientClass="from-purple-500 to-pink-500"
-          className="order-0 shrink-0 gap-2"
+          gradientClass="from-blue-500 to-cyan-500"
+          hideTitleOnMobile
+          className="shrink-0 gap-2"
         />
 
         <NotificationFilters
@@ -365,19 +365,20 @@ const Notificaciones = () => {
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
           searchRef={searchRef}
-          className="order-2 w-full lg:order-1 lg:flex-1"
+          className="mb-0 min-w-0 flex-1 basis-0 gap-1 md:gap-3"
         />
 
-        <div className="order-1 ml-auto flex shrink-0 items-center gap-1.5 lg:order-2 lg:ml-0">
+        <div className="flex shrink-0 items-center gap-1.5">
           {(unreadCount > 0 || hasUnreadNotifications) && (
             <button
               type="button"
               onClick={handleMarkAllAsRead}
-              className="inline-flex h-9 items-center justify-center gap-1 rounded-lg bg-primary-600 px-2.5 text-xs font-semibold text-white transition-colors hover:bg-primary-700"
+              aria-label="Marcar todas como leídas"
+              title="Marcar todas como leídas"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-600 text-xs font-semibold text-white transition-colors hover:bg-primary-700 sm:h-9 sm:w-auto sm:gap-1 sm:rounded-lg sm:px-2.5"
             >
               <CheckCheck size={14} />
               <span className="hidden sm:inline">Marcar todas</span>
-              <span className="sm:hidden">Leídas</span>
             </button>
           )}
         </div>
@@ -398,123 +399,23 @@ const Notificaciones = () => {
                 </div>
               )}
 
-              <div className="overflow-hidden rounded-xl border border-gray-200 bg-white divide-y divide-gray-100 dark:border-white/[0.06] dark:bg-[#171819] dark:divide-white/[0.06]">
-                {group.items.map((notif, index) => {
-                  const actor = getActor(notif);
-                  const view = getNotificationView(notif, actor, user?.role);
-                  const Icon = view.Icon;
-                  const canOpen = Boolean(notif.modid);
-                  return (
-                    <article
-                      key={notif.id}
-                      style={{
-                        animationDelay: `${Math.min(index, 8) * 30}ms`,
-                        animationDuration: '220ms'
-                      }}
-                      className={clsx(
-                        'group relative flex items-start gap-2.5 overflow-hidden p-3 transition-colors duration-200 animate-fade-in-up sm:gap-3 sm:p-3.5',
-                        notif.leida
-                          ? 'hover:bg-gray-50 dark:hover:bg-white/[0.03]'
-                          : 'bg-primary-50/60 hover:bg-primary-50 dark:bg-primary-500/[0.06] dark:hover:bg-primary-500/[0.09]'
-                      )}
-                    >
-                      {!notif.leida && (
-                        <span className="absolute inset-y-3 left-0 w-[3px] rounded-r-full bg-gradient-to-b from-primary-400 to-primary-600" />
-                      )}
-
-                      <button
-                        type="button"
-                        onClick={() => handleOpen(notif)}
-                        disabled={!canOpen}
-                        className="flex min-w-0 flex-1 items-start gap-3 text-left disabled:cursor-default"
-                      >
-                        {/* ICONO / AVATAR */}
-                        <div className="relative shrink-0">
-                          {view.hasActor && notif.actorid ? (
-                            <>
-                              <div className="h-9 w-9 overflow-hidden rounded-full ring-1 ring-white shadow-sm dark:ring-[#171819]">
-                                <AvatarRenderer avatar={actor?.imagen} name={actor?.nombre} />
-                              </div>
-                              <span className={clsx(
-                                'absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full ring-1 ring-white dark:ring-[#171819]',
-                                view.badge
-                              )}>
-                                <Icon size={9} strokeWidth={2.5} />
-                              </span>
-                            </>
-                          ) : (
-                            <div className={clsx('flex h-9 w-9 items-center justify-center rounded-xl ring-1 ring-black/5 dark:ring-white/5', view.tile)}>
-                              <Icon size={17} />
-                            </div>
-                          )}
-                        </div>
-
-                        {/* TEXTO */}
-                        <div className="min-w-0 flex-1 pr-1">
-                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                            <span className={clsx('text-[10px] font-semibold', view.pill)}>
-                              {view.label}
-                            </span>
-                            <span className="text-[11px] font-medium text-gray-400 dark:text-gray-500">
-                              {getTimeAgo(notif.creado)}
-                            </span>
-                          </div>
-
-                          <h2 className={clsx(
-                            'mt-1 text-sm leading-snug line-clamp-2',
-                            notif.leida
-                              ? 'text-gray-700 dark:text-gray-300'
-                              : 'font-semibold text-gray-900 dark:text-white'
-                          )}>
-                            {view.title}
-                          </h2>
-
-                          {view.quote && (
-                            <p className="mt-1 line-clamp-1 text-xs text-gray-500 dark:text-gray-400">
-                              “{view.quote}”
-                            </p>
-                          )}
-
-                          {notif.modtitle ? (
-                            <div className="mt-1.5 min-w-0">
-                              <p className="truncate text-xs text-gray-500 dark:text-gray-400">
-                                {notif.modtitle}
-                              </p>
-                            </div>
-                          ) : (
-                            view.body && (
-                              <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-500">
-                                {view.body}
-                              </p>
-                            )
-                          )}
-                        </div>
-                      </button>
-
-                      {/* ACCIONES */}
-                      <div className="flex shrink-0 flex-col items-center gap-0.5 self-start pt-0.5 transition-opacity duration-200 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100">
-                        <button
-                          type="button"
-                          onClick={() => handleToggleRead(notif)}
-                          title={notif.leida ? 'Marcar como no leída' : 'Marcar como leída'}
-                          aria-label={notif.leida ? 'Marcar como no leída' : 'Marcar como leída'}
-                          className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-primary-50 hover:text-primary-600 dark:hover:bg-primary-500/15 dark:hover:text-primary-400"
-                        >
-                          {notif.leida ? <Mail size={15} /> : <MailOpen size={15} />}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setPendingDelete(notif)}
-                          title="Eliminar notificación"
-                          aria-label="Eliminar notificación"
-                          className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/15 dark:hover:text-red-400"
-                        >
-                          <Trash2 size={15} />
-                        </button>
-                      </div>
-                    </article>
-                  );
-                })}
+              <div className="overflow-hidden rounded-xl border border-gray-200 bg-white divide-y divide-gray-100 dark:border-transparent dark:bg-[#171819] dark:divide-white/[0.06]">
+                {group.items.map((notif, index) => (
+                  <NotificationCard
+                    key={notif.id}
+                    notification={notif}
+                    actor={getActor(notif)}
+                    userRole={user?.role}
+                    onOpen={handleOpen}
+                    onToggleRead={handleToggleRead}
+                    onDelete={setPendingDelete}
+                    className="animate-fade-in-up"
+                    style={{
+                      animationDelay: `${Math.min(index, 8) * 30}ms`,
+                      animationDuration: '220ms'
+                    }}
+                  />
+                ))}
               </div>
             </section>
           ))}

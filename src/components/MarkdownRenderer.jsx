@@ -55,7 +55,7 @@ const CopyCodeButton = ({ text }) => {
     );
 };
 
-const MarkdownRenderer = ({ content, className = '' }) => {
+const MarkdownRenderer = ({ content, className = '', compact = false }) => {
     if (!content) {
         return (
             <div className="flex items-center py-3 gap-2 text-gray-400 dark:text-gray-500 italic">
@@ -144,7 +144,7 @@ const MarkdownRenderer = ({ content, className = '' }) => {
             {elements.map((element, index) => {
                 if (element.type === 'code') {
                     return (
-                        <div key={index} className="my-6">
+                        <div key={index} className={compact ? 'my-2' : 'my-6'}>
                             <div className="rounded-lg overflow-hidden border border-gray-300 dark:border-gray-700">
                                 <div className="flex items-center justify-between bg-gray-200 dark:bg-[#1D1F23] text-gray-700 dark:text-gray-200 px-3 py-2 text-xs font-mono">
                                     <span className="flex items-center gap-2">
@@ -183,12 +183,12 @@ const MarkdownRenderer = ({ content, className = '' }) => {
                                     return <>{children}</>;
                                 }
 
-                                return <p className="my-3 leading-relaxed" {...props}>{children}</p>;
+                                return <p className={compact ? 'm-0 leading-5' : 'my-3 leading-relaxed'} {...props}>{children}</p>;
                             },
                             
                             // IMÁGENES
                             img: ({node, alt, title, ...props}) => (
-                                <div className="my-6">
+                                <div className={compact ? 'my-2' : 'my-6'}>
                                     <div className="flex flex-col items-center">
                                         <img 
                                             src={props.src} 
@@ -198,7 +198,7 @@ const MarkdownRenderer = ({ content, className = '' }) => {
                                             loading="lazy" 
                                         />
                                         {alt && alt.trim() !== '' && (
-                                            <div className="text-center text-sm text-gray-500 dark:text-gray-400 mt-2 italic max-w-2xl mx-auto">
+                                            <div className={`text-center text-sm text-gray-500 dark:text-gray-400 ${compact ? 'mt-1' : 'mt-2'} italic max-w-2xl mx-auto`}>
                                                 {alt}
                                             </div>
                                         )}
@@ -230,49 +230,49 @@ const MarkdownRenderer = ({ content, className = '' }) => {
                             
                             // ENCABEZADOS
                             h1: ({node, children, ...props}) => (
-                                <h1 className="text-2xl font-bold mt-6 mb-3 text-gray-900 dark:text-white border-b pb-2 border-gray-200 dark:border-gray-700" {...props}>
+                                <h1 className={`text-2xl font-bold ${compact ? 'mt-2 mb-1 pb-1' : 'mt-6 mb-3 pb-2'} text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700`} {...props}>
                                     {children}
                                 </h1>
                             ),
                             h2: ({node, children, ...props}) => (
-                                <h2 className="text-xl font-bold mt-5 mb-3 text-gray-900 dark:text-white" {...props}>
+                                <h2 className={`text-xl font-bold ${compact ? 'mt-2 mb-1' : 'mt-5 mb-3'} text-gray-900 dark:text-white`} {...props}>
                                     {children}
                                 </h2>
                             ),
                             h3: ({node, children, ...props}) => (
-                                <h3 className="text-lg font-bold mt-4 mb-2 text-gray-900 dark:text-white" {...props}>
+                                <h3 className={`text-lg font-bold ${compact ? 'mt-1 mb-1' : 'mt-4 mb-2'} text-gray-900 dark:text-white`} {...props}>
                                     {children}
                                 </h3>
                             ),
                             h4: ({node, children, ...props}) => (
-                                <h4 className="text-base font-bold mt-3 mb-2 text-gray-900 dark:text-white" {...props}>
+                                <h4 className={`text-base font-bold ${compact ? 'mt-1 mb-0.5' : 'mt-3 mb-2'} text-gray-900 dark:text-white`} {...props}>
                                     {children}
                                 </h4>
                             ),
                             h5: ({node, children, ...props}) => (
-                                <h5 className="text-sm font-bold mt-2 mb-2 text-gray-900 dark:text-white" {...props}>
+                                <h5 className={`text-sm font-bold ${compact ? 'mt-1 mb-0.5' : 'mt-2 mb-2'} text-gray-900 dark:text-white`} {...props}>
                                     {children}
                                 </h5>
                             ),
                             h6: ({node, children, ...props}) => (
-                                <h6 className="text-xs font-bold mt-2 mb-2 text-gray-900 dark:text-white" {...props}>
+                                <h6 className={`text-xs font-bold ${compact ? 'mt-1 mb-0.5' : 'mt-2 mb-2'} text-gray-900 dark:text-white`} {...props}>
                                     {children}
                                 </h6>
                             ),
                             
                             // LISTAS
                             ul: ({node, children, ...props}) => (
-                                <ul className="list-disc pl-5 my-3 space-y-1" {...props}>
+                                <ul className={`list-disc pl-5 ${compact ? 'my-1 space-y-0' : 'my-3 space-y-1'}`} {...props}>
                                     {children}
                                 </ul>
                             ),
                             ol: ({node, children, ...props}) => (
-                                <ol className="list-decimal pl-5 my-3 space-y-1" {...props}>
+                                <ol className={`list-decimal pl-5 ${compact ? 'my-1 space-y-0' : 'my-3 space-y-1'}`} {...props}>
                                     {children}
                                 </ol>
                             ),
                             li: ({node, children, ...props}) => (
-                                <li className="pl-1 mb-1" {...props}>
+                                <li className={`pl-1 ${compact ? 'mb-0' : 'mb-1'}`} {...props}>
                                     {children}
                                 </li>
                             ),
@@ -303,19 +303,19 @@ const MarkdownRenderer = ({ content, className = '' }) => {
                             
                             // CITAS
                             blockquote: ({node, children, ...props}) => (
-                                <blockquote className="border-l-4 border-primary-500 pl-4 italic my-3 bg-gray-50 dark:bg-[#1D1F23]/30 py-2 rounded-r" {...props}>
+                                <blockquote className={`border-l-4 border-primary-500 pl-4 italic ${compact ? 'my-1 py-1' : 'my-3 py-2'} bg-gray-50 dark:bg-[#1D1F23]/30 rounded-r`} {...props}>
                                     {children}
                                 </blockquote>
                             ),
                             
                             // LÍNEA HORIZONTAL
                             hr: ({node, ...props}) => (
-                                <hr className="my-4 border-gray-300 dark:border-gray-700" {...props} />
+                                <hr className={`${compact ? 'my-2' : 'my-4'} border-gray-300 dark:border-gray-700`} {...props} />
                             ),
                             
                             // TABLAS
                             table: ({node, children, ...props}) => (
-                                <div className="overflow-x-auto my-6 rounded-lg border border-gray-200 dark:border-gray-700">
+                                <div className={`overflow-x-auto ${compact ? 'my-2' : 'my-6'} rounded-lg border border-gray-200 dark:border-gray-700`}>
                                     <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700" {...props}>
                                         {children}
                                     </table>
@@ -337,12 +337,12 @@ const MarkdownRenderer = ({ content, className = '' }) => {
                                 </tr>
                             ),
                             th: ({node, children, ...props}) => (
-                                <th className="px-4 py-3 text-left text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider border-b border-gray-200 dark:border-gray-700" {...props}>
+                                <th className={`${compact ? 'px-2 py-1.5' : 'px-4 py-3'} text-left text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider border-b border-gray-200 dark:border-gray-700`} {...props}>
                                     {children}
                                 </th>
                             ),
                             td: ({node, children, ...props}) => (
-                                <td className="px-4 py-3 text-sm border-b border-gray-200 dark:border-gray-700" {...props}>
+                                <td className={`${compact ? 'px-2 py-1.5' : 'px-4 py-3'} text-sm border-b border-gray-200 dark:border-gray-700`} {...props}>
                                     {children}
                                 </td>
                             ),

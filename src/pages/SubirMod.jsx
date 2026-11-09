@@ -616,7 +616,7 @@ const SubirMod = ({ isOpen, onClose }) => {
                 <p className="text-sm text-gray-500 dark:text-gray-400">Detalla las funciones, cómo instalarlo o los créditos extendidos.</p>
               </div>
 
-              <SimpleEditor value={formData.descripcion} onChange={handleDescriptionChange} withBorder={false} />
+              <SimpleEditor value={formData.descripcion} onChange={handleDescriptionChange} />
             </div>
           )}
 

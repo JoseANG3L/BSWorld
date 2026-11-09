@@ -870,7 +870,8 @@ const ContentTable = ({
               {isMobileBulkMenuOpen && (
                 <div
                   role="menu"
-                  className="absolute right-0 top-full z-[60] mt-2 w-48 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1D1F23] p-1 shadow-xl"
+                  className="absolute right-0 top-full z-[60] mt-2 w-44 max-w-[calc(100vw-2rem)] origin-top-right overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-xl animate-fade-in-up sm:w-56 sm:border-gray-300 sm:py-2 dark:border-gray-700 dark:bg-[#1e1e1e] sm:dark:border-transparent"
+                  style={{ animationDuration: '200ms' }}
                 >
                   {[
                     { label: 'Cambiar título', icon: Edit3, action: () => openBulkModal('titulo') },
@@ -885,10 +886,10 @@ const ContentTable = ({
                       type="button"
                       role="menuitem"
                       onClick={option.action}
-                      className={`flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm transition-colors ${
+                      className={`flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm font-medium transition-colors sm:px-4 sm:py-2 ${
                         option.destructive
-                          ? 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20'
-                          : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
+                          ? 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30'
+                          : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700/60'
                       }`}
                     >
                       <option.icon size={16} className="shrink-0" />
@@ -1071,27 +1072,36 @@ const ContentTable = ({
                             >
                               <MoreVertical size={18} />
                             </summary>
-                            <div className="absolute right-0 top-full z-[60] mt-2 w-48 overflow-hidden rounded-xl border border-gray-200 bg-white p-1 shadow-xl dark:border-gray-700 dark:bg-[#1D1F23]">
+                            <div
+                              role="menu"
+                              aria-label={`Opciones de ${item.titulo || 'mod'}`}
+                              className="absolute right-0 top-full z-[60] mt-2 w-44 max-w-[calc(100vw-2rem)] origin-top-right overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-xl animate-fade-in-up sm:w-56 sm:border-gray-300 sm:py-2 dark:border-gray-700 dark:bg-[#1e1e1e] sm:dark:border-transparent"
+                              style={{ animationDuration: '200ms' }}
+                            >
                               {actions.view && (
-                                <Link to={`/view/${item.id}`} className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700">
+                                <Link to={`/view/${item.id}`} role="menuitem" className="flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 sm:px-4 sm:py-2 dark:text-gray-200 dark:hover:bg-gray-700/60">
                                   <Eye size={16} /> Ver
                                 </Link>
                               )}
                               {actions.edit && (
-                                <Link to={`/edit/${item.id}`} className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700">
+                                <Link to={`/edit/${item.id}`} role="menuitem" className="flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 sm:px-4 sm:py-2 dark:text-gray-200 dark:hover:bg-gray-700/60">
                                   <Edit3 size={16} /> Editar
                                 </Link>
                               )}
                               {actions.delete && (
-                                <button
-                                  type="button"
-                                  onClick={() => onDelete && onDelete(item.id, item.titulo)}
-                                  disabled={updatingId === item.id}
-                                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 disabled:opacity-50 dark:text-red-400 dark:hover:bg-red-900/20"
-                                >
-                                  {updatingId === item.id ? <LoadingSpinner variant="inline" size={16} /> : <Trash2 size={16} />}
-                                  Eliminar
-                                </button>
+                                <>
+                                  {(actions.view || actions.edit) && <div className="my-0.5 h-px bg-gray-100 dark:bg-gray-800" />}
+                                  <button
+                                    type="button"
+                                    role="menuitem"
+                                    onClick={() => onDelete && onDelete(item.id, item.titulo)}
+                                    disabled={updatingId === item.id}
+                                    className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm font-medium text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50 sm:px-4 sm:py-2 dark:text-red-400 dark:hover:bg-red-950/30"
+                                  >
+                                    {updatingId === item.id ? <LoadingSpinner variant="inline" size={16} /> : <Trash2 size={16} />}
+                                    Eliminar
+                                  </button>
+                                </>
                               )}
                             </div>
                           </details>

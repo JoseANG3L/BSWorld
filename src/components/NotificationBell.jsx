@@ -4,6 +4,7 @@ import { Bell, ChevronRight, Inbox, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuth, useNotifications } from '../context/AuthContext';
 import PageHeader from './PageHeader';
+import NotificationCard from './NotificationCard';
 import {
   getUserNotifications,
   markNotificationAsRead,
@@ -11,9 +12,6 @@ import {
   getUserPublicProfile,
   prefetchUserProfiles
 } from '../services/api';
-import AvatarRenderer from './AvatarRenderer';
-import { getNotificationView, getTimeAgo, CONTENT_TYPE_LABELS } from '../utils/notifications';
-import { thumbUrl } from '../utils/image';
 
 const PANEL_LIMIT = 8;
 
@@ -51,6 +49,7 @@ const NotificationBell = ({ variant = 'default' }) => {
     }
     if (showLoader) setLoading(true);
     try {
+      // La campana solo muestra lo que aún no se ha leído.
       const data = await getUserNotifications(user.id, true, PANEL_LIMIT, 0, true);
       setItems(data);
     } catch (error) {
@@ -195,7 +194,7 @@ const NotificationBell = ({ variant = 'default' }) => {
                 iconSize={20}
                 iconClassName="h-5 w-5 sm:h-4 sm:w-4"
                 iconContainerClassName="!h-9 !w-9 !rounded-xl sm:!h-7 sm:!w-7 sm:!rounded-lg"
-                gradientClass="from-purple-500 to-pink-500"
+                gradientClass="from-blue-500 to-cyan-500"
                 className="!gap-2 !text-base md:!text-base"
               />
             </div>
@@ -217,100 +216,16 @@ const NotificationBell = ({ variant = 'default' }) => {
               <BellSkeleton />
             ) : items.length > 0 ? (
               <div className="divide-y divide-gray-100 dark:divide-white/[0.04]">
-                {items.map((notif) => {
-                  const actorInfo = actorCache[notif.actorid] || null;
-                  const view = getNotificationView(notif, actorInfo, user?.role);
-                  const Icon = view.Icon;
-                  const contentType = CONTENT_TYPE_LABELS[notif.modtype] || 'contenido';
-
-                  return (
-                    <button
-                      type="button"
-                      key={notif.id}
-                      onClick={() => handleOpenNotification(notif)}
-                      className={clsx(
-                        'group relative flex w-full items-start gap-2.5 px-2.5 py-2.5 text-left transition-colors sm:gap-3 sm:px-3.5 sm:py-3',
-                        'hover:bg-gray-50 dark:hover:bg-white/[0.04]',
-                        !notif.leida && 'bg-gradient-to-r from-primary-50/70 to-white dark:from-primary-500/[0.08] dark:to-transparent'
-                      )}
-                    >
-                      {!notif.leida && (
-                        <span className="absolute left-0 top-1/2 h-8 w-[3px] -translate-y-1/2 rounded-r-full bg-gradient-to-b from-primary-400 to-primary-600" />
-                      )}
-
-                      <div className="relative shrink-0">
-                        {view.hasActor && notif.actorid ? (
-                          <>
-                            <div className="h-8 w-8 overflow-hidden rounded-full ring-1 ring-white/80 dark:ring-[#1c1d20] sm:h-9 sm:w-9 sm:ring-2">
-                              <AvatarRenderer avatar={actorInfo?.imagen} name={actorInfo?.nombre} />
-                            </div>
-                            <span className={clsx('absolute -bottom-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full ring-1 ring-white dark:ring-[#1c1d20] sm:h-[18px] sm:w-[18px] sm:ring-2', view.badge)}>
-                              <Icon size={9} strokeWidth={2.5} />
-                            </span>
-                          </>
-                        ) : (
-                          <div className={clsx('flex h-8 w-8 items-center justify-center rounded-lg ring-1 ring-black/5 dark:ring-white/5 sm:h-9 sm:w-9 sm:rounded-xl', view.tile)}>
-                            <Icon size={15} />
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1">
-                          <span className={clsx(
-                            'inline-flex items-center rounded px-1 py-0.5 text-[9px] font-bold uppercase tracking-wide sm:px-1.5 sm:text-[9px]',
-                            view.pill
-                          )}>
-                            {view.label}
-                          </span>
-                          <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 sm:text-[10px]">
-                            {getTimeAgo(notif.creado)}
-                          </span>
-                          {!notif.leida && (
-                            <span className="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-primary-500" />
-                          )}
-                        </div>
-
-                        <p className={clsx(
-                          'mt-0.5 text-sm leading-snug line-clamp-2 sm:mt-1 sm:text-xs',
-                          notif.leida
-                            ? 'text-gray-600 dark:text-gray-400'
-                            : 'font-semibold text-gray-900 dark:text-white'
-                        )}>
-                          {view.title}
-                        </p>
-
-                        {view.quote && (
-                          <p className="mt-1 line-clamp-2 border-l-2 border-blue-400/40 pl-1.5 text-xs italic text-gray-500 dark:text-gray-400 sm:line-clamp-1 sm:text-[10px]">
-                            “{view.quote}”
-                          </p>
-                        )}
-
-                        {notif.modtitle && (
-                          <div className="mt-0.5 flex items-center gap-1.5 sm:mt-1.5">
-                            {notif.modimage ? (
-                              <img
-                                src={thumbUrl(notif.modimage, 80)}
-                                alt=""
-                                loading="lazy"
-                                decoding="async"
-                                className="hidden h-5 w-5 shrink-0 rounded object-cover sm:block"
-                                onError={(event) => { event.currentTarget.src = '/default.jpg'; }}
-                              />
-                            ) : (
-                              <span className={clsx('hidden h-5 w-5 shrink-0 items-center justify-center rounded sm:flex', view.tile)}>
-                                <Icon size={10} />
-                              </span>
-                            )}
-                            <span className="truncate text-xs font-medium text-gray-500 dark:text-gray-400 sm:text-[10px]">
-                              {notif.modtitle}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </button>
-                  );
-                })}
+                {items.map((notif) => (
+                  <NotificationCard
+                    key={notif.id}
+                    notification={notif}
+                    actor={actorCache[notif.actorid] || null}
+                    userRole={user?.role}
+                    compact
+                    onOpen={handleOpenNotification}
+                  />
+                ))}
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center px-3 py-6 text-center sm:px-6 sm:py-10">

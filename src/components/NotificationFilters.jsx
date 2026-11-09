@@ -23,7 +23,7 @@ const FilterSelect = ({ id, label, value, options, onChange, icon }) => (
       id={id}
       value={value}
       onChange={(event) => onChange(event.target.value)}
-      className="h-10 w-full appearance-none rounded-xl border border-gray-200 bg-white pl-9 pr-9 text-sm font-medium text-gray-700 outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:border-white/10 dark:bg-[#1D1F23] dark:text-gray-200"
+      className="h-10 w-full appearance-none rounded-xl border border-gray-300 bg-white pl-9 pr-9 text-sm font-medium text-gray-700 outline-none transition-all focus:border-primary-500 focus:ring-1 focus:ring-primary-500 dark:border-transparent dark:bg-[#1D1F23] dark:text-gray-200"
     >
       {options.map((option) => (
         <option key={option.id} value={option.id}>
@@ -83,17 +83,17 @@ const NotificationFilters = ({
   );
 
   return (
-    <div className={clsx('mb-3 flex min-w-0 items-center gap-2.5 lg:mb-0', className)}>
+    <div className={clsx('mb-3 flex min-w-0 items-center gap-1 lg:mb-0', className)}>
       <div className="relative min-w-0 flex-1">
         <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
         <input
           ref={searchRef}
           type="text"
           aria-label="Buscar notificaciones"
-          placeholder="Buscar notificaciones..."
+          placeholder="Buscar notificaciones"
           value={searchTerm}
           onChange={(event) => onSearchChange(event.target.value)}
-          className="h-10 w-full rounded-xl border border-gray-200 bg-white pl-9 pr-9 text-sm text-gray-700 outline-none transition-all placeholder:text-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:border-white/10 dark:bg-[#1D1F23] dark:text-gray-200"
+          className="h-10 w-full rounded-xl border border-gray-300 bg-white pl-9 pr-6 text-sm text-gray-700 outline-none transition-all placeholder:text-gray-400 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 dark:border-transparent dark:bg-[#1D1F23] dark:text-gray-200"
         />
         {searchTerm && (
           <button
@@ -120,14 +120,14 @@ const NotificationFilters = ({
             'relative flex h-10 w-10 items-center justify-center rounded-xl border bg-white text-gray-600 transition-colors dark:bg-[#1D1F23] dark:text-gray-300',
             hasActiveFilter
               ? 'border-primary-400 dark:border-primary-500'
-              : 'border-gray-200 dark:border-white/10'
+              : 'border-gray-300 dark:border-transparent'
           )}
         >
           <Filter size={18} />
           {hasActiveFilter && <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-primary-500" />}
         </button>
         {isOpen && (
-          <div className="absolute right-0 top-full z-30 mt-1.5 flex w-[min(19rem,calc(100vw-1rem))] flex-col gap-2 rounded-xl border border-gray-200 bg-white p-2 shadow-xl dark:border-white/10 dark:bg-[#1D1F23]">
+          <div className="absolute right-0 top-full z-30 mt-1.5 flex w-[min(19rem,calc(100vw-1rem))] flex-col gap-2 rounded-xl border border-gray-300 bg-white p-2 shadow-xl dark:border-transparent dark:bg-[#1D1F23]">
             {statusSelect('notification-filter-mobile')}
             {dateSelect('notification-date-filter-mobile')}
           </div>

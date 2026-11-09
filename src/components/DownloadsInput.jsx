@@ -3,7 +3,7 @@ import { clsx } from 'clsx';
 import { ChevronDown, Trash2 } from 'lucide-react';
 
 const DownloadsInput = ({ 
-  downloads = [], 
+  downloads,
   onChange,
   presets = ['API 9 (1.7.44+)', 'API 8 (1.7.20+)', 'API 7 (1.7.5+)', 'API 6 (1.6.4+)', 'API 4 (1.4.150+)'],
   defaultPreset = 'API 9 (1.7.44+)',
@@ -19,7 +19,7 @@ const DownloadsInput = ({
   const [urlErrors, setUrlErrors] = useState({});
   const versionDropdownRefs = useRef([]);
 
-  const activeDownloads = downloads && downloads.length > 0 ? downloads : internalDownloads;
+  const activeDownloads = Array.isArray(downloads) ? downloads : internalDownloads;
 
   const isValidUrl = (url) => {
     if (!url) return true;
@@ -178,7 +178,7 @@ const DownloadsInput = ({
               {isCustom && (
                 <input
                   type="text"
-                  value={download.label || ''}
+                  value={currentLabel}
                   onChange={(e) => handleDownloadChange(index, 'label', e.target.value)}
                   placeholder={customPlaceholder}
                   className={clsx("w-full md:min-w-42 md:max-w-42 px-3 py-2 text-sm bg-white dark:bg-[#1D1F23] transition-all duration-300 border border-gray-300 rounded-xl outline-none dark:text-white focus:ring-1 focus:ring-primary-500 focus:border-primary-500 shadow-sm", withBorder ? "dark:border-gray-700" : "dark:border-transparent")}
@@ -191,6 +191,7 @@ const DownloadsInput = ({
                 value={download.url || ''}
                 onChange={(e) => handleDownloadChange(index, 'url', e.target.value)}
                 placeholder="URL de descarga"
+                aria-label={`URL de descarga ${index + 1}`}
                 className={clsx(
                   "w-full px-4 py-2 text-sm bg-white dark:bg-[#1D1F23] transition-all duration-300 border rounded-xl outline-none dark:text-white shadow-sm",
                   urlErrors[index] ? "border-red-500 dark:border-red-500 focus:ring-1 focus:ring-red-500 dark:focus:ring-red-500" : withBorder ? "border-gray-300 dark:border-gray-700 focus:ring-1 focus:ring-primary-500 dark:focus:ring-primary-500" : "border-gray-300 dark:border-transparent focus:ring-1 focus:ring-primary-500 dark:focus:ring-primary-500"
@@ -201,7 +202,8 @@ const DownloadsInput = ({
               <button
                 type="button"
                 onClick={() => handleRemoveDownload(index)}
-                className="w-full md:w-auto flex items-center justify-center p-2.5 text-red-600 bg-red-50 hover:bg-red-100 dark:text-red-500 dark:bg-red-900/20 dark:hover:bg-red-900/40 border border-red-200 dark:border-red-800 rounded-lg shadow-sm transition-colors"
+                aria-label={`Eliminar descarga ${index + 1}`}
+                className="w-full md:w-auto flex items-center justify-center p-2.5 text-red-600 bg-red-50 hover:bg-red-100 dark:text-red-700 dark:bg-red-900/20 dark:hover:bg-red-900/40 border border-red-200 dark:border-red-900 rounded-lg shadow-sm transition-colors"
               >
                 <Trash2 size={16} />
               </button>

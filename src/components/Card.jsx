@@ -1,13 +1,15 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { Link } from 'react-router-dom';
-import { Download, ChevronDown, AlertCircle, Eye, User, ShieldCheck, ExternalLink, Heart, Wrench, Map, Gamepad2, Boxes, Package, X } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Download, ChevronDown, AlertCircle, Eye, User, ShieldCheck, ExternalLink, Heart, Wrench, Map, Gamepad2, Boxes, Package, X, MoreVertical, Share2, Edit3, Trash2 } from 'lucide-react';
 import { clsx } from 'clsx';
 import AvatarRenderer from './AvatarRenderer';
 import LikeButton from './LikeButton';
 import { useAuth } from '../context/AuthContext';
-import { registerDownload, getUserPublicProfile } from '../services/api';
+import { registerDownload, getUserPublicProfile, deleteContent } from '../services/api';
 import { thumbUrl } from '../utils/image';
 import { createPortal } from 'react-dom'; 
+import { useToast } from '../hooks/useToast';
+import Modal from './Modal';
 
 const COOLDOWN_TIME = 3600000;
 
@@ -113,7 +115,7 @@ const SmartUserDisplay = ({ initialUser, type = 'list', extraCount = 0, onClick 
           className="relative block group/avatar shrink-0 cursor-pointer"
           title={userData.nombre}
         >
-          <div className="w-4 h-4 md:w-5 md:h-5 rounded-full overflow-hidden">
+          <div className="w-5 h-5 md:w-6 md:h-6 rounded-full overflow-hidden">
             <AvatarRenderer avatar={userData.imagen} name={userData.nombre} />
           </div>
           {esVerificado && (
@@ -131,7 +133,7 @@ const SmartUserDisplay = ({ initialUser, type = 'list', extraCount = 0, onClick 
         className="relative block group/avatar shrink-0"
         title={userData.nombre}
       >
-        <div className="w-4 h-4 md:w-5 md:h-5 rounded-full overflow-hidden">
+        <div className="w-5 h-5 md:w-6 md:h-6 rounded-full overflow-hidden">
           <AvatarRenderer avatar={userData.imagen} name={userData.nombre} />
         </div>
         {esVerificado && (
@@ -198,7 +200,7 @@ const SmartUserDisplay = ({ initialUser, type = 'list', extraCount = 0, onClick 
             className="relative block group/avatar cursor-pointer"
             title={userData.nombre}
           >
-            <div className="w-4 h-4 md:w-5 md:h-5 rounded-full relative shrink-0">
+            <div className="w-5 h-5 md:w-6 md:h-6 rounded-full relative shrink-0">
               <AvatarRenderer avatar={userData.imagen} name={userData.nombre} />
             </div>
             {userData.verificado && (
@@ -214,7 +216,7 @@ const SmartUserDisplay = ({ initialUser, type = 'list', extraCount = 0, onClick 
             className="relative block group/avatar"
             title={userData.nombre}
           >
-            <div className="w-4 h-4 md:w-5 md:h-5 rounded-full relative shrink-0">
+            <div className="w-5 h-5 md:w-6 md:h-6 rounded-full relative shrink-0">
               <AvatarRenderer avatar={userData.imagen} name={userData.nombre} />
             </div>
             {userData.verificado && (
@@ -384,13 +386,22 @@ const Card = ({
   priority = false
 }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const { showToast } = useToast();
   const [isOpenDownload, setIsOpenDownload] = useState(false);
   const downloadRef = useRef(null);
+  const optionsRef = useRef(null);
   const [isOpenCredits, setIsOpenCredits] = useState(false);
   const creditosRef = useRef(null);
   const [imageError, setImageError] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
   const [showCreatorsModal, setShowCreatorsModal] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isDeleted, setIsDeleted] = useState(false);
+  const [isOptionsOpen, setIsOptionsOpen] = useState(false);
+  const ownerId = aporte && typeof aporte === 'object' ? (aporte.uid || aporte.id) : aporte;
+  const currentUserId = user?.id || user?.uid;
+  const isOwner = Boolean(currentUserId && ownerId && String(currentUserId) === String(ownerId));
 
   // Miniatura rápida (WebP 640px) con caída a original y luego a default
   const thumb = useMemo(() => thumbUrl(imagen, 640), [imagen]);
@@ -443,10 +454,49 @@ const Card = ({
     await registerDownload(id, url, user?.id);
   };
 
+  const handleShare = async () => {
+    if (!id) return;
+    const shareUrl = `${window.location.origin}/view/${id}`;
+    optionsRef.current?.removeAttribute('open');
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+        showToast('Enlace copiado al portapapeles.', 'success');
+        return;
+      }
+      if (navigator.share) {
+        await navigator.share({ title: titulo || 'Contenido', url: shareUrl });
+        return;
+      }
+      throw new Error('El navegador no permite compartir ni copiar enlaces.');
+    } catch (error) {
+      if (error?.name === 'AbortError') return;
+      console.error('Error compartiendo contenido:', error);
+      showToast('No se pudo compartir el enlace.', 'error');
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!isOwner || !id || isDeleting) return;
+    setIsDeleting(true);
+    try {
+      await deleteContent(id);
+      setIsDeleteModalOpen(false);
+      setIsDeleted(true);
+      showToast('El contenido se eliminó correctamente.', 'success');
+    } catch (error) {
+      console.error('Error eliminando contenido:', error);
+      showToast('No se pudo eliminar el contenido.', 'error');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (downloadRef.current && !downloadRef.current.contains(event.target)) setIsOpenDownload(false);
       if (creditosRef.current && !creditosRef.current.contains(event.target)) setIsOpenCredits(false);
+      if (optionsRef.current && !optionsRef.current.contains(event.target)) optionsRef.current.removeAttribute('open');
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -493,47 +543,32 @@ const Card = ({
   };
   const CategoriaIcon = categoriaInfo.icon;
 
+  if (isDeleted) return null;
+
   return (
+    <>
     <div 
-      className={`group flex flex-col rounded-xl transition-all duration-300 z-0 relative h-full`}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      className={`group relative flex h-full flex-col rounded-xl transition-all duration-300 ${isOptionsOpen ? 'z-50' : 'z-0'}`}
     >
-      {/* Fondo con blur de la imagen */}
-      <div className={`absolute inset-0 -z-10 pointer-events-none overflow-hidden rounded-xl transition-transform duration-500 ease-in-out ${isHovered ? 'scale-105' : 'scale-100'}`}>
-        <div 
-          className={`absolute inset-0 bg-cover bg-center transition-all duration-500 ease-in-out ${isHovered ? 'dark:opacity-30 opacity-20' : 'opacity-0'} -z-10`}
-          style={{ 
-            backgroundImage: `url(${imgSrc})`,
-            filter: 'blur(40px) brightness(0.8)',
-            transform: 'scale(1.2)'
-          }}
-        />
-      </div>
-      
       {/* 1. IMAGEN */}
       <div className="relative w-full aspect-video overflow-hidden rounded-xl bg-gray-100 dark:bg-[#1D1F23]">
         <Link
           to={id ? `/view/${id}` : "#"}
           className="absolute inset-0 block cursor-pointer"
         >
-          <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/0 to-black/0 transition-all duration-300 group-hover:from-black/20 group-hover:to-transparent" />
           <img
             src={imgSrc}
             alt={titulo || 'Imagen del contenido'}
             loading={priority ? 'eager' : 'lazy'}
             fetchPriority={priority ? 'high' : 'auto'}
             decoding="async"
-            className="h-full w-full object-cover transition-all duration-500 group-hover:scale-110"
-            style={{ opacity: 0 }}
-            onLoad={(e) => { e.target.style.opacity = 1; }}
+            className="h-full w-full object-cover"
             onError={(e) => {
               if (imgStage < 2) {
                 setImgStage(imgStage + 1);
               } else if (!imageError) {
                 console.warn('Error loading image:', imagen);
                 setImageError(true);
-                e.target.style.opacity = 1;
               }
             }}
           />
@@ -559,14 +594,70 @@ const Card = ({
 
         {/* 2. TÍTULO EN UNA LÍNEA Y CREADOR DEBAJO */}
         <div className="flex flex-col gap-1.5 min-w-0">
-          <Link
-            to={id ? `/view/${id}` : "#"}
-            className="block min-w-0 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
-          >
-            <h3 className="text-base font-bold text-black dark:text-white truncate hover:text-primary-600 dark:hover:text-primary-400 transition-colors" title={titulo}>
-              {titulo}
-            </h3>
-          </Link>
+          <div className="flex items-center gap-1 min-w-0 py-0.5">
+            <Link
+              to={id ? `/view/${id}` : "#"}
+              className="block min-w-0 flex-1 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+            >
+              <h3 className="text-base font-bold text-black dark:text-white truncate hover:text-primary-600 dark:hover:text-primary-400 transition-colors" title={titulo}>
+                {titulo}
+              </h3>
+            </Link>
+            <details
+              ref={optionsRef}
+              onToggle={(event) => setIsOptionsOpen(event.currentTarget.open)}
+              className="group/options relative shrink-0"
+            >
+              <summary
+                aria-label={`Opciones de ${titulo || 'contenido'}`}
+                className="flex cursor-pointer list-none rounded-lg px-0 py-1 text-gray-500 transition-colors hover:text-gray-800 dark:text-gray-400 dark:hover:text-white [&::-webkit-details-marker]:hidden"
+              >
+                <MoreVertical size={20} />
+              </summary>
+              <div
+                role="menu"
+                aria-label={`Opciones de ${titulo || 'contenido'}`}
+                className="absolute right-0 top-full z-[60] mt-1.5 w-44 max-w-[calc(100vw-2rem)] origin-top-right overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-xl animate-fade-in-up sm:w-56 sm:border-gray-300 sm:py-2 dark:border-gray-700 dark:bg-[#1e1e1e] sm:dark:border-transparent"
+                style={{ animationDuration: '200ms' }}
+              >
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={handleShare}
+                  className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 sm:px-4 sm:py-2 dark:text-gray-200 dark:hover:bg-gray-700/60"
+                >
+                  <Share2 size={16} /> Compartir
+                </button>
+                {isOwner && (
+                  <>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        optionsRef.current?.removeAttribute('open');
+                        navigate(`/edit/${id}`);
+                      }}
+                      className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 sm:px-4 sm:py-2 dark:text-gray-200 dark:hover:bg-gray-700/60"
+                    >
+                      <Edit3 size={16} /> Editar
+                    </button>
+                    <div className="my-0.5 h-px bg-gray-100 dark:bg-gray-800" />
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        optionsRef.current?.removeAttribute('open');
+                        setIsDeleteModalOpen(true);
+                      }}
+                      className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm font-medium text-red-600 transition-colors hover:bg-red-50 sm:px-4 sm:py-2 dark:text-red-400 dark:hover:bg-red-950/30"
+                    >
+                      <Trash2 size={16} /> Eliminar
+                    </button>
+                  </>
+                )}
+              </div>
+            </details>
+          </div>
 
           <div className="flex items-center gap-2 min-w-0">
             {listaCreditos.length > 1 ? (
@@ -632,26 +723,28 @@ const Card = ({
                 target="_blank" 
                 rel="noopener noreferrer" 
                 onClick={() => handleDownloadClick(localDescargas[0].url)}
-                className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-bold rounded-lg transition-all duration-200 active:scale-95 shadow-md hover:shadow-lg w-full"
+                className="flex h-10 min-w-0 items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-bold rounded-lg transition-all duration-200 active:scale-95 shadow-md hover:shadow-lg w-full"
               >
-                <Download size={16} strokeWidth={2.5} />
-                <span>Descargar</span>
+                <Download size={16} strokeWidth={2.5} className="shrink-0" />
+                <span className="truncate">Descargar</span>
               </a>
             ) : (
               <>
                 <button 
+                  type="button"
+                  aria-expanded={isOpenDownload}
                   onClick={(e) => {
                     e.stopPropagation();
                     setIsOpenDownload(!isOpenDownload);
                   }}
-                  className="inline-flex items-center justify-between px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-bold rounded-lg transition-all duration-200 active:scale-95 shadow-md hover:shadow-lg w-full"
+                  className="flex h-10 min-w-0 items-center justify-between gap-2 px-3 sm:px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-bold rounded-lg transition-all duration-200 active:scale-95 shadow-md hover:shadow-lg w-full"
                 >
-                  <div className="flex items-center gap-2">
-                    <Download size={16} strokeWidth={2.5} />
-                    <span>Descargar</span>
-                    <span className="px-1.5 py-0.5 bg-white/20 rounded text-xs">{localDescargas.length}</span>
+                  <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
+                    <Download size={16} strokeWidth={2.5} className="shrink-0" />
+                    <span className="truncate">Descargar</span>
+                    <span className="shrink-0 px-1.5 py-0.5 bg-white/20 rounded text-xs">{localDescargas.length}</span>
                   </div>
-                  <ChevronDown size={16} className={clsx("transition-transform duration-200", isOpenDownload && "rotate-180")} />
+                  <ChevronDown size={16} className={clsx("shrink-0 transition-transform duration-200", isOpenDownload && "rotate-180")} />
                 </button>
 
                 {isOpenDownload && (
@@ -664,12 +757,12 @@ const Card = ({
                           target="_blank" 
                           rel="noopener noreferrer" 
                           onClick={() => handleDownloadClick(option.url)} 
-                          className="flex items-center justify-between px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border-b border-gray-50 dark:border-gray-800 last:border-0 group/item cursor-pointer"
+                          className="flex min-h-11 sm:min-h-0 items-center justify-between px-3 sm:px-4 py-3 sm:py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border-b border-gray-50 dark:border-gray-800 last:border-0 group/item cursor-pointer"
                         >
                           <div className="flex flex-col truncate pr-2">
                             <span className="truncate font-bold group-hover/item:text-primary-600 dark:group-hover/item:text-primary-400 transition-colors">{option.label}</span>
                           </div>
-                          <Download size={16} className="text-gray-400 group-hover/item:text-primary-500 transition-colors" />
+                          <Download size={16} className="shrink-0 text-gray-400 group-hover/item:text-primary-500 transition-colors" />
                         </a>
                       ))}
                     </div>
@@ -714,6 +807,17 @@ const Card = ({
         document.body
       )}
     </div>
+    <Modal
+      isOpen={isDeleteModalOpen}
+      onClose={() => !isDeleting && setIsDeleteModalOpen(false)}
+      onConfirm={handleDelete}
+      title="Eliminar contenido"
+      message={`¿Seguro que deseas eliminar "${titulo || 'este contenido'}"? Esta acción no se puede deshacer.`}
+      type="warning"
+      showCancel
+      confirmText={isDeleting ? 'Eliminando...' : 'Eliminar'}
+    />
+    </>
   );
 };
 

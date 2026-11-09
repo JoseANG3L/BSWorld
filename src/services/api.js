@@ -124,55 +124,68 @@ export const updateContent = async (id, data) => {
     .select('estado, visibilidad, aporte, titulo, tipo, imagen')
     .eq('id', id)
     .single();
-  
-  
-  if (data.estado && currentData?.estado !== data.estado && (data.estado === 'published' || data.estado === 'aceptado' || data.estado === 'rejected' || data.estado === 'rechazado' || data.estado === 'pending' || data.estado === 'revision')) {
-    // Handle both string and object aporte field
-    const uploaderUid = currentData.aporte?.uid || currentData.aporte;
-    if (uploaderUid) {
-      await createStatusNotification(
-        uploaderUid,
-        id,
-        data.titulo || currentData.titulo,
-        data.imagen || currentData.imagen,
-        data.tipo || currentData.tipo,
-        data.estado
-      );
-      
-      // Si el estado es 'pending' o 'revision', notificar a los administradores
-      if (data.estado === 'pending' || data.estado === 'revision') {
-        await createAdminReviewNotification(
+
+  // Guardamos primero. Así una notificación fallida nunca impide actualizar el contenido.
+  const saveTimestamp = new Date().toISOString();
+  const { data: saved, error } = await supabase
+    .from('content')
+    .update({ ...data, actualizado: saveTimestamp })
+    .eq('id', id)
+    .select('id')
+    .maybeSingle();
+
+  if (error) throw error;
+
+  // Confirmar la fila modificada en la misma operación. Un trigger o una edición
+  // simultánea pueden cambiar actualizado sin que el guardado haya fallado.
+  if (!saved) {
+    throw new Error('No se pudo guardar el contenido. Verifica tus permisos o que siga existiendo.');
+  }
+
+  invalidateContentCache();
+
+  // Notificaciones: best-effort, no bloquean el guardado.
+  try {
+    if (data.estado && currentData?.estado !== data.estado && (data.estado === 'published' || data.estado === 'aceptado' || data.estado === 'rejected' || data.estado === 'rechazado' || data.estado === 'pending' || data.estado === 'revision')) {
+      const uploaderUid = currentData.aporte?.uid || currentData.aporte;
+      if (uploaderUid) {
+        await createStatusNotification(
+          uploaderUid,
           id,
           data.titulo || currentData.titulo,
           data.imagen || currentData.imagen,
           data.tipo || currentData.tipo,
-          uploaderUid
+          data.estado
+        );
+
+        if (data.estado === 'pending' || data.estado === 'revision') {
+          await createAdminReviewNotification(
+            id,
+            data.titulo || currentData.titulo,
+            data.imagen || currentData.imagen,
+            data.tipo || currentData.tipo,
+            uploaderUid
+          );
+        }
+      }
+    }
+
+    if (data.visibilidad && currentData?.visibilidad !== data.visibilidad) {
+      const uploaderUid = currentData.aporte?.uid || currentData.aporte;
+      if (uploaderUid) {
+        await createVisibilityNotification(
+          uploaderUid,
+          id,
+          data.titulo || currentData.titulo,
+          data.imagen || currentData.imagen,
+          data.tipo || currentData.tipo,
+          data.visibilidad
         );
       }
     }
+  } catch (notificationError) {
+    console.error('El contenido se guardó, pero no se pudo crear la notificación:', notificationError);
   }
-
-  if (data.visibilidad && currentData?.visibilidad !== data.visibilidad) {
-    // Handle both string and object aporte field
-    const uploaderUid = currentData.aporte?.uid || currentData.aporte;
-    if (uploaderUid) {
-      await createVisibilityNotification(
-        uploaderUid,
-        id,
-        data.titulo || currentData.titulo,
-        data.imagen || currentData.imagen,
-        data.tipo || currentData.tipo,
-        data.visibilidad
-      );
-    }
-  }
-
-  const { error } = await supabase
-    .from('content')
-    .update({ ...data, actualizado: new Date().toISOString() })
-    .eq('id', id);
-  if (error) throw error;
-  invalidateContentCache();
 };
 
 // --- SISTEMA DE VERSIONES/REVISIONES ---

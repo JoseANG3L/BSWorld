@@ -41,7 +41,7 @@ const TagsInput = ({
   return (
     <div className="space-y-2">
       <div className="flex justify-between items-center">
-        <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Tags</label>
+        <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">Tags *</label>
         <span className={clsx(
           "text-xs font-semibold",
           tags.length >= maxTags ? "text-red-500 dark:text-red-400" : "text-gray-500 dark:text-gray-400"

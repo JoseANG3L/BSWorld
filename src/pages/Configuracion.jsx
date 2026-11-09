@@ -32,7 +32,7 @@ const SOCIAL_FIELDS = [
   { name: 'website', label: 'Sitio web', icon: Globe, placeholder: 'https://tu-sitio.com', accent: 'group-focus-within:text-purple-500' }
 ];
 
-const INPUT_CLASS = 'w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800 outline-none transition-all placeholder:text-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:border-white/10 dark:bg-white/5 dark:text-gray-100 dark:placeholder:text-gray-500';
+const INPUT_CLASS = 'w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800 outline-none transition-all placeholder:text-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:border-transparent dark:focus:border-transparent dark:bg-white/5 dark:text-gray-100 dark:placeholder:text-gray-500';
 
 const getPasswordStrength = (password) => {
   if (!password) return 0;
@@ -647,7 +647,7 @@ const Configuracion = () => {
             </SectionCard>
 
             {/* BARRA DE GUARDADO */}
-            <div className="sticky bottom-16 z-30 flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white/95 p-3 shadow-sm dark:border-gray-700 dark:bg-[#1c1d20]/95 sm:flex-row sm:items-center sm:justify-between sm:px-4 lg:bottom-6">
+            <div className="sticky bottom-16 z-30 flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-3 shadow-md dark:border-transparent dark:bg-[#1c1d20] sm:flex-row sm:items-center sm:justify-between sm:px-4 lg:bottom-6">
               <div className="flex items-center gap-2 text-xs font-medium">
                 <span className={clsx('h-2 w-2 rounded-full', isDirty ? 'bg-amber-400' : 'bg-emerald-500')} />
                 <span className={isDirty ? 'text-amber-700 dark:text-amber-300' : 'text-gray-500 dark:text-gray-400'}>
@@ -670,7 +670,7 @@ const Configuracion = () => {
                 <button
                   type="submit"
                   disabled={loading || !isDirty}
-                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary-600 px-4 py-2 text-xs font-bold text-white shadow-sm shadow-primary-600/25 transition-all hover:bg-primary-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400 disabled:shadow-none dark:disabled:bg-white/5 dark:disabled:text-gray-600 sm:flex-none"
+                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary-600 px-4 py-3 text-xs font-bold text-white shadow-sm shadow-primary-600/25 transition-all hover:bg-primary-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400 disabled:shadow-none dark:disabled:bg-white/5 dark:disabled:text-gray-600 sm:flex-none"
                 >
                   {loading ? <LoadingSpinner variant="inline" size={14} /> : <Save size={14} />}
                   {loading ? 'Guardando...' : 'Guardar cambios'}
@@ -817,7 +817,7 @@ const Configuracion = () => {
                     type="text"
                     value={deleteConfirmation}
                     onChange={(event) => setDeleteConfirmation(event.target.value)}
-                    className={clsx(INPUT_CLASS, 'border-red-200 focus:border-red-500 focus:ring-red-500/20 dark:border-red-900/50')}
+                    className={clsx(INPUT_CLASS, 'border-red-200 focus:border-red-500 focus:ring-red-500/20')}
                     placeholder="ELIMINAR"
                   />
                 </div>
