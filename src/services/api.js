@@ -1216,22 +1216,41 @@ export const getUserLikedContent = async (userId) => {
   }
 };
 
-export const isLikedByUser = async (userId, contentId) => {
-  try {
-    const { data, error } = await supabase
-      .from('likes')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('content_id', contentId)
-      .maybeSingle();
-    
-    if (error) throw error;
-    return !!data;
-  } catch (error) {
-    console.error("Error verificando like:", error);
-    return false;
+// Las tarjetas montadas en el mismo render comparten una consulta por usuario.
+const pendingLikes = new Map();
+
+async function readLikesBatch(userId, batch) {
+  pendingLikes.delete(userId);
+  const ids = [...batch.keys()];
+  for (let start = 0; start < ids.length; start += 50) {
+    const group = ids.slice(start, start + 50);
+    let liked = new Set();
+    try {
+      const { data, error } = await supabase.from('likes')
+        .select('content_id').eq('user_id', userId).in('content_id', group);
+      if (error) throw error;
+      liked = new Set(data.map(row => String(row.content_id)));
+    } catch (error) {
+      console.error('Error verificando likes:', error);
+    }
+    for (const id of group) {
+      for (const resolve of batch.get(id)) resolve(liked.has(id));
+    }
   }
-};
+}
+
+export function isLikedByUser(userId, contentId) {
+  if (!userId || !contentId) return Promise.resolve(false);
+  let batch = pendingLikes.get(userId);
+  if (!batch) {
+    batch = new Map();
+    pendingLikes.set(userId, batch);
+    queueMicrotask(() => readLikesBatch(userId, batch));
+  }
+  const id = String(contentId);
+  if (!batch.has(id)) batch.set(id, []);
+  return new Promise(resolve => batch.get(id).push(resolve));
+}
 
 // --- SISTEMA DE COMENTARIOS PARA MODS ---
 export const getCommentsByContent = async (contentId) => {

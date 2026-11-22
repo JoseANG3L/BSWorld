@@ -6,30 +6,36 @@ import { toggleLike, isLikedByUser } from '../services/api';
 
 const LikeButton = ({ contentId, initialLikes = 0, size = 'md', variant = 'default', onChange }) => {
   const { user } = useAuth();
+  const userId = user?.id;
+  const [checking, setChecking] = useState(Boolean(userId));
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(initialLikes);
   const [loading, setLoading] = useState(false);
 
   // Verificar si el usuario ya dio like al montar
   useEffect(() => {
-    if (!user || !contentId) {
+    if (!userId || !contentId) {
       setIsLiked(false);
+      setChecking(false);
       return;
     }
 
     let isMounted = true;
+    setChecking(true);
     const verifyLike = async () => {
       try {
-        const liked = await isLikedByUser(user.id, contentId);
+        const liked = await isLikedByUser(userId, contentId);
         if (isMounted) setIsLiked(liked);
       } catch (error) {
         console.error('Error verificando like:', error);
+      } finally {
+        if (isMounted) setChecking(false);
       }
     };
 
     verifyLike();
     return () => { isMounted = false; };
-  }, [user, contentId]);
+  }, [userId, contentId]);
 
   // Notificar al contenedor (card/detalle) para reflejar el estado activo
   useEffect(() => {
@@ -38,7 +44,7 @@ const LikeButton = ({ contentId, initialLikes = 0, size = 'md', variant = 'defau
 
   const handleToggleLike = async () => {
     if (!user || !contentId) return;
-    if (loading) return;
+    if (loading || checking) return;
 
     const previousLiked = isLiked;
     const nextLiked = !previousLiked;
@@ -83,7 +89,7 @@ const LikeButton = ({ contentId, initialLikes = 0, size = 'md', variant = 'defau
         event.stopPropagation();
         handleToggleLike();
       }}
-      disabled={!user || !contentId || loading}
+      disabled={!user || !contentId || loading || checking}
       className={clsx(
         isOverlay
           ? clsx(

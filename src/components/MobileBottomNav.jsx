@@ -4,9 +4,9 @@ import { Home, Crown, Gamepad2, Upload, Bell, User, LayoutGrid, ShieldCheck, Log
 import { clsx } from 'clsx';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../hooks/useToast';
-import NotificationBell from './NotificationBell';
 import AvatarRenderer from './AvatarRenderer';
 
+const NotificationBell = lazy(() => import('./NotificationBell'));
 const SubirMod = lazy(() => import('../pages/SubirMod'));
 
 const MobileBottomNav = () => {
@@ -94,7 +94,7 @@ const MobileBottomNav = () => {
         {/* Notificaciones */}
         <div className="flex h-full w-full items-center justify-center">
           {user ? (
-            <NotificationBell variant="plain" />
+            <Suspense fallback={<span className="inline-block w-9" />}><NotificationBell variant="plain" /></Suspense>
           ) : (
             <Link
               to="/login"

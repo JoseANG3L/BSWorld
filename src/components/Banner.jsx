@@ -8,20 +8,12 @@ import LoadingSpinner from '../components/LoadingSpinner';
 // cuando el usuario abre el modal, no en la carga inicial del inicio.
 const SubirMod = lazy(() => import('../pages/SubirMod'));
 import { FEATURES } from '../config/features';
+import logoDark from '../assets/logo-dark.webp?no-inline';
+import bannerMobile from '../assets/banner-mobile.webp';
+import bannerDesktop from '../assets/banner-desktop.webp';
 
 const Banner = () => {
   const navigate = useNavigate();
-  const [isDarkMode, setIsDarkMode] = useState(false);
-
-  useEffect(() => {
-    const checkTheme = () => {
-      setIsDarkMode(document.documentElement.classList.contains('dark'));
-    };
-    checkTheme();
-    const observer = new MutationObserver(checkTheme);
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-    return () => observer.disconnect();
-  }, []);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isSubirModOpen, setIsSubirModOpen] = useState(false);
@@ -59,11 +51,11 @@ const Banner = () => {
   return (
     <div className="relative w-full h-auto md:h-[340px] lg:h-[420px] overflow-hidden">
       {/* Background Image */}
-      <div 
-        className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: 'url(/bannerbsworld.webp)' }}
-      />
-      
+      <picture className="absolute inset-0" aria-hidden="true">
+        <source media="(max-width: 767px)" srcSet={bannerMobile} />
+        <img src={bannerDesktop} alt="" fetchPriority="high" width={1280} height={543} className="h-full w-full object-cover" />
+      </picture>
+
       {/* Overlay */}
       <div className="absolute inset-0 bg-gradient-to-br from-primary-900/80 via-primary-800/70 to-primary-900/80" />
       
@@ -88,7 +80,7 @@ const Banner = () => {
           {/* Title Section */}
           <div className="mb-2.5 animate-fade-in-up text-center" style={{ animationDuration: '300ms' }}>
             <img 
-              src={'/bsworld_dark.png'} 
+              src={logoDark} width={2161} height={555}
               alt="BombSquad World" 
               className="h-10 sm:h-12 w-auto mb-2 mx-auto drop-shadow-lg"
             />
@@ -186,7 +178,7 @@ const Banner = () => {
             {/* Title Section */}
             <div className="mb-8 animate-fade-in-up" style={{ animationDuration: '300ms' }}>
               <img 
-                src={'/bsworld_dark.png'} 
+                src={logoDark} width={2161} height={555}
                 alt="BombSquad World" 
                 className="h-16 lg:h-20 w-auto mb-4 drop-shadow-lg"
               />

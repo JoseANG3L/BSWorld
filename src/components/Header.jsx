@@ -8,7 +8,9 @@ import { clsx } from 'clsx';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../hooks/useToast';
 import AvatarRenderer from './AvatarRenderer';
-import NotificationBell from './NotificationBell';
+import logoLight from '../assets/logo-light.webp?no-inline';
+import logoDark from '../assets/logo-dark.webp?no-inline';
+const NotificationBell = lazy(() => import('./NotificationBell'));
 import { FEATURES } from '../config/features';
 // Modales en lazy: evitan arrastrar react-markdown al bundle inicial
 const SubirMod = lazy(() => import('../pages/SubirMod'));
@@ -107,7 +109,8 @@ const Header = ({ toggleTheme, isDarkMode }) => {
       {/* LOGO BSWorld */}
       <Link to="/" className="absolute left-1/2 -translate-x-1/2 flex items-center pb-1 shrink-0 group md:static md:translate-x-0">
         <img 
-          src={isDarkMode ? '/bsworld_dark.png' : '/bsworld.png'} 
+          src={isDarkMode ? logoDark : logoLight}
+          width={2161} height={555}
           alt="BombSquad World" 
           className="h-6 w-auto opacity-90 dark:opacity-100"
         />
@@ -194,7 +197,7 @@ const Header = ({ toggleTheme, isDarkMode }) => {
 
         {/* En móvil, las notificaciones están en la navegación inferior. */}
         <div className="hidden lg:block">
-          {user && <NotificationBell />}
+          {user && <Suspense fallback={<span className="inline-block w-9" />}><NotificationBell /></Suspense>}
         </div>
 
         <div className="h-6 w-px hidden md:block bg-gray-400 dark:bg-gray-600 mx-1"></div>

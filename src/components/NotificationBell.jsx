@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Bell, ChevronRight, Inbox, X } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -41,28 +41,20 @@ const NotificationBell = ({ variant = 'default' }) => {
   const [actorCache, setActorCache] = useState({});
   const dropdownRef = useRef(null);
 
-  const fetchRecent = useCallback(async ({ showLoader = false } = {}) => {
-    if (!user?.id) {
-      setLoading(false);
-      setItems([]);
-      return;
-    }
-    if (showLoader) setLoading(true);
-    try {
-      // La campana solo muestra lo que aún no se ha leído.
-      const data = await getUserNotifications(user.id, true, PANEL_LIMIT, 0, true);
-      setItems(data);
-    } catch (error) {
-      console.error('Error cargando notificaciones para el panel:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [user?.id]);
-
-  // Cargar al montar y cuando cambia el usuario
+  const userId = user?.id;
   useEffect(() => {
-    fetchRecent({ showLoader: true });
-  }, [fetchRecent]);
+    if (!isOpen || !userId) return;
+    let active = true;
+    setLoading(true);
+    getUserNotifications(userId, true, PANEL_LIMIT, 0, true)
+      .then(data => { if (active) setItems(data); })
+      .catch(error => {
+        if (active) setItems([]);
+        console.error('Error cargando notificaciones:', error);
+      })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [isOpen, userId]);
 
   // Perfiles de quienes interactúan (una sola consulta para todos)
   useEffect(() => {
@@ -76,7 +68,7 @@ const NotificationBell = ({ variant = 'default' }) => {
       const entries = await Promise.all(
         ids.map(async (id) => [id, await getUserPublicProfile(id)])
       );
-      if (!active) return;
+      if (!active || !entries.some(([, info]) => info)) return;
       setActorCache((prev) => {
         const next = { ...prev };
         entries.forEach(([id, info]) => { if (info) next[id] = info; });
@@ -131,7 +123,6 @@ const NotificationBell = ({ variant = 'default' }) => {
     const next = !isOpen;
     setIsOpen(next);
     if (next) {
-      fetchRecent();
       refreshNotifications();
     }
   };
