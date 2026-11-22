@@ -196,9 +196,9 @@ const MobileBottomNav = () => {
         </div>
       </div>
     </nav>
-    {user && (
+    {user && isSubirModOpen && (
       <Suspense fallback={null}>
-        <SubirMod isOpen={isSubirModOpen} onClose={() => setIsSubirModOpen(false)} />
+        <SubirMod isOpen onClose={() => setIsSubirModOpen(false)} />
       </Suspense>
     )}
     </>

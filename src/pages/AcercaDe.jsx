@@ -45,21 +45,26 @@ const FeatureItem = ({ icon: Icon, title, desc }) => (
 
 const AcercaDe = () => {
   // ESTADO PARA LAS ESTADÍSTICAS
-  const [stats, setStats] = useState({ users: 0, downloads: 0, mods: 0 });
+  const [stats, setStats] = useState({ users: null, downloads: null, mods: null });
   const [loadingStats, setLoadingStats] = useState(true);
 
   // CARGAR DATOS AL MONTAR EL COMPONENTE
   useEffect(() => {
     const fetchStats = async () => {
-      const data = await getGlobalStats();
-      setStats(data);
-      setLoadingStats(false);
+      try {
+        setStats(await getGlobalStats());
+      } catch (error) {
+        console.error('Error cargando estadísticas:', error);
+      } finally {
+        setLoadingStats(false);
+      }
     };
     fetchStats();
   }, []);
 
   // Formateador de números (ej: 1200 -> 1.2k)
   const formatNumber = (num) => {
+    if (num == null) return '—';
     if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
     if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
     return num.toString();
@@ -100,7 +105,7 @@ const AcercaDe = () => {
         />
         <StatCard 
             icon={FileCode} 
-            value={stats.mods} 
+            value={formatNumber(stats.mods)}
             label="Mods Publicados" 
             color={{ bg: 'bg-purple-500', text: 'text-purple-500' }} 
             loading={loadingStats}

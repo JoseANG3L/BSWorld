@@ -307,14 +307,12 @@ const Header = ({ toggleTheme, isDarkMode }) => {
 
     {/* MODALES (carga diferida) */}
     <Suspense fallback={null}>
-      <SubirMod isOpen={isSubirModOpen} onClose={() => setIsSubirModOpen(false)} />
+      {isSubirModOpen && <SubirMod isOpen onClose={() => setIsSubirModOpen(false)} />}
 
       {/* MODAL LOGIN / REGISTRO */}
-      <Login
-        isOpen={isLoginOpen}
-        onClose={() => setIsLoginOpen(false)}
-        initialRegister={loginInitialRegister}
-      />
+      {isLoginOpen && (
+        <Login isOpen onClose={() => setIsLoginOpen(false)} initialRegister={loginInitialRegister} />
+      )}
     </Suspense>
     </>
   );

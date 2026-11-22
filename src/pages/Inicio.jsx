@@ -4,38 +4,21 @@ import { Flame, ArrowRight } from 'lucide-react';
 import Banner from '../components/Banner.jsx';
 import Card from '../components/Card.jsx';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { getPublicContent, prefetchUserProfiles } from '../services/api';
+import { getCatalogPage } from '../services/catalog';
 
 const Inicio = () => {
   const [novedades, setNovedades] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const [failed, setFailed] = useState(false);
   useEffect(() => {
-    const loadHomeData = async () => {
-      try {
-        const allContent = await getPublicContent();
-
-        // Novedades: más recientes (ya vienen ordenadas por `creado desc`)
-        const sortedByDate = [...allContent].sort((a, b) => new Date(b.creado) - new Date(a.creado));
-        setNovedades(sortedByDate);
-
-        // Avatares en segundo plano: una sola consulta en vez de una por tarjeta
-        const uids = sortedByDate.flatMap((item) => {
-          const fromList = Array.isArray(item.creadores) ? item.creadores : [item.creadores];
-          return [...fromList, item.aporte].map((c) => (typeof c === 'string' ? c : c?.uid || c?.id)).filter(Boolean);
-        });
-        prefetchUserProfiles(uids);
-      } catch (error) {
-        console.error("Error cargando datos de inicio:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadHomeData();
+    const controller = new AbortController();
+    getCatalogPage({ signal: controller.signal })
+      .then(page => { if (!controller.signal.aborted) setNovedades(page.items); })
+      .catch(() => { if (!controller.signal.aborted) setFailed(true); })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    return () => controller.abort();
   }, []);
-
-  if (loading) return <LoadingSpinner variant="page" />;
 
   return (
     <div className="flex flex-col animate-fade-in-up shadow-sm" style={{ animationDuration: '200ms' }}>
@@ -52,7 +35,7 @@ const Inicio = () => {
               <Flame size={20} className="text-red-600 dark:text-red-500" /> Últimos Mods
             </div>
 
-            <Link to="/mods?sort=recientes"
+            <Link to="/mods?sort=recientes" aria-label="Ver todos los mods"
               className="px-3 py-1.5 flex items-center gap-1.5 border border-gray-300 dark:border-transparent rounded-lg bg-gray-50 hover:bg-gray-200 dark:bg-[#1e1e1e] dark:hover:bg-[#2a2a2a] text-gray-800 dark:text-white transition-all shadow-sm active:scale-95"
             >
               <span className="md:block hidden pl-1 text-sm font-semibold">Ver todos</span>
@@ -61,11 +44,15 @@ const Inicio = () => {
           </div>
 
           {/* Grid de cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-4">
-            {novedades.map((item, i) => (
-              <Card key={item.id} {...item} priority={i < 4} />
-            ))}
-          </div>
+          {loading ? <LoadingSpinner variant="page" /> : failed ? (
+            <p role="alert" className="py-8 text-center">No se pudieron cargar los mods. <Link className="underline" to="/mods">Abrir el catálogo</Link></p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-4">
+              {novedades.map((item, i) => (
+                <Card key={item.id} {...item} priority={i === 0} />
+              ))}
+            </div>
+          )}
         </div>
 
       </div>

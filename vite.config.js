@@ -8,12 +8,11 @@ export default defineConfig({
     // Code splitting mejorado
     rollupOptions: {
       output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'supabase-vendor': ['@supabase/supabase-js'],
-          'ui-vendor': ['lucide-react', 'react-icons', 'clsx', 'tailwind-merge'],
-          'markdown-vendor': ['react-markdown', 'rehype-raw', 'remark-gfm', 'remark-unwrap-images'],
+        manualChunks(id) {
+          if (id.includes('/node_modules/@supabase/')) return 'supabase-vendor';
+          if (/\/node_modules\/(react|react-dom|scheduler|react-router|react-router-dom)\//.test(id)) return 'react-vendor';
         },
+        onlyExplicitManualChunks: true,
       },
     },
     // Tamaño máximo de chunk para mejor división

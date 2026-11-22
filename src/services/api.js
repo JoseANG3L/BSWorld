@@ -1,18 +1,16 @@
 import { supabase } from './supabaseClient';
 import { v4 as uuidv4 } from 'uuid';
+import { CARD_COLUMNS, clearCatalogPages, isMissingView, readPublicRows } from './catalog';
 
 // --- SISTEMA DE CACHÉ ---
-const userCache = {}; 
-const usernameMap = {};
+const userCache = Object.create(null);
+const usernameMap = Object.create(null);
 const notificationsCache = new Map(); // Cache para notificaciones
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutos de TTL para cache
 
 // ---------------------------------------------------------
 // 1-3. CONTENIDO (Obtención)
 // ---------------------------------------------------------
-
-// Columnas necesarias para las tarjetas/listas (evita traer SELECT * pesado)
-const CARD_COLUMNS = 'id,titulo,imagen,descargas,creadores,tags,aporte,vistas,likes_count,tipo,creado,estado,visibilidad,parent_id';
 
 // Caché en memoria con TTL: evita refetchear la tabla completa al navegar
 const contentCache = { data: null, timestamp: 0 };
@@ -21,7 +19,7 @@ const CONTENT_TTL = 2 * 60 * 1000; // 2 minutos
 export const getContentByType = async (tipo) => {
   const { data, error } = await supabase
     .from('content')
-    .select('*')
+    .select(CARD_COLUMNS)
     .eq('tipo', tipo)
     .eq('estado', 'aceptado')
     .eq('visibilidad', 'publico')
@@ -49,6 +47,7 @@ export const getPublicContent = async (forceRefresh = false) => {
 };
 
 export const invalidateContentCache = () => {
+  clearCatalogPages();
   contentCache.data = null;
   contentCache.timestamp = 0;
   statsCache.data = null;
@@ -475,6 +474,8 @@ export const registerDownload = async (contentId, downloadUrl, userId = null) =>
     }
   }
   
+  invalidateContentCache();
+
   // Crear notificación de descarga si hay un usuario autenticado
   if (userId) {
     const { data } = await supabase.from('content').select('aporte, titulo, imagen, tipo').eq('id', contentId).single();
@@ -508,15 +509,20 @@ export const getGlobalStats = async (forceRefresh = false) => {
   if (!forceRefresh && statsCache.data && Date.now() - statsCache.timestamp < CONTENT_TTL) {
     return statsCache.data;
   }
-  const { count: usersCount } = await supabase.from('users').select('*', { count: 'exact', head: true });
-  // Solo la columna necesaria para sumar descargas (no toda la fila)
-  const { data: content } = await supabase.from('content').select('descargas').eq('estado', 'aceptado').eq('visibilidad', 'publico').is('parent_id', null);
-  
-  let totalDownloads = 0;
-  (content || []).forEach(c => {
-    if(c.descargas) totalDownloads += c.descargas.reduce((acc, curr) => acc + (curr.count || 0), 0);
-  });
-  const stats = { users: usersCount || 0, downloads: totalDownloads, mods: content?.length || 0 };
+  const { data, error } = await supabase.from('public_mod_stats').select('users,downloads,mods').single();
+  let stats = data;
+  if (isMissingView(error)) {
+    const [users, content] = await Promise.all([
+      supabase.from('users').select('id', { count: 'exact', head: true }),
+      readPublicRows('descargas')
+    ]);
+    if (users.error) throw users.error;
+    const downloads = content.reduce((sum, row) =>
+      sum + (row.descargas || []).reduce((n, d) => n + (Number(d?.count) || 0), 0), 0);
+    stats = { users: users.count, mods: content.length, downloads };
+  } else if (error) {
+    throw error;
+  }
   statsCache.data = stats;
   statsCache.timestamp = Date.now();
   return stats;
@@ -526,81 +532,57 @@ export const getGlobalStats = async (forceRefresh = false) => {
 // 6. USUARIOS Y CACHÉ
 // ---------------------------------------------------------
 
-// Precarga en UNA sola consulta los perfiles de una lista de ids.
-// Evita N peticiones (una por tarjeta) en la primera carga.
-export const prefetchUserProfiles = async (uids) => {
-  const uniqueIds = [...new Set((uids || []).filter(Boolean))].filter(uid => !userCache[uid] && !pendingUserFetches[uid]);
-  if (uniqueIds.length === 0) return;
-  try {
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .in('id', uniqueIds);
-    if (error || !data) return;
-    data.forEach(u => {
-      userCache[u.id] = {
-        uid: u.id,
-        nombre: u.username,
-        imagen: u.avatar || null,
-        banner: u.banner || null,
-        verificado: !!u.verificado,
-        createdat: u.createdat || null,
-        descripcion: u.descripcion || null,
-        youtube: u.youtube || null,
-        twitter: u.twitter || null,
-        instagram: u.instagram || null,
-        linkedin: u.linkedin || null,
-        github: u.github || null,
-        discord: u.discord || null,
-        website: u.website || null
-      };
-    });
-  } catch (error) {
-    console.error("Error precargando perfiles:", error);
-  }
-};
+function cacheProfile(data) {
+  const profile = {
+    uid: data.id, nombre: data.username, imagen: data.avatar || null,
+    banner: data.banner || null, verificado: !!data.verificado, role: data.role,
+    createdat: data.createdat || null, descripcion: data.descripcion || null,
+    youtube: data.youtube || null, twitter: data.twitter || null, instagram: data.instagram || null,
+    linkedin: data.linkedin || null, github: data.github || null, discord: data.discord || null,
+    website: data.website || null
+  };
+  userCache[data.id] = profile;
+  return profile;
+}
 
-// Perfil público de un usuario (con caché en memoria + deduplicación
-// de peticiones simultáneas: 20 tarjetas del mismo autor = 1 consulta)
-const pendingUserFetches = {};
-export const getUserPublicProfile = async (uid) => {
-  if (!uid) return null;
-  if (userCache[uid]) return userCache[uid];
-  if (pendingUserFetches[uid]) return pendingUserFetches[uid];
-
-  const fetchProfile = (async () => {
+// Las tarjetas montadas juntas comparten la consulta de sus avatares.
+const pendingProfiles = new Map();
+const queuedProfiles = new Map();
+async function flushProfiles() {
+  const entries = [...queuedProfiles];
+  queuedProfiles.clear();
+  for (let start = 0; start < entries.length; start += 50) {
+    const batch = entries.slice(start, start + 50);
+    const ids = batch.map(([id]) => id);
     try {
-      const { data, error } = await supabase.from('users').select('*').eq('id', uid).single();
-
-      if (data && !error) {
-        const profile = {
-          uid: data.id,
-          nombre: data.username,
-          imagen: data.avatar || null,
-          banner: data.banner || null,
-          verificado: !!data.verificado,
-          createdat: data.createdat || null,
-          descripcion: data.descripcion || null,
-          youtube: data.youtube || null,
-          twitter: data.twitter || null,
-          instagram: data.instagram || null,
-          linkedin: data.linkedin || null,
-          github: data.github || null,
-          discord: data.discord || null,
-          website: data.website || null
-        };
-        userCache[uid] = profile;
-        return profile;
+      let response = await supabase.from('users').select('*').in('id', ids);
+      // Algunas publicaciones antiguas guardan el nombre en lugar del UUID.
+      if (response.error?.code === '22P02') {
+        const valid = ids.filter(id => /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(id));
+        if (valid.length && valid.length < ids.length) response = await supabase.from('users').select('*').in('id', valid);
       }
-      return null;
+      response.data?.forEach(cacheProfile);
+    } catch (error) {
+      console.error('Error cargando perfiles:', error);
     } finally {
-      delete pendingUserFetches[uid];
+      for (const [id, resolve] of batch) {
+        pendingProfiles.delete(id);
+        resolve(userCache[id] || null);
+      }
     }
-  })();
+  }
+}
 
-  pendingUserFetches[uid] = fetchProfile;
-  return fetchProfile;
-};
+export function getUserPublicProfile(uid) {
+  if (!uid || userCache[uid]) return Promise.resolve(userCache[uid] || null);
+  if (!pendingProfiles.has(uid)) {
+    if (!queuedProfiles.size) queueMicrotask(flushProfiles);
+    pendingProfiles.set(uid, new Promise(resolve => queuedProfiles.set(uid, resolve)));
+  }
+  return pendingProfiles.get(uid);
+}
+
+export const prefetchUserProfiles = uids => Promise.all((uids || []).map(getUserPublicProfile));
 
 export const getUserByUsername = async (username) => {
   const lowerUser = username.toLowerCase();
@@ -613,24 +595,8 @@ export const getUserByUsername = async (username) => {
     .maybeSingle();
 
   if (data && !error) {
-    const profile = { 
-      uid: data.id, 
-      nombre: data.username, 
-      imagen: data.avatar || null, 
-      banner: data.banner || null,
-      createdat: data.createdat || null,
-      descripcion: data.descripcion || null,
-      youtube: data.youtube || null,
-      twitter: data.twitter || null,
-      instagram: data.instagram || null,
-      linkedin: data.linkedin || null,
-      github: data.github || null,
-      discord: data.discord || null,
-      website: data.website || null
-    };
-    userCache[data.id] = profile;
     usernameMap[lowerUser] = data.id;
-    return profile;
+    return cacheProfile(data);
   }
   return null;
 };
@@ -1013,7 +979,7 @@ export const getContentByCreator = async (creatorName) => {
     // En Supabase, usamos el operador @> para buscar elementos en un array JSONB
     const { data, error } = await supabase
       .from('content')
-      .select('*')
+      .select(CARD_COLUMNS)
       .contains('creadores', JSON.stringify([{ nombre: creatorName }]))
       .eq('estado', 'aceptado')
       .eq('visibilidad', 'publico')
@@ -1161,6 +1127,7 @@ export const toggleLike = async (userId, contentId) => {
         .eq('content_id', contentId);
 
       if (error) throw error;
+      clearCatalogPages();
       return false; // Unlike
     } else {
       // Si no existe, crear (like)
@@ -1175,6 +1142,7 @@ export const toggleLike = async (userId, contentId) => {
 
       if (error) throw error;
       
+      clearCatalogPages();
       // Crear notificación al creador del contenido
       await createLikeNotificationForContent(userId, contentId);
       
@@ -1234,13 +1202,11 @@ export const getContentLikes = async (contentId) => {
 
 export const getUserLikedContent = async (userId) => {
   try {
-    console.log('getUserLikedContent llamado con userId:', userId);
     const { data, error } = await supabase
       .from('likes')
-      .select('content_id, content(*)')
+      .select(`content_id, content(${CARD_COLUMNS})`)
       .eq('user_id', userId);
     
-    console.log('Resultado de consulta likes:', { data, error });
     
     if (error) throw error;
     return data || [];
@@ -1652,7 +1618,7 @@ export const getRecommendedContent = async (currentId, tipo, tags = [], limit = 
   try {
     const { data, error } = await supabase
       .from('content')
-      .select('*')
+      .select(CARD_COLUMNS)
       .eq('estado', 'aceptado')
       .eq('visibilidad', 'publico')
       .is('parent_id', null)

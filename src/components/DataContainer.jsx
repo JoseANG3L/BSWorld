@@ -2,7 +2,8 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Search, Filter, ArrowUpDown, Sparkles, X, ChevronDown, Check } from 'lucide-react';
 import { clsx } from 'clsx';
-import { prefetchUserProfiles } from '../services/api';
+import { useCatalogPages } from '../hooks/useCatalogPages';
+import { PAGE_SIZE } from '../services/catalog';
 import LoadingSpinner from './LoadingSpinner';
 import PageHeader from './PageHeader';
 import FilterModalHeader from './FilterModalHeader';
@@ -38,34 +39,41 @@ const DataContainer = ({
   headerTrailing = null,
   mobileFilterContent = null,
   emptyMessage = 'No se encontraron resultados',
+  catalogMode,
+  catalogType,
+  catalogQuery = '',
+  initialSort = 'recientes',
   loading = false
 }) => {
   // 1. ESTADO INTERNO
   const [busqueda, setBusqueda] = useState(initialSearchValue);
-  const [orden, setOrden] = useState('recientes');
-  const [visibleCount, setVisibleCount] = useState(12);
+  const [orden, setOrden] = useState(initialSort);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [selectedTypes, setSelectedTypes] = useState([]);
   const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
   const [isOrdenDropdownOpen, setIsOrdenDropdownOpen] = useState(false);
   const [isFiltersModalOpen, setIsFiltersModalOpen] = useState(false);
 
   // Estados temporales para el modal en móvil
-  const [tempOrden, setTempOrden] = useState('recientes');
+  const [tempOrden, setTempOrden] = useState(initialSort);
   const [tempSelectedTypes, setTempSelectedTypes] = useState([]);
 
-  const ITEMS_PER_PAGE = 12;
-
-  // Precarga avatares en 1 sola consulta (evita N peticiones, una por tarjeta)
+  const [search, setSearch] = useState(initialSearchValue);
   useEffect(() => {
-    if (!items || items.length === 0) return;
-    const uids = items.flatMap((item) => {
-      const fromList = Array.isArray(item.creadores) ? item.creadores : [item.creadores];
-      return [...fromList, item.aporte]
-        .map((c) => (typeof c === 'string' ? c : c?.uid || c?.id))
-        .filter(Boolean);
-    });
-    prefetchUserProfiles(uids);
-  }, [items]);
+    if (!catalogMode) return;
+    const timer = setTimeout(() => setSearch(busqueda.trim()), 200);
+    return () => clearTimeout(timer);
+  }, [busqueda, catalogMode]);
+
+  const options = useMemo(() => catalogMode ? {
+    users: catalogMode === 'users',
+    search: catalogQuery,
+    refine: catalogQuery && search !== catalogQuery ? search : '',
+    title: catalogQuery ? '' : search,
+    types: catalogType ? [catalogType] : selectedTypes,
+    sort: orden
+  } : null, [catalogMode, catalogQuery, catalogType, search, selectedTypes, orden]);
+  const page = useCatalogPages(options);
 
   const typeDropdownRef = useRef(null);
   const ordenDropdownRef = useRef(null);
@@ -151,11 +159,11 @@ const DataContainer = ({
     return resultado;
   }, [items, busqueda, orden, searchKey, searchMatchMode, sortKey, dateKey, enableTypeFilter, selectedTypes, typeKey]);
 
-  const visibleItems = itemsFiltrados.slice(0, visibleCount);
-  const hasMore = itemsFiltrados.length > visibleCount;
+  const visibleItems = catalogMode ? page.items : itemsFiltrados.slice(0, visibleCount);
+  const remaining = catalogMode ? page.total - page.nextOffset : itemsFiltrados.length - visibleCount;
 
   useEffect(() => {
-    setVisibleCount(ITEMS_PER_PAGE);
+    setVisibleCount(PAGE_SIZE);
   }, [busqueda, orden, selectedTypes]);
 
   const toggleType = (type) => {
@@ -297,7 +305,7 @@ const DataContainer = ({
       </div>
 
       {/* RESULTADOS */}
-      {visibleItems.length > 0 ? (
+      {catalogMode && page.loading && !page.items.length ? <LoadingSpinner variant="page" /> : visibleItems.length > 0 ? (
         <>
           <div className={clsx(
             layout === 'vertical' 
@@ -306,23 +314,29 @@ const DataContainer = ({
                 ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-4"
                 : "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 md:gap-4 pb-4"
           )}>
-            {visibleItems.map((item) => 
-               React.cloneElement(renderItem(item), { key: item.id || item._id })
+            {visibleItems.map((item, index) =>
+               React.cloneElement(renderItem(item, index), { key: item.id || item._id })
             )}
           </div>
-          {hasMore && (
+          {remaining > 0 && !page.error && (
             <div className="flex justify-center mt-6">
-              <button onClick={() => setVisibleCount(prev => prev + ITEMS_PER_PAGE)} className="px-5 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-semibold transition-all duration-200 shadow-md text-sm flex items-center gap-2">
-                Ver más contenido <span className="text-sm opacity-75">({itemsFiltrados.length - visibleCount} restantes)</span>
+              <button disabled={catalogMode && page.loading} onClick={catalogMode ? page.loadMore : () => setVisibleCount(prev => prev + PAGE_SIZE)} className="px-5 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-semibold transition-all duration-200 shadow-md text-sm flex items-center gap-2">
+                {catalogMode && page.loading ? 'Cargando…' : 'Ver más contenido'} <span className="text-sm opacity-75">({remaining} restantes)</span>
               </button>
             </div>
           )}
         </>
-      ) : (
+      ) : !page.error && (
         <div className="flex flex-col items-center justify-center py-20 text-gray-400 dark:text-gray-600">
           <Search size={48} className="mb-4 opacity-20" />
           <p className="text-lg font-medium">{emptyMessage}</p>
           <p className="text-sm">Intenta con otro término de búsqueda o limpiando filtros.</p>
+        </div>
+      )}
+
+      {catalogMode && page.error && (
+        <div role="alert" className="py-6 text-center">
+          No se pudieron cargar los resultados. <button type="button" onClick={page.loadMore} className="font-semibold underline">Reintentar</button>
         </div>
       )}
 

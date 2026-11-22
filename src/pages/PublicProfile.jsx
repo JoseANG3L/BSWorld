@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
 import { createPortal } from 'react-dom';
-import { getContentByCreator, getUserByUsername, getUserPublicProfile, getUserLikedContent } from '../services/api';
+import { getContentByCreator, getUserByUsername, getUserLikedContent } from '../services/api';
 import Card from '../components/Card';
-import { Calendar, Shield, UserX, Heart, Youtube, Twitter, Instagram, Linkedin, Github, Globe, MessageCircle, Download, Grid, Boxes, Map, Gamepad2, Package, Wrench, User, Search, ChevronDown, ArrowUpDown, Edit3, Settings, Filter, X, Check, Eye, Pencil } from 'lucide-react';
+import { Calendar, Shield, UserX, Heart, Youtube, Twitter, Instagram, Linkedin, Github, Globe, MessageCircle, Download, Grid, Boxes, Gamepad2, Package, Wrench, User, Search, ChevronDown, ArrowUpDown, Edit3, Settings, Filter, X, Check, Eye, Pencil } from 'lucide-react';
 import { clsx } from 'clsx';
 import AvatarRenderer from '../components/AvatarRenderer';
 import { useAuth } from '../context/AuthContext';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 // Cache simple para perfiles
-const profileCache = {};
+const profileCache = new Map();
 
 const capitalizeText = (str) => {
   if (!str) return '';
@@ -20,12 +20,17 @@ const capitalizeText = (str) => {
 
 const PublicProfile = () => {
   const { username } = useParams();
+  const { user: currentUser } = useAuth();
+  return <ProfileContent key={JSON.stringify([username, currentUser?.id, currentUser?.role])} username={username} currentUser={currentUser} />;
+};
+
+const ProfileContent = ({ username, currentUser }) => {
   const location = useLocation();
-  const { user: currentUser } = useAuth(); // Contexto de usuario autenticado
   
   const [profile, setProfile] = useState(null);
   const [content, setContent] = useState([]);
   const [likedContent, setLikedContent] = useState([]);
+  const [loadingLikes, setLoadingLikes] = useState(true);
   const [loading, setLoading] = useState(true);
   const [exists, setExists] = useState(true);
   
@@ -119,63 +124,49 @@ const PublicProfile = () => {
   }, [content]);
 
   useEffect(() => {
-    const loadData = async () => {
-      // Verificar si ya tenemos datos en cache para este username
-      const cacheKey = username?.toLowerCase();
-      if (profileCache[cacheKey]) {
-        setProfile(profileCache[cacheKey].profile);
-        setContent(profileCache[cacheKey].content);
-        setLikedContent(profileCache[cacheKey].likedContent || []);
-        setLoading(false);
-        return;
-      }
+    let active = true;
+    const cacheKey = JSON.stringify([username.toLowerCase(), currentUser?.id, currentUser?.role]);
+    const cached = profileCache.get(cacheKey);
+    if (cached && cached.expires > Date.now()) {
+      setProfile(cached.profile);
+      setContent(cached.content);
+      setLikedContent(cached.liked);
+      setExists(Boolean(cached.profile || cached.content.length));
+      setLoadingLikes(false);
+      setLoading(false);
+      return;
+    }
 
-      setLoading(true);
+    setLoading(true);
+    setLoadingLikes(true);
+    setLikedContent([]);
+    async function loadProfile() {
       try {
-        // 1. Obtener UID a partir del username
-        const userData = await getUserByUsername(username);
-        
-        let finalProfile = userData;
-
-        // 2. Si encontramos el UID, usamos getUserPublicProfile para obtener datos frescos
-        if (userData && userData.uid) {
-            const publicProfile = await getUserPublicProfile(userData.uid);
-            finalProfile = { ...userData, ...publicProfile };
-        }
-
-        setProfile(finalProfile);
-
-        // 3. Cargar contenido
-        const userContent = await getContentByCreator(username);
-        setContent(userContent);
-
-        // 4. Cargar contenido liked del perfil visitado
-        let liked = [];
-        if (finalProfile && finalProfile.uid) {
-          console.log('Cargando likes para UID:', finalProfile.uid);
-          liked = await getUserLikedContent(finalProfile.uid);
-          console.log('Datos de likes recibidos:', liked);
-          const contentFromLikes = liked.map(item => item.content).filter(Boolean);
-          console.log('Contenido extraído de likes:', contentFromLikes);
-          setLikedContent(contentFromLikes);
-        }
-        
-        // Guardar en cache
-        profileCache[cacheKey] = {
-          profile: finalProfile,
-          content: userContent,
-          likedContent: liked.map(item => item.content).filter(Boolean)
-        };
-        
-        if (!finalProfile && userContent.length === 0) setExists(false);
-      } catch (error) {
-        console.error(error);
-      } finally {
+        const [profile, content] = await Promise.all([getUserByUsername(username), getContentByCreator(username)]);
+        if (!active) return;
+        setProfile(profile);
+        setContent(content);
+        setExists(Boolean(profile || content.length));
         setLoading(false);
+
+        const likes = profile?.uid ? await getUserLikedContent(profile.uid) : [];
+        if (!active) return;
+        const liked = likes.map(row => row.content).filter(Boolean);
+        setLikedContent(liked);
+        if (profileCache.size >= 30) profileCache.delete(profileCache.keys().next().value);
+        profileCache.set(cacheKey, { profile, content, liked, expires: Date.now() + 120_000 });
+      } catch (error) {
+        console.error('Error cargando el perfil:', error);
+      } finally {
+        if (active) {
+          setLoading(false);
+          setLoadingLikes(false);
+        }
       }
-    };
-    loadData();
-  }, [username, currentUser]);
+    }
+    loadProfile();
+    return () => { active = false; };
+  }, [username, currentUser?.id, currentUser?.role]);
 
   // Actualizar perfil localmente cuando el usuario actual cambia sus datos y es su propio perfil
   useEffect(() => {
@@ -390,7 +381,7 @@ const PublicProfile = () => {
           >
             <Heart size={16} />
             Me gustó
-            <span className="text-xs opacity-60">({likedContent.length})</span>
+            <span className="text-xs opacity-60">({loadingLikes ? '…' : likedContent.length})</span>
           </button>
         </div>
       </div>
@@ -516,7 +507,7 @@ const PublicProfile = () => {
       </div>
 
       {/* SECCIÓN 3: CONTENIDO */}
-      {filteredContent.length > 0 ? (
+      {activeTab === 'likes' && loadingLikes ? <LoadingSpinner variant="section" /> : filteredContent.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2 md:gap-3 pb-4">
           {filteredContent.map((item) => (
               <Card key={item.id} {...item} />

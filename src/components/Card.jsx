@@ -6,7 +6,7 @@ import AvatarRenderer from './AvatarRenderer';
 import LikeButton from './LikeButton';
 import { useAuth } from '../context/AuthContext';
 import { registerDownload, getUserPublicProfile, deleteContent } from '../services/api';
-import { thumbUrl } from '../utils/image';
+import { isProxeable, thumbUrl } from '../utils/image';
 import { createPortal } from 'react-dom'; 
 import { useToast } from '../hooks/useToast';
 import Modal from './Modal';
@@ -406,6 +406,9 @@ const Card = ({
 
   // Miniatura rápida (WebP 640px) con caída a original y luego a default
   const thumb = useMemo(() => thumbUrl(imagen, 640), [imagen]);
+  const thumbSet = useMemo(() => isProxeable(imagen)
+    ? [320, 480, 640].map(width => `${thumbUrl(imagen, width)} ${width}w`).join(', ')
+    : undefined, [imagen]);
   const [imgStage, setImgStage] = useState(0);
   useEffect(() => { setImgStage(0); setImageError(false); }, [imagen]);
   const imgSrc = imgStage === 0
@@ -559,6 +562,8 @@ const Card = ({
         >
           <img
             src={imgSrc}
+            srcSet={imgStage === 0 ? thumbSet : undefined}
+            sizes={imgStage === 0 && thumbSet ? `${priority ? '' : 'auto, '}(max-width: 639px) 100vw, (max-width: 1023px) 50vw, (max-width: 1279px) 33vw, 25vw` : undefined}
             alt={titulo || 'Imagen del contenido'}
             loading={priority ? 'eager' : 'lazy'}
             fetchPriority={priority ? 'high' : 'auto'}

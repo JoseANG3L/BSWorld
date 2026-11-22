@@ -309,10 +309,14 @@ const getSocialConfig = (url) => {
 // --- COMPONENTE PRINCIPAL ---
 const DetalleContenido = () => {
     const { id } = useParams();
-    const navigate = useNavigate();
-    const { user } = useAuth();
+    const { user, loading: authLoading } = useAuth();
+    return <DetalleMod key={JSON.stringify([id, user?.id, user?.role])} id={id} user={user} authLoading={authLoading} />;
+};
 
+const DetalleMod = ({ id, user, authLoading }) => {
+    const navigate = useNavigate();
     const [item, setItem] = useState(null);
+    const [missing, setMissing] = useState(false);
     const [loading, setLoading] = useState(true);
     const [downloading, setDownloading] = useState(null);
     const [selectedIndex, setSelectedIndex] = useState(0);
@@ -321,7 +325,7 @@ const DetalleContenido = () => {
     const [copied, setCopied] = useState(false);
     const [descriptionExpanded, setDescriptionExpanded] = useState(false);
     const [isLiked, setIsLiked] = useState(false);
-    const [likeLoading, setLikeLoading] = useState(false);
+    const [likeLoading, setLikeLoading] = useState(Boolean(user));
     const [showCreatorsModal, setShowCreatorsModal] = useState(false);
     const [showShareModal, setShowShareModal] = useState(false);
     const [showLoginModal, setShowLoginModal] = useState(false);
@@ -330,7 +334,12 @@ const DetalleContenido = () => {
     const [descriptionOverflow, setDescriptionOverflow] = useState(false);
     const descriptionRef = useRef(null);
     const activeThumbRef = useRef(null);
-    const viewRegistered = useRef(false);
+    const userId = user?.id;
+    const userRole = user?.role;
+
+    useEffect(() => {
+        if (missing && !authLoading) navigate('/404', { replace: true });
+    }, [missing, authLoading, navigate]);
 
     // 👇 BLOQUEO DE SCROLL EN EL BODY CUANDO EL MODAL ESTÁ ABIERTO
     useEffect(() => {
@@ -360,47 +369,42 @@ const DetalleContenido = () => {
     }, [item?.descripcion]);
 
     useEffect(() => {
-        const fetchData = async () => {
+        let active = true;
+        async function fetchData() {
             try {
-                const data = await getContentById(id, user?.id, user?.role);
+                const data = await getContentById(id, userId, userRole);
+                if (!active) return;
                 if (!data) {
-                    navigate('/404');
+                    setMissing(true);
                     return;
                 }
                 setItem(data);
+                setLoading(false);
 
-                if (user) {
-                    const liked = await isLikedByUser(user.id, id);
-                    setIsLiked(liked);
+                if (userId) {
+                    isLikedByUser(userId, id).then(liked => {
+                        if (active) setIsLiked(liked);
+                    }).finally(() => { if (active) setLikeLoading(false); });
                 }
+
+                setLoadingRecommended(true);
+                getRecommendedContent(id, data.tipo, data.tags || [], 10).then(recommended => {
+                    if (active) setRecommendedContent(recommended);
+                }).finally(() => { if (active) setLoadingRecommended(false); });
 
                 const viewKey = `viewed_${id}`;
-                const hasViewedSession = sessionStorage.getItem(viewKey);
-
-                if (!hasViewedSession && !viewRegistered.current) {
-                    viewRegistered.current = true;
+                if (!sessionStorage.getItem(viewKey)) {
                     sessionStorage.setItem(viewKey, 'true');
-                    registerView(id).catch(err => console.error("Error contando vista", err));
-                }
-
-                // Cargar contenido recomendado
-                setLoadingRecommended(true);
-                try {
-                    const recommended = await getRecommendedContent(id, data.tipo, data.tags || [], 10);
-                    setRecommendedContent(recommended);
-                } catch (error) {
-                    console.error("Error cargando contenido recomendado:", error);
-                } finally {
-                    setLoadingRecommended(false);
+                    registerView(id).catch(err => console.error('Error contando vista', err));
                 }
             } catch (error) {
-                console.error("Error cargando detalle:", error);
-            } finally {
-                setLoading(false);
+                console.error('Error cargando detalle:', error);
+                if (active) setLoading(false);
             }
-        };
+        }
         fetchData();
-    }, [id, navigate, user]);
+        return () => { active = false; };
+    }, [id, userId, userRole]);
 
     // Reiniciar etapa de la imagen principal al cambiar de medio
     useEffect(() => { setMainImgStage(0); }, [selectedIndex]);
@@ -445,6 +449,9 @@ const DetalleContenido = () => {
             return;
         }
 
+        if (likeLoading) return;
+        setLikeLoading(true);
+
         // Optimistic update: actualizar UI inmediatamente
         const newLikedState = !isLiked;
         const previousLikedState = isLiked;
@@ -476,6 +483,8 @@ const DetalleContenido = () => {
                 ...prev,
                 likes_count: previousLikesCount
             }));
+        } finally {
+            setLikeLoading(false);
         }
     };
 
@@ -736,6 +745,7 @@ const DetalleContenido = () => {
 
                                 <button 
                                     onClick={handleLike}
+                                    disabled={likeLoading}
                                     className={clsx(
                                         "flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-semibold transition-all duration-150",
                                         isLiked 

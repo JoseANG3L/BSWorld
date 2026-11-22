@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import { Search, Frown, Compass, Filter, ChevronDown } from 'lucide-react';
 import Card from '../components/Card';
 import CreatorCard from '../components/CreatorCard';
-import { getAllContent, getAllUsers } from '../services/api';
+import { getCatalogPage } from '../services/catalog';
 import DataContainer from '../components/DataContainer';
 import PageHeader from '../components/PageHeader';
 import FilterModalHeader from '../components/FilterModalHeader';
@@ -12,69 +12,40 @@ import LoadingSpinner from '../components/LoadingSpinner';
 
 const Resultados = () => {
   const [searchParams] = useSearchParams();
-  const query = searchParams.get('q') || '';
+  const query = (searchParams.get('q') || '').trim();
   
-  const [contentResults, setContentResults] = useState([]); 
-  const [userResults, setUserResults] = useState([]);
+  const [counts, setCounts] = useState({ contenido: 0, usuarios: 0 });
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const [activeTab, setActiveTab] = useState('contenido');
   const [isEmptyFilterOpen, setIsEmptyFilterOpen] = useState(false);
 
   useEffect(() => {
-    const q = query.trim().toLowerCase();
-
-    // Sin término: no buscar (antes se quedaba cargando infinito)
-    if (!q) {
-      setContentResults([]);
-      setUserResults([]);
+    const controller = new AbortController();
+    const signal = controller.signal;
+    setFailed(false);
+    if (!query) {
+      setCounts({ contenido: 0, usuarios: 0 });
       setLoading(false);
       return;
     }
-
-    const performSearch = async () => {
-      setLoading(true);
-      try {
-        const terms = q.split(/\s+/);
-        const matches = (...fields) => {
-          const haystack = fields.filter(Boolean).join(' ').toLowerCase();
-          return terms.some((t) => haystack.includes(t));
-        };
-
-        // En paralelo (antes eran 3 awaits secuenciales) y con caché de api.js
-        const [contentData, userData] = await Promise.all([
-          getAllContent(),
-          getAllUsers(),
-        ]);
-
-        // Buscar contenido (título, tags, creadores, descripción)
-        const contentMatches = (contentData || []).filter(item => matches(
-          item.titulo,
-          Array.isArray(item.tags) ? item.tags.join(' ') : item.tags,
-          Array.isArray(item.creadores)
-            ? item.creadores.map(c => (typeof c === 'string' ? c : c?.nombre || c?.username)).join(' ')
-            : item.creadores,
-          item.descripcion
-        ));
-        setContentResults(contentMatches);
-
-        // Buscar usuarios (nombre y descripción)
-        const userMatches = (userData || []).filter(u => matches(u.username, u.descripcion));
-        setUserResults(userMatches);
-
-        // Ir directo a la primera pestaña con resultados
-        const counts = { contenido: contentMatches.length, usuarios: userMatches.length };
-        setActiveTab((prev) => (
-          counts[prev] > 0 ? prev : (['contenido', 'usuarios'].find(t => counts[t] > 0) || 'contenido')
-        ));
-      } catch (error) {
-        console.error("Error buscando:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    performSearch();
-  }, [query]);
+    setLoading(true);
+    Promise.all([
+      getCatalogPage({ search: query, signal }),
+      getCatalogPage({ users: true, search: query, signal })
+    ]).then(([content, users]) => {
+      if (signal.aborted) return;
+      const totals = { contenido: content.total, usuarios: users.total };
+      setCounts(totals);
+      setActiveTab(prev => totals[prev] ? prev : (users.total && !content.total ? 'usuarios' : 'contenido'));
+    }).catch(() => {
+      if (!signal.aborted) setFailed(true);
+    }).finally(() => {
+      if (!signal.aborted) setLoading(false);
+    });
+    return () => controller.abort();
+  }, [query, attempt]);
 
   useEffect(() => {
     if (!isEmptyFilterOpen) return undefined;
@@ -86,32 +57,17 @@ const Resultados = () => {
   }, [isEmptyFilterOpen]);
 
   const tabsConfig = [
-    { id: 'contenido', label: 'Contenido', count: contentResults.length },
-    { id: 'usuarios', label: 'Usuarios', count: userResults.length },
+    { id: 'contenido', label: 'Contenido', count: counts.contenido },
+    { id: 'usuarios', label: 'Usuarios', count: counts.usuarios },
   ];
 
-  const contentSearchResults = contentResults.map((item) => ({
-    ...item,
-    searchText: [
-      item.titulo,
-      Array.isArray(item.tags) ? item.tags.join(' ') : item.tags,
-      Array.isArray(item.creadores)
-        ? item.creadores.map((creator) => (typeof creator === 'string' ? creator : creator?.nombre || creator?.username)).join(' ')
-        : item.creadores,
-      item.descripcion
-    ].filter(Boolean).join(' ').toLowerCase()
-  }));
-  const userSearchResults = userResults.map((user) => ({
-    ...user,
-    searchText: `${user.username || ''} ${user.descripcion || ''}`.toLowerCase()
-  }));
   const renderContentItem = (item) => <Card key={item.id} {...item} />;
 
   const renderUserItem = (user) => (
     <CreatorCard key={user.id} username={user.username} avatar={user.avatar} role={user.role} />
   );
 
-  const hasAnyResults = contentResults.length > 0 || userResults.length > 0;
+  const hasAnyResults = counts.contenido > 0 || counts.usuarios > 0;
   const renderTabSelector = () => (
     <div className="relative min-w-0">
       <Filter size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -148,6 +104,10 @@ const Resultados = () => {
 
   if (loading) return <LoadingSpinner variant="page" />;
 
+  if (failed) return (
+    <p role="alert" className="py-12 text-center">No se pudo completar la búsqueda. <button className="underline" onClick={() => setAttempt(n => n + 1)}>Reintentar</button></p>
+  );
+
   return (
     <div className="flex flex-col animate-fade-in-up" style={{ animationDuration: '200ms' }}>
       {hasAnyResults ? (
@@ -162,11 +122,11 @@ const Resultados = () => {
               headerClassName="min-w-0 lg:max-w-[12rem]"
               headerTrailing={desktopTabSelector}
               mobileFilterContent={mobileTabFilter}
-              items={contentSearchResults}
+              catalogMode="search"
+              catalogQuery={query}
               loading={loading}
               searchKey="searchText"
               initialSearchValue={query}
-              searchMatchMode="any-term"
               searchPlaceholder="Buscar contenido"
               dateKey="creado"
               sortKey="titulo"
@@ -199,11 +159,12 @@ const Resultados = () => {
               headerClassName="min-w-0 lg:max-w-[12rem]"
               headerTrailing={desktopTabSelector}
               mobileFilterContent={mobileTabFilter}
-              items={userSearchResults}
+              catalogMode="users"
+              catalogQuery={query}
+              customTypes={['user', 'admin']}
               loading={loading}
               searchKey="searchText"
               initialSearchValue={query}
-              searchMatchMode="any-term"
               searchPlaceholder="Buscar usuarios..."
               sortKey="username"
               dateKey="createdat"

@@ -38,6 +38,7 @@ The application expects its Supabase tables and authentication providers to be c
 2. `migrations/add_parent_id_to_content.sql`
 3. `migrations/content_security_rls.sql`
 4. `migrations/social_security_rls.sql`
+5. `migrations/public_catalog_performance.sql` adds the read-only catalog search and statistics views.
 
 Configure the authentication providers and allowed redirect URLs in the Supabase dashboard. The frontend uses Supabase's anon key; row-level security policies must remain enabled for protected data.
 

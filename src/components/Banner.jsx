@@ -1,9 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Upload, Compass, Download, Users, Users as UsersIcon, Zap, Gamepad2, User, Server, Package } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { getPublicContent, getGlobalStats } from '../services/api';
+import { getGlobalStats } from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
-import SubirMod from '../pages/SubirMod';
+
+// El formulario de subida es pesado (editor, galería, markdown): solo se carga
+// cuando el usuario abre el modal, no en la carga inicial del inicio.
+const SubirMod = lazy(() => import('../pages/SubirMod'));
 import { FEATURES } from '../config/features';
 
 const Banner = () => {
@@ -19,11 +22,7 @@ const Banner = () => {
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
     return () => observer.disconnect();
   }, []);
-  const [stats, setStats] = useState({
-    mods: 0,
-    downloads: 0,
-    users: 0
-  });
+  const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isSubirModOpen, setIsSubirModOpen] = useState(false);
 
@@ -35,23 +34,6 @@ const Banner = () => {
         setStats(data);
       } catch (error) {
         console.error('Error fetching stats:', error);
-        // Fallback a getPublicContent si getGlobalStats falla
-        try {
-          const contentData = await getPublicContent();
-          const totalMods = contentData.length;
-          const totalDownloads = contentData.reduce((acc, item) => {
-            const downloads = item.descargas || [];
-            return acc + downloads.reduce((sum, d) => sum + (d.count || 0), 0);
-          }, 0);
-          
-          setStats({
-            mods: totalMods,
-            downloads: totalDownloads,
-            users: Math.floor(totalDownloads * 0.3)
-          });
-        } catch (fallbackError) {
-          console.error('Error fetching fallback stats:', fallbackError);
-        }
       } finally {
         setLoading(false);
       }
@@ -61,6 +43,7 @@ const Banner = () => {
   }, []);
 
   const formatNumber = (num) => {
+    if (num == null) return '—';
     if (!num) return '0';
     if (num >= 1000000) {
       const value = num / 1000000;
@@ -148,7 +131,7 @@ const Banner = () => {
               {loading ? (
                 <LoadingSpinner variant="inline" size={20} />
               ) : (
-                <span className="text-sm font-black text-white">{formatNumber(stats.mods)}</span>
+                <span className="text-sm font-black text-white">{formatNumber(stats?.mods)}</span>
               )}
             </div>
 
@@ -160,7 +143,7 @@ const Banner = () => {
               {loading ? (
                 <LoadingSpinner variant="inline" size={20} />
               ) : (
-                <span className="text-sm font-black text-white">{formatNumber(stats.downloads)}</span>
+                <span className="text-sm font-black text-white">{formatNumber(stats?.downloads)}</span>
               )}
             </div>
 
@@ -172,7 +155,7 @@ const Banner = () => {
               {loading ? (
                 <LoadingSpinner variant="inline" size={20} />
               ) : (
-                <span className="text-sm font-black text-white">{formatNumber(stats.users)}</span>
+                <span className="text-sm font-black text-white">{formatNumber(stats?.users)}</span>
               )}
             </div>
           </div>
@@ -266,7 +249,7 @@ const Banner = () => {
               {loading ? (
                 <LoadingSpinner variant="inline" size={20} />
               ) : (
-                <span className="text-lg md:text-2xl lg:text-3xl font-black text-white">{formatNumber(stats.mods)}</span>
+                <span className="text-lg md:text-2xl lg:text-3xl font-black text-white">{formatNumber(stats?.mods)}</span>
               )}
             </div>
 
@@ -279,7 +262,7 @@ const Banner = () => {
               {loading ? (
                 <LoadingSpinner variant="inline" size={20} />
               ) : (
-                <span className="text-lg md:text-2xl lg:text-3xl font-black text-white">{formatNumber(stats.downloads)}</span>
+                <span className="text-lg md:text-2xl lg:text-3xl font-black text-white">{formatNumber(stats?.downloads)}</span>
               )}
             </div>
 
@@ -292,7 +275,7 @@ const Banner = () => {
               {loading ? (
                 <LoadingSpinner variant="inline" size={20} />
               ) : (
-                <span className="text-lg md:text-2xl lg:text-3xl font-black text-white">{formatNumber(stats.users)}</span>
+                <span className="text-lg md:text-2xl lg:text-3xl font-black text-white">{formatNumber(stats?.users)}</span>
               )}
             </div>
           </div>
@@ -300,7 +283,11 @@ const Banner = () => {
       </div>
 
       {/* MODAL SUBIR MOD */}
-      <SubirMod isOpen={isSubirModOpen} onClose={() => setIsSubirModOpen(false)} />
+      {isSubirModOpen && (
+        <Suspense fallback={null}>
+          <SubirMod isOpen={isSubirModOpen} onClose={() => setIsSubirModOpen(false)} />
+        </Suspense>
+      )}
     </div>
   );
 };
