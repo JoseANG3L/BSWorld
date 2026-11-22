@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { MessageSquare, Send, Trash2, Edit3, LogIn, X, Reply, Check, Heart, ChevronDown, ChevronUp, Link as LinkIcon, User as UserIcon } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -15,6 +15,10 @@ import RichText from './RichText';
 import { createPortal } from 'react-dom';
 import LoadingSpinner from './LoadingSpinner';
 
+const openDialog = (dialog) => {
+  if (dialog && !dialog.open) dialog.showModal();
+};
+
 const CommentCard = ({ comment, contentId, onCommentMutated, isReply = false }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -29,18 +33,6 @@ const CommentCard = ({ comment, contentId, onCommentMutated, isReply = false }) 
   const [showLoginModal, setShowLoginModal] = useState(false);
 
   const isAuthor = user?.id === comment.user_id;
-
-  // Bloqueo de scroll cuando el modal está abierto
-  useEffect(() => {
-    if (showLoginModal) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [showLoginModal]);
 
   // Cargar respuestas cuando se habilite el visor de respuestas
   useEffect(() => {
@@ -293,9 +285,9 @@ const CommentCard = ({ comment, contentId, onCommentMutated, isReply = false }) 
       )}
 
       {/* MODAL DE LOGIN */}
-      {showLoginModal && createPortal(
-        <div
-          className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm flex items-center justify-center"
+      {showLoginModal && (
+        <dialog ref={openDialog} aria-label="Inicia sesión para interactuar" onCancel={() => setShowLoginModal(false)}
+          className="fixed inset-0 m-0 h-dvh w-full max-h-none max-w-none bg-transparent backdrop:bg-black/60 backdrop:backdrop-blur-sm flex items-center justify-center"
           onClick={() => setShowLoginModal(false)}
         >
           <div
@@ -344,8 +336,7 @@ const CommentCard = ({ comment, contentId, onCommentMutated, isReply = false }) 
               </button>
             </div>
           </div>
-        </div>,
-        document.body
+        </dialog>
       )}
     </div>
   );
@@ -357,7 +348,21 @@ const CommentSection = ({ contentId }) => {
   const [commentText, setCommentText] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [commentsExpanded, setCommentsExpanded] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const triggerRef = useRef(null);
+  const featuredComment = comments.reduce((best, comment) =>
+    !best || comment.replies_count > best.replies_count ? comment : best, null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const trigger = triggerRef.current;
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      trigger?.focus({ preventScroll: true });
+    };
+  }, [isOpen]);
 
   const loadComments = async () => {
     try {
@@ -390,110 +395,130 @@ const CommentSection = ({ contentId }) => {
   };
 
   return (
-    <div className="flex flex-col gap-4 bg-white dark:bg-[#1e1e1e] rounded-lg p-3 md:p-4 shadow-sm border border-gray-300 dark:border-transparent">
-      <div className="flex items-center justify-between mb-1">
-        <div className="flex items-center gap-3">
-          <h3 className="text-base font-semibold text-gray-900 dark:text-white">
-            Comentarios
-          </h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400 pt-1">
-            ({comments.length})
-          </p>
-        </div>
-      </div>
-
-      {/* Caja de Comentarios Principal */}
-      {user ? (
-        <form onSubmit={handleCreateComment} className="flex gap-2 items-start">
-          <div className="w-9 h-9 rounded-full overflow-hidden shrink-0 bg-gray-200 dark:bg-[#1D1F23]">
-            <AvatarRenderer avatar={user.avatar} name={user.username} />
-          </div>
-          <div className="flex-1 relative">
-            <input 
-              type="text" 
-              placeholder="Comparte tu opinión..." 
-              value={commentText} 
-              onChange={(e) => setCommentText(e.target.value)} 
-              disabled={submitting}
-              className="w-full pl-3 pr-10 py-2 text-sm rounded-lg bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-gray-700 outline-none text-gray-800 dark:text-gray-200 focus:border-primary-500 dark:focus:border-primary-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              required
-            />
-            <button 
-              type="submit" 
-              disabled={submitting || !commentText.trim()}
-              className={clsx(
-                "absolute right-1 top-1/2 -translate-y-1/2 p-1.5 rounded-md transition-colors flex items-center justify-center",
-                submitting || !commentText.trim()
-                  ? "bg-gray-300 dark:bg-gray-700 text-gray-500 cursor-not-allowed"
-                  : "bg-primary-600 hover:bg-primary-700 text-white"
-              )}
-            >
-              {submitting ? (
-                <LoadingSpinner variant="inline" size={17} />
-              ) : (
-                <Send size={17} />
-              )}
-            </button>
-          </div>
-        </form>
-      ) : (
-        /* Estado Desactivado cuando NO hay sesión */
-        <div className="flex gap-3 items-center">
-          <div className="w-9 h-9 rounded-full shrink-0 bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-400">
-            <UserIcon size={18} />
-          </div>
-          <div className="flex-1 relative flex items-center">
-            <input 
-              type="text" 
-              disabled 
-              placeholder="Inicia sesión para comentar" 
-              className="w-full pl-3 py-2 text-sm rounded-lg bg-gray-100 dark:bg-[#1D1F23]/60 border border-gray-200 dark:border-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed select-none placeholder:text-gray-400 dark:placeholder:text-gray-500"
-            />
-            <Link 
-              to="/login" 
-              className="absolute right-1 px-2 py-1.5 text-sm font-bold rounded-md bg-primary-600 hover:bg-primary-700 text-white transition-colors flex items-center gap-1.5 shadow-sm"
-            >
-              <LogIn size={16} />
-              <span className="hidden md:block">Iniciar sesión</span>
-            </Link>
-          </div>
-        </div>
-      )}
-
-      {/* Listado de Comentarios Principales */}
-      {loading ? (
-        <LoadingSpinner variant="section" />
-      ) : comments.length > 0 ? (
-        <>
-          <div className="flex flex-col gap-6 mt-1">
-            {comments.slice(0, commentsExpanded ? comments.length : 1).map((comment) => (
-              <CommentCard key={comment.id} comment={comment} contentId={contentId} onCommentMutated={loadComments} />
-            ))}
-          </div>
-
-          {/* Botón para expandir/colapsar */}
-          {comments.length > 1 && (
-            <button
-              onClick={() => setCommentsExpanded(!commentsExpanded)}
-              className="my-1 text-sm font-medium text-left text-primary-600 dark:text-primary-400"
-            >
-              {commentsExpanded ? `Ocultar ${comments.length - 1} comentarios` : `Ver ${comments.length - 1} comentarios más`}
-            </button>
+    <>
+      <button ref={triggerRef} type="button" aria-haspopup="dialog" aria-expanded={isOpen}
+        onClick={() => setIsOpen(true)}
+        className="flex w-full items-center gap-2 py-2 text-left font-semibold text-gray-900 hover:text-primary-600 dark:text-white dark:hover:text-primary-400">
+        <MessageSquare size={19} />
+        Ver comentarios{!loading && ` (${comments.length})`}
+      </button>
+      {!loading && (
+        <div className="rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-[#1e1e1e]">
+          {featuredComment ? (
+            <div className="flex items-start gap-2">
+              <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full bg-gray-200 dark:bg-[#1D1F23]">
+                <AvatarRenderer avatar={featuredComment.users?.avatar} name={featuredComment.users?.username} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                  {featuredComment.users?.username || 'Usuario'}
+                </p>
+                <div className="break-words whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300">
+                  <RichText text={featuredComment.text} />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500 dark:text-gray-400">Aún no hay comentarios</p>
           )}
-        </>
-      ) : (
-        <div className="flex flex-col items-center justify-center py-3 gap-3 text-center">
-          <div>
-            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-              Aún no hay comentarios
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-              ¡Sé el primero en compartir tu opinión!
-            </p>
-          </div>
         </div>
       )}
-    </div>
+      {isOpen && createPortal(
+        <dialog ref={openDialog} aria-labelledby="comments-heading" onCancel={() => setIsOpen(false)}
+          className="fixed inset-0 m-0 h-dvh w-full max-h-none max-w-none overflow-hidden bg-white p-0 text-gray-900 dark:bg-[#141414] dark:text-white">
+          <div className="mx-auto flex h-full w-full max-w-3xl flex-col">
+            <header className="flex shrink-0 items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-800">
+              <h2 id="comments-heading" className="text-lg font-semibold">Comentarios{!loading && ` (${comments.length})`}</h2>
+              <button type="button" aria-label="Cerrar comentarios" onClick={() => setIsOpen(false)}
+                className="rounded-full p-2 hover:bg-gray-100 dark:hover:bg-gray-800"><X size={22} /></button>
+            </header>
+            <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain p-4">
+              {/* Caja de Comentarios Principal */}
+              {user ? (
+                <form onSubmit={handleCreateComment} className="flex gap-2 items-start">
+                  <div className="w-9 h-9 rounded-full overflow-hidden shrink-0 bg-gray-200 dark:bg-[#1D1F23]">
+                    <AvatarRenderer avatar={user.avatar} name={user.username} />
+                  </div>
+                  <div className="flex-1 relative">
+                    <input 
+                      type="text" 
+                      placeholder="Comparte tu opinión..." 
+                      value={commentText} 
+                      onChange={(e) => setCommentText(e.target.value)} 
+                      disabled={submitting}
+                      className="w-full pl-3 pr-10 py-2 text-sm rounded-lg bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-gray-700 outline-none text-gray-800 dark:text-gray-200 focus:border-primary-500 dark:focus:border-primary-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      required
+                    />
+                    <button 
+                      type="submit" 
+                      disabled={submitting || !commentText.trim()}
+                      className={clsx(
+                        "absolute right-1 top-1/2 -translate-y-1/2 p-1.5 rounded-md transition-colors flex items-center justify-center",
+                        submitting || !commentText.trim()
+                          ? "bg-gray-300 dark:bg-gray-700 text-gray-500 cursor-not-allowed"
+                          : "bg-primary-600 hover:bg-primary-700 text-white"
+                      )}
+                    >
+                      {submitting ? (
+                        <LoadingSpinner variant="inline" size={17} />
+                      ) : (
+                        <Send size={17} />
+                      )}
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                /* Estado Desactivado cuando NO hay sesión */
+                <div className="flex gap-3 items-center">
+                  <div className="w-9 h-9 rounded-full shrink-0 bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-400">
+                    <UserIcon size={18} />
+                  </div>
+                  <div className="flex-1 relative flex items-center">
+                    <input 
+                      type="text" 
+                      disabled 
+                      placeholder="Inicia sesión para comentar" 
+                      className="w-full pl-3 py-2 text-sm rounded-lg bg-gray-100 dark:bg-[#1D1F23]/60 border border-gray-200 dark:border-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed select-none placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                    />
+                    <Link 
+                      to="/login" 
+                      className="absolute right-1 px-2 py-1.5 text-sm font-bold rounded-md bg-primary-600 hover:bg-primary-700 text-white transition-colors flex items-center gap-1.5 shadow-sm"
+                    >
+                      <LogIn size={16} />
+                      <span className="hidden md:block">Iniciar sesión</span>
+                    </Link>
+                  </div>
+                </div>
+              )}
+
+              {/* Listado de Comentarios Principales */}
+              {loading ? (
+                <LoadingSpinner variant="section" />
+              ) : comments.length > 0 ? (
+                <div className="flex flex-col gap-6 mt-1">
+                    {comments.map((comment) => (
+                      <CommentCard key={comment.id} comment={comment} contentId={contentId} onCommentMutated={loadComments} />
+                    ))}
+                  </div>
+
+              ) : (
+                <div className="flex flex-col items-center justify-center py-3 gap-3 text-center">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                      Aún no hay comentarios
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                      ¡Sé el primero en compartir tu opinión!
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </dialog>,
+        document.body
+      )}
+    </>
   );
 };
 

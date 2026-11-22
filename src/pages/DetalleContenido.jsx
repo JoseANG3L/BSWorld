@@ -689,19 +689,19 @@ const DetalleMod = ({ id, user, authLoading }) => {
                         )}
                     </div>
 
-                    {/* HEADER ESTILO YOUTUBE (ÚNICAMENTE CREADORES) */}
-                    <div className="bg-white dark:bg-[#1e1e1e] rounded-lg p-3 md:p-4 shadow-sm border border-gray-300 dark:border-transparent lg:order-2">
+                    {/* Título, creadores y estadísticas */}
+                    <div className="lg:order-2">
                         <h1 className="text-md md:text-lg font-bold text-gray-900 dark:text-white mb-3 leading-tight">
                             {item.titulo}
                         </h1>
                         
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="flex items-center justify-between gap-2">
                             
                             <button 
                                 onClick={() => setShowCreatorsModal(true)}
-                                className="flex items-center text-left hover:opacity-80 transition-opacity"
+                                className="flex min-w-0 items-center text-left hover:opacity-80 transition-opacity"
                             >
-                                <div className="flex mr-3 relative">
+                                <div className="flex mr-3 relative shrink-0">
                                     {creadoresList.length > 0 && (
                                         <div className="relative">
                                             <SmartCreatorAvatar creador={creadoresList[0]} />
@@ -717,7 +717,7 @@ const DetalleMod = ({ id, user, authLoading }) => {
                                     )}
                                 </div>
 
-                                <div>
+                                <div className="min-w-0 break-words">
                                     <div className="flex items-center flex-wrap text-sm font-bold text-gray-900 dark:text-white">
                                         {creadoresList.length > 0 ? (
                                             creadoresList.length > 1 ? (
@@ -730,11 +730,6 @@ const DetalleMod = ({ id, user, authLoading }) => {
                                         )}
                                     </div>
                                     
-                                    <div className="flex items-center text-xs text-gray-600 dark:text-gray-400 mt-1">
-                                        <span>{formatNumber(item.vistas || 0)} vistas</span>
-                                        <span className="mx-1.5">•</span>
-                                        <span>{new Date(item.creado).toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
-                                    </div>
                                 </div>
                             </button>
 
@@ -751,23 +746,7 @@ const DetalleMod = ({ id, user, authLoading }) => {
                                 )}
 
                                 <button 
-                                    onClick={handleLike}
-                                    disabled={likeLoading}
-                                    className={clsx(
-                                        "flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-semibold transition-all duration-150",
-                                        isLiked 
-                                            ? "text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50" 
-                                            : "text-gray-700 dark:text-gray-300 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400"
-                                    )}
-                                >
-                                    <Heart 
-                                        size={18} 
-                                        className={clsx(isLiked && "fill-current transition-colors duration-150")} 
-                                    />
-                                    <span>{formatNumber(item.likes_count || 0)}</span>
-                                </button>
-                                
-                                <button 
+                                    aria-label="Compartir contenido"
                                     onClick={() => setShowShareModal(true)}
                                     className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-primary-100 dark:hover:bg-primary-800/30 hover:text-primary-600 dark:hover:text-primary-400 transition-all"
                                 >
@@ -775,10 +754,40 @@ const DetalleMod = ({ id, user, authLoading }) => {
                                 </button>
                             </div>
                         </div>
+                        <div role="group" aria-label="Estadísticas del contenido"
+                            className="mt-3 grid w-full grid-cols-3 gap-1.5 text-center text-xs font-semibold tabular-nums text-gray-700 dark:text-gray-300 sm:gap-3 sm:text-sm [&>*]:flex [&>*]:min-w-0 [&>*]:flex-col [&>*]:items-center [&>*]:justify-center [&>*]:gap-1 [&>*]:px-1 [&>*]:py-2">
+                            <div>
+                                <span className="inline-flex items-center gap-1 text-xs font-medium">
+                                    <Eye size={14} aria-hidden="true" className="text-sky-600 dark:text-sky-400" /> Vistas
+                                </span>
+                                <span>{formatNumber(item.vistas || 0)}</span>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={handleLike}
+                                disabled={likeLoading}
+                                aria-pressed={isLiked}
+                                aria-label={`Me gusta, ${item.likes_count || 0} en total`}
+                                className="group rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-current"
+                            >
+                                <span className="inline-flex items-center gap-1 text-xs font-medium">
+                                    <Heart size={14} aria-hidden="true" className={clsx("text-rose-600 transition-colors group-hover:text-rose-700 dark:text-rose-400 dark:group-hover:text-rose-300", isLiked && "fill-current")} /> Me gusta
+                                </span>
+                                <span>{formatNumber(item.likes_count || 0)}</span>
+                            </button>
+                            <div>
+                                <span className="inline-flex items-center gap-1 text-xs font-medium">
+                                    <Calendar size={14} aria-hidden="true" className="text-violet-600 dark:text-violet-400" /> Fecha
+                                </span>
+                                <time dateTime={item.creado}>
+                                    {new Date(item.creado).toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                </time>
+                            </div>
+                        </div>
                     </div>
 
                     {/* DESCRIPCIÓN CON BOTÓN VER MÁS */}
-                    <div className="bg-white dark:bg-[#1e1e1e] rounded-lg p-3 md:p-4 shadow-sm border border-gray-300 dark:border-transparent lg:order-3">
+                    <div className="lg:order-3">
                         <div className="flex items-center justify-between mb-1">
                             <h3 className="text-base font-semibold text-gray-900 dark:text-white">
                                 Descripción
@@ -817,7 +826,7 @@ const DetalleMod = ({ id, user, authLoading }) => {
                         };
                         const CategoriaIcon = categoriaInfo.icon;
                         return (
-                            <div className="bg-white dark:bg-[#1e1e1e] p-3 md:p-4 rounded-lg shadow-sm border border-gray-300 dark:border-transparent lg:hidden">
+                            <div className="lg:hidden">
                                 <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-3">
                                     Categoría
                                 </h4>
@@ -835,7 +844,7 @@ const DetalleMod = ({ id, user, authLoading }) => {
                     
                     {/* CRÉDITOS Y APORTE SEPARADOS (MÓVIL: DESPUÉS DE CATEGORÍA) */}
                     {item.aporte && (
-                        <div className="bg-white dark:bg-[#1e1e1e] rounded-lg p-3 md:p-4 shadow-sm border border-gray-300 dark:border-transparent lg:hidden">
+                        <div className="lg:hidden">
                             <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-3">
                                 Aportado por
                             </h4>
@@ -844,7 +853,7 @@ const DetalleMod = ({ id, user, authLoading }) => {
                     )}
 
                     {/* TARJETA DE DESCARGAS (MÓVIL: DESPUÉS DE APORTADO POR) */}
-                    <div className="bg-white dark:bg-[#1e1e1e] rounded-lg p-3 md:p-4 shadow-sm border border-gray-300 dark:border-transparent lg:hidden">
+                    <div className="lg:hidden">
                         <div className="flex items-center justify-between mb-3">
                             <h3 className="text-base font-semibold text-gray-900 dark:text-white">
                                 Descargas
@@ -892,12 +901,12 @@ const DetalleMod = ({ id, user, authLoading }) => {
 
                     {/* SECCIÓN DE COMENTARIOS */}
                     <div className="lg:order-4">
-                        <CommentSection contentId={id} />
+                        <CommentSection key={id} contentId={id} />
                     </div>
 
                     {/* MODS RECOMENDADOS (MÓVIL: DESPUÉS DE COMENTARIOS) */}
                     {recommendedContent.length > 0 && (
-                        <div className="bg-white dark:bg-[#1e1e1e] p-3 md:p-4 rounded-lg shadow-sm border border-gray-300 dark:border-transparent lg:hidden">
+                        <div className="lg:hidden">
                             <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-4">
                                 También te puede gustar
                             </h4>
@@ -920,7 +929,7 @@ const DetalleMod = ({ id, user, authLoading }) => {
                 <div className="hidden lg:block lg:min-w-[420px] xl:min-w-[480px] 2xl:min-w-[500px] space-y-3 md:space-y-4">
                     
                     {/* TARJETA DE DESCARGAS */}
-                    <div className="bg-white dark:bg-[#1e1e1e] rounded-lg p-3 md:p-4 shadow-sm border border-gray-300 dark:border-transparent">
+                    <div>
                         <div className="flex items-center justify-between mb-3">
                             <h3 className="text-base font-semibold text-gray-900 dark:text-white">
                                 Descargas
@@ -977,7 +986,7 @@ const DetalleMod = ({ id, user, authLoading }) => {
                         };
                         const CategoriaIcon = categoriaInfo.icon;
                         return (
-                            <div className="bg-white dark:bg-[#1e1e1e] p-3 md:p-4 rounded-lg shadow-sm border border-gray-300 dark:border-transparent">
+                            <div>
                                 <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-3">
                                     Categoría
                                 </h4>
@@ -995,7 +1004,7 @@ const DetalleMod = ({ id, user, authLoading }) => {
                     
                     {/* CRÉDITOS Y APORTE SEPARADOS (COLUMNA DERECHA) */}
                     {item.aporte && (
-                        <div className="bg-white dark:bg-[#1e1e1e] rounded-lg p-3 md:p-4 shadow-sm border border-gray-300 dark:border-transparent">
+                        <div>
                             <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-3">
                                 Aportado por
                             </h4>
@@ -1007,7 +1016,7 @@ const DetalleMod = ({ id, user, authLoading }) => {
 
                     {/* MODS RECOMENDADOS */}
                     {recommendedContent.length > 0 && (
-                        <div className="bg-white dark:bg-[#1e1e1e] p-3 md:p-4 rounded-lg shadow-sm border border-gray-300 dark:border-transparent">
+                        <div>
                             <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-3">
                                 Mods Recomendados
                             </h4>
