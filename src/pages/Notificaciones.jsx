@@ -1,3 +1,4 @@
+import { useVisitState } from '../hooks/useVisitState';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -45,14 +46,15 @@ const Notificaciones = () => {
   const { showToast } = useToast();
   const navigate = useNavigate();
 
-  const [notifications, setNotifications] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [notifications, setNotifications] = useVisitState('notifications', []);
+  const [loading, setLoading] = useState(!notifications.length);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [filter, setFilter] = useState('all');
-  const [dateFilter, setDateFilter] = useState('all');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [page, setPage] = useState(0);
-  const [hasMore, setHasMore] = useState(false);
+  const [filter, setFilter] = useVisitState('filter', 'all');
+  const [dateFilter, setDateFilter] = useVisitState('dateFilter', 'all');
+  const [searchTerm, setSearchTerm] = useVisitState('searchTerm', '');
+  const [page, setPage] = useVisitState('page', 0);
+  const initialPage = useRef(page);
+  const [hasMore, setHasMore] = useVisitState('more', false);
   const [actorCache, setActorCache] = useState({});
   const [pendingDelete, setPendingDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
@@ -75,14 +77,14 @@ const Notificaciones = () => {
         return;
       }
       const requestId = ++notificationsRequestRef.current;
-      setLoading(true);
       invalidateNotificationsCache(user.id);
       try {
-        const data = await getUserNotifications(user.id, false, PER_PAGE, 0, true);
+        const limit = (initialPage.current + 1) * PER_PAGE;
+        const data = await getUserNotifications(user.id, false, limit, 0, true);
         if (!active || requestId !== notificationsRequestRef.current) return;
         setNotifications(data);
-        setPage(0);
-        setHasMore(data.length === PER_PAGE);
+        setPage(Math.max(0, Math.ceil(data.length / PER_PAGE) - 1));
+        setHasMore(data.length === limit);
         refreshNotifications();
       } catch (error) {
         console.error('Error cargando notificaciones:', error);

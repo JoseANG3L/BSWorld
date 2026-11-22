@@ -1,3 +1,5 @@
+import { useVisitState } from '../hooks/useVisitState';
+import { catalogStamp, isCatalogCurrent } from '../services/catalog';
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { PackageOpen, Eye, Heart, Download, FileBox, Wrench, UserRound, Map, Gamepad2, Boxes, Package } from 'lucide-react';
@@ -12,11 +14,12 @@ const MisMods = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   
-  const [mods, setMods] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [mods, setMods] = useVisitState('mods', []);
+  const [savedVersion, setSavedVersion] = useVisitState('myModsVersion', null);
+  const [loading, setLoading] = useState(!isCatalogCurrent(savedVersion));
   const [deletingId, setDeletingId] = useState(null);
   const [hasLoaded, setHasLoaded] = useState(false);
-  const [stats, setStats] = useState({ published: 0, publishedTypes: {}, views: 0, likes: 0, comments: 0, downloads: 0 });
+  const [stats, setStats] = useVisitState('stats', { published: 0, publishedTypes: {}, views: 0, likes: 0, comments: 0, downloads: 0 });
 
   // --- ESTADO DEL MODAL ---
   const [modal, setModal] = useState({
@@ -32,7 +35,7 @@ const MisMods = () => {
 
   // Cargar datos (solo una vez al montar)
   useEffect(() => {
-    if (user?.id && !hasLoaded) {
+    if (user?.id && !hasLoaded && !isCatalogCurrent(savedVersion)) {
       fetchMyMods();
       setHasLoaded(true);
     } else if (!user?.id) {
@@ -41,6 +44,7 @@ const MisMods = () => {
   }, [user, hasLoaded]);
 
   const fetchMyMods = async () => {
+    const version = catalogStamp();
     setLoading(true);
     try {
       const data = await getUserContent(user?.id);
@@ -68,6 +72,7 @@ const MisMods = () => {
       }, 0);
       const publishedStats = getPublishedContentStats(modsData);
 
+      setSavedVersion(version);
       setStats({
         published: publishedStats.total,
         publishedTypes: publishedStats.byType,

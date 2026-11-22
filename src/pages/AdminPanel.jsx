@@ -1,3 +1,5 @@
+import { useVisitState } from '../hooks/useVisitState';
+import { catalogStamp, isCatalogCurrent } from '../services/catalog';
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { LayoutDashboard, Plus, FileBox, Users, Download, Heart, Wrench, UserRound, Map, Gamepad2, Boxes, Package } from 'lucide-react';
@@ -22,9 +24,10 @@ const StatCard = ({ icon: Icon, label, value, gradient }) => (
 );
 
 const AdminPanel = () => {
-  const [content, setContent] = useState([]);
-  const [stats, setStats] = useState({ published: 0, publishedTypes: {}, users: 0, downloads: 0, likes: 0, comments: 0 });
-  const [loading, setLoading] = useState(true);
+  const [content, setContent] = useVisitState('content', []);
+  const [stats, setStats] = useVisitState('stats', { published: 0, publishedTypes: {}, users: 0, downloads: 0, likes: 0, comments: 0 });
+  const [savedVersion, setSavedVersion] = useVisitState('adminVersion', null);
+  const [loading, setLoading] = useState(!isCatalogCurrent(savedVersion));
   const [updatingId, setUpdatingId] = useState(null);
   
   // Modal de rechazo
@@ -35,6 +38,8 @@ const AdminPanel = () => {
   });
 
   useEffect(() => {
+    const version = catalogStamp();
+    if (isCatalogCurrent(savedVersion)) return;
     const fetchData = async () => {
       try {
         const contentData = await getAdminContent();
@@ -61,6 +66,7 @@ const AdminPanel = () => {
           .select('*', { count: 'exact', head: true });
 
         setContent(contentData);
+        setSavedVersion(version);
         setStats({
           published: publishedStats.total,
           publishedTypes: publishedStats.byType,

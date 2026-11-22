@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Search, Filter, ArrowUpDown, Sparkles, X, ChevronDown, Check } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useCatalogPages } from '../hooks/useCatalogPages';
+import { useVisitState } from '../hooks/useVisitState';
 import { PAGE_SIZE } from '../services/catalog';
 import LoadingSpinner from './LoadingSpinner';
 import PageHeader from './PageHeader';
@@ -46,10 +47,10 @@ const DataContainer = ({
   loading = false
 }) => {
   // 1. ESTADO INTERNO
-  const [busqueda, setBusqueda] = useState(initialSearchValue);
-  const [orden, setOrden] = useState(initialSort);
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-  const [selectedTypes, setSelectedTypes] = useState([]);
+  const [busqueda, setBusqueda] = useVisitState(`list-${catalogMode || title}-search`, initialSearchValue);
+  const [orden, setOrden] = useVisitState(`list-${catalogMode || title}-order`, initialSort);
+  const [visibleCount, setVisibleCount] = useVisitState(`list-${catalogMode || title}-limit`, PAGE_SIZE);
+  const [selectedTypes, setSelectedTypes] = useVisitState(`list-${catalogMode || title}-types`, []);
   const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
   const [isOrdenDropdownOpen, setIsOrdenDropdownOpen] = useState(false);
   const [isFiltersModalOpen, setIsFiltersModalOpen] = useState(false);
@@ -58,7 +59,7 @@ const DataContainer = ({
   const [tempOrden, setTempOrden] = useState(initialSort);
   const [tempSelectedTypes, setTempSelectedTypes] = useState([]);
 
-  const [search, setSearch] = useState(initialSearchValue);
+  const [search, setSearch] = useState(busqueda.trim());
   useEffect(() => {
     if (!catalogMode) return;
     const timer = setTimeout(() => setSearch(busqueda.trim()), 200);
@@ -73,7 +74,7 @@ const DataContainer = ({
     types: catalogType ? [catalogType] : selectedTypes,
     sort: orden
   } : null, [catalogMode, catalogQuery, catalogType, search, selectedTypes, orden]);
-  const page = useCatalogPages(options);
+  const page = useCatalogPages(options, `pages-${catalogMode}`);
 
   const typeDropdownRef = useRef(null);
   const ordenDropdownRef = useRef(null);
@@ -162,9 +163,12 @@ const DataContainer = ({
   const visibleItems = catalogMode ? page.items : itemsFiltrados.slice(0, visibleCount);
   const remaining = catalogMode ? page.total - page.nextOffset : itemsFiltrados.length - visibleCount;
 
+  const filterKey = JSON.stringify([busqueda, orden, selectedTypes]);
+  const lastFilters = useRef(filterKey);
   useEffect(() => {
-    setVisibleCount(PAGE_SIZE);
-  }, [busqueda, orden, selectedTypes]);
+    if (lastFilters.current !== filterKey) setVisibleCount(PAGE_SIZE);
+    lastFilters.current = filterKey;
+  }, [filterKey, setVisibleCount]);
 
   const toggleType = (type) => {
     setSelectedTypes(prev => 

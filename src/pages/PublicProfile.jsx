@@ -1,3 +1,4 @@
+import { useVisitState } from '../hooks/useVisitState';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
 import { createPortal } from 'react-dom';
@@ -34,10 +35,10 @@ const ProfileContent = ({ username, currentUser }) => {
   const [loading, setLoading] = useState(true);
   const [exists, setExists] = useState(true);
   
-  const [busqueda, setBusqueda] = useState('');
-  const [orden, setOrden] = useState('recientes');
-  const [activeTab, setActiveTab] = useState('todos');
-  const [selectedTypes, setSelectedTypes] = useState([]);
+  const [busqueda, setBusqueda] = useVisitState('busqueda', '');
+  const [orden, setOrden] = useVisitState('orden', 'recientes');
+  const [activeTab, setActiveTab] = useVisitState('activeTab', 'todos');
+  const [selectedTypes, setSelectedTypes] = useVisitState('selectedTypes', []);
   const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
   const [isOrdenDropdownOpen, setIsOrdenDropdownOpen] = useState(false);
   const [isFiltersModalOpen, setIsFiltersModalOpen] = useState(false);

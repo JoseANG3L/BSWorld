@@ -1,9 +1,10 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext'; 
 
 // Componentes
 import Layout from './components/Layout';
+import HistoryScroll from './components/HistoryScroll';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { ToastProvider } from './components/Toast';
 import { FEATURES } from './config/features';
@@ -40,15 +41,6 @@ const Privacidad = lazy(() => import('./pages/Privacidad'));
 const Cookies = lazy(() => import('./pages/Cookies'));
 const Licencias = lazy(() => import('./pages/Licencias'));
 
-// COMPONENTE INTERNO PARA REINICIAR EL SCROLL EN CADA CAMBIO DE RUTA
-const ScrollToTop = () => {
-  const { pathname } = useLocation();
-  useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [pathname]);
-  return null;
-};
-
 function App() {
   // Lógica del Tema Oscuro (Persistencia)
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -80,8 +72,8 @@ function App() {
     <ToastProvider>
     <AuthProvider>
       <BrowserRouter>
-        <ScrollToTop />
         <Suspense fallback={<LoadingSpinner variant="fullscreen" />}>
+          <HistoryScroll />
           <Routes>
             {/* RUTAS INDEPENDIENTES: Fuera del Layout principal */}
             <Route path="/login" element={<LoginPage />} />

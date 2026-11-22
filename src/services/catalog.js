@@ -5,6 +5,8 @@ export const CARD_COLUMNS = 'id,titulo,imagen,descargas,creadores,tags,aporte,vi
 const TTL = 120_000;
 const pages = new Map();
 let generation = 0;
+export const catalogStamp = () => ({ version: generation, expires: Date.now() + TTL });
+export const isCatalogCurrent = stamp => stamp?.version === generation && stamp.expires > Date.now();
 let legacyRows;
 let viewMissingUntil = 0;
 

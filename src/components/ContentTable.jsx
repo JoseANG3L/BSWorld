@@ -1,3 +1,4 @@
+import { useVisitState } from '../hooks/useVisitState';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { createPortal } from 'react-dom';
@@ -54,11 +55,11 @@ const ContentTable = ({
   mobileBulkActionsMenu = false,
   hideHeaderTitleOnMobile = false
 }) => {
-  const [busqueda, setBusqueda] = useState('');
-  const [orden, setOrden] = useState('recientes');
-  const [selectedTypes, setSelectedTypes] = useState([]);
-  const [selectedVisibilidad, setSelectedVisibilidad] = useState([]);
-  const [selectedStatus, setSelectedStatus] = useState([]);
+  const [busqueda, setBusqueda] = useVisitState('busqueda', '');
+  const [orden, setOrden] = useVisitState('orden', 'recientes');
+  const [selectedTypes, setSelectedTypes] = useVisitState('selectedTypes', []);
+  const [selectedVisibilidad, setSelectedVisibilidad] = useVisitState('selectedVisibilidad', []);
+  const [selectedStatus, setSelectedStatus] = useVisitState('selectedStatus', []);
   const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
   const [isVisibilidadDropdownOpen, setIsVisibilidadDropdownOpen] = useState(false);
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);

@@ -1,24 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { Flame, ArrowRight } from 'lucide-react';
 import Banner from '../components/Banner.jsx';
 import Card from '../components/Card.jsx';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { getCatalogPage } from '../services/catalog';
+import { useCatalogPages } from '../hooks/useCatalogPages';
 
+const newestFirst = {};
 const Inicio = () => {
-  const [novedades, setNovedades] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  const [failed, setFailed] = useState(false);
-  useEffect(() => {
-    const controller = new AbortController();
-    getCatalogPage({ signal: controller.signal })
-      .then(page => { if (!controller.signal.aborted) setNovedades(page.items); })
-      .catch(() => { if (!controller.signal.aborted) setFailed(true); })
-      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
-    return () => controller.abort();
-  }, []);
+  const { items: novedades, loading, error: failed } = useCatalogPages(newestFirst, 'home');
 
   return (
     <div className="flex flex-col animate-fade-in-up shadow-sm" style={{ animationDuration: '200ms' }}>

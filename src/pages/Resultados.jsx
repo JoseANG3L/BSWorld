@@ -1,10 +1,11 @@
+import { useVisitState } from '../hooks/useVisitState';
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { Search, Frown, Compass, Filter, ChevronDown } from 'lucide-react';
 import Card from '../components/Card';
 import CreatorCard from '../components/CreatorCard';
-import { getCatalogPage } from '../services/catalog';
+import { catalogStamp, isCatalogCurrent, getCatalogPage } from '../services/catalog';
 import DataContainer from '../components/DataContainer';
 import PageHeader from '../components/PageHeader';
 import FilterModalHeader from '../components/FilterModalHeader';
@@ -14,14 +15,17 @@ const Resultados = () => {
   const [searchParams] = useSearchParams();
   const query = (searchParams.get('q') || '').trim();
   
-  const [counts, setCounts] = useState({ contenido: 0, usuarios: 0 });
-  const [loading, setLoading] = useState(true);
+  const [counts, setCounts] = useVisitState('counts', { contenido: 0, usuarios: 0 });
+  const [savedVersion, setSavedVersion] = useVisitState('searchVersion', null);
+  const [loading, setLoading] = useState(!isCatalogCurrent(savedVersion));
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
-  const [activeTab, setActiveTab] = useState('contenido');
+  const [activeTab, setActiveTab] = useVisitState('activeTab', 'contenido');
   const [isEmptyFilterOpen, setIsEmptyFilterOpen] = useState(false);
 
   useEffect(() => {
+    const version = catalogStamp();
+    if (isCatalogCurrent(savedVersion)) return;
     const controller = new AbortController();
     const signal = controller.signal;
     setFailed(false);
@@ -38,6 +42,7 @@ const Resultados = () => {
       if (signal.aborted) return;
       const totals = { contenido: content.total, usuarios: users.total };
       setCounts(totals);
+      setSavedVersion(version);
       setActiveTab(prev => totals[prev] ? prev : (users.total && !content.total ? 'usuarios' : 'contenido'));
     }).catch(() => {
       if (!signal.aborted) setFailed(true);
