@@ -1,5 +1,6 @@
 // VERSIÓN CORRECTA - SMART MARKDOWN RENDERER CON BLOQUEO DE SCROLL
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useVisitState } from '../hooks/useVisitState';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Download, Calendar, Tag, User, Users, ArrowLeft, Globe, Share2, ShieldCheck, MessageCircle, Facebook, Twitter, Eye, Image as ImageIcon, Layers, ChevronLeft, ChevronRight, PlayCircle, Link as LinkIcon, Mail, Send, Check, Copy, Youtube, AlertCircle, Code, Info, Heart, X, Edit, Wrench, Map, Gamepad2, Boxes, Package } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -107,6 +108,7 @@ const RecommendedItem = ({ content }) => {
     return (
         <Link 
             to={`/view/${content.id}`}
+            data-recommended-id={content.id}
             className="flex items-center gap-3 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700/30 transition-all group"
         >
             {/* Imagen a la izquierda */}
@@ -323,7 +325,7 @@ const DetalleMod = ({ id, user, authLoading }) => {
     const [mainImgStage, setMainImgStage] = useState(0); // 0 miniatura, 1 original, 2 default
     const [thumbStage, setThumbStage] = useState({}); // por miniatura: 0 miniatura, 1 original, 2 default
     const [copied, setCopied] = useState(false);
-    const [descriptionExpanded, setDescriptionExpanded] = useState(false);
+    const [descriptionExpanded, setDescriptionExpanded] = useVisitState('descriptionExpanded', false);
     const [isLiked, setIsLiked] = useState(false);
     const [likeLoading, setLikeLoading] = useState(Boolean(user));
     const [showCreatorsModal, setShowCreatorsModal] = useState(false);
@@ -411,7 +413,12 @@ const DetalleMod = ({ id, user, authLoading }) => {
 
     // 👇 CENTRAR LA MINIATURA ACTIVA EN LA TIRA CON SCROLL
     useEffect(() => {
-        activeThumbRef.current?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+        const thumb = activeThumbRef.current;
+        const strip = thumb?.parentElement;
+        if (strip) {
+            const left = strip.scrollLeft + thumb.getBoundingClientRect().left - strip.getBoundingClientRect().left;
+            strip.scrollTo({ left: left - (strip.clientWidth - thumb.offsetWidth) / 2, behavior: 'smooth' });
+        }
     }, [selectedIndex]);
 
     const galleryItems = item ? [
