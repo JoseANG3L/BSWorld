@@ -1,8 +1,10 @@
+import { useOverlayBack } from '../hooks/useOverlayBack';
 import { useVisitState } from '../hooks/useVisitState';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
-  Bell, Inbox, Trash2, CheckCheck, RefreshCw
+  Bell, Inbox, Trash2, CheckCheck, RefreshCw, X
 } from 'lucide-react';
 import { useAuth, useNotifications } from '../context/AuthContext';
 import { supabase } from '../services/supabaseClient';
@@ -322,13 +324,15 @@ const Notificaciones = () => {
     searchRef.current?.focus();
   };
 
+  useOverlayBack(Boolean(pendingDelete), () => { if (!deleting) setPendingDelete(null); });
+
   if (loading) return <LoadingSpinner variant="page" />;
 
   return (
     <div className="flex w-full flex-col p-2 animate-fade-in-up md:p-4" style={{ animationDuration: '200ms' }}>
 
       {/* CABECERA */}
-      <section className="mb-3 md:mb-4 flex min-w-0 flex-row flex-nowrap items-center gap-1 md:gap-3">
+      <section className="relative z-10 mb-3 flex min-w-0 items-center gap-1 md:mb-4 md:gap-3">
         <PageHeader
           title="Notificaciones"
           icon={Bell}
@@ -345,23 +349,20 @@ const Notificaciones = () => {
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
           searchRef={searchRef}
-          className="mb-0 min-w-0 flex-1 basis-0 gap-1 md:gap-3"
         />
 
-        <div className="flex shrink-0 items-center gap-1.5">
-          {(unreadCount > 0 || hasUnreadNotifications) && (
-            <button
-              type="button"
-              onClick={handleMarkAllAsRead}
-              aria-label="Marcar todas como leídas"
-              title="Marcar todas como leídas"
-              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-600 text-xs font-semibold text-white transition-colors hover:bg-primary-700 sm:h-9 sm:w-auto sm:gap-1 sm:rounded-lg sm:px-2.5"
-            >
-              <CheckCheck size={14} />
-              <span className="hidden sm:inline">Marcar todas</span>
-            </button>
-          )}
-        </div>
+        {(unreadCount > 0 || hasUnreadNotifications) && (
+          <button
+            type="button"
+            onClick={handleMarkAllAsRead}
+            aria-label="Marcar todas como leídas"
+            title="Marcar todas como leídas"
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-600 text-xs font-semibold text-white transition-colors hover:bg-primary-700 lg:w-auto lg:gap-1 lg:px-2.5"
+          >
+            <CheckCheck size={16} />
+            <span className="hidden lg:inline">Marcar todas</span>
+          </button>
+        )}
       </section>
 
       {/* LISTA */}
@@ -377,7 +378,7 @@ const Notificaciones = () => {
                 </div>
               )}
 
-              <div className="overflow-hidden rounded-xl border border-gray-200 bg-white divide-y divide-gray-100 dark:border-transparent dark:bg-[#171819] dark:divide-white/[0.06]">
+              <div className="space-y-1">
                 {group.items.map((notif, index) => (
                   <NotificationCard
                     key={notif.id}
@@ -457,7 +458,7 @@ const Notificaciones = () => {
       )}
 
       {/* MODAL DE ELIMINACIÓN */}
-      {pendingDelete && (
+      {pendingDelete && createPortal(
         <div
           className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fade-in-up"
           style={{ animationDuration: '150ms' }}
@@ -507,7 +508,8 @@ const Notificaciones = () => {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

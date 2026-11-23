@@ -30,7 +30,7 @@ export const ToastProvider = ({ children }) => {
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      <div className="fixed bottom-20 lg:bottom-8 left-1/2 -translate-x-1/2 z-[99999] flex flex-col gap-2 items-center pointer-events-none px-4 w-full sm:w-auto">
+      <div className="fixed bottom-16 lg:bottom-8 left-1/2 -translate-x-1/2 z-[99999] flex flex-col gap-2 items-center pointer-events-none px-4 w-full sm:w-auto">
         {toasts.map((t) => {
           const { Icon, ring } = ICONS[t.type] || ICONS.success;
           return (

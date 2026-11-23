@@ -2,6 +2,7 @@ import React from 'react';
 import { Mail, MailOpen, Trash2 } from 'lucide-react';
 import { clsx } from 'clsx';
 import AvatarRenderer from './AvatarRenderer';
+import CardActionsMenu from './CardActionsMenu';
 import { getNotificationView, getTimeAgo } from '../utils/notifications';
 import { thumbUrl } from '../utils/image';
 
@@ -25,14 +26,6 @@ const NotificationCard = ({
   const isUnread = !notification.leida;
   const canOpen = Boolean(notification.modid && onOpen);
 
-  const surface = isUnread
-    ? compact
-      ? 'bg-gradient-to-r from-primary-50/70 to-white hover:from-primary-50 dark:from-primary-500/[0.08] dark:to-transparent dark:hover:from-primary-500/[0.12]'
-      : 'bg-primary-50/60 hover:bg-primary-50 dark:bg-primary-500/[0.06] dark:hover:bg-primary-500/[0.09]'
-    : compact
-      ? 'hover:bg-gray-50 dark:hover:bg-white/[0.04]'
-      : 'hover:bg-gray-50 dark:hover:bg-white/[0.03]';
-
   return (
     <article
       style={style}
@@ -41,17 +34,11 @@ const NotificationCard = ({
         compact
           ? 'gap-1.5 px-2.5 py-2.5 sm:gap-2 sm:px-3.5 sm:py-3'
           : 'gap-1.5 p-3 sm:gap-2 sm:p-3.5',
-        surface,
         className
       )}
     >
       {isUnread && (
-        <span
-          className={clsx(
-            'absolute left-0 w-[3px] rounded-r-full bg-gradient-to-b from-primary-400 to-primary-600',
-            compact ? 'top-1/2 h-8 -translate-y-1/2' : 'inset-y-3'
-          )}
-        />
+        <span aria-hidden="true" className="pointer-events-none absolute inset-y-3 left-0 w-[3px] rounded-r-full bg-gradient-to-b from-primary-400 to-primary-600" />
       )}
 
       {/* CONTENIDO ABRIBLE */}
@@ -113,6 +100,7 @@ const NotificationCard = ({
             <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 sm:text-[10px]">
               {getTimeAgo(notification.creado)}
             </span>
+            {isUnread && <span className="sr-only">Sin leer</span>}
           </div>
 
           <p
@@ -164,35 +152,14 @@ const NotificationCard = ({
 
       {/* ACCIONES */}
       {(onToggleRead || onDelete) && (
-        <div
-          className={clsx(
-            'flex shrink-0 flex-col items-center gap-0.5 self-start pt-0.5 transition-opacity duration-200',
-            !compact && 'md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100'
-          )}
-        >
-          {onToggleRead && (
-            <button
-              type="button"
-              onClick={() => onToggleRead(notification)}
-              title={notification.leida ? 'Marcar como no leída' : 'Marcar como leída'}
-              aria-label={notification.leida ? 'Marcar como no leída' : 'Marcar como leída'}
-              className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-primary-50 hover:text-primary-600 dark:hover:bg-primary-500/15 dark:hover:text-primary-400"
-            >
-              {notification.leida ? <Mail size={14} /> : <MailOpen size={14} />}
-            </button>
-          )}
-          {onDelete && (
-            <button
-              type="button"
-              onClick={() => onDelete(notification)}
-              title="Eliminar notificación"
-              aria-label="Eliminar notificación"
-              className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/15 dark:hover:text-red-400"
-            >
-              <Trash2 size={14} />
-            </button>
-          )}
-        </div>
+        <CardActionsMenu label="Opciones de la notificación" actions={[
+          onToggleRead && {
+            label: isUnread ? 'Marcar como leída' : 'Marcar como no leída',
+            icon: isUnread ? MailOpen : Mail,
+            onSelect: () => onToggleRead(notification)
+          },
+          onDelete && { label: 'Eliminar', icon: Trash2, onSelect: () => onDelete(notification), destructive: true }
+        ].filter(Boolean)} />
       )}
     </article>
   );

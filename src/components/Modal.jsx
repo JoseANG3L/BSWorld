@@ -1,3 +1,4 @@
+import { useOverlayBack } from '../hooks/useOverlayBack';
 import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, CheckCircle, AlertTriangle, Info } from 'lucide-react';
@@ -32,6 +33,8 @@ const Modal = ({
         document.body.style.overflow = 'unset';
     };
   }, [isOpen, onClose]);
+
+  useOverlayBack(isOpen, onClose);
 
   if (!isOpen) return null;
 

@@ -1,6 +1,7 @@
+import { useOverlayBack } from '../hooks/useOverlayBack';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, Filter, ArrowUpDown, Sparkles, X, ChevronDown, Check } from 'lucide-react';
+import { Search, Filter, ArrowUpDown, Sparkles, SlidersHorizontal, ChevronDown, Check } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useCatalogPages } from '../hooks/useCatalogPages';
 import { useVisitState } from '../hooks/useVisitState';
@@ -13,6 +14,10 @@ const capitalizeText = (str) => {
   if (!str) return '';
   const stringValue = str.toString();
   return stringValue.charAt(0).toUpperCase() + stringValue.slice(1).toLowerCase();
+};
+
+const openFiltersDialog = (dialog) => {
+  if (dialog && !dialog.open) dialog.showModal();
 };
 
 const DataContainer = ({
@@ -78,6 +83,8 @@ const DataContainer = ({
 
   const typeDropdownRef = useRef(null);
   const ordenDropdownRef = useRef(null);
+  const filterButtonRef = useRef(null);
+  const hasActiveFilters = selectedTypes.length > 0 || orden !== initialSort;
 
   // Si hay customTypes usa esos, si no, los extrae de los items
   const availableTypes = useMemo(() => {
@@ -104,13 +111,17 @@ const DataContainer = ({
 
   // Bloqueo de scroll cuando el modal de filtros está abierto
   useEffect(() => {
-    if (isFiltersModalOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
+    if (!isFiltersModalOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    const trigger = filterButtonRef.current;
+    const desktop = window.matchMedia('(min-width: 768px)');
+    const closeOnDesktop = () => { if (desktop.matches) setIsFiltersModalOpen(false); };
+    document.body.style.overflow = 'hidden';
+    desktop.addEventListener('change', closeOnDesktop);
     return () => {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = previousOverflow;
+      desktop.removeEventListener('change', closeOnDesktop);
+      trigger?.focus({ preventScroll: true });
     };
   }, [isFiltersModalOpen]);
 
@@ -178,6 +189,8 @@ const DataContainer = ({
 
   const clearTypes = () => setSelectedTypes([]);
 
+  useOverlayBack(isFiltersModalOpen, () => setIsFiltersModalOpen(false));
+
   if (loading) return <LoadingSpinner variant="page" />;
 
   return (
@@ -207,20 +220,24 @@ const DataContainer = ({
           </div>
 
           {/* Botón para abrir modal de filtros en móvil */}
-          <div className="md:hidden">
           <button
+            ref={filterButtonRef}
             type="button"
             onClick={handleOpenFiltersModal}
-            className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-gray-300 bg-white text-gray-700 transition-all hover:bg-gray-100 dark:border-transparent dark:bg-[#1D1F23] dark:text-gray-200 dark:hover:bg-gray-800"
-            aria-label="Abrir filtros"
+            className={clsx(
+              'flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl border px-2.5 text-sm font-semibold transition-colors focus-visible:outline-primary-500 md:hidden',
+              hasActiveFilters
+                ? 'border-primary-300 bg-primary-50 text-primary-700 dark:border-primary-500/50 dark:bg-primary-500/15 dark:text-primary-300'
+                : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-transparent dark:bg-[#1D1F23] dark:text-gray-200'
+            )}
+            aria-label={hasActiveFilters ? 'Abrir filtros activos' : 'Abrir filtros'}
+            aria-haspopup="dialog"
+            aria-expanded={isFiltersModalOpen}
             title="Filtros"
           >
-            <Filter size={18} className="text-gray-500 dark:text-gray-400" />
-            {(selectedTypes.length > 0 || orden !== 'recientes') && (
-              <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-primary-500"></span>
-            )}
+            <SlidersHorizontal size={18} aria-hidden="true" />
+            <span className="hidden min-[420px]:inline">Filtros</span>
           </button>
-          </div>
 
           {/* Filtro de tipos (Desktop) */}
           {enableTypeFilter && availableTypes.length > 0 && (
@@ -346,128 +363,84 @@ const DataContainer = ({
 
       {/* MODAL DE FILTROS EN MÓVIL */}
       {isFiltersModalOpen && createPortal(
-        <div
-          className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 md:hidden"
-          onClick={() => setIsFiltersModalOpen(false)}
+        <dialog
+          ref={openFiltersDialog}
+          aria-label="Filtros"
+          onCancel={(event) => { event.preventDefault(); setIsFiltersModalOpen(false); }}
+          onClick={(event) => { if (event.target === event.currentTarget) setIsFiltersModalOpen(false); }}
+          className="fixed inset-0 m-0 flex h-dvh w-full max-h-none max-w-none items-end justify-center border-0 bg-transparent p-0 text-gray-900 backdrop:bg-black/50 dark:text-white md:hidden"
         >
-          <div
-            className="bg-white dark:bg-[#1e1e1e] rounded-2xl p-5 max-w-sm w-full border border-gray-200 dark:border-transparent shadow-2xl relative animate-fade-in-up flex flex-col max-h-[85vh]"
-            onClick={(e) => e.stopPropagation()}
-            style={{ animationDuration: '200ms' }}
-          >
-            <FilterModalHeader onClose={() => setIsFiltersModalOpen(false)} />
+          <div className="flex max-h-[calc(100dvh-1rem)] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl motion-safe:animate-fade-in-up dark:bg-dark-bg"
+            style={{ animationDuration: '160ms' }}>
+            <div className="shrink-0 px-4 pt-4">
+              <FilterModalHeader onClose={() => setIsFiltersModalOpen(false)} />
+            </div>
 
-            {/* Contenido desplazable */}
-            <div className="flex-1 overflow-y-auto py-4 space-y-5 custom-scrollbar">
+            <div className="min-h-0 space-y-5 overflow-y-auto overscroll-contain px-4 py-5">
               {mobileFilterContent}
 
-              {/* Sección: Ordenar por */}
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
-                  Ordenar por
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {(customSortOptions || [
-                    { val: 'recientes', label: 'Más Recientes' },
-                    { val: 'antiguos', label: 'Más Antiguos' },
-                    { val: 'az', label: 'Nombre (A-Z)' },
-                    { val: 'za', label: 'Nombre (Z-A)' },
-                    { val: 'mas_vistas', label: 'Más Vistas' },
-                    { val: 'mas_descargas', label: 'Más Descargas' }
-                  ]).map((opt) => (
-                    <button
-                      key={opt.val}
-                      type="button"
-                      onClick={() => setTempOrden(opt.val)}
-                      className={clsx(
-                        "px-3 py-2 rounded-xl text-xs font-semibold transition-all text-left border",
-                        tempOrden === opt.val
-                          ? "bg-primary-500/10 border-primary-500 text-primary-600 dark:text-primary-400 font-bold"
-                          : "border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-                      )}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <label className="block">
+                <span className="mb-2 block text-sm font-semibold">Ordenar por</span>
+                <span className="relative block">
+                  <ArrowUpDown size={17} aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400" />
+                  <select value={tempOrden} onChange={(event) => setTempOrden(event.target.value)}
+                    className="h-11 w-full appearance-none rounded-xl border border-gray-200 bg-gray-50 pl-10 pr-9 text-sm font-medium focus-visible:outline-primary-500 dark:border-transparent dark:bg-[#1D1F23]">
+                    {(customSortOptions || [
+                      { val: 'recientes', label: 'Más recientes' },
+                      { val: 'antiguos', label: 'Más antiguos' },
+                      { val: 'az', label: 'Nombre (A-Z)' },
+                      { val: 'za', label: 'Nombre (Z-A)' },
+                      { val: 'mas_vistas', label: 'Más vistas' },
+                      { val: 'mas_descargas', label: 'Más descargas' }
+                    ]).map((opt) => <option key={opt.val} value={opt.val}>{opt.label}</option>)}
+                  </select>
+                  <ChevronDown size={16} aria-hidden="true" className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400" />
+                </span>
+              </label>
 
-              {/* Sección: Filtrar por tipo */}
               {enableTypeFilter && availableTypes.length > 0 && (
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
-                    {typeFilterLabel}
-                  </label>
-                  <div className="flex flex-col gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => setTempSelectedTypes([])}
-                      className={clsx(
-                        "flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-colors text-left border",
-                        tempSelectedTypes.length === 0
-                          ? "bg-primary-500/10 border-primary-500 text-primary-600 dark:text-primary-400 font-bold"
-                          : "border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-                      )}
-                    >
-                      <div className={clsx("w-4 h-4 rounded border flex items-center justify-center transition-colors shrink-0", tempSelectedTypes.length === 0 ? "bg-primary-500 border-primary-500" : "border-gray-300 dark:border-gray-600")}>
-                        {tempSelectedTypes.length === 0 && <Check size={12} className="text-white" />}
-                      </div>
-                      <span>{allTypesLabel}</span>
-                    </button>
-
-                    {availableTypes.map((type) => {
-                      const isSelected = tempSelectedTypes.includes(type);
+                <fieldset className="min-w-0">
+                  <legend className="mb-2 text-sm font-semibold">{typeFilterLabel}</legend>
+                  <div className="flex flex-wrap gap-2">
+                    {[null, ...availableTypes].map((type) => {
+                      const all = type === null;
+                      const selected = all ? tempSelectedTypes.length === 0 : tempSelectedTypes.includes(type);
                       return (
-                        <button
-                          key={type}
-                          type="button"
-                          onClick={() => {
-                            setTempSelectedTypes(prev =>
-                              prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
-                            );
-                          }}
-                          className={clsx(
-                            "flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-colors text-left border",
-                            isSelected
-                              ? "bg-primary-500/10 border-primary-500 text-primary-600 dark:text-primary-400 font-bold"
-                              : "border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-                          )}
-                        >
-                          <div className={clsx("w-4 h-4 rounded border flex items-center justify-center transition-colors shrink-0", isSelected ? "bg-primary-500 border-primary-500" : "border-gray-300 dark:border-gray-600")}>
-                            {isSelected && <Check size={12} className="text-white" />}
-                          </div>
-                          <span>{capitalizeText(type)}</span>
+                        <button key={type ?? ''} type="button" aria-pressed={selected}
+                          onClick={() => setTempSelectedTypes(prev => {
+                            if (all) return [];
+                            return prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type];
+                          })}
+                          className="inline-flex min-h-10 max-w-full items-center gap-2 rounded-full border border-gray-200 px-3 py-1.5 text-left text-sm font-medium text-gray-700 transition-colors focus-visible:outline-primary-500 aria-pressed:border-primary-300 aria-pressed:bg-primary-50 aria-pressed:text-primary-700 dark:border-gray-700 dark:text-gray-300 dark:aria-pressed:border-primary-500/50 dark:aria-pressed:bg-primary-500/15 dark:aria-pressed:text-primary-300">
+                          <span aria-hidden="true" className={clsx('grid h-4 w-4 shrink-0 place-items-center rounded border',
+                            selected ? 'border-primary-600 bg-primary-600 text-white' : 'border-gray-300 dark:border-gray-600')}>
+                            {selected && <Check size={12} strokeWidth={3} />}
+                          </span>
+                          <span className="min-w-0 break-words">{all ? allTypesLabel : capitalizeText(type)}</span>
                         </button>
                       );
                     })}
                   </div>
-                </div>
+                </fieldset>
               )}
             </div>
 
-            {/* Pie de página con acciones */}
-            <div className="pt-3 border-t border-gray-200 dark:border-gray-800 flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setIsFiltersModalOpen(false)}
-                className="flex-1 py-2.5 px-4 rounded-xl border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-semibold text-sm hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-              >
+            <div className="flex shrink-0 gap-2 border-t border-gray-100 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] dark:border-white/10">
+              <button type="button" onClick={() => setIsFiltersModalOpen(false)}
+                className="h-11 flex-1 rounded-xl bg-gray-100 px-3 text-sm font-semibold text-gray-700 active:bg-gray-200 dark:bg-[#1D1F23] dark:text-gray-200">
                 Cancelar
               </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setOrden(tempOrden);
-                  setSelectedTypes(tempSelectedTypes);
-                  setIsFiltersModalOpen(false);
-                }}
-                className="flex-1 py-2.5 px-4 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-semibold text-sm transition-colors shadow-sm"
-              >
-                Filtrar
+              <button type="button" onClick={() => {
+                setOrden(tempOrden);
+                setSelectedTypes(tempSelectedTypes);
+                setIsFiltersModalOpen(false);
+              }}
+                className="h-11 flex-[2] rounded-xl bg-primary-600 px-3 text-sm font-semibold text-white hover:bg-primary-700 active:bg-primary-800">
+                Aplicar filtros
               </button>
             </div>
           </div>
-        </div>,
+        </dialog>,
         document.body
       )}
     </div>

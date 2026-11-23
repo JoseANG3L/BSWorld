@@ -1,3 +1,4 @@
+import { useOverlayBack } from '../hooks/useOverlayBack';
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Save, Plus, Trash2, Image as ImageIcon, Tag, User, CheckCircle, X, ChevronRight, ChevronLeft, AlertTriangle, PlayCircle, ChevronDown, FileText, Upload, Link as LinkIcon, Lock, Globe, Eye, Sparkles, Check, Gamepad2, Map, Boxes, Package, Wrench, Edit3 } from 'lucide-react';
@@ -400,6 +401,9 @@ const SubirMod = ({ isOpen, onClose }) => {
       setLoading(false); 
     }
   };
+
+  useOverlayBack(isOpen, handleClose);
+  useOverlayBack(isOpen && modal.isOpen, closeModal);
 
   if (!isOpen) return null;
 
@@ -804,7 +808,7 @@ const SubirMod = ({ isOpen, onClose }) => {
               type="button" 
               onClick={handlePrevStep} 
               disabled={currentStep === 0} 
-              className="px-4 py-2 bg-white dark:bg-[#2a2d34] border border-gray-300 dark:border-transparent text-gray-700 dark:text-white rounded-xl text-sm font-bold flex items-center gap-1 shadow-sm disabled:opacity-30 disabled:cursor-not-allowed"
+              className="h-10 px-4 bg-white dark:bg-[#2a2d34] border border-gray-300 dark:border-transparent text-gray-700 dark:text-white rounded-xl text-sm font-bold flex items-center gap-1 shadow-sm disabled:opacity-30 disabled:cursor-not-allowed"
             >
               <ChevronLeft size={16} /> Anterior
             </button>
@@ -814,7 +818,7 @@ const SubirMod = ({ isOpen, onClose }) => {
                 <button 
                   type="button" 
                   onClick={handleNextStep} 
-                  className="px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-bold flex items-center gap-1.5 shadow-sm transition-colors"
+                  className="h-10 px-6 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-bold flex items-center gap-1.5 shadow-sm transition-colors"
                 >
                   Siguiente <ChevronRight size={16} />
                 </button>

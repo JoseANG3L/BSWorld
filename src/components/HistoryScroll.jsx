@@ -1,10 +1,15 @@
+import { trackOverlayRoute } from '../hooks/useOverlayBack';
 import { useLayoutEffect } from 'react';
 import { useLocation, useNavigationType } from 'react-router-dom';
 
 const positions = new Map();
+function visibleAnchor(id) {
+  return Array.from(document.querySelectorAll(`[data-scroll-anchor="${CSS.escape(id)}"]`))
+    .find(node => node.getClientRects().length);
+}
 
 export default function HistoryScroll() {
-  const { key } = useLocation();
+  const { key, pathname } = useLocation();
   const navigation = useNavigationType();
 
   useLayoutEffect(() => {
@@ -14,7 +19,11 @@ export default function HistoryScroll() {
   }, []);
 
   useLayoutEffect(() => {
-    const entry = (navigation === 'POP' && positions.get(key)) || { y: 0, anchor: null };
+    trackOverlayRoute(key);
+
+    const saved = navigation === 'POP' && positions.get(key);
+    const entry = saved || { y: 0, anchor: null };
+    const enteringDetail = !saved && /^\/view\/[^/]+\/?$/.test(pathname);
     const target = entry.y;
     const anchor = entry.anchor;
     let restoring = true;
@@ -28,11 +37,12 @@ export default function HistoryScroll() {
       let top = target;
       if (anchor) {
         // Hay dos listas responsivas. Solo una tiene una posición visible.
-        const matches = document.querySelectorAll(`[data-recommended-id="${CSS.escape(anchor.id)}"]`);
-        const card = Array.from(matches).find(node => node.getClientRects().length);
-        if (card) top = window.scrollY + card.getBoundingClientRect().top - anchor.top;
+        const element = visibleAnchor(anchor.id);
+        if (element) top = window.scrollY + element.getBoundingClientRect().top - anchor.top;
       }
       if (Math.abs(window.scrollY - top) > 1) window.scrollTo({ top, behavior: 'instant' });
+      // El indicador de carga puede estar arriba antes de que exista la galería.
+      if (enteringDetail && !document.querySelector('[data-content-detail]')) return;
       if (!anchor && Math.abs(window.scrollY - target) <= 1) stop();
     };
     // Algunas rutas recuperan sus datos después de montar la pantalla.
@@ -41,7 +51,7 @@ export default function HistoryScroll() {
     observer.observe(document.body);
     const main = document.querySelector('main');
     if (main) observer.observe(main);
-    if (anchor && main) mutations.observe(main, { childList: true, subtree: true });
+    if ((anchor || enteringDetail) && main) mutations.observe(main, { childList: true, subtree: true });
     positions.delete(key);
     positions.set(key, entry);
     if (positions.size > 100) positions.delete(positions.keys().next().value);
@@ -49,11 +59,14 @@ export default function HistoryScroll() {
     const remember = () => { if (!restoring) entry.y = window.scrollY; };
     const cancel = () => { stop(); entry.anchor = null; remember(); };
     const rememberLink = event => {
-      const link = event.target.closest?.('[data-recommended-id]');
+      const link = event.target.closest?.('a[data-scroll-anchor], a[data-return-anchor]');
       if (!link || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+      const id = link.dataset.returnAnchor || link.dataset.scrollAnchor;
+      const element = link.dataset.returnAnchor ? visibleAnchor(id) : link;
+      if (!element) return;
       stop();
       entry.y = window.scrollY;
-      entry.anchor = { id: link.dataset.recommendedId, top: link.getBoundingClientRect().top };
+      entry.anchor = { id, top: element.getBoundingClientRect().top };
     };
     window.addEventListener('click', rememberLink, true);
     if (anchor) document.addEventListener('animationend', restore, true);
@@ -67,6 +80,6 @@ export default function HistoryScroll() {
       inputs.forEach(event => window.removeEventListener(event, cancel));
       window.removeEventListener('scroll', remember);
     };
-  }, [key, navigation]);
+  }, [key, navigation, pathname]);
   return null;
 }

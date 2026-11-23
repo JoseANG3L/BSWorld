@@ -1,3 +1,4 @@
+import { useOverlayBack } from '../hooks/useOverlayBack';
 import { useVisitState } from '../hooks/useVisitState';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Link } from 'react-router-dom';
@@ -556,6 +557,10 @@ const ContentTable = ({
       setShowSuggestions(false);
     }
   };
+
+  useOverlayBack(isFiltersModalOpen, () => setIsFiltersModalOpen(false));
+  useOverlayBack(isBulkModalOpen, () => setIsBulkModalOpen(false));
+  useOverlayBack(isEditModalOpen, closeEditModal);
 
   if (loading) return <LoadingSpinner variant="page" />;
 

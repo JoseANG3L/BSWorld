@@ -1,30 +1,32 @@
+import { useOverlayBack } from '../hooks/useOverlayBack';
 // VERSIÓN CORRECTA - SMART MARKDOWN RENDERER CON BLOQUEO DE SCROLL
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useVisitState } from '../hooks/useVisitState';
+import React, { useState, useEffect, useLayoutEffect, useRef, useMemo, useContext } from 'react';
+import { VisitContext } from '../hooks/useVisitState';
+import { catalogStamp, isCatalogCurrent } from '../services/catalog';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Download, Calendar, Tag, User, Users, ArrowLeft, Globe, Share2, ShieldCheck, MessageCircle, Facebook, Twitter, Eye, Image as ImageIcon, Layers, ChevronLeft, ChevronRight, PlayCircle, Link as LinkIcon, Mail, Send, Check, Copy, Youtube, AlertCircle, Code, Info, Heart, X, Edit, Wrench, Map, Gamepad2, Boxes, Package } from 'lucide-react';
 import { clsx } from 'clsx';
 import { getContentById, registerDownload, registerView, getUserPublicProfile, toggleLike, isLikedByUser, getRecommendedContent } from '../services/api';
 import AvatarRenderer from '../components/AvatarRenderer';
 import { useAuth } from '../context/AuthContext';
-import MarkdownRenderer from '../components/MarkdownRenderer';
+import ContentDescription from '../components/ContentDescription';
 import CommentSection from '../components/CommentSection';
 import { thumbUrl } from '../utils/image';
 import { createPortal } from 'react-dom';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const CATEGORIAS = {
-    complemento: { nombre: 'Complemento', icon: Wrench, color: 'text-blue-600 dark:text-blue-400', bgColor: 'bg-blue-50 dark:bg-blue-900/20', borderColor: 'border-blue-400 dark:border-blue-800' },
-    mapa: { nombre: 'Mapa', icon: Map, color: 'text-emerald-600 dark:text-emerald-400', bgColor: 'bg-emerald-50 dark:bg-emerald-900/20', borderColor: 'border-emerald-400 dark:border-emerald-800' },
-    minijuego: { nombre: 'Minijuego', icon: Gamepad2, color: 'text-amber-600 dark:text-amber-400', bgColor: 'bg-amber-50 dark:bg-amber-900/20', borderColor: 'border-amber-400 dark:border-amber-800' },
-    modpack: { nombre: 'Modpack', icon: Boxes, color: 'text-red-600 dark:text-red-400', bgColor: 'bg-red-50 dark:bg-red-900/20', borderColor: 'border-red-400 dark:border-red-800' },
-    paquete: { nombre: 'Paquete', icon: Package, color: 'text-cyan-600 dark:text-cyan-400', bgColor: 'bg-cyan-50 dark:bg-cyan-900/20', borderColor: 'border-cyan-400 dark:border-cyan-800' },
-    personaje: { nombre: 'Personaje', icon: User, color: 'text-purple-600 dark:text-purple-400', bgColor: 'bg-purple-50 dark:bg-purple-900/20', borderColor: 'border-purple-400 dark:border-purple-800' }
+    complemento: { nombre: 'Complemento', icon: Wrench, color: 'text-blue-600 dark:text-blue-400' },
+    mapa: { nombre: 'Mapa', icon: Map, color: 'text-emerald-600 dark:text-emerald-400' },
+    minijuego: { nombre: 'Minijuego', icon: Gamepad2, color: 'text-amber-600 dark:text-amber-400' },
+    modpack: { nombre: 'Modpack', icon: Boxes, color: 'text-red-600 dark:text-red-400' },
+    paquete: { nombre: 'Paquete', icon: Package, color: 'text-cyan-600 dark:text-cyan-400' },
+    personaje: { nombre: 'Personaje', icon: User, color: 'text-purple-600 dark:text-purple-400' }
 };
 
 
 // --- SUB-COMPONENTE: AVATAR INTELIGENTE DE CREADOR ---
-const SmartCreatorAvatar = ({ creador, className = "w-10 h-10 md:w-11 md:h-11" }) => {
+const SmartCreatorAvatar = ({ creador, className = "w-9 h-9 md:w-10 md:h-10" }) => {
     const [userData, setUserData] = useState(() => ({
         nombre: creador?.nombre || creador?.username || (typeof creador === 'string' ? creador : 'Creador'),
         imagen: creador?.imagen || creador?.avatar || null,
@@ -50,7 +52,7 @@ const SmartCreatorAvatar = ({ creador, className = "w-10 h-10 md:w-11 md:h-11" }
     }, [creador]);
 
     return (
-        <div className={clsx("rounded-full overflow-hidden bg-gray-200 dark:bg-[#1D1F23] border-2 border-white dark:border-[#1e1e1e] relative shrink-0", className)}>
+        <div className={clsx("rounded-full overflow-hidden bg-gray-200 dark:bg-[#1D1F23] relative shrink-0", className)}>
             <AvatarRenderer avatar={userData.imagen} name={userData.nombre} />
         </div>
     );
@@ -108,11 +110,11 @@ const RecommendedItem = ({ content }) => {
     return (
         <Link 
             to={`/view/${content.id}`}
-            data-recommended-id={content.id}
+            data-scroll-anchor={`recommended-${content.id}`}
             className="flex items-center gap-3 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700/30 transition-all group"
         >
             {/* Imagen a la izquierda */}
-            <div className="h-20 aspect-video shrink-0 rounded-lg overflow-hidden bg-gray-200 dark:bg-[#1D1F23]">
+            <div className="h-16 aspect-video shrink-0 rounded-lg overflow-hidden bg-gray-200 dark:bg-[#1D1F23] sm:h-[72px]">
                 <img
                     src={content.imagen || '/default.jpg'}
                     alt={content.titulo}
@@ -207,6 +209,7 @@ const SmartUserRow = ({ user, role = "creator", showRole = true, type = "default
     return (
         type === "list" ? (
             <Link 
+                data-return-anchor="creators"
                 to={profile.nombre ? `/u/${profile.nombre}` : '#'} 
                 className="flex items-center gap-3 group p-2 -mx-2 rounded-xl hover:bg-gray-300 dark:hover:bg-gray-700 transition-all"
             >
@@ -226,26 +229,49 @@ const SmartUserRow = ({ user, role = "creator", showRole = true, type = "default
                 </div>
             </Link>
         ) : (
-            <Link 
-                to={profile.nombre ? `/u/${profile.nombre}` : '#'} 
-                className="flex items-center gap-3 group hover:opacity-80 transition-opacity"
+            <Link
+                data-scroll-anchor="uploader"
+                to={profile.nombre ? `/u/${profile.nombre}` : '#'}
+                className="group flex min-w-0 items-center gap-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
             >
-                <div className="w-10 h-10 shrink-0 rounded-full overflow-hidden relative">
+                <div className="h-7 w-7 shrink-0 overflow-hidden rounded-full">
                     <AvatarRenderer avatar={profile.imagen} name={profile.nombre} />
                 </div>
-
-                <div className="flex flex-col">
-                    <div className="flex items-center gap-1.5">
-                        <p className="text-sm font-bold text-gray-900 dark:text-white transition-colors line-clamp-1">
-                            {profile.nombre}
-                        </p>
-                        {profile.verificado && (
-                            <ShieldCheck size={14} className="text-blue-500 shrink-0" title="Verificado" />
-                        )}
-                    </div>
+                <div className="min-w-0">
+                    <span className="mb-1.5 block text-xs font-medium leading-tight text-gray-500 dark:text-gray-400">Aportado por</span>
+                    <span className="flex min-w-0 items-center gap-1 text-sm font-semibold leading-tight text-gray-900 group-hover:text-primary-700 dark:text-white dark:group-hover:text-primary-400">
+                        <span className="break-all">{profile.nombre}</span>
+                        {profile.verificado && <ShieldCheck size={14} className="shrink-0 text-blue-500" title="Verificado" />}
+                    </span>
                 </div>
+                <ChevronRight size={14} aria-hidden="true" className="ml-auto shrink-0 text-gray-500 group-hover:text-primary-600 motion-safe:transition-transform motion-safe:group-hover:translate-x-0.5 dark:text-gray-400" />
             </Link>
         )
+    );
+};
+
+const ContentCredits = ({ tipo, aporte, className }) => {
+    if (!tipo && !aporte) return null;
+    const category = CATEGORIAS[tipo];
+    const Icon = category?.icon || Tag;
+    return (
+        <section className={className}>
+            <h3 className="mb-2 text-base font-semibold text-gray-900 dark:text-white">Información del contenido</h3>
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,10rem),1fr))] gap-2">
+                {tipo && (
+                    <div className="flex min-w-0 items-center gap-2">
+                        <span className={clsx("grid h-7 w-7 shrink-0 place-items-center", category?.color || "text-gray-600 dark:text-gray-300")}>
+                            <Icon size={15} aria-hidden="true" />
+                        </span>
+                        <div className="min-w-0">
+                            <span className="mb-1.5 block text-xs font-medium leading-tight text-gray-500 dark:text-gray-400">Categoría</span>
+                            <span className="block break-words text-sm font-semibold leading-tight text-gray-900 dark:text-white">{category?.nombre || tipo}</span>
+                        </div>
+                    </div>
+                )}
+                {aporte && <SmartUserRow user={aporte} role="uploader" />}
+            </div>
+        </section>
     );
 };
 
@@ -317,27 +343,46 @@ const DetalleContenido = () => {
 
 const DetalleMod = ({ id, user, authLoading }) => {
     const navigate = useNavigate();
-    const [item, setItem] = useState(null);
+    const visit = useContext(VisitContext);
+    const [restored] = useState(() => {
+        const saved = visit?.get('contentDetail');
+        if (saved?.item.id !== id || saved.stamp.version !== catalogStamp().version) return null;
+        const isPublic = saved.item.estado === 'aceptado' && saved.item.visibilidad === 'publico' && !saved.item.parent_id;
+        return isPublic || isCatalogCurrent(saved.stamp) ? saved : null;
+    });
+    const [fresh] = useState(() => isCatalogCurrent(restored?.stamp));
+    const detailStamp = useRef(restored?.stamp);
+    const [item, setItem] = useState(restored?.item || null);
     const [missing, setMissing] = useState(false);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(!restored);
     const [downloading, setDownloading] = useState(null);
-    const [selectedIndex, setSelectedIndex] = useState(0);
+    const [selectedIndex, setSelectedIndex] = useState(restored?.selectedIndex ?? 0);
     const [mainImgStage, setMainImgStage] = useState(0); // 0 miniatura, 1 original, 2 default
     const [thumbStage, setThumbStage] = useState({}); // por miniatura: 0 miniatura, 1 original, 2 default
     const [copied, setCopied] = useState(false);
-    const [descriptionExpanded, setDescriptionExpanded] = useVisitState('descriptionExpanded', false);
-    const [isLiked, setIsLiked] = useState(false);
-    const [likeLoading, setLikeLoading] = useState(Boolean(user));
+    const [isLiked, setIsLiked] = useState(restored?.liked ?? false);
+    const [likeLoading, setLikeLoading] = useState(Boolean(user) && (!fresh || restored?.liked == null));
     const [showCreatorsModal, setShowCreatorsModal] = useState(false);
     const [showShareModal, setShowShareModal] = useState(false);
     const [showLoginModal, setShowLoginModal] = useState(false);
-    const [recommendedContent, setRecommendedContent] = useState([]);
-    const [loadingRecommended, setLoadingRecommended] = useState(false);
-    const [descriptionOverflow, setDescriptionOverflow] = useState(false);
-    const descriptionRef = useRef(null);
+    const [recommendedContent, setRecommendedContent] = useState(restored?.recommended ?? []);
+    const [loadingRecommended, setLoadingRecommended] = useState(restored?.recommended == null);
+    useOverlayBack(showCreatorsModal, () => setShowCreatorsModal(false));
+    useOverlayBack(showShareModal, () => setShowShareModal(false));
+    useOverlayBack(showLoginModal, () => setShowLoginModal(false));
+
     const activeThumbRef = useRef(null);
     const userId = user?.id;
     const userRole = user?.role;
+
+    useLayoutEffect(() => {
+        if (item) visit?.set('contentDetail', {
+            item, selectedIndex,
+            stamp: detailStamp.current,
+            liked: likeLoading ? null : isLiked,
+            recommended: loadingRecommended ? null : recommendedContent
+        });
+    }, [visit, item, selectedIndex, likeLoading, isLiked, loadingRecommended, recommendedContent]);
 
     useEffect(() => {
         if (missing && !authLoading) navigate('/404', { replace: true });
@@ -356,43 +401,35 @@ const DetalleMod = ({ id, user, authLoading }) => {
         };
     }, [showCreatorsModal, showShareModal, showLoginModal]);
 
-    // 👇 VERIFICAR SI LA DESCRIPCIÓN DESBORDA EL CONTENEDOR
-    useEffect(() => {
-        if (descriptionRef.current && item?.descripcion) {
-            // Pequeño retraso para permitir que el MarkdownRenderer se renderice completamente
-            const timer = setTimeout(() => {
-                if (descriptionRef.current) {
-                    const isOverflowing = descriptionRef.current.scrollHeight > descriptionRef.current.clientHeight;
-                    setDescriptionOverflow(isOverflowing);
-                }
-            }, 100);
-            return () => clearTimeout(timer);
-        }
-    }, [item?.descripcion]);
-
     useEffect(() => {
         let active = true;
         async function fetchData() {
             try {
-                const data = await getContentById(id, userId, userRole);
+                const stamp = fresh ? restored.stamp : catalogStamp();
+                const data = fresh ? restored.item : await getContentById(id, userId, userRole);
                 if (!active) return;
                 if (!data) {
+                    visit?.delete('contentDetail');
+                    setItem(null);
                     setMissing(true);
                     return;
                 }
+                detailStamp.current = stamp;
                 setItem(data);
                 setLoading(false);
 
-                if (userId) {
+                if (userId && (!fresh || restored?.liked == null)) {
                     isLikedByUser(userId, id).then(liked => {
                         if (active) setIsLiked(liked);
                     }).finally(() => { if (active) setLikeLoading(false); });
                 }
 
-                setLoadingRecommended(true);
-                getRecommendedContent(id, data.tipo, data.tags || [], 10).then(recommended => {
-                    if (active) setRecommendedContent(recommended);
-                }).finally(() => { if (active) setLoadingRecommended(false); });
+                if (!fresh || !restored?.recommended) {
+                    setLoadingRecommended(!restored?.recommended);
+                    getRecommendedContent(id, data.tipo, data.tags || [], 10).then(recommended => {
+                        if (active) setRecommendedContent(recommended);
+                    }).finally(() => { if (active) setLoadingRecommended(false); });
+                }
 
                 const viewKey = `viewed_${id}`;
                 if (!sessionStorage.getItem(viewKey)) {
@@ -406,7 +443,7 @@ const DetalleMod = ({ id, user, authLoading }) => {
         }
         fetchData();
         return () => { active = false; };
-    }, [id, userId, userRole]);
+    }, [id, userId, userRole, restored, fresh, visit]);
 
     // Reiniciar etapa de la imagen principal al cambiar de medio
     useEffect(() => { setMainImgStage(0); }, [selectedIndex]);
@@ -450,7 +487,7 @@ const DetalleMod = ({ id, user, authLoading }) => {
         }
     };
 
-    const handleLike = async () => {
+    const handleLike = async (event) => {
         if (!user) {
             setShowLoginModal(true);
             return;
@@ -464,6 +501,15 @@ const DetalleMod = ({ id, user, authLoading }) => {
         const previousLikedState = isLiked;
         const previousLikesCount = item.likes_count || 0;
 
+        if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            const heart = event.currentTarget.querySelector('svg');
+            heart?.animate?.(
+                newLikedState
+                    ? [{ transform: 'scale(0.92)' }, { transform: 'scale(1.22)', offset: 0.45 }, { transform: 'scale(1)' }]
+                    : [{ transform: 'scale(1)' }, { transform: 'scale(0.88)', offset: 0.4 }, { transform: 'scale(1)' }],
+                { duration: newLikedState ? 280 : 180, easing: 'ease-out' }
+            );
+        }
         setIsLiked(newLikedState);
         setItem(prev => ({
             ...prev,
@@ -569,22 +615,22 @@ const DetalleMod = ({ id, user, authLoading }) => {
     if (!item) return null;
 
     return (
-        <div className="max-w-7xl mx-auto w-full flex flex-col gap-2 lg:gap-4 p-2 pb-4 lg:p-4 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
+        <div data-content-detail className={clsx("max-w-7xl mx-auto w-full flex flex-col gap-2 lg:gap-4 p-2 pb-4 lg:p-4", !restored && "animate-fade-in-up")} style={{ animationDuration: '200ms' }}>
 
             <div className="flex flex-col lg:flex-row gap-2 lg:gap-4">
 
                 {/* COLUMNA IZQUIERDA - CONTENIDO PRINCIPAL (MÓVIL: TODAS LAS SECCIONES, DESKTOP: GALERÍA, HEADER, DESCRIPCIÓN, COMENTARIOS) */}
-                <div className="w-full min-w-0 flex flex-col gap-2 md:gap-4">
+                <div className="w-full min-w-0 flex flex-col gap-5 md:gap-6">
 
                     {/* VISOR DE GALERÍA */}
                     <div className="w-full min-w-0 lg:order-1">
-                        <div className="bg-black relative rounded-xl overflow-hidden group">
+                        <div className="aspect-video bg-black relative rounded-xl overflow-hidden group">
                             {youtubeId ? (
                                 <iframe 
                                     key={youtubeId} 
                                     src={`https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=0&rel=0`}
                                     title="YouTube video player" 
-                                    className="w-full aspect-video bg-black" 
+                                    className="block h-full w-full bg-black"
                                     frameBorder="0" 
                                     allowFullScreen
                                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -593,7 +639,7 @@ const DetalleMod = ({ id, user, authLoading }) => {
                                 <video 
                                     src={currentMedia} 
                                     key={currentMedia} 
-                                    className="w-full aspect-video object-contain bg-black" 
+                                    className="block h-full w-full object-contain bg-black"
                                     controls 
                                     muted 
                                     loop 
@@ -602,7 +648,7 @@ const DetalleMod = ({ id, user, authLoading }) => {
                                 <img
                                     src={mainImgStage === 0 ? (thumbUrl(currentMedia, 1280) || '/default.jpg') : (mainImgStage === 1 ? currentMedia : '/default.jpg')}
                                     key={currentMedia}
-                                    className="w-full aspect-video object-cover bg-black transition-opacity duration-300"
+                                    className="block h-full w-full object-cover bg-black transition-opacity duration-300"
                                     style={{ opacity: 0 }}
                                     alt={item.titulo}
                                     loading="lazy"
@@ -690,8 +736,8 @@ const DetalleMod = ({ id, user, authLoading }) => {
                     </div>
 
                     {/* Título, creadores y estadísticas */}
-                    <div className="lg:order-2">
-                        <h1 className="text-md md:text-lg font-bold text-gray-900 dark:text-white mb-3 leading-tight">
+                    <div className="lg:order-2 -mb-2">
+                        <h1 className="text-md md:text-lg font-bold text-gray-900 dark:text-white mb-3 leading-tight -mt-2">
                             {item.titulo}
                         </h1>
                         
@@ -699,6 +745,7 @@ const DetalleMod = ({ id, user, authLoading }) => {
                             
                             <button 
                                 onClick={() => setShowCreatorsModal(true)}
+                                data-scroll-anchor="creators"
                                 className="flex min-w-0 items-center text-left hover:opacity-80 transition-opacity"
                             >
                                 <div className="flex mr-3 relative shrink-0">
@@ -755,9 +802,9 @@ const DetalleMod = ({ id, user, authLoading }) => {
                             </div>
                         </div>
                         <div role="group" aria-label="Estadísticas del contenido"
-                            className="mt-3 grid w-full grid-cols-3 gap-1.5 text-center text-xs font-semibold tabular-nums text-gray-700 dark:text-gray-300 sm:gap-3 sm:text-sm [&>*]:flex [&>*]:min-w-0 [&>*]:flex-col [&>*]:items-center [&>*]:justify-center [&>*]:gap-1 [&>*]:px-1 [&>*]:py-2">
+                            className="mt-2 grid w-full grid-cols-3 gap-1.5 text-center text-sm font-semibold tabular-nums text-gray-700 dark:text-gray-300 sm:gap-3 sm:text-base [&>*]:flex [&>*]:min-w-0 [&>*]:flex-col [&>*]:items-center [&>*]:justify-center [&>*]:gap-1 [&>*]:px-1 [&>*]:py-2">
                             <div>
-                                <span className="inline-flex items-center gap-1 text-xs font-medium">
+                                <span className="inline-flex items-center gap-1 text-sm font-medium sm:text-base">
                                     <Eye size={14} aria-hidden="true" className="text-sky-600 dark:text-sky-400" /> Vistas
                                 </span>
                                 <span>{formatNumber(item.vistas || 0)}</span>
@@ -768,15 +815,18 @@ const DetalleMod = ({ id, user, authLoading }) => {
                                 disabled={likeLoading}
                                 aria-pressed={isLiked}
                                 aria-label={`Me gusta, ${item.likes_count || 0} en total`}
-                                className="group rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-current"
+                                className="group min-h-11 w-full cursor-pointer rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-500 disabled:cursor-wait [&>*]:pointer-events-none"
                             >
-                                <span className="inline-flex items-center gap-1 text-xs font-medium">
-                                    <Heart size={14} aria-hidden="true" className={clsx("text-rose-600 transition-colors group-hover:text-rose-700 dark:text-rose-400 dark:group-hover:text-rose-300", isLiked && "fill-current")} /> Me gusta
+                                <span className="inline-flex items-center gap-1 text-sm font-medium sm:text-base">
+                                    <Heart size={14} aria-hidden="true" className={clsx(
+                                        "origin-center text-rose-600 motion-safe:transition-[fill,transform] motion-safe:duration-150 motion-safe:group-hover:scale-110 motion-safe:group-active:scale-95 dark:text-rose-400",
+                                        isLiked ? "fill-current" : "fill-transparent group-hover:fill-rose-500/15"
+                                    )} /> Me gusta
                                 </span>
                                 <span>{formatNumber(item.likes_count || 0)}</span>
                             </button>
                             <div>
-                                <span className="inline-flex items-center gap-1 text-xs font-medium">
+                                <span className="inline-flex items-center gap-1 text-sm font-medium sm:text-base">
                                     <Calendar size={14} aria-hidden="true" className="text-violet-600 dark:text-violet-400" /> Fecha
                                 </span>
                                 <time dateTime={item.creado}>
@@ -786,75 +836,13 @@ const DetalleMod = ({ id, user, authLoading }) => {
                         </div>
                     </div>
 
-                    {/* DESCRIPCIÓN CON BOTÓN VER MÁS */}
-                    <div className="lg:order-3">
-                        <div className="flex items-center justify-between mb-1">
-                            <h3 className="text-base font-semibold text-gray-900 dark:text-white">
-                                Descripción
-                            </h3>
-                        </div>
-                        <div className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">
-                            <div 
-                                ref={descriptionRef}
-                                className={clsx(
-                                    "transition-all duration-300 overflow-hidden",
-                                    descriptionExpanded ? "" : "max-h-20 select-none"
-                                )}
-                            >
-                                <MarkdownRenderer content={item.descripcion} />
-                            </div>
-                        </div>
-                        
-                        {item?.descripcion && (
-                            <button
-                                onClick={() => setDescriptionExpanded(!descriptionExpanded)}
-                                className="mt-3 mb-1 text-sm font-medium text-primary-600 dark:text-primary-400"
-                            >
-                                {descriptionExpanded ? 'Mostrar menos' : 'Mostrar más'}
-                            </button>
-                        )}
-                    </div>
+                    <ContentDescription description={item.descripcion} />
 
-                    {/* CATEGORÍA (MÓVIL: DESPUÉS DE DESCRIPCIÓN) */}
-                    {item.tipo && (() => {
-                        const categoriaInfo = CATEGORIAS[item.tipo] || { 
-                            nombre: item.tipo || 'Sin categoría', 
-                            icon: null, 
-                            color: 'text-gray-500', 
-                            bgColor: 'bg-gray-50 dark:bg-gray-900/20', 
-                            borderColor: 'border-gray-200 dark:border-gray-800' 
-                        };
-                        const CategoriaIcon = categoriaInfo.icon;
-                        return (
-                            <div className="lg:hidden">
-                                <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-3">
-                                    Categoría
-                                </h4>
-                                <div className="flex flex-wrap gap-2">
-                                    <div className={`flex items-center shadow-sm gap-1.5 px-3 py-2 rounded-full ${categoriaInfo.bgColor} border ${categoriaInfo.borderColor}`}>
-                                        {CategoriaIcon && <CategoriaIcon size={16} className={categoriaInfo.color} />}
-                                        <span className={`text-sm font-semibold tracking-wider ${categoriaInfo.color}`}>
-                                            {categoriaInfo.nombre}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        );
-                    })()}
-                    
-                    {/* CRÉDITOS Y APORTE SEPARADOS (MÓVIL: DESPUÉS DE CATEGORÍA) */}
-                    {item.aporte && (
-                        <div className="lg:hidden">
-                            <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-3">
-                                Aportado por
-                            </h4>
-                            <SmartUserRow user={item.aporte} role="uploader" />
-                        </div>
-                    )}
+                    <ContentCredits tipo={item.tipo} aporte={item.aporte} className="lg:hidden" />
 
                     {/* TARJETA DE DESCARGAS (MÓVIL: DESPUÉS DE APORTADO POR) */}
                     <div className="lg:hidden">
-                        <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center justify-between mb-2.5">
                             <h3 className="text-base font-semibold text-gray-900 dark:text-white">
                                 Descargas
                             </h3>
@@ -907,7 +895,7 @@ const DetalleMod = ({ id, user, authLoading }) => {
                     {/* MODS RECOMENDADOS (MÓVIL: DESPUÉS DE COMENTARIOS) */}
                     {recommendedContent.length > 0 && (
                         <div className="lg:hidden">
-                            <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-4">
+                            <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-3">
                                 También te puede gustar
                             </h4>
                             {loadingRecommended ? (
@@ -926,7 +914,7 @@ const DetalleMod = ({ id, user, authLoading }) => {
                 </div>
 
                 {/* COLUMNA DERECHA (SOLO DESKTOP) */}
-                <div className="hidden lg:block lg:min-w-[420px] xl:min-w-[480px] 2xl:min-w-[500px] space-y-3 md:space-y-4">
+                <div className="hidden lg:block lg:min-w-[420px] xl:min-w-[480px] 2xl:min-w-[500px] space-y-6">
                     
                     {/* TARJETA DE DESCARGAS */}
                     <div>
@@ -975,42 +963,7 @@ const DetalleMod = ({ id, user, authLoading }) => {
                         )}
                     </div>
 
-                    {/* CATEGORÍA */}
-                    {item.tipo && (() => {
-                        const categoriaInfo = CATEGORIAS[item.tipo] || { 
-                            nombre: item.tipo || 'Sin categoría', 
-                            icon: null, 
-                            color: 'text-gray-500', 
-                            bgColor: 'bg-gray-50 dark:bg-gray-900/20', 
-                            borderColor: 'border-gray-200 dark:border-gray-800' 
-                        };
-                        const CategoriaIcon = categoriaInfo.icon;
-                        return (
-                            <div>
-                                <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-3">
-                                    Categoría
-                                </h4>
-                                <div className="flex flex-wrap gap-2">
-                                    <div className={`flex items-center shadow-sm gap-1.5 px-3 py-2 rounded-full ${categoriaInfo.bgColor} border ${categoriaInfo.borderColor}`}>
-                                        {CategoriaIcon && <CategoriaIcon size={16} className={categoriaInfo.color} />}
-                                        <span className={`text-sm font-semibold tracking-wider ${categoriaInfo.color}`}>
-                                            {categoriaInfo.nombre}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        );
-                    })()}
-                    
-                    {/* CRÉDITOS Y APORTE SEPARADOS (COLUMNA DERECHA) */}
-                    {item.aporte && (
-                        <div>
-                            <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-3">
-                                Aportado por
-                            </h4>
-                            <SmartUserRow user={item.aporte} role="uploader" />
-                        </div>
-                    )}
+                    <ContentCredits tipo={item.tipo} aporte={item.aporte} />
 
                     
 

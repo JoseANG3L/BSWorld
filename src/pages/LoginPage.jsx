@@ -1,3 +1,4 @@
+import { leaveOverlayEntry } from '../hooks/useOverlayBack';
 import React, { useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import Login from './Login';
@@ -12,14 +13,14 @@ const LoginPage = () => {
 
   const handleClose = () => {
     setIsOpen(false);
-    setTimeout(() => {
+    leaveOverlayEntry(() => {
       navigate('/', { replace: true });
-    }, 200);
+    });
   };
 
   const handleSuccess = () => {
     setIsOpen(false);
-    navigate(location.state?.from || '/', { replace: true });
+    leaveOverlayEntry(() => navigate(location.state?.from || '/', { replace: true }));
   };
 
   return (

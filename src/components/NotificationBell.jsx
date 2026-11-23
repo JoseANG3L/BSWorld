@@ -1,3 +1,4 @@
+import { useOverlayBack } from '../hooks/useOverlayBack';
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Bell, ChevronRight, Inbox, X } from 'lucide-react';
@@ -16,7 +17,7 @@ import {
 const PANEL_LIMIT = 8;
 
 const BellSkeleton = () => (
-  <div className="divide-y divide-gray-100 dark:divide-white/[0.04]">
+  <div className="space-y-1">
     {[0, 1, 2].map((i) => (
       <div key={i} className="flex items-start gap-2.5 px-2 py-2 sm:gap-3 sm:px-3.5 sm:py-3">
         <div className="h-9 w-9 shrink-0 animate-pulse rounded-full bg-gray-200 dark:bg-white/10" />
@@ -142,6 +143,8 @@ const NotificationBell = ({ variant = 'default' }) => {
     if (notif.modid) navigate(`/view/${notif.modid}`);
   };
 
+  useOverlayBack(isOpen && Boolean(user), () => setIsOpen(false));
+
   if (!user) return null;
 
   return (
@@ -173,11 +176,11 @@ const NotificationBell = ({ variant = 'default' }) => {
       {/* PANEL */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-[70] flex h-dvh w-full flex-col overscroll-contain overflow-hidden bg-white shadow-lg shadow-black/5 animate-fade-in-up dark:bg-[#1c1d20] sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:mt-3 sm:h-auto sm:max-h-none sm:w-[min(23rem,calc(100vw-1.5rem))] sm:rounded-2xl sm:border sm:border-gray-200 sm:shadow-2xl sm:shadow-black/10 sm:dark:border-white/[0.08]"
+          className="fixed inset-0 z-[70] flex h-dvh w-full flex-col overscroll-contain overflow-hidden bg-white shadow-lg shadow-black/5 animate-fade-in-up dark:bg-dark-bg sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:mt-3 sm:h-auto sm:max-h-none sm:w-[min(23rem,calc(100vw-1.5rem))] sm:rounded-2xl sm:border sm:border-gray-200 sm:shadow-2xl sm:shadow-black/10 sm:dark:border-white/[0.08]"
           style={{ animationDuration: '180ms' }}
         >
           {/* CABECERA */}
-          <div className="flex items-center justify-between gap-2 border-b border-gray-100 bg-gray-50/70 px-3 py-1.5 dark:border-white/[0.06] dark:bg-white/[0.02] sm:px-3.5 sm:py-3">
+          <div className="flex items-center justify-between gap-2 border-b border-gray-100 bg-gray-50/70 px-3 py-1.5 dark:border-white/[0.06] dark:bg-inherit sm:px-3.5 sm:py-3">
             <div className="min-w-0">
               <PageHeader
                 title="Notificaciones"
@@ -206,7 +209,7 @@ const NotificationBell = ({ variant = 'default' }) => {
             {loading ? (
               <BellSkeleton />
             ) : items.length > 0 ? (
-              <div className="divide-y divide-gray-100 dark:divide-white/[0.04]">
+              <div className="space-y-1">
                 {items.map((notif) => (
                   <NotificationCard
                     key={notif.id}
@@ -238,7 +241,7 @@ const NotificationBell = ({ variant = 'default' }) => {
           <Link
             to="/notificaciones"
             onClick={() => setIsOpen(false)}
-            className="flex items-center justify-center gap-1 border-t border-gray-100 bg-gray-50/50 px-2.5 py-3.5 text-sm font-bold text-primary-600 transition-colors hover:bg-primary-50 dark:border-white/[0.06] dark:bg-white/[0.01] dark:text-primary-400 dark:hover:bg-primary-500/10 sm:gap-1.5 sm:px-4 sm:py-2.5 sm:text-xs"
+            className="flex items-center justify-center gap-1 border-t border-gray-100 bg-gray-50/50 px-2.5 py-3.5 text-sm font-bold text-primary-600 transition-colors hover:bg-primary-50 dark:border-white/[0.06] dark:bg-inherit dark:text-primary-400 dark:hover:bg-primary-500/10 sm:gap-1.5 sm:px-4 sm:py-2.5 sm:text-xs"
           >
             Ver todas las notificaciones
             <ChevronRight size={13} />

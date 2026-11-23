@@ -1,3 +1,4 @@
+import { useOverlayBack } from '../hooks/useOverlayBack';
 import React, { useState, useEffect, useRef } from 'react';
 import { getAllUsers, getForumPosts, createForumPost, updateForumPost, deleteForumPost, likeForumPost, getForumPostLikes, getForumReplies, getForumPostById } from '../services/api';
 import CreatorCard from '../components/CreatorCard';
@@ -18,6 +19,8 @@ const ForumSection = () => {
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  useOverlayBack(showCreateModal, () => setShowCreateModal(false));
+
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [loginInitialRegister, setLoginInitialRegister] = useState(false);
   

@@ -1,3 +1,4 @@
+import { useOverlayBack } from '../hooks/useOverlayBack';
 import { useVisitState } from '../hooks/useVisitState';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
@@ -225,6 +226,8 @@ const ProfileContent = ({ username, currentUser }) => {
 
     return resultado;
   }, [content, likedContent, activeTab, busqueda, orden, selectedTypes]);
+
+  useOverlayBack(isFiltersModalOpen, () => setIsFiltersModalOpen(false));
 
   if (loading) return <LoadingSpinner variant="page" />;
 

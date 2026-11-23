@@ -1,3 +1,4 @@
+import { useOverlayBack } from '../hooks/useOverlayBack';
 import { useVisitState } from '../hooks/useVisitState';
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
@@ -22,6 +23,8 @@ const Resultados = () => {
   const [attempt, setAttempt] = useState(0);
   const [activeTab, setActiveTab] = useVisitState('activeTab', 'contenido');
   const [isEmptyFilterOpen, setIsEmptyFilterOpen] = useState(false);
+
+  useOverlayBack(isEmptyFilterOpen, () => setIsEmptyFilterOpen(false));
 
   useEffect(() => {
     const version = catalogStamp();

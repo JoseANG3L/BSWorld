@@ -17,7 +17,7 @@ const PageHeader = ({
     className
   )}>
     <span className={clsx(
-      'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-white shadow-sm',
+      'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-white shadow-sm',
       iconContainerClassName,
       gradientClass
     )}>

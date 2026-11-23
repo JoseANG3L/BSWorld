@@ -1,3 +1,4 @@
+import { useOverlayBack } from '../hooks/useOverlayBack';
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Download, ChevronDown, AlertCircle, Eye, User, ShieldCheck, ExternalLink, Heart, Wrench, Map, Gamepad2, Boxes, Package, X, MoreVertical, Share2, Edit3, Trash2 } from 'lucide-react';
@@ -547,6 +548,8 @@ const Card = ({
   };
   const CategoriaIcon = categoriaInfo.icon;
 
+  useOverlayBack(showCreatorsModal, () => setShowCreatorsModal(false));
+
   if (isDeleted) return null;
 
   return (
@@ -616,7 +619,7 @@ const Card = ({
             >
               <summary
                 aria-label={`Opciones de ${titulo || 'contenido'}`}
-                className="flex cursor-pointer list-none rounded-lg px-0 py-1 -mr-1 text-gray-500 transition-colors hover:text-gray-800 dark:text-gray-400 dark:hover:text-white [&::-webkit-details-marker]:hidden"
+                className="flex cursor-pointer list-none rounded-lg px-1 py-1 -mr-1 text-gray-500 transition-colors hover:text-gray-800 dark:text-gray-400 dark:hover:text-white [&::-webkit-details-marker]:hidden"
               >
                 <MoreVertical size={20} />
               </summary>

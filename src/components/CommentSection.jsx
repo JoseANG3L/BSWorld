@@ -1,6 +1,9 @@
+import { useOverlayBack } from '../hooks/useOverlayBack';
+import { useVisitState } from '../hooks/useVisitState';
+import { catalogStamp, isCatalogCurrent } from '../services/catalog';
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { MessageSquare, Send, Trash2, Edit3, LogIn, X, Reply, Check, Heart, ChevronDown, ChevronUp, Link as LinkIcon, User as UserIcon } from 'lucide-react';
+import { SendHorizontal, Trash2, Edit3, LogIn, X, Reply, Check, Heart, ChevronDown, ChevronRight, ChevronUp, Link as LinkIcon, User as UserIcon } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -11,13 +14,68 @@ import {
   deleteComment
 } from '../services/api';
 import AvatarRenderer from './AvatarRenderer';
+import CardActionsMenu from './CardActionsMenu';
 import RichText from './RichText';
 import { createPortal } from 'react-dom';
 import LoadingSpinner from './LoadingSpinner';
 
+const commentInputStyle = "rounded-lg border-0 bg-gray-100 py-2 text-sm text-gray-800 outline-none transition-colors focus:bg-primary-50 dark:bg-[#1D1F23] dark:text-gray-200 dark:focus:bg-gray-800";
+
+const SendCommentButton = ({ label, disabled, loading = false }) => (
+  <button type="submit" aria-label={label} disabled={disabled}
+    className="absolute inset-y-0 right-0 flex w-10 items-center justify-center rounded-lg bg-transparent text-primary-600 hover:text-primary-700 focus-visible:outline-primary-500 disabled:cursor-not-allowed disabled:text-gray-400 dark:text-primary-400 dark:hover:text-primary-300 dark:disabled:text-gray-500">
+    {loading ? <LoadingSpinner variant="inline" size={18} /> : <SendHorizontal size={20} strokeWidth={2} aria-hidden="true" />}
+  </button>
+);
+
 const openDialog = (dialog) => {
   if (dialog && !dialog.open) dialog.showModal();
 };
+
+const getRelativeTime = (dateString) => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return 'ahora mismo';
+  if (diffMins < 60) return `hace ${diffMins} min`;
+  if (diffHours < 24) return `hace ${diffHours} h`;
+  if (diffDays < 7) return `hace ${diffDays} d`;
+  return date.toLocaleDateString('es-ES', { month: 'short', day: 'numeric' });
+};
+
+const CommentAuthor = ({ comment, isAuthor }) => (
+  <div className="flex items-center gap-3">
+    <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 bg-gray-200 dark:bg-[#1D1F23]">
+      <AvatarRenderer avatar={comment.users?.avatar} name={comment.users?.username} />
+    </div>
+    <div className="flex flex-col">
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-semibold text-gray-900 dark:text-white">
+          {comment.users?.username || "Usuario"}
+        </span>
+        {isAuthor && (
+          <span className="px-1.5 py-0.5 text-[10px] font-bold bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 rounded">
+            Autor
+          </span>
+        )}
+      </div>
+      <span className="text-[11px] text-gray-500 dark:text-gray-400">
+        {getRelativeTime(comment.created_at)}
+      </span>
+    </div>
+  </div>
+);
+
+const CommentText = ({ text }) => (
+  <p className="break-words whitespace-pre-wrap text-sm leading-relaxed text-gray-700 dark:text-gray-300">
+    <RichText text={text} />
+  </p>
+);
+
 
 const CommentCard = ({ comment, contentId, onCommentMutated, isReply = false }) => {
   const { user } = useAuth();
@@ -32,7 +90,9 @@ const CommentCard = ({ comment, contentId, onCommentMutated, isReply = false }) 
   const [likesCount, setLikesCount] = useState(0);
   const [showLoginModal, setShowLoginModal] = useState(false);
 
-  const isAuthor = user?.id === comment.user_id;
+  useOverlayBack(showLoginModal, () => setShowLoginModal(false));
+
+  const isAuthor = Boolean(user?.id) && user.id === comment.user_id;
 
   // Cargar respuestas cuando se habilite el visor de respuestas
   useEffect(() => {
@@ -91,22 +151,6 @@ const CommentCard = ({ comment, contentId, onCommentMutated, isReply = false }) 
     }
   };
 
-  const getRelativeTime = (dateString) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now - date;
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return 'ahora mismo';
-    if (diffMins < 60) return `hace ${diffMins} min`;
-    if (diffHours < 24) return `hace ${diffHours} h`;
-    if (diffDays < 7) return `hace ${diffDays} d`;
-    return date.toLocaleDateString('es-ES', { month: 'short', day: 'numeric' });
-  };
-
-  const formattedDate = getRelativeTime(comment.created_at);
   const hasReplies = comment.replies_count > 0;
 
   return (
@@ -117,52 +161,24 @@ const CommentCard = ({ comment, contentId, onCommentMutated, isReply = false }) 
       )}
     >
       <div className="flex items-start justify-between gap-3">
-        {/* Encabezado de Usuario */}
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 bg-gray-200 dark:bg-[#1D1F23]">
-            <AvatarRenderer avatar={comment.users?.avatar} name={comment.users?.username} />
-          </div>
-          <div className="flex flex-col">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                {comment.users?.username || "Usuario"}
-              </span>
-              {isAuthor && (
-                <span className="px-1.5 py-0.5 text-[10px] font-bold bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 rounded">
-                  Autor
-                </span>
-              )}
-            </div>
-            <span className="text-[11px] text-gray-500 dark:text-gray-400">
-              {formattedDate}
-            </span>
-          </div>
-        </div>
+        <CommentAuthor comment={comment} isAuthor={isAuthor} />
 
-        {/* Acciones de Autor */}
-        <div className="flex items-center gap-1">
-          {isAuthor && !isEditing && (
-            <>
-              <button onClick={() => setIsEditing(true)} className="p-1.5 text-gray-400 hover:text-primary-600 rounded transition-colors" title="Editar">
-                <Edit3 size={14} />
-              </button>
-              <button onClick={handleDelete} className="p-1.5 text-gray-400 hover:text-red-600 rounded transition-colors" title="Eliminar">
-                <Trash2 size={14} />
-              </button>
-            </>
-          )}
-        </div>
+        {isAuthor && !isEditing && (
+          <CardActionsMenu label="Opciones del comentario" actions={[
+            { label: 'Editar', icon: Edit3, onSelect: () => { setEditText(comment.text); setIsEditing(true); } },
+            { label: 'Eliminar', icon: Trash2, onSelect: handleDelete, destructive: true }
+          ]} />
+        )}
       </div>
 
       {/* Cuerpo del Mensaje */}
-      <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
-        {isEditing ? (
+      {isEditing ? (
           <form onSubmit={handleUpdate} className="flex gap-2">
             <input 
               type="text" 
               value={editText} 
               onChange={(e) => setEditText(e.target.value)} 
-              className="flex-1 px-3 py-2 text-sm bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:border-primary-500 dark:text-white" 
+              className={clsx(commentInputStyle, "min-w-0 flex-1 px-3")}
               required 
               autoFocus
             />
@@ -174,9 +190,8 @@ const CommentCard = ({ comment, contentId, onCommentMutated, isReply = false }) 
             </button>
           </form>
         ) : (
-          <p><RichText text={comment.text} /></p>
-        )}
-      </div>
+          <CommentText text={comment.text} />
+      )}
 
       {/* Botonera inferior / Likes y Respuestas */}
       {!isEditing && (
@@ -250,22 +265,11 @@ const CommentCard = ({ comment, contentId, onCommentMutated, isReply = false }) 
             placeholder="Escribe una respuesta..." 
             value={replyText} 
             onChange={(e) => setReplyText(e.target.value)} 
-            className="w-full pl-3 pr-10 py-2 text-sm bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:border-primary-500 dark:text-white" 
+            className={clsx(commentInputStyle, "w-full pl-3 pr-10")}
             required 
             autoFocus
           />
-          <button 
-            type="submit" 
-            disabled={!replyText.trim()}
-            className={clsx(
-              "absolute right-1 top-1/2 -translate-y-1/2 p-1.5 rounded-md transition-colors flex items-center justify-center",
-              !replyText.trim()
-                ? "bg-gray-300 dark:bg-gray-700 text-gray-500 cursor-not-allowed"
-                : "bg-primary-600 hover:bg-primary-700 text-white"
-            )}
-          >
-            <Send size={14} />
-          </button>
+          <SendCommentButton label="Enviar respuesta" disabled={!replyText.trim()} />
         </form>
       )}
 
@@ -344,11 +348,15 @@ const CommentCard = ({ comment, contentId, onCommentMutated, isReply = false }) 
 
 const CommentSection = ({ contentId }) => {
   const { user } = useAuth();
-  const [comments, setComments] = useState([]);
+  const [savedComments, setSavedComments] = useVisitState('contentComments', null);
+  const comments = savedComments?.data ?? [];
+  const [restored] = useState(() => isCatalogCurrent(savedComments?.stamp));
   const [commentText, setCommentText] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!savedComments);
   const [submitting, setSubmitting] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  useOverlayBack(isOpen, () => setIsOpen(false));
+
   const triggerRef = useRef(null);
   const featuredComment = comments.reduce((best, comment) =>
     !best || comment.replies_count > best.replies_count ? comment : best, null);
@@ -367,7 +375,7 @@ const CommentSection = ({ contentId }) => {
   const loadComments = async () => {
     try {
       const data = await getCommentsByContent(contentId);
-      setComments(data);
+      setSavedComments({ data, stamp: catalogStamp() });
     } catch (err) {
       console.error(err);
     } finally {
@@ -376,8 +384,8 @@ const CommentSection = ({ contentId }) => {
   };
 
   useEffect(() => {
-    if (contentId) loadComments();
-  }, [contentId]);
+    if (contentId && !restored) loadComments();
+  }, [contentId, restored]);
 
   const handleCreateComment = async (e) => {
     e.preventDefault();
@@ -396,26 +404,25 @@ const CommentSection = ({ contentId }) => {
 
   return (
     <>
+      <h3 id="comments-preview-title" className="mb-2 text-base font-semibold text-gray-900 dark:text-white">
+        Comentarios{!loading && ` (${comments.length})`}
+      </h3>
+      <section aria-labelledby="comments-preview-title" className="relative flex min-h-11 flex-row-reverse items-center gap-2 rounded-xl bg-white px-3 py-2 dark:bg-[#1e1e1e]">
       <button ref={triggerRef} type="button" aria-haspopup="dialog" aria-expanded={isOpen}
+        aria-label={loading ? 'Abrir comentarios' : `Abrir comentarios (${comments.length})`}
         onClick={() => setIsOpen(true)}
-        className="flex w-full items-center gap-2 py-2 text-left font-semibold text-gray-900 hover:text-primary-600 dark:text-white dark:hover:text-primary-400">
-        <MessageSquare size={19} />
-        Ver comentarios{!loading && ` (${comments.length})`}
+        className="group flex shrink-0 items-center gap-1.5 after:absolute after:inset-0 after:rounded-xl focus-visible:outline-none focus-visible:after:outline focus-visible:after:outline-2 focus-visible:after:outline-primary-500">
+        <ChevronRight size={16} aria-hidden="true" className="ml-auto shrink-0 text-gray-500 group-hover:text-primary-600 motion-safe:transition-transform motion-safe:group-hover:translate-x-0.5 dark:text-gray-400 dark:group-hover:text-primary-400" />
       </button>
       {!loading && (
-        <div className="rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-[#1e1e1e]">
+        <div className="min-w-0 flex-1 [&_a]:relative [&_a]:z-10">
           {featuredComment ? (
-            <div className="flex items-start gap-2">
+            <div className="flex items-start gap-2.5">
               <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full bg-gray-200 dark:bg-[#1D1F23]">
                 <AvatarRenderer avatar={featuredComment.users?.avatar} name={featuredComment.users?.username} />
               </div>
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                  {featuredComment.users?.username || 'Usuario'}
-                </p>
-                <div className="break-words whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300">
-                  <RichText text={featuredComment.text} />
-                </div>
+              <div className="min-w-0 self-center">
+                <CommentText text={featuredComment.text} />
               </div>
             </div>
           ) : (
@@ -425,12 +432,12 @@ const CommentSection = ({ contentId }) => {
       )}
       {isOpen && createPortal(
         <dialog ref={openDialog} aria-labelledby="comments-heading" onCancel={() => setIsOpen(false)}
-          className="fixed inset-0 m-0 h-dvh w-full max-h-none max-w-none overflow-hidden bg-white p-0 text-gray-900 dark:bg-[#141414] dark:text-white">
+          className="fixed inset-0 m-0 h-dvh w-full max-h-none max-w-none overflow-hidden bg-white p-0 text-gray-900 dark:bg-dark-bg dark:text-white">
           <div className="mx-auto flex h-full w-full max-w-3xl flex-col">
-            <header className="flex shrink-0 items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-800">
-              <h2 id="comments-heading" className="text-lg font-semibold">Comentarios{!loading && ` (${comments.length})`}</h2>
+            <header className="flex shrink-0 items-center justify-between gap-2 border-b border-gray-100 bg-gray-50/70 px-3 py-1.5 dark:border-white/[0.06] dark:bg-transparent sm:border-gray-200 sm:bg-transparent sm:px-4 sm:py-3 dark:sm:border-gray-800">
+              <h2 id="comments-heading" className="flex min-h-9 items-center text-base font-bold sm:min-h-0 sm:text-lg sm:font-semibold">Comentarios{!loading && ` (${comments.length})`}</h2>
               <button type="button" aria-label="Cerrar comentarios" onClick={() => setIsOpen(false)}
-                className="rounded-full p-2 hover:bg-gray-100 dark:hover:bg-gray-800"><X size={22} /></button>
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-gray-500 transition-colors hover:bg-gray-200 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white sm:h-auto sm:w-auto sm:p-2"><X size={22} /></button>
             </header>
             <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain p-4">
               {/* Caja de Comentarios Principal */}
@@ -446,25 +453,10 @@ const CommentSection = ({ contentId }) => {
                       value={commentText} 
                       onChange={(e) => setCommentText(e.target.value)} 
                       disabled={submitting}
-                      className="w-full pl-3 pr-10 py-2 text-sm rounded-lg bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-gray-700 outline-none text-gray-800 dark:text-gray-200 focus:border-primary-500 dark:focus:border-primary-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className={clsx(commentInputStyle, "w-full pl-3 pr-10 disabled:opacity-50 disabled:cursor-not-allowed")}
                       required
                     />
-                    <button 
-                      type="submit" 
-                      disabled={submitting || !commentText.trim()}
-                      className={clsx(
-                        "absolute right-1 top-1/2 -translate-y-1/2 p-1.5 rounded-md transition-colors flex items-center justify-center",
-                        submitting || !commentText.trim()
-                          ? "bg-gray-300 dark:bg-gray-700 text-gray-500 cursor-not-allowed"
-                          : "bg-primary-600 hover:bg-primary-700 text-white"
-                      )}
-                    >
-                      {submitting ? (
-                        <LoadingSpinner variant="inline" size={17} />
-                      ) : (
-                        <Send size={17} />
-                      )}
-                    </button>
+                    <SendCommentButton label="Enviar comentario" disabled={submitting || !commentText.trim()} loading={submitting} />
                   </div>
                 </form>
               ) : (
@@ -478,7 +470,7 @@ const CommentSection = ({ contentId }) => {
                       type="text" 
                       disabled 
                       placeholder="Inicia sesión para comentar" 
-                      className="w-full pl-3 py-2 text-sm rounded-lg bg-gray-100 dark:bg-[#1D1F23]/60 border border-gray-200 dark:border-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed select-none placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                      className="w-full pl-3 py-2 text-sm rounded-lg bg-gray-100 dark:bg-[#1D1F23]/60 border-0 text-gray-400 dark:text-gray-500 cursor-not-allowed select-none placeholder:text-gray-400 dark:placeholder:text-gray-500"
                     />
                     <Link 
                       to="/login" 
@@ -518,6 +510,7 @@ const CommentSection = ({ contentId }) => {
         </dialog>,
         document.body
       )}
+      </section>
     </>
   );
 };

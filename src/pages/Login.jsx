@@ -1,3 +1,4 @@
+import { useOverlayBack } from '../hooks/useOverlayBack';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -153,6 +154,8 @@ const Login = ({ isOpen = true, onClose, onSuccess, initialRegister = false }) =
       setLoading(false);
     }
   };
+
+  useOverlayBack(isOpen, handleClose);
 
   if (!isOpen) return null;
 

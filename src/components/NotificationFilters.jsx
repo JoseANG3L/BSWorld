@@ -42,8 +42,7 @@ const NotificationFilters = ({
   onDateFilterChange,
   searchTerm,
   onSearchChange,
-  searchRef,
-  className
+  searchRef
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
@@ -83,7 +82,7 @@ const NotificationFilters = ({
   );
 
   return (
-    <div className={clsx('mb-3 flex min-w-0 items-center gap-1 lg:mb-0', className)}>
+    <div className="flex min-w-0 flex-1 items-center gap-1 md:gap-3">
       <div className="relative min-w-0 flex-1">
         <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
         <input
@@ -93,7 +92,10 @@ const NotificationFilters = ({
           placeholder="Buscar notificaciones"
           value={searchTerm}
           onChange={(event) => onSearchChange(event.target.value)}
-          className="h-10 w-full rounded-xl border border-gray-300 bg-white pl-9 pr-6 text-sm text-gray-700 outline-none transition-all placeholder:text-gray-400 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 dark:border-transparent dark:bg-[#1D1F23] dark:text-gray-200"
+          className={clsx(
+            'block h-10 w-full rounded-xl border border-gray-300 bg-white pl-9 text-sm text-gray-700 outline-none transition-all placeholder:text-gray-400 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 dark:border-transparent dark:bg-[#1D1F23] dark:text-gray-200',
+            searchTerm ? 'pr-10' : 'pr-2'
+          )}
         />
         {searchTerm && (
           <button
@@ -108,7 +110,7 @@ const NotificationFilters = ({
         )}
       </div>
 
-      <div className="relative sm:hidden" ref={containerRef}>
+      <div className="shrink-0 lg:hidden" ref={containerRef}>
         <button
           type="button"
           onClick={() => setIsOpen((open) => !open)}
@@ -127,17 +129,17 @@ const NotificationFilters = ({
           {hasActiveFilter && <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-primary-500" />}
         </button>
         {isOpen && (
-          <div className="absolute right-0 top-full z-30 mt-1.5 flex w-[min(19rem,calc(100vw-1rem))] flex-col gap-2 rounded-xl border border-gray-300 bg-white p-2 shadow-xl dark:border-transparent dark:bg-[#1D1F23]">
+          <div className="absolute right-0 top-full z-30 mt-1.5 flex w-full max-w-xs flex-col gap-2 rounded-xl border border-gray-300 bg-white p-2 shadow-xl dark:border-transparent dark:bg-[#1D1F23]">
             {statusSelect('notification-filter-mobile')}
             {dateSelect('notification-date-filter-mobile')}
           </div>
         )}
       </div>
 
-      <div className="hidden w-40 shrink-0 sm:block">
+      <div className="hidden w-40 shrink-0 lg:block">
         {statusSelect('notification-filter-desktop')}
       </div>
-      <div className="hidden w-40 shrink-0 sm:block">
+      <div className="hidden w-48 shrink-0 lg:block">
         {dateSelect('notification-date-filter-desktop')}
       </div>
     </div>

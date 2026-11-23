@@ -1,3 +1,4 @@
+import { leaveOverlayEntry } from '../hooks/useOverlayBack';
 import React, { useState } from 'react';
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import SubirMod from './SubirMod';
@@ -12,9 +13,9 @@ const SubirModPage = () => {
 
   const handleClose = () => {
     setIsOpen(false);
-    setTimeout(() => {
+    leaveOverlayEntry(() => {
       navigate(location.state?.returnTo || '/', { replace: true });
-    }, 200);
+    });
   };
 
   return <SubirMod isOpen={isOpen} onClose={handleClose} editId={editId} />;
