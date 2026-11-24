@@ -10,7 +10,7 @@ const FilterModalHeader = ({ onClose }) => (
     <button
       type="button"
       onClick={onClose}
-      className="rounded-lg p-1 text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-gray-200"
+      className="grid h-10 w-10 place-items-center rounded-full bg-gray-100 text-gray-600 transition-colors hover:bg-gray-200 dark:bg-white/5 dark:text-gray-300"
       aria-label="Cerrar filtros"
     >
       <X size={20} />

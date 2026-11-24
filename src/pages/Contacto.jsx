@@ -61,7 +61,7 @@ const InputGroup = ({ icon: Icon, ...props }) => (
     </div>
     <input 
       {...props}
-      className="w-full pl-12 pr-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all dark:text-white placeholder:text-gray-400"
+      className="w-full pl-12 pr-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-300 dark:border-gray-700 outline-none transition-all dark:text-white placeholder:text-gray-400"
     />
   </div>
 );
@@ -134,7 +134,7 @@ const Contacto = () => {
                     <div className="absolute left-4 top-3.5 text-gray-400">
                         <HelpCircle size={20} />
                     </div>
-                    <select className="w-full pl-12 pr-4 py-3 rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all dark:text-white cursor-pointer appearance-none">
+                    <select className="w-full pl-12 pr-4 py-3 rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-300 dark:border-gray-700 outline-none transition-all dark:text-white cursor-pointer appearance-none">
                         <option>Soporte Técnico</option>
                         <option>Reportar un Bug</option>
                         <option>Subir mi Mod</option>
@@ -151,7 +151,7 @@ const Contacto = () => {
                     <textarea 
                         rows="5" required 
                         placeholder="Cuéntanos los detalles..." 
-                        className="w-full pl-12 pr-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all resize-none dark:text-white placeholder:text-gray-400"
+                        className="w-full pl-12 pr-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 outline-none transition-all resize-none dark:text-white placeholder:text-gray-400"
                     ></textarea>
                 </div>
 

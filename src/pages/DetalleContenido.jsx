@@ -1,17 +1,22 @@
-import { useOverlayBack } from '../hooks/useOverlayBack';
+import { leaveOverlayEntry, useOverlayBack } from '../hooks/useOverlayBack';
 // VERSIÓN CORRECTA - SMART MARKDOWN RENDERER CON BLOQUEO DE SCROLL
 import React, { useState, useEffect, useLayoutEffect, useRef, useMemo, useContext } from 'react';
 import { VisitContext } from '../hooks/useVisitState';
 import { catalogStamp, isCatalogCurrent } from '../services/catalog';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Download, Calendar, Tag, User, Users, ArrowLeft, Globe, Share2, ShieldCheck, MessageCircle, Facebook, Twitter, Eye, Image as ImageIcon, Layers, ChevronLeft, ChevronRight, PlayCircle, Link as LinkIcon, Mail, Send, Check, Copy, Youtube, AlertCircle, Code, Info, Heart, X, Edit, Wrench, Map, Gamepad2, Boxes, Package } from 'lucide-react';
+import { Download, Calendar, Tag, User, Users, ArrowLeft, Globe, Share2, ShieldCheck, MessageCircle, Facebook, Twitter, Eye, Image as ImageIcon, Layers, ChevronLeft, ChevronRight, PlayCircle, Link as LinkIcon, Mail, Send, Check, Copy, Youtube, AlertCircle, Code, Info, Heart, X, Edit, Trash2, Wrench, Map, Gamepad2, Boxes, Package } from 'lucide-react';
 import { clsx } from 'clsx';
-import { getContentById, registerDownload, registerView, getUserPublicProfile, toggleLike, isLikedByUser, getRecommendedContent } from '../services/api';
+import { deleteContent, getContentById, registerDownload, registerView, getUserPublicProfile, toggleLike, isLikedByUser, getRecommendedContent } from '../services/api';
 import AvatarRenderer from '../components/AvatarRenderer';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../hooks/useToast';
+import { canManageContent } from '../utils/contentPermissions';
+import CardActionsMenu from '../components/CardActionsMenu';
+import Modal from '../components/Modal';
 import ContentDescription from '../components/ContentDescription';
 import CommentSection from '../components/CommentSection';
-import { thumbUrl } from '../utils/image';
+import { thumbnailImageSrc, thumbUrl } from '../utils/image';
+import YouTubePreview from '../components/YouTubePreview';
 import { createPortal } from 'react-dom';
 import LoadingSpinner from '../components/LoadingSpinner';
 
@@ -343,6 +348,7 @@ const DetalleContenido = () => {
 
 const DetalleMod = ({ id, user, authLoading }) => {
     const navigate = useNavigate();
+    const { showToast } = useToast();
     const visit = useContext(VisitContext);
     const [restored] = useState(() => {
         const saved = visit?.get('contentDetail');
@@ -364,6 +370,8 @@ const DetalleMod = ({ id, user, authLoading }) => {
     const [likeLoading, setLikeLoading] = useState(Boolean(user) && (!fresh || restored?.liked == null));
     const [showCreatorsModal, setShowCreatorsModal] = useState(false);
     const [showShareModal, setShowShareModal] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
     const [showLoginModal, setShowLoginModal] = useState(false);
     const [recommendedContent, setRecommendedContent] = useState(restored?.recommended ?? []);
     const [loadingRecommended, setLoadingRecommended] = useState(restored?.recommended == null);
@@ -607,9 +615,20 @@ const DetalleMod = ({ id, user, authLoading }) => {
         return num.toString();
     };
 
-    const estado = item?.estado || item?.status || 'borrador';
-    const isOwner = user?.id === (item?.aporte?.uid || item?.aporte);
-    const canEdit = isOwner && (estado === 'borrador' || estado === 'draft');
+    const canManage = canManageContent(user, item?.aporte);
+    const handleDelete = async () => {
+        if (!canManage || isDeleting || !item) return;
+        setIsDeleting(true);
+        try {
+            await deleteContent(id);
+            visit?.delete('contentDetail');
+            showToast('El contenido se eliminó correctamente.', 'success');
+            leaveOverlayEntry(() => navigate(user.role === 'admin' ? '/admin' : '/mis-mods', { replace: true }));
+        } catch {
+            showToast('No se pudo eliminar el contenido.', 'error');
+            setIsDeleting(false);
+        }
+    };
 
     if (loading) return <LoadingSpinner variant="page" />;
     if (!item) return null;
@@ -617,7 +636,7 @@ const DetalleMod = ({ id, user, authLoading }) => {
     return (
         <div data-content-detail className={clsx("max-w-7xl mx-auto w-full flex flex-col gap-2 lg:gap-4 p-2 pb-4 lg:p-4", !restored && "animate-fade-in-up")} style={{ animationDuration: '200ms' }}>
 
-            <div className="flex flex-col lg:flex-row gap-2 lg:gap-4">
+            <div className="flex flex-col lg:flex-row gap-2 lg:gap-5">
 
                 {/* COLUMNA IZQUIERDA - CONTENIDO PRINCIPAL (MÓVIL: TODAS LAS SECCIONES, DESKTOP: GALERÍA, HEADER, DESCRIPCIÓN, COMENTARIOS) */}
                 <div className="w-full min-w-0 flex flex-col gap-5 md:gap-6">
@@ -626,15 +645,7 @@ const DetalleMod = ({ id, user, authLoading }) => {
                     <div className="w-full min-w-0 lg:order-1">
                         <div className="aspect-video bg-black relative rounded-xl overflow-hidden group">
                             {youtubeId ? (
-                                <iframe 
-                                    key={youtubeId} 
-                                    src={`https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=0&rel=0`}
-                                    title="YouTube video player" 
-                                    className="block h-full w-full bg-black"
-                                    frameBorder="0" 
-                                    allowFullScreen
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                ></iframe>
+                                <YouTubePreview key={youtubeId} videoId={youtubeId} title={`video de ${item.titulo}`} />
                             ) : isVideo(currentMedia) ? (
                                 <video 
                                     src={currentMedia} 
@@ -646,7 +657,7 @@ const DetalleMod = ({ id, user, authLoading }) => {
                                 />
                             ) : (
                                 <img
-                                    src={mainImgStage === 0 ? (thumbUrl(currentMedia, 1280) || '/default.jpg') : (mainImgStage === 1 ? currentMedia : '/default.jpg')}
+                                    src={mainImgStage === 0 ? (thumbUrl(currentMedia, 1280) || '/default.jpg') : (mainImgStage === 1 ? thumbnailImageSrc(currentMedia) : '/default.jpg')}
                                     key={currentMedia}
                                     className="block h-full w-full object-cover bg-black transition-opacity duration-300"
                                     style={{ opacity: 0 }}
@@ -685,14 +696,14 @@ const DetalleMod = ({ id, user, authLoading }) => {
 
                         {/* TIRA DE MINIATURAS */}
                         {galleryItems.length > 1 && (
-                            <div className="flex gap-2 scrollbar-hide snap-x snap-mandatory mt-2 md:mt-4 overflow-x-auto w-full max-w-full pb-1">
+                            <div className="flex gap-2 scrollbar-hide snap-x snap-mandatory mt-2 md:mt-3 overflow-x-auto w-full max-w-full pb-1">
                                 {galleryItems.map((mediaItem, index) => {
                                     const isYt = getYouTubeId(mediaItem);
                                     const isVid = isVideo(mediaItem);
-                                    const ytThumb = isYt ? `https://img.youtube.com/vi/${isYt}/mqdefault.jpg` : null;
+                                    const ytThumb = isYt ? `https://i.ytimg.com/vi/${isYt}/mqdefault.jpg` : null;
                                     const proxied = !isYt ? thumbUrl(mediaItem, 320) : null;
                                     const tStage = thumbStage[index] || 0;
-                                    const thumbSrc = ytThumb || (tStage === 0 ? (proxied || mediaItem) : (tStage === 1 ? mediaItem : '/default.jpg'));
+                                    const thumbSrc = tStage === 0 ? (ytThumb || proxied || mediaItem) : (tStage === 1 && !isYt ? thumbnailImageSrc(mediaItem) : '/default.jpg');
                                     const isActive = index === selectedIndex;
                                     
                                     return (
@@ -701,7 +712,7 @@ const DetalleMod = ({ id, user, authLoading }) => {
                                             ref={isActive ? activeThumbRef : null}
                                             onClick={() => setSelectedIndex(index)}
                                             className={clsx(
-                                                "relative flex-shrink-0 w-24 md:w-36 aspect-video rounded-lg transition-all duration-200 snap-start border shadow-sm ring-1 overflow-hidden",
+                                                "relative flex-shrink-0 w-24 md:w-32 aspect-video rounded-lg transition-all duration-200 snap-start border shadow-sm ring-1 overflow-hidden",
                                                 isActive 
                                                     ? "ring-primary-500 border-primary-500"
                                                     : "ring-transparent border-transparent hover:ring-primary-500 hover:border-primary-500"
@@ -736,17 +747,25 @@ const DetalleMod = ({ id, user, authLoading }) => {
                     </div>
 
                     {/* Título, creadores y estadísticas */}
-                    <div className="lg:order-2 -mb-2">
-                        <h1 className="text-md md:text-lg font-bold text-gray-900 dark:text-white mb-3 leading-tight -mt-2">
-                            {item.titulo}
-                        </h1>
+                    <div className="lg:order-2 -mb-2 md:-mb-3">
+                        <div className="-mt-2 mb-3 flex items-center justify-between gap-3 md:-mt-3">
+                            <h1 className="min-w-0 break-words text-md font-bold leading-tight text-gray-900 dark:text-white md:text-lg">
+                                {item.titulo}
+                            </h1>
+                            {canManage && (
+                                <CardActionsMenu label="Opciones del contenido" actions={[
+                                    { label: 'Editar', icon: Edit, onSelect: () => leaveOverlayEntry(() => navigate(`/edit/${id}`)) },
+                                    { label: 'Eliminar', icon: Trash2, destructive: true, onSelect: () => setShowDeleteModal(true) }
+                                ]} />
+                            )}
+                        </div>
                         
-                        <div className="flex items-center justify-between gap-2">
+                        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 xl:grid-cols-[minmax(0,1fr)_auto_auto] xl:gap-x-5">
                             
                             <button 
                                 onClick={() => setShowCreatorsModal(true)}
                                 data-scroll-anchor="creators"
-                                className="flex min-w-0 items-center text-left hover:opacity-80 transition-opacity"
+                                className="flex min-w-0 max-w-full items-center justify-self-start text-left hover:opacity-80 transition-opacity"
                             >
                                 <div className="flex mr-3 relative shrink-0">
                                     {creadoresList.length > 0 && (
@@ -764,74 +783,59 @@ const DetalleMod = ({ id, user, authLoading }) => {
                                     )}
                                 </div>
 
-                                <div className="min-w-0 break-words">
-                                    <div className="flex items-center flex-wrap text-sm font-bold text-gray-900 dark:text-white">
-                                        {creadoresList.length > 0 ? (
-                                            creadoresList.length > 1 ? (
-                                                <span>{creadoresList[0].nombre} +{creadoresList.length - 1}</span>
-                                            ) : (
-                                                <span>{creadoresList[0].nombre}</span>
-                                            )
-                                        ) : (
-                                            <span>Sin creadores</span>
-                                        )}
-                                    </div>
-                                    
-                                </div>
+                                <span className="min-w-0 break-words text-sm font-bold text-gray-900 dark:text-white xl:truncate">
+                                    {creadoresList.length ? creadoresList[0].nombre : 'Sin creadores'}
+                                    {creadoresList.length > 1 && ` +${creadoresList.length - 1}`}
+                                </span>
                             </button>
 
-                            <div className="flex items-center gap-1">
-                                {/* Botón editar para creador en borrador */}
-                                {canEdit && (
-                                    <Link 
-                                        to={`/subir/${id}`}
-                                        className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-semibold bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-950/50 transition-all active:scale-95"
-                                    >
-                                        <Edit size={18} />
-                                        <span>Editar</span>
-                                    </Link>
-                                )}
-
-                                <button 
-                                    aria-label="Compartir contenido"
-                                    onClick={() => setShowShareModal(true)}
-                                    className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-primary-100 dark:hover:bg-primary-800/30 hover:text-primary-600 dark:hover:text-primary-400 transition-all"
-                                >
-                                    <Share2 size={18} />
-                                </button>
-                            </div>
-                        </div>
-                        <div role="group" aria-label="Estadísticas del contenido"
-                            className="mt-2 grid w-full grid-cols-3 gap-1.5 text-center text-sm font-semibold tabular-nums text-gray-700 dark:text-gray-300 sm:gap-3 sm:text-base [&>*]:flex [&>*]:min-w-0 [&>*]:flex-col [&>*]:items-center [&>*]:justify-center [&>*]:gap-1 [&>*]:px-1 [&>*]:py-2">
-                            <div>
-                                <span className="inline-flex items-center gap-1 text-sm font-medium sm:text-base">
-                                    <Eye size={14} aria-hidden="true" className="text-sky-600 dark:text-sky-400" /> Vistas
-                                </span>
-                                <span>{formatNumber(item.vistas || 0)}</span>
-                            </div>
                             <button
-                                type="button"
-                                onClick={handleLike}
-                                disabled={likeLoading}
-                                aria-pressed={isLiked}
-                                aria-label={`Me gusta, ${item.likes_count || 0} en total`}
-                                className="group min-h-11 w-full cursor-pointer rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-500 disabled:cursor-wait [&>*]:pointer-events-none"
+                                aria-label="Compartir contenido"
+                                onClick={() => setShowShareModal(true)}
+                                className="col-start-2 row-start-1 flex items-center justify-self-end gap-1.5 px-3 py-2 rounded-md text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-primary-100 dark:hover:bg-primary-800/30 hover:text-primary-600 dark:hover:text-primary-400 transition-all xl:col-start-3"
                             >
-                                <span className="inline-flex items-center gap-1 text-sm font-medium sm:text-base">
-                                    <Heart size={14} aria-hidden="true" className={clsx(
-                                        "origin-center text-rose-600 motion-safe:transition-[fill,transform] motion-safe:duration-150 motion-safe:group-hover:scale-110 motion-safe:group-active:scale-95 dark:text-rose-400",
-                                        isLiked ? "fill-current" : "fill-transparent group-hover:fill-rose-500/15"
-                                    )} /> Me gusta
-                                </span>
-                                <span>{formatNumber(item.likes_count || 0)}</span>
+                                <Share2 size={18} />
                             </button>
-                            <div>
-                                <span className="inline-flex items-center gap-1 text-sm font-medium sm:text-base">
-                                    <Calendar size={14} aria-hidden="true" className="text-violet-600 dark:text-violet-400" /> Fecha
-                                </span>
-                                <time dateTime={item.creado}>
-                                    {new Date(item.creado).toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric' })}
-                                </time>
+
+                            <div role="group" aria-label="Estadísticas del contenido"
+                                className={clsx(
+                                    "col-span-full mt-2 grid grid-cols-3 gap-1.5 text-center text-[13px] leading-4 font-semibold tabular-nums text-gray-700 dark:text-gray-300 sm:gap-3",
+                                    "[&>*]:flex [&>*]:min-w-0 [&>*]:flex-col [&>*]:items-center [&>*]:justify-center [&>*]:gap-1 [&>*]:px-1 [&>*]:py-2 md:[&>*]:flex-row md:[&>*]:gap-1.5",
+                                    "xl:col-span-1 xl:col-start-2 xl:row-start-1 xl:mt-0 xl:grid-cols-[repeat(3,auto)] xl:gap-4 xl:whitespace-nowrap xl:[&>*]:py-0"
+                                )}>
+                                <div>
+                                    <span className="inline-flex items-center gap-1 font-medium">
+                                        <Eye size={14} aria-hidden="true" className="text-sky-600 dark:text-sky-400" />
+                                        <span className="md:sr-only">Vistas</span>
+                                    </span>
+                                    <span>{formatNumber(item.vistas || 0)}</span>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={handleLike}
+                                    disabled={likeLoading}
+                                    aria-pressed={isLiked}
+                                    aria-label={`Me gusta, ${item.likes_count || 0} en total`}
+                                    className="group min-h-11 w-full cursor-pointer rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-500 disabled:cursor-wait [&>*]:pointer-events-none"
+                                >
+                                    <span className="inline-flex items-center gap-1 font-medium">
+                                        <Heart size={14} aria-hidden="true" className={clsx(
+                                            "origin-center text-rose-600 motion-safe:transition-[fill,transform] motion-safe:duration-150 motion-safe:group-hover:scale-110 motion-safe:group-active:scale-95 dark:text-rose-400",
+                                            isLiked ? "fill-current" : "fill-transparent group-hover:fill-rose-500/15"
+                                        )} />
+                                        <span className="md:sr-only">Me gusta</span>
+                                    </span>
+                                    <span>{formatNumber(item.likes_count || 0)}</span>
+                                </button>
+                                <div>
+                                    <span className="inline-flex items-center gap-1 font-medium">
+                                        <Calendar size={14} aria-hidden="true" className="text-violet-600 dark:text-violet-400" />
+                                        <span className="md:sr-only">Fecha</span>
+                                    </span>
+                                    <time dateTime={item.creado}>
+                                        {new Date(item.creado).toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                    </time>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -914,7 +918,7 @@ const DetalleMod = ({ id, user, authLoading }) => {
                 </div>
 
                 {/* COLUMNA DERECHA (SOLO DESKTOP) */}
-                <div className="hidden lg:block lg:min-w-[420px] xl:min-w-[480px] 2xl:min-w-[500px] space-y-6">
+                <div className="hidden lg:block lg:min-w-[420px] space-y-6">
                     
                     {/* TARJETA DE DESCARGAS */}
                     <div>
@@ -1014,6 +1018,13 @@ const DetalleMod = ({ id, user, authLoading }) => {
                 </div>
 
             </div>
+
+            {showDeleteModal && canManage && (
+                <Modal isOpen title="Eliminar contenido" type="warning"
+                    message={`¿Seguro que deseas eliminar «${item.titulo}»? Esta acción no se puede deshacer.`}
+                    confirmText={isDeleting ? 'Eliminando...' : 'Eliminar'} showCancel
+                    onConfirm={handleDelete} onClose={() => !isDeleting && setShowDeleteModal(false)} />
+            )}
 
             {/* MODAL DE CREADORES */}
             {showCreatorsModal && createPortal(
@@ -1118,7 +1129,7 @@ const DetalleMod = ({ id, user, authLoading }) => {
                         </div>
 
                         {/* Enlace para copiar */}
-                        <div className="flex items-center gap-2 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                        <div className="field-group flex items-center gap-2 rounded-lg border border-transparent bg-gray-100 p-3 dark:bg-gray-800">
                             <input
                                 type="text"
                                 value={window.location.href}

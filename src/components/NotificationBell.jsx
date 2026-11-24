@@ -176,7 +176,7 @@ const NotificationBell = ({ variant = 'default' }) => {
       {/* PANEL */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-[70] flex h-dvh w-full flex-col overscroll-contain overflow-hidden bg-white shadow-lg shadow-black/5 animate-fade-in-up dark:bg-dark-bg sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:mt-3 sm:h-auto sm:max-h-none sm:w-[min(23rem,calc(100vw-1.5rem))] sm:rounded-2xl sm:border sm:border-gray-200 sm:shadow-2xl sm:shadow-black/10 sm:dark:border-white/[0.08]"
+          className="fixed inset-0 z-[70] flex h-dvh w-full flex-col overscroll-contain overflow-hidden bg-white shadow-lg shadow-black/5 animate-fade-in-up dark:bg-dark-bg sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:mt-3 sm:h-auto sm:max-h-none sm:w-[min(23rem,calc(100vw-1.5rem))] sm:rounded-2xl sm:border sm:border-gray-200 sm:shadow-2xl sm:shadow-black/10 sm:dark:border-0"
           style={{ animationDuration: '180ms' }}
         >
           {/* CABECERA */}

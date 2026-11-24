@@ -1,14 +1,13 @@
-import { useOverlayBack } from '../hooks/useOverlayBack';
+import MobileFilterButton from './MobileFilterButton';
+import MobileFilterSheet from './MobileFilterSheet';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { createPortal } from 'react-dom';
-import { Search, Filter, ArrowUpDown, Sparkles, SlidersHorizontal, ChevronDown, Check } from 'lucide-react';
+import { Search, Filter, ArrowUpDown, Sparkles, ChevronDown, Check } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useCatalogPages } from '../hooks/useCatalogPages';
 import { useVisitState } from '../hooks/useVisitState';
 import { PAGE_SIZE } from '../services/catalog';
 import LoadingSpinner from './LoadingSpinner';
 import PageHeader from './PageHeader';
-import FilterModalHeader from './FilterModalHeader';
 
 const capitalizeText = (str) => {
   if (!str) return '';
@@ -16,9 +15,6 @@ const capitalizeText = (str) => {
   return stringValue.charAt(0).toUpperCase() + stringValue.slice(1).toLowerCase();
 };
 
-const openFiltersDialog = (dialog) => {
-  if (dialog && !dialog.open) dialog.showModal();
-};
 
 const DataContainer = ({
   title,
@@ -27,6 +23,8 @@ const DataContainer = ({
   items = [],
   searchKey = 'nombre',
   initialSearchValue = '',
+  searchValue,
+  onSearchChange,
   searchMatchMode = 'contains',
   sortKey = searchKey,
   dateKey = 'fecha',
@@ -40,6 +38,7 @@ const DataContainer = ({
   customSortOptions = null,
   searchPlaceholder = null,
   showHeader = true,
+  compactPagination = false,
   hideHeaderTitleOnMobile = false,
   headerClassName = 'shrink-0',
   headerTrailing = null,
@@ -47,12 +46,13 @@ const DataContainer = ({
   emptyMessage = 'No se encontraron resultados',
   catalogMode,
   catalogType,
-  catalogQuery = '',
+  catalogQuery,
   initialSort = 'recientes',
   loading = false
 }) => {
   // 1. ESTADO INTERNO
-  const [busqueda, setBusqueda] = useVisitState(`list-${catalogMode || title}-search`, initialSearchValue);
+  const [localSearch, setLocalSearch] = useVisitState(`list-${catalogMode || title}-search`, initialSearchValue);
+  const busqueda = searchValue ?? localSearch;
   const [orden, setOrden] = useVisitState(`list-${catalogMode || title}-order`, initialSort);
   const [visibleCount, setVisibleCount] = useVisitState(`list-${catalogMode || title}-limit`, PAGE_SIZE);
   const [selectedTypes, setSelectedTypes] = useVisitState(`list-${catalogMode || title}-types`, []);
@@ -66,16 +66,15 @@ const DataContainer = ({
 
   const [search, setSearch] = useState(busqueda.trim());
   useEffect(() => {
-    if (!catalogMode) return;
+    if (!catalogMode || catalogQuery !== undefined) return;
     const timer = setTimeout(() => setSearch(busqueda.trim()), 200);
     return () => clearTimeout(timer);
-  }, [busqueda, catalogMode]);
+  }, [busqueda, catalogMode, catalogQuery]);
 
-  const options = useMemo(() => catalogMode ? {
+  const options = useMemo(() => catalogMode && catalogQuery !== '' ? {
     users: catalogMode === 'users',
-    search: catalogQuery,
-    refine: catalogQuery && search !== catalogQuery ? search : '',
-    title: catalogQuery ? '' : search,
+    search: catalogQuery ?? '',
+    title: catalogQuery === undefined ? search : '',
     types: catalogType ? [catalogType] : selectedTypes,
     sort: orden
   } : null, [catalogMode, catalogQuery, catalogType, search, selectedTypes, orden]);
@@ -83,7 +82,6 @@ const DataContainer = ({
 
   const typeDropdownRef = useRef(null);
   const ordenDropdownRef = useRef(null);
-  const filterButtonRef = useRef(null);
   const hasActiveFilters = selectedTypes.length > 0 || orden !== initialSort;
 
   // Si hay customTypes usa esos, si no, los extrae de los items
@@ -110,20 +108,6 @@ const DataContainer = ({
   }, []);
 
   // Bloqueo de scroll cuando el modal de filtros está abierto
-  useEffect(() => {
-    if (!isFiltersModalOpen) return;
-    const previousOverflow = document.body.style.overflow;
-    const trigger = filterButtonRef.current;
-    const desktop = window.matchMedia('(min-width: 768px)');
-    const closeOnDesktop = () => { if (desktop.matches) setIsFiltersModalOpen(false); };
-    document.body.style.overflow = 'hidden';
-    desktop.addEventListener('change', closeOnDesktop);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      desktop.removeEventListener('change', closeOnDesktop);
-      trigger?.focus({ preventScroll: true });
-    };
-  }, [isFiltersModalOpen]);
 
   // Abrir modal e inicializar estados temporales
   const handleOpenFiltersModal = () => {
@@ -171,7 +155,7 @@ const DataContainer = ({
     return resultado;
   }, [items, busqueda, orden, searchKey, searchMatchMode, sortKey, dateKey, enableTypeFilter, selectedTypes, typeKey]);
 
-  const visibleItems = catalogMode ? page.items : itemsFiltrados.slice(0, visibleCount);
+  const visibleItems = catalogQuery === '' ? [] : catalogMode ? page.items : itemsFiltrados.slice(0, visibleCount);
   const remaining = catalogMode ? page.total - page.nextOffset : itemsFiltrados.length - visibleCount;
 
   const filterKey = JSON.stringify([busqueda, orden, selectedTypes]);
@@ -189,7 +173,6 @@ const DataContainer = ({
 
   const clearTypes = () => setSelectedTypes([]);
 
-  useOverlayBack(isFiltersModalOpen, () => setIsFiltersModalOpen(false));
 
   if (loading) return <LoadingSpinner variant="page" />;
 
@@ -214,30 +197,13 @@ const DataContainer = ({
             type="text" 
             placeholder={searchPlaceholder || `Buscar por ${searchKey}...`} 
             value={busqueda} 
-            onChange={(e) => setBusqueda(e.target.value)} 
-            className="w-full min-w-0 pl-10 pr-2 md:pr-4 py-2.5 h-10 rounded-xl bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all text-sm"
+            onChange={(e) => (onSearchChange ?? setLocalSearch)(e.target.value)}
+            className="search-field h-10 w-full min-w-0 bg-white py-2.5 pl-10 pr-2 text-sm text-gray-700 dark:bg-[#1D1F23] dark:text-gray-200 md:pr-4"
           />
           </div>
 
           {/* Botón para abrir modal de filtros en móvil */}
-          <button
-            ref={filterButtonRef}
-            type="button"
-            onClick={handleOpenFiltersModal}
-            className={clsx(
-              'flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl border px-2.5 text-sm font-semibold transition-colors focus-visible:outline-primary-500 md:hidden',
-              hasActiveFilters
-                ? 'border-primary-300 bg-primary-50 text-primary-700 dark:border-primary-500/50 dark:bg-primary-500/15 dark:text-primary-300'
-                : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-transparent dark:bg-[#1D1F23] dark:text-gray-200'
-            )}
-            aria-label={hasActiveFilters ? 'Abrir filtros activos' : 'Abrir filtros'}
-            aria-haspopup="dialog"
-            aria-expanded={isFiltersModalOpen}
-            title="Filtros"
-          >
-            <SlidersHorizontal size={18} aria-hidden="true" />
-            <span className="hidden min-[420px]:inline">Filtros</span>
-          </button>
+          <MobileFilterButton className="md:hidden" open={isFiltersModalOpen} onClick={handleOpenFiltersModal} active={hasActiveFilters} />
 
           {/* Filtro de tipos (Desktop) */}
           {enableTypeFilter && availableTypes.length > 0 && (
@@ -261,7 +227,7 @@ const DataContainer = ({
             </div>
 
             {isTypeDropdownOpen && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent rounded-xl shadow-lg z-50 p-1">
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-0 rounded-xl shadow-lg z-50 p-1">
                 <div className="flex flex-col gap-0.5">
                   <button
                     type="button"
@@ -304,7 +270,7 @@ const DataContainer = ({
             <ChevronDown size={16} className={clsx("absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none transition-transform duration-200", isOrdenDropdownOpen && "rotate-180")} />
 
             {isOrdenDropdownOpen && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent rounded-xl shadow-lg z-50 p-1">
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-0 rounded-xl shadow-lg z-50 p-1">
                 <div className="flex flex-col gap-0.5">
                   {(customSortOptions || [
                     { val: 'mas_descargas', label: 'Más Descargas' }, 
@@ -326,28 +292,33 @@ const DataContainer = ({
       </div>
 
       {/* RESULTADOS */}
-      {catalogMode && page.loading && !page.items.length ? <LoadingSpinner variant="page" /> : visibleItems.length > 0 ? (
+      {options && page.loading && !page.items.length ? <LoadingSpinner variant="page" /> : visibleItems.length > 0 ? (
         <>
           <div className={clsx(
             layout === 'vertical' 
               ? "flex flex-col gap-4 pb-4" 
               : layout === 'forum-columns'
                 ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-4"
-                : "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 md:gap-4 pb-4"
+                : "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 md:gap-4 pb-6"
           )}>
             {visibleItems.map((item, index) =>
                React.cloneElement(renderItem(item, index), { key: item.id || item._id })
             )}
           </div>
           {remaining > 0 && !page.error && (
-            <div className="flex justify-center mt-6">
-              <button disabled={catalogMode && page.loading} onClick={catalogMode ? page.loadMore : () => setVisibleCount(prev => prev + PAGE_SIZE)} className="px-5 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-semibold transition-all duration-200 shadow-md text-sm flex items-center gap-2">
-                {catalogMode && page.loading ? 'Cargando…' : 'Ver más contenido'} <span className="text-sm opacity-75">({remaining} restantes)</span>
+            <div className={clsx("flex justify-center", compactPagination ? "pb-5" : "mt-6")}>
+              <button
+                type="button"
+                disabled={catalogMode && page.loading}
+                onClick={catalogMode ? page.loadMore : () => setVisibleCount(prev => prev + PAGE_SIZE)}
+                className="inline-flex items-center justify-center rounded-lg bg-primary-600 px-5 py-2 text-sm font-semibold text-white shadow-md transition-colors hover:bg-primary-700 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-primary-500 disabled:cursor-wait"
+              >
+                {catalogMode && page.loading ? 'Cargando…' : 'Ver más contenido'}
               </button>
             </div>
           )}
         </>
-      ) : !page.error && (
+      ) : (!options || !page.error) && (
         <div className="flex flex-col items-center justify-center py-20 text-gray-400 dark:text-gray-600">
           <Search size={48} className="mb-4 opacity-20" />
           <p className="text-lg font-medium">{emptyMessage}</p>
@@ -355,93 +326,66 @@ const DataContainer = ({
         </div>
       )}
 
-      {catalogMode && page.error && (
+      {options && page.error && (
         <div role="alert" className="py-6 text-center">
           No se pudieron cargar los resultados. <button type="button" onClick={page.loadMore} className="font-semibold underline">Reintentar</button>
         </div>
       )}
 
       {/* MODAL DE FILTROS EN MÓVIL */}
-      {isFiltersModalOpen && createPortal(
-        <dialog
-          ref={openFiltersDialog}
-          aria-label="Filtros"
-          onCancel={(event) => { event.preventDefault(); setIsFiltersModalOpen(false); }}
-          onClick={(event) => { if (event.target === event.currentTarget) setIsFiltersModalOpen(false); }}
-          className="fixed inset-0 m-0 flex h-dvh w-full max-h-none max-w-none items-end justify-center border-0 bg-transparent p-0 text-gray-900 backdrop:bg-black/50 dark:text-white md:hidden"
-        >
-          <div className="flex max-h-[calc(100dvh-1rem)] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl motion-safe:animate-fade-in-up dark:bg-dark-bg"
-            style={{ animationDuration: '160ms' }}>
-            <div className="shrink-0 px-4 pt-4">
-              <FilterModalHeader onClose={() => setIsFiltersModalOpen(false)} />
-            </div>
+      {isFiltersModalOpen && (
+        <MobileFilterSheet onClose={() => setIsFiltersModalOpen(false)} onApply={() => {
+          setOrden(tempOrden);
+          setSelectedTypes(tempSelectedTypes);
+          setIsFiltersModalOpen(false);
+        }}>
+          {mobileFilterContent}
 
-            <div className="min-h-0 space-y-5 overflow-y-auto overscroll-contain px-4 py-5">
-              {mobileFilterContent}
+          <label className="block">
+            <span className="mb-2 block text-sm font-semibold">Ordenar por</span>
+            <span className="relative block">
+              <ArrowUpDown size={17} aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400" />
+              <select value={tempOrden} onChange={(event) => setTempOrden(event.target.value)}
+                className="h-11 w-full appearance-none rounded-xl border border-gray-200 bg-gray-50 pl-10 pr-9 text-sm font-medium dark:border-transparent dark:bg-[#1D1F23] dark:[color-scheme:dark]">
+                {(customSortOptions || [
+                  { val: 'recientes', label: 'Más recientes' },
+                  { val: 'antiguos', label: 'Más antiguos' },
+                  { val: 'az', label: 'Nombre (A-Z)' },
+                  { val: 'za', label: 'Nombre (Z-A)' },
+                  { val: 'mas_vistas', label: 'Más vistas' },
+                  { val: 'mas_descargas', label: 'Más descargas' }
+                ]).map((opt) => <option key={opt.val} value={opt.val}>{opt.label}</option>)}
+              </select>
+              <ChevronDown size={16} aria-hidden="true" className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400" />
+            </span>
+          </label>
 
-              <label className="block">
-                <span className="mb-2 block text-sm font-semibold">Ordenar por</span>
-                <span className="relative block">
-                  <ArrowUpDown size={17} aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400" />
-                  <select value={tempOrden} onChange={(event) => setTempOrden(event.target.value)}
-                    className="h-11 w-full appearance-none rounded-xl border border-gray-200 bg-gray-50 pl-10 pr-9 text-sm font-medium focus-visible:outline-primary-500 dark:border-transparent dark:bg-[#1D1F23]">
-                    {(customSortOptions || [
-                      { val: 'recientes', label: 'Más recientes' },
-                      { val: 'antiguos', label: 'Más antiguos' },
-                      { val: 'az', label: 'Nombre (A-Z)' },
-                      { val: 'za', label: 'Nombre (Z-A)' },
-                      { val: 'mas_vistas', label: 'Más vistas' },
-                      { val: 'mas_descargas', label: 'Más descargas' }
-                    ]).map((opt) => <option key={opt.val} value={opt.val}>{opt.label}</option>)}
-                  </select>
-                  <ChevronDown size={16} aria-hidden="true" className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400" />
-                </span>
-              </label>
-
-              {enableTypeFilter && availableTypes.length > 0 && (
-                <fieldset className="min-w-0">
-                  <legend className="mb-2 text-sm font-semibold">{typeFilterLabel}</legend>
-                  <div className="flex flex-wrap gap-2">
-                    {[null, ...availableTypes].map((type) => {
-                      const all = type === null;
-                      const selected = all ? tempSelectedTypes.length === 0 : tempSelectedTypes.includes(type);
-                      return (
-                        <button key={type ?? ''} type="button" aria-pressed={selected}
-                          onClick={() => setTempSelectedTypes(prev => {
-                            if (all) return [];
-                            return prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type];
-                          })}
-                          className="inline-flex min-h-10 max-w-full items-center gap-2 rounded-full border border-gray-200 px-3 py-1.5 text-left text-sm font-medium text-gray-700 transition-colors focus-visible:outline-primary-500 aria-pressed:border-primary-300 aria-pressed:bg-primary-50 aria-pressed:text-primary-700 dark:border-gray-700 dark:text-gray-300 dark:aria-pressed:border-primary-500/50 dark:aria-pressed:bg-primary-500/15 dark:aria-pressed:text-primary-300">
-                          <span aria-hidden="true" className={clsx('grid h-4 w-4 shrink-0 place-items-center rounded border',
-                            selected ? 'border-primary-600 bg-primary-600 text-white' : 'border-gray-300 dark:border-gray-600')}>
-                            {selected && <Check size={12} strokeWidth={3} />}
-                          </span>
-                          <span className="min-w-0 break-words">{all ? allTypesLabel : capitalizeText(type)}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </fieldset>
-              )}
-            </div>
-
-            <div className="flex shrink-0 gap-2 border-t border-gray-100 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] dark:border-white/10">
-              <button type="button" onClick={() => setIsFiltersModalOpen(false)}
-                className="h-11 flex-1 rounded-xl bg-gray-100 px-3 text-sm font-semibold text-gray-700 active:bg-gray-200 dark:bg-[#1D1F23] dark:text-gray-200">
-                Cancelar
-              </button>
-              <button type="button" onClick={() => {
-                setOrden(tempOrden);
-                setSelectedTypes(tempSelectedTypes);
-                setIsFiltersModalOpen(false);
-              }}
-                className="h-11 flex-[2] rounded-xl bg-primary-600 px-3 text-sm font-semibold text-white hover:bg-primary-700 active:bg-primary-800">
-                Aplicar filtros
-              </button>
-            </div>
-          </div>
-        </dialog>,
-        document.body
+          {enableTypeFilter && availableTypes.length > 0 && (
+            <fieldset className="min-w-0">
+              <legend className="mb-2 text-sm font-semibold">{typeFilterLabel}</legend>
+              <div className="flex flex-wrap gap-2">
+                {[null, ...availableTypes].map((type) => {
+                  const all = type === null;
+                  const selected = all ? tempSelectedTypes.length === 0 : tempSelectedTypes.includes(type);
+                  return (
+                    <button key={type ?? ''} type="button" aria-pressed={selected}
+                      onClick={() => setTempSelectedTypes(prev => {
+                        if (all) return [];
+                        return prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type];
+                      })}
+                      className="inline-flex min-h-10 max-w-full items-center gap-2 rounded-full border border-gray-200 px-3 py-1.5 text-left text-sm font-medium text-gray-700 transition-colors focus-visible:outline-primary-500 aria-pressed:border-primary-300 aria-pressed:bg-primary-50 aria-pressed:text-primary-700 dark:border-gray-700 dark:text-gray-300 dark:aria-pressed:border-primary-500/50 dark:aria-pressed:bg-primary-500/15 dark:aria-pressed:text-primary-300">
+                      <span aria-hidden="true" className={clsx('grid h-4 w-4 shrink-0 place-items-center rounded border',
+                        selected ? 'border-primary-600 bg-primary-600 text-white' : 'border-gray-300 dark:border-gray-600')}>
+                        {selected && <Check size={12} strokeWidth={3} />}
+                      </span>
+                      <span className="min-w-0 break-words">{all ? allTypesLabel : capitalizeText(type)}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </fieldset>
+          )}
+        </MobileFilterSheet>
       )}
     </div>
   );

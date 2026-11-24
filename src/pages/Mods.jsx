@@ -16,6 +16,7 @@ const Mods = () => {
       typeKey="tipo"
       customTypes={['complemento', 'mapa', 'personaje', 'minijuego', 'modpack', 'paquete']}
       hideHeaderTitleOnMobile
+      compactPagination
       renderItem={(item) => (
         <Card {...item} />
       )}

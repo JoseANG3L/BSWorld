@@ -221,7 +221,7 @@ const ForumPost = ({ post, onPostMutated, isReply = false, showFullContent = fal
             placeholder="Escribe una respuesta..." 
             value={replyText} 
             onChange={(e) => setReplyText(e.target.value)} 
-            className="w-full pl-3 pr-10 py-2 text-sm bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:border-primary-500 dark:text-white resize-none"
+            className="w-full pl-3 pr-10 py-2 text-sm bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-gray-700 rounded-lg outline-none dark:text-white resize-none"
             rows={2}
             required 
             autoFocus
@@ -241,9 +241,18 @@ const ForumPost = ({ post, onPostMutated, isReply = false, showFullContent = fal
         </form>
       )}
 
-      {/* Botón para mostrar respuestas */}
+      {showReplies && replies.length > 0 && (
+        <div className="flex flex-col gap-3 mt-3">
+          {replies.map((reply) => (
+            <ForumPost key={reply.id} post={reply} onPostMutated={loadReplies} isReply={true} />
+          ))}
+        </div>
+      )}
+
       {post.replies_count > 0 && (
-        <button 
+        <button
+          type="button"
+          aria-expanded={showReplies}
           onClick={(e) => {
             e.stopPropagation();
             if (!showReplies) {
@@ -261,15 +270,6 @@ const ForumPost = ({ post, onPostMutated, isReply = false, showFullContent = fal
           </span>
           {showReplies ? <ChevronUp size={10} md:size={12} /> : <ChevronDown size={10} md:size={12} />}
         </button>
-      )}
-
-      {/* Contenedor de respuestas */}
-      {showReplies && replies.length > 0 && (
-        <div className="flex flex-col gap-3 mt-3">
-          {replies.map((reply) => (
-            <ForumPost key={reply.id} post={reply} onPostMutated={loadReplies} isReply={true} />
-          ))}
-        </div>
       )}
     </div>
   );

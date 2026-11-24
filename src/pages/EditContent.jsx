@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Save, AlertTriangle, Edit, ChevronDown } from 'lucide-react';
 import { getContentById, updateContent, getUserPublicProfile, getUserByUsername } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { canManageContent } from '../utils/contentPermissions';
 import { useToast } from '../hooks/useToast';
 import SimpleEditor from "../components/SimpleEditor";
 import CreatorsInput from '../components/CreatorsInput';
@@ -12,6 +13,30 @@ import GalleryInput from '../components/GalleryInput';
 import PageHeader from '../components/PageHeader';
 import { clsx } from 'clsx';
 import LoadingSpinner from '../components/LoadingSpinner';
+
+function getEditableValues(form, creators) {
+  return {
+    titulo: form.titulo.trim(),
+    descripcion: form.descripcion,
+    tipo: form.tipo,
+    imagen: form.imagen.trim(),
+    galeria: form.galeria.filter(url => url.trim() !== ''),
+    creadores: creators.map(c => ({ nombre: c.nombre, uid: c.uid || null, imagen: c.imagen || null })),
+    tags: [...new Set([form.tipo, ...form.tags].filter(tag => typeof tag === 'string').map(tag => tag.trim()).filter(Boolean))],
+    descargas: form.descargas.filter(d => d.url.trim()).map(({ presetLabel: _presetLabel, ...download }) => ({
+      ...download,
+      label: download.label?.trim() || '',
+      url: download.url.trim()
+    })),
+    visibilidad: form.visibilidad,
+    estado: form.estado
+  };
+}
+
+function editableSnapshot(values) {
+  // Los contadores y metadatos de descarga no son campos del formulario.
+  return JSON.stringify({ ...values, descargas: values.descargas.map(({ label, url }) => [label, url]) });
+}
 
 const EditContent = () => {
   const { id } = useParams();
@@ -50,6 +75,9 @@ const EditContent = () => {
   });
 
   const [selectedCreators, setSelectedCreators] = useState([]);
+  const [savedSnapshot, setSavedSnapshot] = useState(null);
+  const editableValues = getEditableValues(formData, selectedCreators);
+  const hasChanges = savedSnapshot !== null && editableSnapshot(editableValues) !== savedSnapshot;
   
   // Estados para dropdowns personalizados
   const [openDropdowns, setOpenDropdowns] = useState({});
@@ -94,17 +122,13 @@ const EditContent = () => {
         }
 
         // Solo el dueño o un admin pueden editar (el id de la URL no es prueba)
-        const ownerId = data.aporte && typeof data.aporte === 'object'
-          ? (data.aporte.uid || data.aporte.id)
-          : data.aporte;
-        if (user.id !== ownerId && user.role !== 'admin') {
+        if (!canManageContent(user, data.aporte)) {
           setError('No tienes permiso para editar este contenido');
           return;
         }
 
-        setContent(data);
-
         // Enriquecer creadores
+        let creators = [];
         if (data.creadores && Array.isArray(data.creadores)) {
           const enrichedCreators = await Promise.all(data.creadores.map(async (creator) => {
             let profile = null;
@@ -122,10 +146,10 @@ const EditContent = () => {
               : { nombre: creator.nombre || "Desconocido", imagen: creator.imagen || null, uid: creator.uid || null };
           }));
           if (!active) return;
-          setSelectedCreators(enrichedCreators.filter(c => c && c.nombre));
+          creators = enrichedCreators.filter(c => c && c.nombre);
         }
 
-        setFormData({
+        const initialForm = {
           titulo: data.titulo || '',
           descripcion: data.descripcion || '',
           tipo: data.tipo || 'complemento',
@@ -150,7 +174,11 @@ const EditContent = () => {
                 };
               })
             : []
-        });
+        };
+        setContent(data);
+        setFormData(initialForm);
+        setSelectedCreators(creators);
+        setSavedSnapshot(editableSnapshot(getEditableValues(initialForm, creators)));
         loadedContentRef.current = loadKey;
       } catch (err) {
         if (!active) return;
@@ -182,16 +210,13 @@ const EditContent = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (saving) return;
+    if (saving || !hasChanges) return;
     setSaving(true);
     setError(null);
     setErrors({ titulo: false, imagen: false, creadores: false });
 
     // Defensa en profundidad: revalidar dueño/admin al guardar
-    const submitOwnerId = content?.aporte && typeof content.aporte === 'object'
-      ? (content.aporte.uid || content.aporte.id)
-      : content?.aporte;
-    if (!content || (user?.id !== submitOwnerId && user?.role !== 'admin')) {
+    if (!content || !canManageContent(user, content.aporte)) {
       showToast('No tienes permiso para editar este contenido', 'error');
       setSaving(false);
       return;
@@ -210,35 +235,6 @@ const EditContent = () => {
     }
 
     try {
-      // Conservar los contadores de las descargas existentes al editar.
-      const processedDescargas = formData.descargas
-        .filter(d => d.url.trim() !== '')
-        .map(({ presetLabel: _presetLabel, ...download }) => ({
-          ...download,
-          label: download.label?.trim() || '',
-          url: download.url.trim()
-        }));
-
-      // Evita tags duplicados (el tipo siempre va primero)
-      const cleanTags = [...new Set(
-        [formData.tipo, ...formData.tags]
-          .map(tag => (typeof tag === 'string' ? tag.trim() : ''))
-          .filter(Boolean)
-      )];
-
-      const payload = {
-        titulo: formData.titulo.trim(),
-        descripcion: formData.descripcion,
-        tipo: formData.tipo,
-        imagen: formData.imagen.trim(),
-        galeria: formData.galeria.filter(url => url.trim() !== ''),
-        redes: [],
-        creadores: selectedCreators.map(c => ({ nombre: c.nombre, uid: c.uid || null, imagen: c.imagen || null })),
-        tags: cleanTags,
-        descargas: processedDescargas,
-        visibilidad: formData.visibilidad
-      };
-
       const currentEstado = content?.estado || content?.status || 'borrador';
       let finalEstado;
 
@@ -255,12 +251,12 @@ const EditContent = () => {
         finalEstado = 'revision';
       }
 
-      payload.estado = finalEstado;
+      const payload = { ...editableValues, estado: finalEstado };
       await updateContent(id, payload);
 
-      // Mantén el formulario sincronizado para un segundo guardado inmediato.
-      setContent(prev => (prev ? { ...prev, ...payload, estado: finalEstado } : prev));
-      setFormData(prev => ({ ...prev, estado: finalEstado }));
+      setSavedSnapshot(editableSnapshot(payload));
+      setContent(prev => ({ ...prev, ...payload }));
+      setFormData(prev => prev.estado === formData.estado ? { ...prev, estado: finalEstado } : prev);
       const successMessage = finalEstado === 'revision'
         ? 'Tus cambios se guardaron y quedaron en revisión.'
         : finalEstado === 'borrador'
@@ -306,7 +302,7 @@ const EditContent = () => {
       {/* Form */}
       {/* noValidate: los valores heredados (URLs cifradas, rutas relativas) no son
           URLs válidas para el navegador y bloqueaban el guardado sin avisar. */}
-      <form onSubmit={handleSubmit} noValidate className="space-y-5 pb-3">
+      <form onSubmit={handleSubmit} noValidate className="edit-content-form space-y-5 pb-3">
         {/* Grid de dos columnas */}
         <div className="flex flex-col gap-3 lg:flex-row lg:gap-4">
           {/* Columna Izquierda */}
@@ -317,12 +313,12 @@ const EditContent = () => {
               <input
                 type="text"
                 name="titulo"
+                aria-invalid={errors.titulo}
                 value={formData.titulo}
                 onChange={handleChange}
                 className={clsx(
                   "w-full rounded-xl border bg-white px-3 py-2 text-sm shadow-sm outline-none transition-all duration-300 dark:bg-[#1D1F23] dark:text-white",
-                  errors.titulo ? "border-red-500" : "border-gray-300 dark:border-transparent",
-                  "focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+                  errors.titulo ? "border-red-500" : "border-gray-300 dark:border-transparent"
                 )}
                 required
               />
@@ -331,6 +327,7 @@ const EditContent = () => {
 
             {/* Descripción */}
             <SimpleEditor
+              autoGrow
               value={formData.descripcion}
               onChange={handleDescriptionChange}
               placeholder="Describe tu contenido..."
@@ -392,6 +389,7 @@ const EditContent = () => {
               <div className="relative" ref={tipoDropdownRef}>
                 <button
                   type="button"
+                  aria-expanded={Boolean(openDropdowns.tipo)}
                   onClick={() => {
                     setOpenDropdowns(prev => ({
                       ...prev,
@@ -407,7 +405,7 @@ const EditContent = () => {
                 <ChevronDown size={16} className={clsx("absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none transition-transform duration-200", openDropdowns.tipo && "rotate-180")} />
                 
                 {openDropdowns.tipo && (
-                  <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent rounded-xl shadow-lg z-50 p-1">
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-0 rounded-xl shadow-lg z-50 p-1">
                     <div className="flex flex-col gap-0.5">
                       {['complemento', 'mapa', 'personaje', 'minijuego', 'modpack', 'paquete'].map((tipo) => (
                         <button
@@ -439,6 +437,7 @@ const EditContent = () => {
               <div className="relative" ref={visibilidadDropdownRef}>
                 <button
                   type="button"
+                  aria-expanded={Boolean(openDropdowns.visibilidad)}
                   onClick={() => {
                     setOpenDropdowns(prev => ({
                       ...prev,
@@ -454,7 +453,7 @@ const EditContent = () => {
                 <ChevronDown size={16} className={clsx("absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none transition-transform duration-200", openDropdowns.visibilidad && "rotate-180")} />
                 
                 {openDropdowns.visibilidad && (
-                  <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent rounded-xl shadow-lg z-50 p-1">
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-0 rounded-xl shadow-lg z-50 p-1">
                     <div className="flex flex-col gap-0.5">
                       {['publico', 'privado', 'no-listado'].map((vis) => (
                         <button
@@ -487,6 +486,7 @@ const EditContent = () => {
                 <div className="relative" ref={estadoDropdownRef}>
                   <button
                     type="button"
+                    aria-expanded={Boolean(openDropdowns.estado)}
                     onClick={() => {
                       setOpenDropdowns(prev => ({
                         ...prev,
@@ -502,7 +502,7 @@ const EditContent = () => {
                   <ChevronDown size={16} className={clsx("absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none transition-transform duration-200", openDropdowns.estado && "rotate-180")} />
                   
                   {openDropdowns.estado && (
-                    <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent rounded-xl shadow-lg z-50 p-1">
+                    <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-0 rounded-xl shadow-lg z-50 p-1">
                       <div className="flex flex-col gap-0.5">
                         {[
                           { val: 'borrador', label: 'Borrador' },
@@ -551,8 +551,8 @@ const EditContent = () => {
             </button>
             <button
               type="submit"
-              disabled={saving}
-              className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary-600 px-4 py-3 text-xs font-bold text-white shadow-sm shadow-primary-600/25 transition-all hover:bg-primary-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
+              disabled={saving || !hasChanges}
+              className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary-600 px-4 py-3 text-xs font-bold text-white shadow-sm shadow-primary-600/25 transition-all enabled:hover:bg-primary-700 enabled:active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
             >
               {saving ? <LoadingSpinner variant="inline" size={14} /> : <Save size={14} />}
               {saving ? 'Guardando...' : 'Guardar cambios'}

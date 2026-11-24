@@ -222,7 +222,7 @@ const ForoDetalle = () => {
                 </button>
 
                 {showOptions && (
-                  <div className="absolute right-0 top-full mt-2 bg-white dark:bg-[#1e1e1e] border border-gray-200 dark:border-gray-800 rounded-lg shadow-lg z-50 py-1 min-w-[140px] md:min-w-[160px]">
+                  <div className="absolute right-0 top-full mt-2 bg-white dark:bg-[#1e1e1e] border border-gray-200 dark:border-0 rounded-lg shadow-lg z-50 py-1 min-w-[140px] md:min-w-[160px]">
                     <button
                       onClick={handleEdit}
                       className="w-full px-3 md:px-4 py-2 text-left text-xs md:text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-2 transition-colors"
@@ -271,13 +271,13 @@ const ForoDetalle = () => {
                 value={editTitle}
                 onChange={(e) => setEditTitle(e.target.value)}
                 placeholder="Título del post..."
-                className="w-full px-4 py-3 text-base bg-gray-50 dark:bg-[#1D1F23] border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:border-primary-500 dark:text-white font-semibold"
+                className="w-full px-4 py-3 text-base bg-gray-50 dark:bg-[#1D1F23] border border-gray-300 dark:border-gray-700 rounded-lg outline-none dark:text-white font-semibold"
               />
               <textarea
                 value={editContent}
                 onChange={(e) => setEditContent(e.target.value)}
                 placeholder="Contenido del post..."
-                className="w-full px-4 py-3 text-base bg-gray-50 dark:bg-[#1D1F23] border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:border-primary-500 dark:text-white resize-none"
+                className="w-full px-4 py-3 text-base bg-gray-50 dark:bg-[#1D1F23] border border-gray-300 dark:border-gray-700 rounded-lg outline-none dark:text-white resize-none"
                 rows={6}
                 required
                 autoFocus
@@ -370,7 +370,7 @@ const ForoDetalle = () => {
                   placeholder="Escribe una respuesta..." 
                   value={replyText} 
                   onChange={(e) => setReplyText(e.target.value)} 
-                  className="w-full px-4 py-3 text-sm bg-gray-50 dark:bg-[#1D1F23] border border-gray-300 dark:border-gray-700 rounded-lg outline-none focus:border-primary-500 dark:text-white resize-none"
+                  className="w-full px-4 py-3 text-sm bg-gray-50 dark:bg-[#1D1F23] border border-gray-300 dark:border-gray-700 rounded-lg outline-none dark:text-white resize-none"
                   rows={3}
                   required 
                   autoFocus

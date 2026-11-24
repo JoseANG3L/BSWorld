@@ -1,6 +1,25 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+@tailwind variants;
+
+.search-field,
+.edit-content-form :where(input, textarea, select, .field-group, button[aria-expanded]):not(:where(.field-group *)) {
+  @apply rounded-xl border border-gray-300 shadow-none outline-none ring-offset-transparent transition-all dark:border-transparent motion-reduce:transition-none;
+}
+
+/* En campos compuestos, el indicador de foco rodea el contenedor completo. */
+:is(input, textarea, select):focus:not(.field-group *),
+.field-group:focus-within,
+.edit-content-form .field-group:focus-within,
+.edit-content-form button[aria-expanded]:is(:focus, [aria-expanded="true"]) {
+  @apply border-primary-500 outline-none ring-1 ring-primary-500;
+}
+
+.edit-content-form [aria-invalid="true"]:not(:focus),
+.edit-content-form .field-group:has([aria-invalid="true"]):not(:focus-within) {
+  @apply border-red-500;
+}
 
 /* Estilos base para transiciones suaves de tema */
 body {

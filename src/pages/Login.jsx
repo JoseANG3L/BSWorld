@@ -268,7 +268,7 @@ const Login = ({ isOpen = true, onClose, onSuccess, initialRegister = false }) =
                   <input 
                     type="text" name="username" placeholder="Nombre de usuario" required={isRegistering}
                     value={formData.username} onChange={handleChange} maxLength={20}
-                    className="w-full pl-11 pr-4 py-3 rounded-xl dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 transition-all dark:text-white text-sm"
+                    className="w-full pl-11 pr-4 py-3 rounded-xl dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent outline-none transition-all dark:text-white text-sm"
                   />
                 </div>
               )}
@@ -278,7 +278,7 @@ const Login = ({ isOpen = true, onClose, onSuccess, initialRegister = false }) =
                 <input 
                   type="email" name="email" placeholder="Correo electrónico" required
                   value={formData.email} onChange={handleChange}
-                  className="w-full pl-11 pr-4 py-3 rounded-xl dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 transition-all dark:text-white text-sm"
+                  className="w-full pl-11 pr-4 py-3 rounded-xl dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent outline-none transition-all dark:text-white text-sm"
                 />
               </div>
 
@@ -291,7 +291,7 @@ const Login = ({ isOpen = true, onClose, onSuccess, initialRegister = false }) =
                   required
                   value={formData.password} 
                   onChange={handleChange}
-                  className="w-full pl-11 pr-11 py-3 rounded-xl dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 transition-all dark:text-white text-sm"
+                  className="w-full pl-11 pr-11 py-3 rounded-xl dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent outline-none transition-all dark:text-white text-sm"
                 />
                 <button
                   type="button"
@@ -312,7 +312,7 @@ const Login = ({ isOpen = true, onClose, onSuccess, initialRegister = false }) =
                     required
                     value={formData.confirmPassword} 
                     onChange={handleChange}
-                    className="w-full pl-11 pr-11 py-3 rounded-xl dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 transition-all dark:text-white text-sm"
+                    className="w-full pl-11 pr-11 py-3 rounded-xl dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent outline-none transition-all dark:text-white text-sm"
                   />
                   <button
                     type="button"

@@ -452,7 +452,7 @@ const SubirMod = ({ isOpen, onClose }) => {
               <ChevronDown size={16} className={clsx("absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none transition-transform duration-200", openDropdowns.pasos && "rotate-180")} />
 
               {openDropdowns.pasos && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent rounded-xl shadow-lg z-50 p-1 overflow-y-auto custom-scrollbar transition-all duration-300 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-0 rounded-xl shadow-lg z-50 p-1 overflow-y-auto custom-scrollbar transition-all duration-300 animate-fade-in-up" style={{ animationDuration: '200ms' }}>
                   <div className="flex flex-col gap-0.5">
                     {steps.map((step, idx) => {
                       const StepIconComp = step.icon;
@@ -543,7 +543,7 @@ const SubirMod = ({ isOpen, onClose }) => {
                   placeholder="Ej: Mi Nuevo Super Mod..." 
                   className={clsx(
                     "w-full px-4 py-3 text-base md:text-lg bg-white dark:bg-[#1D1F23] border rounded-2xl outline-none transition-all duration-300 shadow-sm font-medium",
-                    errors.titulo ? "border-red-500 focus:ring-1 focus:ring-red-500" : "border-gray-300 dark:border-transparent focus:ring-1 focus:ring-primary-500 dark:text-white"
+                    errors.titulo ? "border-red-500" : "border-gray-300 dark:border-transparent dark:text-white"
                   )} 
                 />
                 {errors.titulo && <p className="text-center md:text-left text-xs text-red-500 font-semibold">El nombre del mod es obligatorio.</p>}

@@ -1,4 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
+import MobileFilterButton from './MobileFilterButton';
+import MobileFilterSheet from './MobileFilterSheet';
+import React, { useState } from 'react';
 import { CalendarDays, ChevronDown, Filter, Search, X } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -23,7 +25,7 @@ const FilterSelect = ({ id, label, value, options, onChange, icon }) => (
       id={id}
       value={value}
       onChange={(event) => onChange(event.target.value)}
-      className="h-10 w-full appearance-none rounded-xl border border-gray-300 bg-white pl-9 pr-9 text-sm font-medium text-gray-700 outline-none transition-all focus:border-primary-500 focus:ring-1 focus:ring-primary-500 dark:border-transparent dark:bg-[#1D1F23] dark:text-gray-200"
+      className="h-10 w-full appearance-none rounded-xl border border-gray-300 bg-white pl-9 pr-9 text-sm font-medium text-gray-700 outline-none transition-all dark:border-transparent dark:bg-[#1D1F23] dark:text-gray-200"
     >
       {options.map((option) => (
         <option key={option.id} value={option.id}>
@@ -45,19 +47,12 @@ const NotificationFilters = ({
   searchRef
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const containerRef = useRef(null);
+  const [draftFilter, setDraftFilter] = useState(filter);
+  const [draftDate, setDraftDate] = useState(dateFilter);
   const activeTab = NOTIFICATION_TABS.find((tab) => tab.id === filter);
   const activeDateFilter = NOTIFICATION_DATE_FILTERS.find((option) => option.id === dateFilter);
   const hasActiveFilter = filter !== 'all' || dateFilter !== 'all';
 
-  useEffect(() => {
-    if (!isOpen) return undefined;
-    const closeOnOutsideClick = (event) => {
-      if (!containerRef.current?.contains(event.target)) setIsOpen(false);
-    };
-    document.addEventListener('mousedown', closeOnOutsideClick);
-    return () => document.removeEventListener('mousedown', closeOnOutsideClick);
-  }, [isOpen]);
 
   const statusSelect = (id) => (
     <FilterSelect
@@ -93,7 +88,7 @@ const NotificationFilters = ({
           value={searchTerm}
           onChange={(event) => onSearchChange(event.target.value)}
           className={clsx(
-            'block h-10 w-full rounded-xl border border-gray-300 bg-white pl-9 text-sm text-gray-700 outline-none transition-all placeholder:text-gray-400 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 dark:border-transparent dark:bg-[#1D1F23] dark:text-gray-200',
+            'block h-10 w-full rounded-xl border border-gray-300 bg-white pl-9 text-sm text-gray-700 outline-none transition-all placeholder:text-gray-400 dark:border-transparent dark:bg-[#1D1F23] dark:text-gray-200',
             searchTerm ? 'pr-10' : 'pr-2'
           )}
         />
@@ -110,29 +105,32 @@ const NotificationFilters = ({
         )}
       </div>
 
-      <div className="shrink-0 lg:hidden" ref={containerRef}>
-        <button
-          type="button"
-          onClick={() => setIsOpen((open) => !open)}
-          aria-label={`Filtrar notificaciones: ${activeTab?.label}, ${activeDateFilter?.label}`}
-          aria-expanded={isOpen}
-          aria-haspopup="true"
-          title="Filtrar notificaciones"
-          className={clsx(
-            'relative flex h-10 w-10 items-center justify-center rounded-xl border bg-white text-gray-600 transition-colors dark:bg-[#1D1F23] dark:text-gray-300',
-            hasActiveFilter
-              ? 'border-primary-400 dark:border-primary-500'
-              : 'border-gray-300 dark:border-transparent'
-          )}
-        >
-          <Filter size={18} />
-          {hasActiveFilter && <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-primary-500" />}
-        </button>
+      <div className="shrink-0 lg:hidden">
+        <MobileFilterButton open={isOpen} label={`Filtrar notificaciones: ${activeTab?.label}, ${activeDateFilter?.label}`}
+          onClick={() => { setDraftFilter(filter); setDraftDate(dateFilter); setIsOpen(true); }} active={hasActiveFilter} />
         {isOpen && (
-          <div className="absolute right-0 top-full z-30 mt-1.5 flex w-full max-w-xs flex-col gap-2 rounded-xl border border-gray-300 bg-white p-2 shadow-xl dark:border-transparent dark:bg-[#1D1F23]">
-            {statusSelect('notification-filter-mobile')}
-            {dateSelect('notification-date-filter-mobile')}
-          </div>
+          <MobileFilterSheet desktopWidth={1024} onClose={() => setIsOpen(false)} onApply={() => {
+            onFilterChange(draftFilter);
+            onDateFilterChange(draftDate);
+            setIsOpen(false);
+          }}>
+            {[
+              { label: 'Estado de lectura', options: NOTIFICATION_TABS, value: draftFilter, select: setDraftFilter },
+              { label: 'Fecha', options: NOTIFICATION_DATE_FILTERS, value: draftDate, select: setDraftDate }
+            ].map(({ label, options, value, select }) => (
+              <fieldset key={label}>
+                <legend className="mb-2 text-sm font-semibold">{label}</legend>
+                <div className="flex flex-wrap gap-2">
+                  {options.map(option => (
+                    <button key={option.id} type="button" aria-pressed={value === option.id} onClick={() => select(option.id)}
+                      className="min-h-10 rounded-full border border-gray-200 px-4 text-sm font-medium aria-pressed:border-primary-400 aria-pressed:bg-primary-50 aria-pressed:text-primary-700 dark:border-gray-700 dark:aria-pressed:bg-primary-500/15 dark:aria-pressed:text-primary-300">
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+            ))}
+          </MobileFilterSheet>
         )}
       </div>
 

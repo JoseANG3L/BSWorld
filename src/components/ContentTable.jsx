@@ -1,3 +1,5 @@
+import MobileFilterButton from './MobileFilterButton';
+import MobileFilterSheet from './MobileFilterSheet';
 import { useOverlayBack } from '../hooks/useOverlayBack';
 import { useVisitState } from '../hooks/useVisitState';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
@@ -8,7 +10,6 @@ import { getCommentCountByContent, getUserPublicProfile, updateContent, searchUs
 import { clsx } from 'clsx';
 import LoadingSpinner from './LoadingSpinner';
 import PageHeader from './PageHeader';
-import FilterModalHeader from './FilterModalHeader';
 
 const CATEGORIAS = {
   complemento: { nombre: 'Complemento', icon: Wrench, color: 'text-blue-500', borderColor: 'border-blue-500/80' },
@@ -208,17 +209,6 @@ const ContentTable = ({
     if (selectedIds.length === 0) setIsMobileBulkMenuOpen(false);
   }, [selectedIds.length]);
 
-  // Bloqueo de scroll cuando el modal de filtros está abierto
-  useEffect(() => {
-    if (isFiltersModalOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [isFiltersModalOpen]);
 
   // Cargar datos adicionales (comentarios y usernames)
   useEffect(() => {
@@ -558,7 +548,6 @@ const ContentTable = ({
     }
   };
 
-  useOverlayBack(isFiltersModalOpen, () => setIsFiltersModalOpen(false));
   useOverlayBack(isBulkModalOpen, () => setIsBulkModalOpen(false));
   useOverlayBack(isEditModalOpen, closeEditModal);
 
@@ -585,24 +574,13 @@ const ContentTable = ({
             placeholder="Buscar mods"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 h-10 rounded-xl bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all text-sm"
+            className="search-field h-10 w-full bg-white py-2.5 pl-10 pr-4 text-sm text-gray-700 dark:bg-[#1D1F23] dark:text-gray-200"
           />
         </div>
 
         {/* Botón para abrir modal de filtros en móvil */}
         <div className="xl:hidden">
-          <button
-            type="button"
-            onClick={handleOpenFiltersModal}
-            className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-gray-300 bg-white text-gray-700 transition-all hover:bg-gray-100 dark:border-transparent dark:bg-[#1D1F23] dark:text-gray-200 dark:hover:bg-gray-800"
-            aria-label="Abrir filtros"
-            title="Filtros"
-          >
-            <Filter size={18} className="text-gray-500 dark:text-gray-400" />
-            {(selectedTypes.length > 0 || selectedVisibilidad.length > 0 || selectedStatus.length > 0 || orden !== 'recientes') && (
-              <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-primary-500"></span>
-            )}
-          </button>
+          <MobileFilterButton open={isFiltersModalOpen} onClick={handleOpenFiltersModal} active={selectedTypes.length > 0 || selectedVisibilidad.length > 0 || selectedStatus.length > 0 || orden !== 'recientes'} />
         </div>
 
         {/* Filtro de tipos (Desktop) */}
@@ -627,7 +605,7 @@ const ContentTable = ({
             </div>
 
             {isTypeDropdownOpen && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent rounded-xl shadow-lg z-50 p-1">
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-0 rounded-xl shadow-lg z-50 p-1">
                 <div className="flex flex-col gap-0.5">
                   <button
                     type="button"
@@ -685,7 +663,7 @@ const ContentTable = ({
             </div>
 
             {isVisibilidadDropdownOpen && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent rounded-xl shadow-lg z-50 p-1">
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-0 rounded-xl shadow-lg z-50 p-1">
                 <div className="flex flex-col gap-0.5">
                   <button
                     type="button"
@@ -738,7 +716,7 @@ const ContentTable = ({
             </div>
 
             {isStatusDropdownOpen && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent rounded-xl shadow-lg z-50 p-1">
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-0 rounded-xl shadow-lg z-50 p-1">
                 <div className="flex flex-col gap-0.5">
                   <button
                     type="button"
@@ -781,7 +759,7 @@ const ContentTable = ({
             <ChevronDown size={16} className={`absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none transition-transform duration-200 ${isOrdenDropdownOpen ? "rotate-180" : ""}`} />
 
             {isOrdenDropdownOpen && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent rounded-xl shadow-lg z-50 p-1">
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-0 rounded-xl shadow-lg z-50 p-1">
                 <div className="flex flex-col gap-0.5">
                   {[
                     { val: 'mas_descargas', label: 'Más Descargas' },
@@ -870,7 +848,7 @@ const ContentTable = ({
               {isMobileBulkMenuOpen && (
                 <div
                   role="menu"
-                  className="absolute right-0 top-full z-[60] mt-2 w-44 max-w-[calc(100vw-2rem)] origin-top-right overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-xl animate-fade-in-up sm:w-56 sm:border-gray-300 sm:py-2 dark:border-gray-700 dark:bg-[#1e1e1e] sm:dark:border-transparent"
+                  className="absolute right-0 top-full z-[60] mt-2 w-44 max-w-[calc(100vw-2rem)] origin-top-right overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-xl animate-fade-in-up sm:w-56 sm:border-gray-300 sm:py-2 dark:border-0 dark:bg-[#1e1e1e]"
                   style={{ animationDuration: '200ms' }}
                 >
                   {[
@@ -1075,7 +1053,7 @@ const ContentTable = ({
                             <div
                               role="menu"
                               aria-label={`Opciones de ${item.titulo || 'mod'}`}
-                              className="absolute right-0 top-full z-[60] mt-2 w-44 max-w-[calc(100vw-2rem)] origin-top-right overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-xl animate-fade-in-up sm:w-56 sm:border-gray-300 sm:py-2 dark:border-gray-700 dark:bg-[#1e1e1e] sm:dark:border-transparent"
+                              className="absolute right-0 top-full z-[60] mt-2 w-44 max-w-[calc(100vw-2rem)] origin-top-right overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-xl animate-fade-in-up sm:w-56 sm:border-gray-300 sm:py-2 dark:border-0 dark:bg-[#1e1e1e]"
                               style={{ animationDuration: '200ms' }}
                             >
                               {actions.view && (
@@ -1396,230 +1374,197 @@ const ContentTable = ({
       )}
 
       {/* MODAL DE FILTROS EN MÓVIL */}
-      {isFiltersModalOpen && createPortal(
-        <div
-          className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 xl:hidden"
-          onClick={() => setIsFiltersModalOpen(false)}
-        >
-          <div
-            className="bg-white dark:bg-[#1e1e1e] rounded-2xl p-5 max-w-sm w-full border border-gray-200 dark:border-transparent shadow-2xl relative animate-fade-in-up flex flex-col max-h-[85vh]"
-            onClick={(e) => e.stopPropagation()}
-            style={{ animationDuration: '200ms' }}
-          >
-            <FilterModalHeader onClose={() => setIsFiltersModalOpen(false)} />
-
-            {/* Contenido desplazable */}
-            <div className="flex-1 overflow-y-auto py-4 space-y-5 custom-scrollbar">
-              {/* Sección: Ordenar por */}
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
-                  Ordenar por
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { val: 'recientes', label: 'Más Recientes' },
-                    { val: 'antiguos', label: 'Más Antiguos' },
-                    { val: 'az', label: 'Nombre (A-Z)' },
-                    { val: 'za', label: 'Nombre (Z-A)' },
-                    { val: 'mas_vistas', label: 'Más Vistas' },
-                    { val: 'mas_descargas', label: 'Más Descargas' }
-                  ].map((opt) => (
-                    <button
-                      key={opt.val}
-                      type="button"
-                      onClick={() => setTempOrden(opt.val)}
-                      className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all text-left border ${
-                        tempOrden === opt.val
-                          ? "bg-primary-500/10 border-primary-500 text-primary-600 dark:text-primary-400 font-bold"
-                          : "border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Sección: Filtrar por tipo */}
-              {columns.category && availableTypes.length > 0 && (
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
-                    Categoría
-                  </label>
-                  <div className="flex flex-col gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => setTempSelectedTypes([])}
-                      className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-colors text-left border ${
-                        tempSelectedTypes.length === 0
-                          ? "bg-primary-500/10 border-primary-500 text-primary-600 dark:text-primary-400 font-bold"
-                          : "border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-                      }`}
-                    >
-                      <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors shrink-0 ${tempSelectedTypes.length === 0 ? "bg-primary-500 border-primary-500" : "border-gray-300 dark:border-gray-600"}`}>
-                        {tempSelectedTypes.length === 0 && <Check size={12} className="text-white" />}
-                      </div>
-                      <span>Todas las categorías</span>
-                    </button>
-
-                    {availableTypes.map((type) => {
-                      const isSelected = tempSelectedTypes.includes(type);
-                      const categoriaInfo = CATEGORIAS[type] || { nombre: type.charAt(0).toUpperCase() + type.slice(1).toLowerCase(), icon: null, color: 'text-gray-500' };
-                      const CategoriaIcon = categoriaInfo.icon;
-                      return (
-                        <button
-                          key={type}
-                          type="button"
-                          onClick={() => {
-                            setTempSelectedTypes(prev =>
-                              prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
-                            );
-                          }}
-                          className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-colors text-left border ${
-                            isSelected
-                              ? "bg-primary-500/10 border-primary-500 text-primary-600 dark:text-primary-400 font-bold"
-                              : "border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-                          }`}
-                        >
-                          <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors shrink-0 ${isSelected ? "bg-primary-500 border-primary-500" : "border-gray-300 dark:border-gray-600"}`}>
-                            {isSelected && <Check size={12} className="text-white" />}
-                          </div>
-                          {CategoriaIcon && <CategoriaIcon size={14} className={categoriaInfo.color} />}
-                          <span>{categoriaInfo.nombre}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Sección: Filtrar por visibilidad */}
-              {columns.visibility && (
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
-                    Visibilidad
-                  </label>
-                  <div className="flex flex-col gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => setTempSelectedVisibilidad([])}
-                      className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-colors text-left border ${
-                        tempSelectedVisibilidad.length === 0
-                          ? "bg-primary-500/10 border-primary-500 text-primary-600 dark:text-primary-400 font-bold"
-                          : "border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-                      }`}
-                    >
-                      <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors shrink-0 ${tempSelectedVisibilidad.length === 0 ? "bg-primary-500 border-primary-500" : "border-gray-300 dark:border-gray-600"}`}>
-                        {tempSelectedVisibilidad.length === 0 && <Check size={12} className="text-white" />}
-                      </div>
-                      <span>Toda la visibilidad</span>
-                    </button>
-
-                    {['publico', 'privado', 'no-listado'].map((vis) => {
-                      const isSelected = tempSelectedVisibilidad.includes(vis);
-                      return (
-                        <button
-                          key={vis}
-                          type="button"
-                          onClick={() => {
-                            setTempSelectedVisibilidad(prev =>
-                              prev.includes(vis) ? prev.filter(v => v !== vis) : [...prev, vis]
-                            );
-                          }}
-                          className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-colors text-left border ${
-                            isSelected
-                              ? "bg-primary-500/10 border-primary-500 text-primary-600 dark:text-primary-400 font-bold"
-                              : "border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-                          }`}
-                        >
-                          <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors shrink-0 ${isSelected ? "bg-primary-500 border-primary-500" : "border-gray-300 dark:border-gray-600"}`}>
-                            {isSelected && <Check size={12} className="text-white" />}
-                          </div>
-                          <span>{getVisibilityConfig(vis).label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Sección: Filtrar por estado (solo admin) */}
-              {adminMode && columns.status && (
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
-                    Estado
-                  </label>
-                  <div className="flex flex-col gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => setTempSelectedStatus([])}
-                      className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-colors text-left border ${
-                        tempSelectedStatus.length === 0
-                          ? "bg-primary-500/10 border-primary-500 text-primary-600 dark:text-primary-400 font-bold"
-                          : "border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-                      }`}
-                    >
-                      <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors shrink-0 ${tempSelectedStatus.length === 0 ? "bg-primary-500 border-primary-500" : "border-gray-300 dark:border-gray-600"}`}>
-                        {tempSelectedStatus.length === 0 && <Check size={12} className="text-white" />}
-                      </div>
-                      <span>Todos los estados</span>
-                    </button>
-
-                    {['borrador', 'revision', 'aceptado', 'rechazado'].map((status) => {
-                      const isSelected = tempSelectedStatus.includes(status);
-                      return (
-                        <button
-                          key={status}
-                          type="button"
-                          onClick={() => {
-                            setTempSelectedStatus(prev =>
-                              prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]
-                            );
-                          }}
-                          className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-colors text-left border ${
-                            isSelected
-                              ? "bg-primary-500/10 border-primary-500 text-primary-600 dark:text-primary-400 font-bold"
-                              : "border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-                          }`}
-                        >
-                          <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors shrink-0 ${isSelected ? "bg-primary-500 border-primary-500" : "border-gray-300 dark:border-gray-600"}`}>
-                            {isSelected && <Check size={12} className="text-white" />}
-                          </div>
-                          <span>{getStatusConfig(status).label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Pie de página con acciones */}
-            <div className="pt-3 border-t border-gray-200 dark:border-gray-800 flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setIsFiltersModalOpen(false)}
-                className="flex-1 py-2.5 px-4 rounded-xl border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-semibold text-sm hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setOrden(tempOrden);
-                  setSelectedTypes(tempSelectedTypes);
-                  setSelectedVisibilidad(tempSelectedVisibilidad);
-                  setSelectedStatus(tempSelectedStatus);
-                  setIsFiltersModalOpen(false);
-                }}
-                className="flex-1 py-2.5 px-4 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-semibold text-sm transition-colors shadow-sm"
-              >
-                Filtrar
-              </button>
+      {isFiltersModalOpen && (
+        <MobileFilterSheet desktopWidth={1280} onClose={() => setIsFiltersModalOpen(false)} onApply={() => {
+          setOrden(tempOrden);
+          setSelectedTypes(tempSelectedTypes);
+          setSelectedVisibilidad(tempSelectedVisibilidad);
+          setSelectedStatus(tempSelectedStatus);
+          setIsFiltersModalOpen(false);
+        }}>
+          {/* Sección: Ordenar por */}
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
+              Ordenar por
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { val: 'recientes', label: 'Más Recientes' },
+                { val: 'antiguos', label: 'Más Antiguos' },
+                { val: 'az', label: 'Nombre (A-Z)' },
+                { val: 'za', label: 'Nombre (Z-A)' },
+                { val: 'mas_vistas', label: 'Más Vistas' },
+                { val: 'mas_descargas', label: 'Más Descargas' }
+              ].map((opt) => (
+                <button
+                  key={opt.val}
+                  type="button"
+                  onClick={() => setTempOrden(opt.val)}
+                  className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all text-left border ${
+                    tempOrden === opt.val
+                      ? "bg-primary-500/10 border-primary-500 text-primary-600 dark:text-primary-400 font-bold"
+                      : "border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
             </div>
           </div>
-        </div>,
-        document.body
+
+          {/* Sección: Filtrar por tipo */}
+          {columns.category && availableTypes.length > 0 && (
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
+                Categoría
+              </label>
+              <div className="flex flex-col gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setTempSelectedTypes([])}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-colors text-left border ${
+                    tempSelectedTypes.length === 0
+                      ? "bg-primary-500/10 border-primary-500 text-primary-600 dark:text-primary-400 font-bold"
+                      : "border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                  }`}
+                >
+                  <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors shrink-0 ${tempSelectedTypes.length === 0 ? "bg-primary-500 border-primary-500" : "border-gray-300 dark:border-gray-600"}`}>
+                    {tempSelectedTypes.length === 0 && <Check size={12} className="text-white" />}
+                  </div>
+                  <span>Todas las categorías</span>
+                </button>
+
+                {availableTypes.map((type) => {
+                  const isSelected = tempSelectedTypes.includes(type);
+                  const categoriaInfo = CATEGORIAS[type] || { nombre: type.charAt(0).toUpperCase() + type.slice(1).toLowerCase(), icon: null, color: 'text-gray-500' };
+                  const CategoriaIcon = categoriaInfo.icon;
+                  return (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => {
+                        setTempSelectedTypes(prev =>
+                          prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+                        );
+                      }}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-colors text-left border ${
+                        isSelected
+                          ? "bg-primary-500/10 border-primary-500 text-primary-600 dark:text-primary-400 font-bold"
+                          : "border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                      }`}
+                    >
+                      <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors shrink-0 ${isSelected ? "bg-primary-500 border-primary-500" : "border-gray-300 dark:border-gray-600"}`}>
+                        {isSelected && <Check size={12} className="text-white" />}
+                      </div>
+                      {CategoriaIcon && <CategoriaIcon size={14} className={categoriaInfo.color} />}
+                      <span>{categoriaInfo.nombre}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Sección: Filtrar por visibilidad */}
+          {columns.visibility && (
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
+                Visibilidad
+              </label>
+              <div className="flex flex-col gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setTempSelectedVisibilidad([])}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-colors text-left border ${
+                    tempSelectedVisibilidad.length === 0
+                      ? "bg-primary-500/10 border-primary-500 text-primary-600 dark:text-primary-400 font-bold"
+                      : "border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                  }`}
+                >
+                  <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors shrink-0 ${tempSelectedVisibilidad.length === 0 ? "bg-primary-500 border-primary-500" : "border-gray-300 dark:border-gray-600"}`}>
+                    {tempSelectedVisibilidad.length === 0 && <Check size={12} className="text-white" />}
+                  </div>
+                  <span>Toda la visibilidad</span>
+                </button>
+
+                {['publico', 'privado', 'no-listado'].map((vis) => {
+                  const isSelected = tempSelectedVisibilidad.includes(vis);
+                  return (
+                    <button
+                      key={vis}
+                      type="button"
+                      onClick={() => {
+                        setTempSelectedVisibilidad(prev =>
+                          prev.includes(vis) ? prev.filter(v => v !== vis) : [...prev, vis]
+                        );
+                      }}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-colors text-left border ${
+                        isSelected
+                          ? "bg-primary-500/10 border-primary-500 text-primary-600 dark:text-primary-400 font-bold"
+                          : "border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                      }`}
+                    >
+                      <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors shrink-0 ${isSelected ? "bg-primary-500 border-primary-500" : "border-gray-300 dark:border-gray-600"}`}>
+                        {isSelected && <Check size={12} className="text-white" />}
+                      </div>
+                      <span>{getVisibilityConfig(vis).label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Sección: Filtrar por estado (solo admin) */}
+          {adminMode && columns.status && (
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
+                Estado
+              </label>
+              <div className="flex flex-col gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setTempSelectedStatus([])}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-colors text-left border ${
+                    tempSelectedStatus.length === 0
+                      ? "bg-primary-500/10 border-primary-500 text-primary-600 dark:text-primary-400 font-bold"
+                      : "border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                  }`}
+                >
+                  <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors shrink-0 ${tempSelectedStatus.length === 0 ? "bg-primary-500 border-primary-500" : "border-gray-300 dark:border-gray-600"}`}>
+                    {tempSelectedStatus.length === 0 && <Check size={12} className="text-white" />}
+                  </div>
+                  <span>Todos los estados</span>
+                </button>
+
+                {['borrador', 'revision', 'aceptado', 'rechazado'].map((status) => {
+                  const isSelected = tempSelectedStatus.includes(status);
+                  return (
+                    <button
+                      key={status}
+                      type="button"
+                      onClick={() => {
+                        setTempSelectedStatus(prev =>
+                          prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]
+                        );
+                      }}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-colors text-left border ${
+                        isSelected
+                          ? "bg-primary-500/10 border-primary-500 text-primary-600 dark:text-primary-400 font-bold"
+                          : "border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                      }`}
+                    >
+                      <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors shrink-0 ${isSelected ? "bg-primary-500 border-primary-500" : "border-gray-300 dark:border-gray-600"}`}>
+                        {isSelected && <Check size={12} className="text-white" />}
+                      </div>
+                      <span>{getStatusConfig(status).label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </MobileFilterSheet>
       )}
 
       {/* MODAL DE EDICIÓN EN MASA */}
@@ -1675,7 +1620,7 @@ const ContentTable = ({
                       value={bulkValue}
                       onChange={(e) => setBulkValue(e.target.value)}
                       placeholder="Nuevo título..."
-                      className="w-full p-3 rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white text-sm"
+                      className="w-full p-3 rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none transition-all dark:text-white text-sm"
                     />
                   )}
 
@@ -1683,7 +1628,7 @@ const ContentTable = ({
                     <select
                       value={bulkValue}
                       onChange={(e) => setBulkValue(e.target.value)}
-                      className="w-full p-3 rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white text-sm"
+                      className="w-full p-3 rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none transition-all dark:text-white text-sm"
                     >
                       <option value="">Seleccionar categoría...</option>
                       {availableTypes.map((type) => {
@@ -1701,7 +1646,7 @@ const ContentTable = ({
                     <select
                       value={bulkValue}
                       onChange={(e) => setBulkValue(e.target.value)}
-                      className="w-full p-3 rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white text-sm"
+                      className="w-full p-3 rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none transition-all dark:text-white text-sm"
                     >
                       <option value="">Seleccionar visibilidad...</option>
                       <option value="publico">Público</option>
@@ -1714,7 +1659,7 @@ const ContentTable = ({
                     <select
                       value={bulkValue}
                       onChange={(e) => setBulkValue(e.target.value)}
-                      className="w-full p-3 rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white text-sm"
+                      className="w-full p-3 rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none transition-all dark:text-white text-sm"
                     >
                       <option value="">Seleccionar estado...</option>
                       <option value="borrador">Borrador</option>
@@ -1730,7 +1675,7 @@ const ContentTable = ({
                       value={bulkValue}
                       onChange={(e) => setBulkValue(e.target.value)}
                       placeholder="ID o UUID del creador..."
-                      className="w-full p-3 rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white text-sm"
+                      className="w-full p-3 rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none transition-all dark:text-white text-sm"
                     />
                   )}
                 </>
@@ -1804,7 +1749,7 @@ const ContentTable = ({
                     value={editingValue}
                     onChange={(e) => setEditingValue(e.target.value)}
                     placeholder="https://..."
-                    className="w-full p-3 rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white text-sm"
+                    className="w-full p-3 rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none transition-all dark:text-white text-sm"
                     autoFocus
                   />
                   {(editingValue || (editingItem?.imagen || (editingItem?.imagenes && editingItem.imagenes[0]))) && (
@@ -1836,7 +1781,7 @@ const ContentTable = ({
                     value={editingValue}
                     onChange={(e) => setEditingValue(e.target.value)}
                     placeholder="Título del contenido"
-                    className="w-full p-3 rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white text-sm"
+                    className="w-full p-3 rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none transition-all dark:text-white text-sm"
                     autoFocus
                   />
                 </div>
@@ -1850,7 +1795,7 @@ const ContentTable = ({
                   <select
                     value={editingValue}
                     onChange={(e) => setEditingValue(e.target.value)}
-                    className="w-full p-3 rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white text-sm"
+                    className="w-full p-3 rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none transition-all dark:text-white text-sm"
                     autoFocus
                   >
                     <option value="">Seleccionar categoría...</option>
@@ -1877,11 +1822,11 @@ const ContentTable = ({
                     onChange={handleCreatorSearch}
                     onKeyDown={handleCreatorKeyDown}
                     placeholder="Escribe para buscar usuarios..."
-                    className="w-full p-3 rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white text-sm"
+                    className="w-full p-3 rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none transition-all dark:text-white text-sm"
                     autoFocus
                   />
                   {showSuggestions && creatorInput.length > 1 && (
-                    <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#252525] rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden max-h-48 overflow-y-auto">
+                    <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#252525] rounded-2xl shadow-xl border border-gray-200 dark:border-0 z-50 overflow-hidden max-h-48 overflow-y-auto">
                       {userSuggestions.length > 0 ? (
                         <ul className="divide-y divide-gray-100 dark:divide-gray-800">
                           {userSuggestions.map((u) => (
@@ -1930,7 +1875,7 @@ const ContentTable = ({
                   <select
                     value={editingValue}
                     onChange={(e) => setEditingValue(e.target.value)}
-                    className="w-full p-3 rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white text-sm"
+                    className="w-full p-3 rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none transition-all dark:text-white text-sm"
                     autoFocus
                   >
                     <option value="publico">Público</option>

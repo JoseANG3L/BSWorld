@@ -70,7 +70,7 @@ export const getContentById = async (id, userId = null, userRole = null) => {
   if (data) {
     const visibilidad = data.visibilidad || 'publico';
     const estado = data.estado || data.status;
-    const ownerId = data.aporte?.uid || data.aporte;
+    const ownerId = data.aporte?.uid || data.aporte?.id || data.aporte;
     const isRevision = data.parent_id !== null;
     
     // Admin puede ver todo el contenido incluyendo revisiones
@@ -404,7 +404,7 @@ export const getContentRevisions = async (originalId) => {
 };
 
 export const deleteContent = async (id) => {
-  const { error } = await supabase.from('content').delete().eq('id', id);
+  const { error } = await supabase.from('content').delete().eq('id', id).select('id').single();
   if (error) throw error;
   invalidateContentCache();
   return true;

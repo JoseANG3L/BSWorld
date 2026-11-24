@@ -267,7 +267,7 @@ const ForumSection = () => {
                   </button>
 
                   {showPostCategoryDropdown && (
-                    <div className="absolute top-full right-0 mt-1.5 w-40 bg-white dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50 p-1 animate-scale-up">
+                    <div className="absolute top-full right-0 mt-1.5 w-40 bg-white dark:bg-[#1D1F23] border border-gray-200 dark:border-0 rounded-xl shadow-xl z-50 p-1 animate-scale-up">
                       {categories.map((cat) => (
                         <button
                           key={cat}
@@ -298,7 +298,7 @@ const ForumSection = () => {
                 placeholder="Título de la publicación (opcional)"
                 value={postTitle}
                 onChange={(e) => setPostTitle(e.target.value)}
-                className="w-full p-3.5 text-sm bg-gray-50/50 dark:bg-[#16181B] border border-gray-200 dark:border-gray-800 rounded-2xl outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 dark:text-white transition-all placeholder:text-gray-400 font-semibold"
+                className="w-full p-3.5 text-sm bg-gray-50/50 dark:bg-[#16181B] border border-gray-200 dark:border-gray-800 rounded-2xl outline-none dark:text-white transition-all placeholder:text-gray-400 font-semibold"
               />
 
               {/* TEXTAREA PRINCIPAL */}
@@ -306,7 +306,7 @@ const ForumSection = () => {
                 placeholder="¿Qué tienes en mente para compartir hoy con la comunidad?"
                 value={postContent}
                 onChange={(e) => setPostContent(e.target.value)}
-                className="w-full p-3.5 text-sm bg-gray-50/50 dark:bg-[#16181B] border border-gray-200 dark:border-gray-800 rounded-2xl outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 dark:text-white resize-none transition-all placeholder:text-gray-400 min-h-[110px]"
+                className="w-full p-3.5 text-sm bg-gray-50/50 dark:bg-[#16181B] border border-gray-200 dark:border-gray-800 rounded-2xl outline-none dark:text-white resize-none transition-all placeholder:text-gray-400 min-h-[110px]"
                 rows={4}
                 required
                 autoFocus
@@ -365,7 +365,7 @@ const ForumSection = () => {
                             placeholder={`Opción ${index + 1}`}
                             value={option}
                             onChange={(e) => handlePollOptionChange(index, e.target.value)}
-                            className="w-full pl-7 pr-3 py-2 text-xs bg-white dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:ring-1 focus:ring-primary-500 dark:text-white"
+                            className="w-full pl-7 pr-3 py-2 text-xs bg-white dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 rounded-xl outline-none dark:text-white"
                           />
                         </div>
                         {pollOptions.length > 2 && (
@@ -405,7 +405,7 @@ const ForumSection = () => {
                       placeholder="URL de imagen..."
                       value={postImageUrl}
                       onChange={(e) => setPostImageUrl(e.target.value)}
-                      className="w-full pl-8 pr-3 py-1.5 h-9 text-xs bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 rounded-xl outline-none dark:text-white focus:ring-1 focus:ring-primary-500 transition-all"
+                      className="w-full pl-8 pr-3 py-1.5 h-9 text-xs bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 rounded-xl outline-none dark:text-white transition-all"
                     />
                   </div>
 
@@ -489,7 +489,7 @@ const UsersSection = ({ users }) => {
           placeholder="Buscar usuarios..." 
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 h-10 rounded-xl bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all text-sm" 
+          className="w-full pl-10 pr-4 py-2.5 h-10 rounded-xl bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 outline-none transition-all text-sm"
         />
       </div>
       

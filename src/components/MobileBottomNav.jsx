@@ -136,7 +136,7 @@ const MobileBottomNav = () => {
                 <div
                   role="menu"
                   aria-label="Menú de cuenta"
-                  className="absolute bottom-full right-0 mb-2 w-44 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-xl dark:border-gray-700 dark:bg-[#1e1e1e]"
+                  className="absolute bottom-full right-0 mb-2 w-44 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-xl dark:border-0 dark:bg-[#1e1e1e]"
                 >
                   <div className="mb-1 border-b border-gray-100 px-3 pb-2 pt-1 dark:border-gray-800">
                     <p className="truncate text-sm font-bold text-gray-900 dark:text-white">{user.username}</p>

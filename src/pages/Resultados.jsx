@@ -14,11 +14,13 @@ import LoadingSpinner from '../components/LoadingSpinner';
 
 const Resultados = () => {
   const [searchParams] = useSearchParams();
-  const query = (searchParams.get('q') || '').trim();
+  const initialQuery = (searchParams.get('q') || '').trim();
+  const [searchValue, setSearchValue] = useVisitState('results-search', initialQuery);
+  const [query, setQuery] = useState(searchValue.trim());
   
   const [counts, setCounts] = useVisitState('counts', { contenido: 0, usuarios: 0 });
   const [savedVersion, setSavedVersion] = useVisitState('searchVersion', null);
-  const [loading, setLoading] = useState(!isCatalogCurrent(savedVersion));
+  const [loading, setLoading] = useState(savedVersion?.query !== query || !isCatalogCurrent(savedVersion));
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [activeTab, setActiveTab] = useVisitState('activeTab', 'contenido');
@@ -27,17 +29,22 @@ const Resultados = () => {
   useOverlayBack(isEmptyFilterOpen, () => setIsEmptyFilterOpen(false));
 
   useEffect(() => {
+    const timer = setTimeout(() => setQuery(searchValue.trim()), 200);
+    return () => clearTimeout(timer);
+  }, [searchValue]);
+
+  useEffect(() => {
     const version = catalogStamp();
-    if (isCatalogCurrent(savedVersion)) return;
+    if (savedVersion?.query === query && isCatalogCurrent(savedVersion)) return;
     const controller = new AbortController();
     const signal = controller.signal;
     setFailed(false);
     if (!query) {
       setCounts({ contenido: 0, usuarios: 0 });
+      setSavedVersion(null);
       setLoading(false);
       return;
     }
-    setLoading(true);
     Promise.all([
       getCatalogPage({ search: query, signal }),
       getCatalogPage({ users: true, search: query, signal })
@@ -45,8 +52,8 @@ const Resultados = () => {
       if (signal.aborted) return;
       const totals = { contenido: content.total, usuarios: users.total };
       setCounts(totals);
-      setSavedVersion(version);
-      setActiveTab(prev => totals[prev] ? prev : (users.total && !content.total ? 'usuarios' : 'contenido'));
+      setSavedVersion({ ...version, query });
+      if (loading) setActiveTab(prev => totals[prev] ? prev : (users.total && !content.total ? 'usuarios' : 'contenido'));
     }).catch(() => {
       if (!signal.aborted) setFailed(true);
     }).finally(() => {
@@ -75,7 +82,6 @@ const Resultados = () => {
     <CreatorCard key={user.id} username={user.username} avatar={user.avatar} role={user.role} />
   );
 
-  const hasAnyResults = counts.contenido > 0 || counts.usuarios > 0;
   const renderTabSelector = () => (
     <div className="relative min-w-0">
       <Filter size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -83,7 +89,7 @@ const Resultados = () => {
         value={activeTab}
         onChange={(event) => setActiveTab(event.target.value)}
         aria-label="Tipo de resultados"
-        className="h-10 w-full appearance-none rounded-xl border border-gray-200 bg-white pl-9 pr-9 text-sm font-medium text-gray-700 outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:border-white/10 dark:bg-[#1D1F23] dark:text-gray-200"
+        className="h-10 w-full appearance-none rounded-xl border border-gray-200 bg-white pl-9 pr-9 text-sm font-medium text-gray-700 outline-none transition-all dark:border-white/10 dark:bg-[#1D1F23] dark:text-gray-200"
       >
         {tabsConfig.map((tab) => (
           <option key={tab.id} value={tab.id}>
@@ -118,11 +124,12 @@ const Resultados = () => {
 
   return (
     <div className="flex flex-col animate-fade-in-up" style={{ animationDuration: '200ms' }}>
-      {hasAnyResults ? (
+      {initialQuery ? (
         <>
           {activeTab === 'contenido' && (
             <DataContainer
-              key={`contenido-${query}`}
+              key="contenido"
+              compactPagination
               title="Buscar"
               icon={Search}
               gradientClass="from-primary-500 to-primary-700"
@@ -134,7 +141,8 @@ const Resultados = () => {
               catalogQuery={query}
               loading={loading}
               searchKey="searchText"
-              initialSearchValue={query}
+              searchValue={searchValue}
+              onSearchChange={setSearchValue}
               searchPlaceholder="Buscar contenido"
               dateKey="creado"
               sortKey="titulo"
@@ -159,7 +167,8 @@ const Resultados = () => {
 
           {activeTab === 'usuarios' && (
             <DataContainer
-              key={`usuarios-${query}`}
+              key="usuarios"
+              compactPagination
               title="Buscar"
               icon={Search}
               gradientClass="from-primary-500 to-primary-700"
@@ -172,7 +181,8 @@ const Resultados = () => {
               customTypes={['user', 'admin']}
               loading={loading}
               searchKey="searchText"
-              initialSearchValue={query}
+              searchValue={searchValue}
+              onSearchChange={setSearchValue}
               searchPlaceholder="Buscar usuarios..."
               sortKey="username"
               dateKey="createdat"

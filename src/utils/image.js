@@ -6,17 +6,23 @@
 
 const PROXY = 'https://wsrv.nl';
 
+// Las portadas antiguas también pueden apuntar al dominio de cookies de YouTube.
+export const thumbnailImageSrc = (url) => url?.replace(
+  /^https?:\/\/img\.youtube\.com\/(?=vi(?:_webp)?\/)/i, 'https://i.ytimg.com/'
+);
+
 const getYouTubeThumbnailUrl = (url) => {
   try {
-    const parsedUrl = new URL(url);
+    const normalized = thumbnailImageSrc(url);
+    const parsedUrl = new URL(normalized);
     if (!/(^|\.)ytimg\.com$/i.test(parsedUrl.hostname)) return null;
 
     const animatedThumbnailMatch = parsedUrl.pathname.match(/^\/an_webp\/([a-zA-Z0-9_-]+)\//);
     if (animatedThumbnailMatch) {
-      return `https://img.youtube.com/vi/${animatedThumbnailMatch[1]}/mqdefault.jpg`;
+      return `https://i.ytimg.com/vi/${animatedThumbnailMatch[1]}/mqdefault.jpg`;
     }
 
-    return url;
+    return normalized;
   } catch {
     return null;
   }

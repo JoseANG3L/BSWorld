@@ -8,6 +8,7 @@ import LikeButton from './LikeButton';
 import { useAuth } from '../context/AuthContext';
 import { registerDownload, getUserPublicProfile, deleteContent } from '../services/api';
 import { isProxeable, thumbUrl } from '../utils/image';
+import { canManageContent } from '../utils/contentPermissions';
 import { createPortal } from 'react-dom'; 
 import { useToast } from '../hooks/useToast';
 import Modal from './Modal';
@@ -400,10 +401,7 @@ const Card = ({
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDeleted, setIsDeleted] = useState(false);
   const [isOptionsOpen, setIsOptionsOpen] = useState(false);
-  const ownerId = aporte && typeof aporte === 'object' ? (aporte.uid || aporte.id) : aporte;
-  const currentUserId = user?.id || user?.uid;
-  const isOwner = Boolean(currentUserId && ownerId && String(currentUserId) === String(ownerId));
-  const canManageContent = isOwner || Boolean(currentUserId && user?.role === 'admin');
+  const canManage = canManageContent(user, aporte);
 
   // Miniatura rápida (WebP 640px) con caída a original y luego a default
   const thumb = useMemo(() => thumbUrl(imagen, 640), [imagen]);
@@ -482,7 +480,7 @@ const Card = ({
   };
 
   const handleDelete = async () => {
-    if (!canManageContent || !id || isDeleting) return;
+    if (!canManage || !id || isDeleting) return;
     setIsDeleting(true);
     try {
       await deleteContent(id);
@@ -626,7 +624,7 @@ const Card = ({
               <div
                 role="menu"
                 aria-label={`Opciones de ${titulo || 'contenido'}`}
-                className="absolute right-0 top-full z-[60] mt-1.5 w-44 max-w-[calc(100vw-2rem)] origin-top-right overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-xl animate-fade-in-up sm:w-56 sm:border-gray-300 sm:py-2 dark:border-gray-700 dark:bg-[#1e1e1e] sm:dark:border-transparent"
+                className="absolute right-0 top-full z-[60] mt-1.5 w-44 max-w-[calc(100vw-2rem)] origin-top-right overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-xl animate-fade-in-up sm:w-56 sm:border-gray-300 sm:py-2 dark:border-0 dark:bg-[#1e1e1e]"
                 style={{ animationDuration: '200ms' }}
               >
                 <button
@@ -637,7 +635,7 @@ const Card = ({
                 >
                   <Share2 size={16} /> Compartir
                 </button>
-                {canManageContent && (
+                {canManage && (
                   <>
                     <button
                       type="button"
@@ -757,7 +755,7 @@ const Card = ({
                 </button>
 
                 {isOpenDownload && (
-                  <div className="absolute bottom-full left-0 right-0 mb-2 bg-white dark:bg-[#252525] border border-gray-300 dark:border-transparent rounded-xl shadow-xl z-50 overflow-hidden animate-fade-in-up origin-bottom" style={{ animationDuration: '200ms' }}>
+                  <div className="absolute bottom-full left-0 right-0 mb-2 bg-white dark:bg-[#252525] border border-gray-300 dark:border-0 rounded-xl shadow-xl z-50 overflow-hidden animate-fade-in-up origin-bottom" style={{ animationDuration: '200ms' }}>
                     <div className="py-1 max-h-48 overflow-y-auto">
                       {localDescargas.map((option, index) => (
                         <a 

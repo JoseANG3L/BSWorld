@@ -131,6 +131,7 @@ const DownloadsInput = ({
                 <button
                   type="button"
                   onClick={() => toggleDropdown(index)}
+                  aria-expanded={Boolean(openDropdowns[`version-${index}`])}
                   className={clsx("w-full pl-3 pr-8 py-2 text-sm bg-white dark:bg-[#1D1F23] border border-gray-300 rounded-xl outline-none appearance-none cursor-pointer transition-all font-medium text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 text-left", withBorder ? "dark:border-gray-700" : "dark:border-transparent")}
                 >
                   <span className="truncate block">
@@ -146,7 +147,7 @@ const DownloadsInput = ({
                 />
                 
                 {openDropdowns[`version-${index}`] && (
-                  <div className={clsx("absolute top-full left-0 right-0 mt-1 bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-gray-700 rounded-xl shadow-lg z-50 p-1", withBorder ? "dark:border-gray-700" : "dark:border-transparent")}>
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-0 rounded-xl shadow-lg z-50 p-1">
                     <div className="flex flex-col gap-0.5">
                       {[...presets, customLabel].map((preset) => {
                         const isSelected = preset === customLabel ? isCustom : (currentPreset === preset && !isCustom);
@@ -181,7 +182,7 @@ const DownloadsInput = ({
                   value={currentLabel}
                   onChange={(e) => handleDownloadChange(index, 'label', e.target.value)}
                   placeholder={customPlaceholder}
-                  className={clsx("w-full md:min-w-42 md:max-w-42 px-3 py-2 text-sm bg-white dark:bg-[#1D1F23] transition-all duration-300 border border-gray-300 rounded-xl outline-none dark:text-white focus:ring-1 focus:ring-primary-500 focus:border-primary-500 shadow-sm", withBorder ? "dark:border-gray-700" : "dark:border-transparent")}
+                  className={clsx("w-full md:min-w-42 md:max-w-42 px-3 py-2 text-sm bg-white dark:bg-[#1D1F23] transition-all duration-300 border border-gray-300 rounded-xl outline-none dark:text-white shadow-sm", withBorder ? "dark:border-gray-700" : "dark:border-transparent")}
                 />
               )}
 
@@ -192,9 +193,10 @@ const DownloadsInput = ({
                 onChange={(e) => handleDownloadChange(index, 'url', e.target.value)}
                 placeholder="URL de descarga"
                 aria-label={`URL de descarga ${index + 1}`}
+                aria-invalid={Boolean(urlErrors[index])}
                 className={clsx(
                   "w-full px-4 py-2 text-sm bg-white dark:bg-[#1D1F23] transition-all duration-300 border rounded-xl outline-none dark:text-white shadow-sm",
-                  urlErrors[index] ? "border-red-500 dark:border-red-500 focus:ring-1 focus:ring-red-500 dark:focus:ring-red-500" : withBorder ? "border-gray-300 dark:border-gray-700 focus:ring-1 focus:ring-primary-500 dark:focus:ring-primary-500" : "border-gray-300 dark:border-transparent focus:ring-1 focus:ring-primary-500 dark:focus:ring-primary-500"
+                  urlErrors[index] ? "border-red-500 dark:border-red-500" : withBorder ? "border-gray-300 dark:border-gray-700" : "border-gray-300 dark:border-transparent"
                 )}
               />
 

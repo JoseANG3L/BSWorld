@@ -1,6 +1,15 @@
 import React, { useState } from 'react';
-import { Trash2, Image as ImageIcon } from 'lucide-react';
+import { ChevronDown, Trash2, Image as ImageIcon } from 'lucide-react';
 import clsx from 'clsx';
+import YouTubePreview from './YouTubePreview';
+import { thumbnailImageSrc } from '../utils/image';
+
+function moveToPosition(items, from, to) {
+  const reordered = [...items];
+  const [item] = reordered.splice(from, 1);
+  reordered.splice(to, 0, item);
+  return reordered;
+}
 
 const GalleryInput = ({ 
   gallery = [], 
@@ -12,7 +21,10 @@ const GalleryInput = ({
   placeholder = "URL de imagen, video o YouTube...",
   layout = 'grid'
 }) => {
-  const [urlErrors, setUrlErrors] = useState({});
+  // Las claves siguen a cada elemento aunque su URL cambie, esté vacía o se repita.
+  const [itemKeys, setItemKeys] = useState([]);
+  const nextKey = itemKeys.reduce((next, key) => Math.max(next, key + 1), 0);
+  const keys = gallery.map((_, index) => itemKeys[index] ?? nextKey + index);
 
   const isValidUrl = (url) => {
     if (!url) return true;
@@ -51,25 +63,17 @@ const GalleryInput = ({
     const newGallery = [...gallery];
     newGallery[index] = value;
     onChange(newGallery);
-
-    if (value.trim()) {
-      setUrlErrors(prev => ({ ...prev, [index]: !isValidUrl(value) }));
-    } else {
-      setUrlErrors(prev => {
-        const copy = { ...prev };
-        delete copy[index];
-        return copy;
-      });
-    }
   };
 
   const handleRemoveImage = (index) => {
+    setItemKeys(keys.filter((_, i) => i !== index));
     onChange(gallery.filter((_, i) => i !== index));
-    setUrlErrors(prev => {
-      const newErrors = { ...prev };
-      delete newErrors[index];
-      return newErrors;
-    });
+  };
+
+  const moveItem = (from, to) => {
+    if (from === to) return;
+    setItemKeys(moveToPosition(keys, from, to));
+    onChange(moveToPosition(gallery, from, to));
   };
 
   return (
@@ -85,7 +89,7 @@ const GalleryInput = ({
             {mainImage && mainImage.trim() ? (
               <img 
                 key={`main-cover-${mainImage}`}
-                src={mainImage} 
+                src={thumbnailImageSrc(mainImage)}
                 alt="Portada" 
                 className="w-full h-full object-cover" 
                 loading="lazy"
@@ -104,12 +108,13 @@ const GalleryInput = ({
           <input 
             type="url" 
             name="imagen" 
+            aria-invalid={Boolean(mainImageError)}
             value={mainImage} 
             onChange={(e) => onMainImageChange && onMainImageChange(e)} 
             placeholder="https://i.imgur.com/tu-imagen.png" 
             className={clsx(
               "w-full px-4 py-2.5 text-sm bg-white dark:bg-[#1D1F23] border rounded-xl outline-none dark:text-white transition-colors",
-              mainImageError ? "border-red-500" : "border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-primary-500"
+              mainImageError ? "border-red-500" : "border-gray-300 dark:border-gray-700"
             )}
           />
         </div>
@@ -134,123 +139,68 @@ const GalleryInput = ({
           {gallery.map((url, index) => {
             const mediaType = detectMediaType(url);
             const ytId = mediaType === 'youtube' ? getYoutubeId(url) : null;
+            const inline = layout === 'inline';
+            const invalid = !!url.trim() && !isValidUrl(url);
+            const position = index + 1;
 
             return (
-              <div key={`gallery-item-${index}`} className="relative group w-full">
-                {layout === 'inline' ? (
-                  /* ESTILO INLINE */
-                  <div className="flex items-center gap-2 bg-gray-50 dark:bg-[#1D1F23] p-2 rounded-xl border border-gray-200 dark:border-gray-800">
-                    <div className="h-14 aspect-video rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-900 flex-shrink-0 flex items-center justify-center">
-                      {mediaType === 'empty' && (
-                        <span className="text-[10px] text-gray-400">Vacío</span>
-                      )}
+              <div key={keys[index]} role="group" aria-label={`Elemento ${position} de la galería`}
+                className={clsx("min-w-0", inline
+                  ? "flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 p-2 dark:border-gray-800 dark:bg-[#1D1F23]"
+                  : "space-y-1.5")}>
+                <div className={clsx("flex aspect-video items-center justify-center overflow-hidden bg-gray-100 dark:bg-gray-900",
+                  inline ? "w-20 shrink-0 rounded-lg sm:w-24" : "w-full rounded-xl border border-gray-200 dark:border-gray-800")}>
+                  {mediaType === 'empty' && <span className="text-xs text-gray-400">URL vacía</span>}
+                  {mediaType === 'image' && (
+                    <img key={url} src={thumbnailImageSrc(url)} alt={`Galería ${position}`} loading="lazy"
+                      className="h-full w-full object-cover" onError={(e) => { e.currentTarget.style.opacity = '0'; }} />
+                  )}
+                  {inline && (mediaType === 'youtube' || mediaType === 'video') && (
+                    <span className={clsx("flex h-full w-full items-center justify-center text-xs font-bold", mediaType === 'youtube'
+                      ? "bg-red-100 text-red-600 dark:bg-red-900/20 dark:text-red-400"
+                      : "bg-blue-100 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400")}>
+                      {mediaType === 'youtube' ? 'YouTube' : 'Video'}
+                    </span>
+                  )}
+                  {!inline && mediaType === 'youtube' && ytId && (
+                    <YouTubePreview key={ytId} videoId={ytId} title={`video de la galería, posición ${position}`} />
+                  )}
+                  {!inline && mediaType === 'video' && (
+                    <video key={url} src={url} className="h-full w-full object-cover" controls preload="metadata" />
+                  )}
+                </div>
 
-                      {mediaType === 'youtube' && (
-                        <div className="w-full h-full flex items-center justify-center bg-red-100 dark:bg-red-900/20">
-                          <span className="text-xs text-red-600 dark:text-red-400 font-bold">YouTube</span>
-                        </div>
-                      )}
-
-                      {mediaType === 'video' && (
-                        <div className="w-full h-full flex items-center justify-center bg-blue-100 dark:bg-blue-900/20">
-                          <span className="text-xs text-blue-600 dark:text-blue-400 font-bold">Video</span>
-                        </div>
-                      )}
-
-                      {mediaType === 'image' && (
-                        <img
-                          key={`img-${url}`}
-                          src={url}
-                          alt={`Galería ${index}`}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                          onError={(e) => {
-                            e.target.style.opacity = '0';
-                          }}
-                        />
-                      )}
+                <div className="min-w-0 flex-1 space-y-1">
+                  <input
+                    type={inline ? 'url' : 'text'}
+                    value={url}
+                    aria-label={`URL del elemento ${position} de la galería`}
+                    aria-invalid={invalid}
+                    onChange={(e) => handleImageChange(index, e.target.value)}
+                    placeholder={placeholder}
+                    className={clsx("w-full min-w-0 rounded-lg border bg-white px-3 py-2 text-xs outline-none dark:bg-[#1D1F23] dark:text-white",
+                      invalid ? "border-red-500" : "border-gray-300 dark:border-gray-700")}
+                  />
+                  <div className="flex items-center justify-between gap-1">
+                    <div className="relative min-w-0">
+                      <select
+                        aria-label={`Posición del elemento ${position}`}
+                        value={index}
+                        disabled={gallery.length < 2}
+                        onChange={(event) => moveItem(index, Number(event.target.value))}
+                        className="h-9 max-w-full cursor-pointer appearance-none rounded-lg bg-transparent pl-2 pr-6 text-xs font-medium text-gray-600 hover:bg-gray-100 focus-visible:outline-primary-500 disabled:cursor-default dark:text-gray-300 dark:hover:bg-white/5 dark:[color-scheme:dark]"
+                      >
+                        {gallery.map((_, i) => <option key={i} value={i}>Posición {i + 1}</option>)}
+                      </select>
+                      <ChevronDown size={13} aria-hidden="true" className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-gray-400" />
                     </div>
-
-                    <input
-                      type="url"
-                      value={url}
-                      onChange={(e) => handleImageChange(index, e.target.value)}
-                      placeholder={placeholder}
-                      className={clsx(
-                        "flex-1 px-3 py-2 text-xs rounded-lg bg-white dark:bg-[#1D1F23] border outline-none dark:text-white min-w-0",
-                        urlErrors[index] ? "border-red-500 focus:ring-2 focus:ring-red-500" : "border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-primary-500"
-                      )}
-                    />
-
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveImage(index)}
-                      className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors flex-shrink-0"
-                    >
+                    <button type="button" onClick={() => handleRemoveImage(index)}
+                      aria-label={`Eliminar elemento ${position} de la galería`}
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-red-500 transition-colors hover:bg-red-50 dark:hover:bg-red-900/20">
                       <Trash2 size={16} />
                     </button>
                   </div>
-                ) : (
-                  /* ESTILO GRID */
-                  <>
-                    <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 flex items-center justify-center">
-                      {mediaType === 'empty' && (
-                        <span className="text-xs text-gray-400">URL vacía</span>
-                      )}
-
-                      {mediaType === 'youtube' && ytId && (
-                        <iframe
-                          key={`yt-${ytId}`}
-                          src={`https://www.youtube.com/embed/${ytId}`}
-                          title={`Galería ${index}`}
-                          className="w-full h-full border-0"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                        />
-                      )}
-
-                      {mediaType === 'video' && (
-                        <video
-                          key={`vid-${url}`}
-                          src={url}
-                          className="w-full h-full object-cover"
-                          controls
-                          preload="metadata"
-                        />
-                      )}
-
-                      {mediaType === 'image' && (
-                        <img
-                          key={`img-${url}`}
-                          src={url}
-                          alt={`Galería ${index}`}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                          onError={(e) => {
-                            e.target.style.opacity = '0';
-                          }}
-                        />
-                      )}
-                    </div>
-
-                    <div className="mt-2 flex gap-2 w-full">
-                      <input
-                        type="text"
-                        value={url}
-                        onChange={(e) => handleImageChange(index, e.target.value)}
-                        placeholder={placeholder}
-                        className="flex-1 px-3 py-2 text-xs rounded-lg bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 dark:text-white min-w-0"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveImage(index)}
-                        className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors flex-shrink-0"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </>
-                )}
+                </div>
               </div>
             );
           })}

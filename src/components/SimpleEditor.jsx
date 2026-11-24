@@ -5,7 +5,7 @@ import MarkdownRenderer from './MarkdownRenderer';
 const MAX_CHARACTERS = 5000;
 const countCharacters = (text) => Array.from(text).length;
 
-const SimpleEditor = ({ value = '', onChange, placeholder = 'Escribe la descripción...', label }) => {
+const SimpleEditor = ({ value = '', onChange, placeholder = 'Escribe la descripción...', label, autoGrow = false }) => {
     const textareaRef = useRef(null);
     const [isEditing, setIsEditing] = useState(true);
     const characterCount = countCharacters(value);
@@ -127,13 +127,19 @@ const SimpleEditor = ({ value = '', onChange, placeholder = 'Escribe la descripc
                     {modeButton}
                 </div>
             )}
-            <div className="relative rounded-xl border border-gray-200 bg-white dark:border-transparent dark:bg-[#1D1F23]">
+            <div className="field-group relative rounded-xl border border-gray-200 bg-white dark:border-transparent dark:bg-[#1D1F23]">
                 {!label && (
                     <div className="flex justify-end border-b border-gray-100 px-2 py-1.5 dark:border-gray-700">
                         {modeButton}
                     </div>
                 )}
                 {isEditing ? (
+                  <div className={autoGrow ? 'grid min-w-0' : 'contents'}>
+                    {autoGrow && (
+                        <span aria-hidden="true" className="invisible col-start-1 row-start-1 min-w-0 whitespace-pre-wrap [overflow-wrap:anywhere] p-3 text-sm">
+                            {value + ' '}
+                        </span>
+                    )}
                     <textarea
                         ref={textareaRef}
                         value={value}
@@ -143,10 +149,11 @@ const SimpleEditor = ({ value = '', onChange, placeholder = 'Escribe la descripc
                         onPaste={handlePaste}
                         placeholder={placeholder}
                         aria-label={placeholder}
-                        className="min-h-[150px] w-full resize-y rounded-xl bg-transparent p-3 text-sm text-gray-900 outline-none placeholder:text-gray-400 dark:text-gray-100 dark:placeholder:text-gray-500"
+                        className={`min-h-[150px] w-full rounded-xl bg-transparent p-3 text-sm text-gray-900 outline-none placeholder:text-gray-400 dark:text-gray-100 dark:placeholder:text-gray-500 ${autoGrow ? 'col-start-1 row-start-1 min-w-0 resize-none overflow-hidden [overflow-wrap:anywhere]' : 'resize-y'}`}
                     />
+                  </div>
                 ) : (
-                    <div className="min-h-[150px] p-3 text-sm font-normal leading-normal text-gray-900 dark:text-gray-100">
+                    <div className="min-h-[150px] min-w-0 p-3 text-sm font-normal [overflow-wrap:anywhere] text-gray-900 dark:text-gray-100">
                         {value ? (
                             <MarkdownRenderer content={value} compact />
                         ) : (

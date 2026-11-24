@@ -32,7 +32,7 @@ const SOCIAL_FIELDS = [
   { name: 'website', label: 'Sitio web', icon: Globe, placeholder: 'https://tu-sitio.com', accent: 'group-focus-within:text-purple-500' }
 ];
 
-const INPUT_CLASS = 'w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800 outline-none transition-all placeholder:text-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:border-transparent dark:focus:border-transparent dark:bg-white/5 dark:text-gray-100 dark:placeholder:text-gray-500';
+const INPUT_CLASS = 'w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800 outline-none transition-all placeholder:text-gray-400 dark:border-transparent dark:bg-white/5 dark:text-gray-100 dark:placeholder:text-gray-500';
 
 const getPasswordStrength = (password) => {
   if (!password) return 0;
@@ -330,11 +330,7 @@ const Configuracion = () => {
         throw new Error('Error al actualizar perfil: ' + dbError.message);
       }
 
-      updateUserProfile({
-        username: formData.username,
-        avatar: formData.avatar,
-        descripcion: formData.descripcion
-      });
+      updateUserProfile(formData);
 
       setInitialForm(formData);
       showToast('Perfil actualizado correctamente');
@@ -817,7 +813,7 @@ const Configuracion = () => {
                     type="text"
                     value={deleteConfirmation}
                     onChange={(event) => setDeleteConfirmation(event.target.value)}
-                    className={clsx(INPUT_CLASS, 'border-red-200 focus:border-red-500 focus:ring-red-500/20')}
+                    className={clsx(INPUT_CLASS, 'border-red-200')}
                     placeholder="ELIMINAR"
                   />
                 </div>

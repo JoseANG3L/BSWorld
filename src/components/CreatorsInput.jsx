@@ -81,8 +81,8 @@ const CreatorsInput = ({
   return (
     <div ref={searchRef} className="relative">
       <div className={clsx(
-        "p-2 rounded-2xl border flex flex-wrap gap-2 shadow-sm items-center transition-all duration-300 bg-white dark:bg-[#1D1F23]",
-        error ? "border-red-500 dark:border-red-500 focus-within:ring-1 focus-within:ring-red-500 focus-within:border-red-500" : withBorder ? "border-gray-300 dark:border-gray-700 focus-within:ring-1 focus-within:ring-primary-500 focus-within:border-primary-500" : "border-gray-300 dark:border-transparent focus-within:ring-1 focus-within:ring-primary-500 focus-within:border-primary-500"
+        "field-group p-2 rounded-2xl border flex flex-wrap gap-2 shadow-sm items-center transition-all duration-300 bg-white dark:bg-[#1D1F23]",
+        error ? "border-red-500 dark:border-red-500" : withBorder ? "border-gray-300 dark:border-gray-700" : "border-gray-300 dark:border-transparent"
       )}>
         {creators.map((creator, idx) => (
           <div key={idx} className="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-700 shadow-sm border border-gray-300 dark:border-transparent pl-1.5 pr-2 py-1 rounded-xl group">
@@ -109,6 +109,7 @@ const CreatorsInput = ({
         <input 
           type="text" 
           value={input} 
+          aria-invalid={Boolean(error)}
           onChange={handleSearch} 
           onKeyDown={addTextCreator} 
           placeholder={placeholder} 
@@ -118,7 +119,7 @@ const CreatorsInput = ({
       {error && <p className="text-center md:text-left text-xs text-red-500 font-semibold mt-2">El nombre del creador es obligatorio.</p>}
 
       {showSuggestions && input.length > 1 && (
-        <div className="absolute top-full p-1 left-0 right-0 mt-2 bg-white dark:bg-[#1D1F23] rounded-xl shadow-lg border border-gray-300 dark:border-gray-700 z-50 overflow-hidden max-h-48 overflow-y-auto">
+        <div className="absolute top-full p-1 left-0 right-0 mt-2 bg-white dark:bg-[#1D1F23] rounded-xl shadow-lg border border-gray-300 dark:border-0 z-50 overflow-hidden max-h-48 overflow-y-auto">
           {suggestions.length > 0 ? (
             <ul className="divide-y divide-gray-100 dark:divide-gray-800">
               {suggestions.map((u) => (

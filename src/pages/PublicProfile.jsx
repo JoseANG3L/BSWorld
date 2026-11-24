@@ -1,8 +1,8 @@
-import { useOverlayBack } from '../hooks/useOverlayBack';
+import MobileFilterButton from '../components/MobileFilterButton';
+import MobileFilterSheet from '../components/MobileFilterSheet';
 import { useVisitState } from '../hooks/useVisitState';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
-import { createPortal } from 'react-dom';
 import { getContentByCreator, getUserByUsername, getUserLikedContent } from '../services/api';
 import Card from '../components/Card';
 import { Calendar, Shield, UserX, Heart, Youtube, Twitter, Instagram, Linkedin, Github, Globe, MessageCircle, Download, Grid, Boxes, Gamepad2, Package, Wrench, User, Search, ChevronDown, ArrowUpDown, Edit3, Settings, Filter, X, Check, Eye, Pencil } from 'lucide-react';
@@ -71,17 +71,6 @@ const ProfileContent = ({ username, currentUser }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Bloqueo de scroll cuando el modal de filtros está abierto
-  useEffect(() => {
-    if (isFiltersModalOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [isFiltersModalOpen]);
 
   // Abrir modal e inicializar estados temporales
   const handleOpenFiltersModal = () => {
@@ -227,7 +216,6 @@ const ProfileContent = ({ username, currentUser }) => {
     return resultado;
   }, [content, likedContent, activeTab, busqueda, orden, selectedTypes]);
 
-  useOverlayBack(isFiltersModalOpen, () => setIsFiltersModalOpen(false));
 
   if (loading) return <LoadingSpinner variant="page" />;
 
@@ -400,24 +388,13 @@ const ProfileContent = ({ username, currentUser }) => {
               placeholder="Buscar por título o etiquetas..." 
               value={busqueda} 
               onChange={(e) => setBusqueda(e.target.value)} 
-              className="w-full pl-10 pr-4 py-2.5 h-10 rounded-xl bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all text-sm" 
+              className="w-full pl-10 pr-4 py-2.5 h-10 rounded-xl bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 outline-none transition-all text-sm"
             />
           </div>
 
           {/* Botón para abrir modal de filtros en móvil */}
           <div className="md:hidden">
-            <button
-              type="button"
-              onClick={handleOpenFiltersModal}
-              className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-gray-300 bg-white text-gray-700 transition-all hover:bg-gray-100 dark:border-transparent dark:bg-[#1D1F23] dark:text-gray-200 dark:hover:bg-gray-800"
-              aria-label="Abrir filtros"
-              title="Filtros"
-            >
-              <Filter size={18} className="text-gray-500 dark:text-gray-400" />
-              {(selectedTypes.length > 0 || orden !== 'recientes') && (
-                <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-primary-500"></span>
-              )}
-            </button>
+            <MobileFilterButton open={isFiltersModalOpen} onClick={handleOpenFiltersModal} active={selectedTypes.length > 0 || orden !== 'recientes'} />
           </div>
 
           {/* Filtro de tipos (Desktop) */}
@@ -442,7 +419,7 @@ const ProfileContent = ({ username, currentUser }) => {
               </div>
 
               {isTypeDropdownOpen && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent rounded-xl shadow-lg z-50 p-1">
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-0 rounded-xl shadow-lg z-50 p-1">
                   <div className="flex flex-col gap-0.5">
                     <button
                       type="button"
@@ -491,7 +468,7 @@ const ProfileContent = ({ username, currentUser }) => {
               <ChevronDown size={16} className={clsx("absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none transition-transform duration-200", isOrdenDropdownOpen && "rotate-180")} />
 
               {isOrdenDropdownOpen && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-transparent rounded-xl shadow-lg z-50 p-1">
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1D1F23] border border-gray-300 dark:border-0 rounded-xl shadow-lg z-50 p-1">
                   <div className="flex flex-col gap-0.5">
                     {[{ val: 'mas_descargas', label: 'Más Descargas' }, { val: 'mas_vistas', label: 'Más Vistas' }, { val: 'az', label: 'Nombre (A-Z)' }, { val: 'za', label: 'Nombre (Z-A)' }, { val: 'recientes', label: 'Más Recientes' }, { val: 'antiguos', label: 'Más Antiguos' }].map((opt) => (
                       <button 
@@ -540,141 +517,95 @@ const ProfileContent = ({ username, currentUser }) => {
       )}
 
       {/* MODAL DE FILTROS EN MÓVIL */}
-      {isFiltersModalOpen && createPortal(
-        <div
-          className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 md:hidden"
-          onClick={() => setIsFiltersModalOpen(false)}
-        >
-          <div
-            className="bg-white dark:bg-[#1e1e1e] rounded-2xl p-5 max-w-sm w-full border border-gray-200 dark:border-transparent shadow-2xl relative animate-fade-in-up flex flex-col max-h-[85vh]"
-            onClick={(e) => e.stopPropagation()}
-            style={{ animationDuration: '200ms' }}
-          >
-            {/* Cabecera */}
-            <div className="flex items-center justify-between pb-3 border-b border-gray-200 dark:border-gray-800">
-              <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                <Filter size={18} className="text-primary-600 dark:text-primary-400" />
-                <span>Filtros</span>
-              </h3>
-              <button
-                type="button"
-                onClick={() => setIsFiltersModalOpen(false)}
-                className="p-1 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            {/* Contenido desplazable */}
-            <div className="flex-1 overflow-y-auto py-4 space-y-5 custom-scrollbar">
-              {/* Sección: Ordenar por */}
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
-                  Ordenar por
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { val: 'recientes', label: 'Más Recientes' },
-                    { val: 'antiguos', label: 'Más Antiguos' },
-                    { val: 'az', label: 'Nombre (A-Z)' },
-                    { val: 'za', label: 'Nombre (Z-A)' },
-                    { val: 'mas_vistas', label: 'Más Vistas' },
-                    { val: 'mas_descargas', label: 'Más Descargas' }
-                  ].map((opt) => (
-                    <button
-                      key={opt.val}
-                      type="button"
-                      onClick={() => setTempOrden(opt.val)}
-                      className={clsx(
-                        "px-3 py-2 rounded-xl text-xs font-semibold transition-all text-left border",
-                        tempOrden === opt.val
-                          ? "bg-primary-500/10 border-primary-500 text-primary-600 dark:text-primary-400 font-bold"
-                          : "border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-                      )}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Sección: Filtrar por tipo */}
-              {availableTypes.length > 0 && (
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
-                    Tipos de Contenido
-                  </label>
-                  <div className="flex flex-col gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => setTempSelectedTypes([])}
-                      className={clsx(
-                        "flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-colors text-left border",
-                        tempSelectedTypes.length === 0
-                          ? "bg-primary-500/10 border-primary-500 text-primary-600 dark:text-primary-400 font-bold"
-                          : "border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-                      )}
-                    >
-                      <div className={clsx("w-4 h-4 rounded border flex items-center justify-center transition-colors shrink-0", tempSelectedTypes.length === 0 ? "bg-primary-500 border-primary-500" : "border-gray-300 dark:border-gray-600")}>
-                        {tempSelectedTypes.length === 0 && <Check size={12} className="text-white" />}
-                      </div>
-                      <span>Todos los tipos</span>
-                    </button>
-
-                    {availableTypes.map((type) => {
-                      const isSelected = tempSelectedTypes.includes(type);
-                      return (
-                        <button
-                          key={type}
-                          type="button"
-                          onClick={() => {
-                            setTempSelectedTypes(prev =>
-                              prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
-                            );
-                          }}
-                          className={clsx(
-                            "flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-colors text-left border",
-                            isSelected
-                              ? "bg-primary-500/10 border-primary-500 text-primary-600 dark:text-primary-400 font-bold"
-                              : "border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-                          )}
-                        >
-                          <div className={clsx("w-4 h-4 rounded border flex items-center justify-center transition-colors shrink-0", isSelected ? "bg-primary-500 border-primary-500" : "border-gray-300 dark:border-gray-600")}>
-                            {isSelected && <Check size={12} className="text-white" />}
-                          </div>
-                          <span className="text-ellipsis overflow-hidden shrink">{capitalizeText(type)}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Botones de acción */}
-            <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-800">
-              <button
-                type="button"
-                onClick={() => setIsFiltersModalOpen(false)}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-semibold hover:bg-gray-200 dark:hover:bg-gray-600 transition-all text-sm"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setOrden(tempOrden);
-                  setSelectedTypes(tempSelectedTypes);
-                  setIsFiltersModalOpen(false);
-                }}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-semibold transition-all text-sm"
-              >
-                Aplicar
-              </button>
+      {isFiltersModalOpen && (
+        <MobileFilterSheet onClose={() => setIsFiltersModalOpen(false)} onApply={() => {
+          setOrden(tempOrden);
+          setSelectedTypes(tempSelectedTypes);
+          setIsFiltersModalOpen(false);
+        }}>
+          {/* Sección: Ordenar por */}
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
+              Ordenar por
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { val: 'recientes', label: 'Más Recientes' },
+                { val: 'antiguos', label: 'Más Antiguos' },
+                { val: 'az', label: 'Nombre (A-Z)' },
+                { val: 'za', label: 'Nombre (Z-A)' },
+                { val: 'mas_vistas', label: 'Más Vistas' },
+                { val: 'mas_descargas', label: 'Más Descargas' }
+              ].map((opt) => (
+                <button
+                  key={opt.val}
+                  type="button"
+                  onClick={() => setTempOrden(opt.val)}
+                  className={clsx(
+                    "px-3 py-2 rounded-xl text-xs font-semibold transition-all text-left border",
+                    tempOrden === opt.val
+                      ? "bg-primary-500/10 border-primary-500 text-primary-600 dark:text-primary-400 font-bold"
+                      : "border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
             </div>
           </div>
-        </div>,
-        document.body
+
+          {/* Sección: Filtrar por tipo */}
+          {availableTypes.length > 0 && (
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">
+                Tipos de Contenido
+              </label>
+              <div className="flex flex-col gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setTempSelectedTypes([])}
+                  className={clsx(
+                    "flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-colors text-left border",
+                    tempSelectedTypes.length === 0
+                      ? "bg-primary-500/10 border-primary-500 text-primary-600 dark:text-primary-400 font-bold"
+                      : "border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                  )}
+                >
+                  <div className={clsx("w-4 h-4 rounded border flex items-center justify-center transition-colors shrink-0", tempSelectedTypes.length === 0 ? "bg-primary-500 border-primary-500" : "border-gray-300 dark:border-gray-600")}>
+                    {tempSelectedTypes.length === 0 && <Check size={12} className="text-white" />}
+                  </div>
+                  <span>Todos los tipos</span>
+                </button>
+
+                {availableTypes.map((type) => {
+                  const isSelected = tempSelectedTypes.includes(type);
+                  return (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => {
+                        setTempSelectedTypes(prev =>
+                          prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+                        );
+                      }}
+                      className={clsx(
+                        "flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-colors text-left border",
+                        isSelected
+                          ? "bg-primary-500/10 border-primary-500 text-primary-600 dark:text-primary-400 font-bold"
+                          : "border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                      )}
+                    >
+                      <div className={clsx("w-4 h-4 rounded border flex items-center justify-center transition-colors shrink-0", isSelected ? "bg-primary-500 border-primary-500" : "border-gray-300 dark:border-gray-600")}>
+                        {isSelected && <Check size={12} className="text-white" />}
+                      </div>
+                      <span className="text-ellipsis overflow-hidden shrink">{capitalizeText(type)}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </MobileFilterSheet>
       )}
     </div>
   );

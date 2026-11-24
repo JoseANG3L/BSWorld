@@ -228,7 +228,7 @@ const AdminUpload = () => {
                       type="text" name="titulo" required
                       value={formData.titulo} onChange={handleChange}
                       placeholder="Ej: SkyBlock Ultimate"
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none transition-all dark:text-white"
                     />
                   </div>
                 </div>
@@ -239,7 +239,7 @@ const AdminUpload = () => {
                   <select 
                     name="tipo" 
                     value={formData.tipo} onChange={handleChange}
-                    className="w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white"
+                    className="w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none transition-all dark:text-white"
                   >
                     <option value="mapa">Mapa</option>
                     <option value="minijuego">Minijuego</option>
@@ -258,7 +258,7 @@ const AdminUpload = () => {
                     <input 
                       type="date" name="creado" required
                       value={formData.creado} onChange={handleChange}
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white appearance-none"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none transition-all dark:text-white appearance-none"
                     />
                   </div>
                 </div>
@@ -272,7 +272,7 @@ const AdminUpload = () => {
                       type="url" name="imagen" required
                       value={formData.imagen} onChange={handleChange}
                       placeholder="https://imgur.com/..."
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none transition-all dark:text-white"
                     />
                   </div>
                 </div>
@@ -286,7 +286,7 @@ const AdminUpload = () => {
                       type="text" name="creadores"
                       value={formData.creadores} onChange={handleChange}
                       placeholder="Ej: Mojang, TuUsuario"
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none transition-all dark:text-white"
                     />
                   </div>
                   <p className="text-xs text-gray-400 mt-1">Si pones tu nombre de usuario, se usará tu avatar.</p>
@@ -301,7 +301,7 @@ const AdminUpload = () => {
                       type="text" name="tags"
                       value={formData.tags} onChange={handleChange}
                       placeholder="Ej: Aventura, PvP"
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none focus:ring-2 focus:ring-primary-500 transition-all dark:text-white"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none transition-all dark:text-white"
                     />
                   </div>
                 </div>
@@ -329,7 +329,7 @@ const AdminUpload = () => {
                         type="text" placeholder="Ej: Mediafire"
                         value={item.label}
                         onChange={(e) => handleDownloadChange(index, 'label', e.target.value)}
-                        className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none focus:border-primary-500 dark:text-white text-sm"
+                        className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none dark:text-white text-sm"
                       />
                     </div>
                     <div className="flex-[2]">
@@ -340,7 +340,7 @@ const AdminUpload = () => {
                             type="url" placeholder="https://..."
                             value={item.url}
                             onChange={(e) => handleDownloadChange(index, 'url', e.target.value)}
-                            className="w-full pl-8 pr-3 py-2 rounded-lg bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none focus:border-primary-500 dark:text-white text-sm"
+                            className="w-full pl-8 pr-3 py-2 rounded-lg bg-gray-50 dark:bg-[#1D1F23] border border-gray-200 dark:border-gray-700 outline-none dark:text-white text-sm"
                           />
                       </div>
                     </div>

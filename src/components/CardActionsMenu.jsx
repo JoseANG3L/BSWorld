@@ -74,12 +74,12 @@ export default function CardActionsMenu({ label, actions }) {
           startAtEnd.current = event.key === 'ArrowUp';
           setAnchor(event.currentTarget);
         }}
-        className="flex h-9 w-4 shrink-0 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 focus-visible:outline-primary-500 aria-expanded:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 dark:aria-expanded:bg-gray-800">
+        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 focus-visible:outline-primary-500 aria-expanded:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 dark:aria-expanded:bg-gray-800">
         <MoreVertical size={18} aria-hidden="true" />
       </button>
       {anchor && createPortal(
         <div ref={menuRef} id={menuId} role="menu" aria-label={label} onKeyDown={handleMenuKey}
-          className="fixed z-[70] w-max min-w-44 max-w-[calc(100vw-1rem)] overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-xl dark:border-gray-700 dark:bg-[#1e1e1e]">
+          className="fixed z-[70] w-max min-w-44 max-w-[calc(100vw-1rem)] overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-xl dark:border-0 dark:bg-[#1e1e1e]">
           {actions.map(({ label: text, icon, onSelect, destructive }, index) => (
             <Fragment key={text}>
               {index > 0 && destructive && <div role="separator" className="my-0.5 h-px bg-gray-100 dark:bg-gray-800" />}

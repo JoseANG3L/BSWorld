@@ -98,9 +98,8 @@ const Header = ({ toggleTheme, isDarkMode }) => {
             onBlur={() => setIsFocused(false)}
             onKeyDown={handleSearch}
             className={clsx(
-              "flex-1 py-2 px-4 rounded-xl text-sm font-medium transition-all duration-300 outline-none border shadow-sm",
-              "bg-white dark:bg-[#1D1F23] border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 placeholder-gray-400",
-              "focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+              "search-field flex-1 py-2 px-4 text-sm font-medium",
+              "bg-white dark:bg-[#1D1F23] text-gray-700 dark:text-gray-200 placeholder-gray-400"
             )}
           />
         </div>
@@ -154,9 +153,8 @@ const Header = ({ toggleTheme, isDarkMode }) => {
           onBlur={() => setIsFocused(false)}
           onKeyDown={handleSearch}
           className={clsx(
-            "w-full py-2 pl-11 pr-4 rounded-xl text-sm font-medium transition-all duration-300 outline-none border shadow-sm",
-            "bg-white dark:bg-[#1D1F23] border-gray-300 dark:border-transparent text-gray-700 dark:text-gray-200 placeholder-gray-400",
-            "focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+            "search-field w-full py-2 pl-11 pr-4 text-sm font-medium",
+            "bg-white dark:bg-[#1D1F23] text-gray-700 dark:text-gray-200 placeholder-gray-400"
           )}
         />
       </div>
@@ -200,7 +198,7 @@ const Header = ({ toggleTheme, isDarkMode }) => {
           {user && <Suspense fallback={<span className="inline-block w-9" />}><NotificationBell /></Suspense>}
         </div>
 
-        <div className="h-6 w-px hidden md:block bg-gray-400 dark:bg-gray-600 mx-1"></div>
+        <div className="h-6 w-px hidden lg:block bg-gray-400 dark:bg-gray-600 mx-1"></div>
 
         {/* DROPDOWN PERFIL CON USERNAME VISIBLE */}
         <div className="relative hidden lg:block" ref={profileRef}>
@@ -235,7 +233,7 @@ const Header = ({ toggleTheme, isDarkMode }) => {
 
           {/* MENÚ DESPLEGABLE */}
           {isProfileOpen && (
-            <div className="absolute right-0 mt-1.5 md:mt-3 w-56 bg-white dark:bg-[#1e1e1e] rounded-xl shadow-xl border border-gray-300 dark:border-transparent py-2 z-50 origin-top-right overflow-hidden animate-fade-in-up" style={{ animationDuration: '200ms' }}>
+            <div className="absolute right-0 mt-1.5 md:mt-3 w-56 bg-white dark:bg-[#1e1e1e] rounded-xl shadow-xl border border-gray-300 dark:border-0 py-2 z-50 origin-top-right overflow-hidden animate-fade-in-up" style={{ animationDuration: '200ms' }}>
               {user ? (
                 <>
                   {/* Información del Usuario */}
