@@ -1,28 +1,21 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
+import PageHeader from './PageHeader';
 
 /** Maquetación compartida para páginas informativas y legales. */
-export const InfoHero = ({ icon: Icon, title, desc }) => (
-  <div className="relative bg-gradient-to-r from-primary-800 via-primary-700 to-primary-500 rounded-3xl overflow-hidden mb-6 p-4 md:p-6 shadow-lg">
-    <div className="max-w-3xl flex items-start gap-4">
-      <div className="p-3 rounded-2xl bg-white/15 text-white shrink-0">
-        <Icon size={28} />
-      </div>
-      <div>
-        <h1 className="text-2xl md:text-4xl font-black text-white mb-2 leading-tight">{title}</h1>
-        {desc && <p className="text-primary-100 text-md md:text-lg leading-relaxed">{desc}</p>}
-      </div>
-    </div>
-  </div>
+export const InfoHero = ({ icon, title, desc }) => (
+  <header className="mb-5 border-b border-gray-200 pb-5 dark:border-gray-800 md:mb-6">
+    <PageHeader icon={icon} title={title} className="[&>span:last-child]:whitespace-normal" />
+    {desc && <p className="mt-3 max-w-prose text-sm leading-relaxed text-gray-600 dark:text-gray-300">{desc}</p>}
+  </header>
 );
 
 export const InfoSection = ({ title, children }) => (
-  <section className="bg-white dark:bg-[#1e1e1e] rounded-2xl border border-gray-300 dark:border-gray-700 shadow-sm p-4 md:p-6 mb-4">
+  <section className="border-b border-gray-200 py-5 first-of-type:pt-0 last:border-b-0 dark:border-gray-800">
     {title && (
-      <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-3">{title}</h2>
+      <h2 className="mb-2 text-base font-semibold text-gray-900 dark:text-white md:text-lg">{title}</h2>
     )}
-    <div className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed space-y-3">{children}</div>
+    <div className="space-y-3 text-sm leading-7 text-gray-700 dark:text-gray-300">{children}</div>
   </section>
 );
 
@@ -35,8 +28,8 @@ export const InfoBack = () => (
   </Link>
 );
 
-const InfoPage = ({ children }) => (
-  <div className="animate-fade-in-up" style={{ animationDuration: '200ms' }}>
+const InfoPage = ({ children, wide = false }) => (
+  <div className={`mx-auto w-full px-4 pb-10 pt-4 md:px-6 md:pt-6 motion-safe:animate-fade-in-up ${wide ? 'max-w-6xl' : 'max-w-3xl'}`} style={{ animationDuration: '200ms' }}>
     {children}
   </div>
 );

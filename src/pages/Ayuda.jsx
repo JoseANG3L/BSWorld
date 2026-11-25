@@ -39,14 +39,15 @@ const FAQS = [
 ];
 
 const FaqItem = ({ icon: Icon, q, a, open, onToggle }) => (
-  <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+  <div className="border-b border-gray-200 last:border-b-0 dark:border-gray-800">
     <button
       type="button"
+      aria-expanded={open}
       onClick={onToggle}
       className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
     >
       <span className="p-2 rounded-lg bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 shrink-0">
-        <Icon size={16} />
+        {React.createElement(Icon, { size: 16, "aria-hidden": true })}
       </span>
       <span className="flex-1 text-sm font-bold text-gray-900 dark:text-white">{q}</span>
       <ChevronDown size={16} className={clsx('text-gray-400 transition-transform duration-200 shrink-0', open && 'rotate-180')} />
@@ -68,7 +69,7 @@ const Ayuda = () => {
         title="Ayuda"
         desc="Respuestas a las preguntas más frecuentes sobre BSWorld."
       />
-      <div className="space-y-3 mb-4">
+      <div className="mb-6 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-transparent dark:bg-dark-surface">
         {FAQS.map((f, i) => (
           <FaqItem
             key={i}

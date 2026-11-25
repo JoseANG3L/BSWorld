@@ -1,184 +1,98 @@
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Info, Mail, Heart, Github, Twitter, Instagram, Facebook, Shield, FileText, HelpCircle, Zap } from 'lucide-react';
-import { FEATURES } from '../config/features';
+import { createElement } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
+import {
+  Home, Gamepad2, Star, Upload, Info, Mail, HelpCircle, FileText, Shield, Cookie,
+  Scale, Heart, Github, Twitter, Instagram, Facebook,
+} from 'lucide-react';
 
-const Footer = () => {
+const groups = [
+  {
+    title: 'Navegación',
+    links: [
+      { label: 'Inicio', to: '/', icon: Home },
+      { label: 'Mods', to: '/mods', icon: Gamepad2 },
+      { label: 'Destacados', to: '/destacados', icon: Star },
+      { label: 'Subir Mod', to: '/subir', icon: Upload },
+    ],
+  },
+  {
+    title: 'Recursos',
+    links: [
+      { label: 'Acerca de', to: '/acerca-de', icon: Info },
+      { label: 'Contacto', to: '/contacto', icon: Mail },
+      { label: 'Ayuda', to: '/ayuda', icon: HelpCircle },
+      { label: 'Términos', to: '/terminos', icon: FileText },
+    ],
+  },
+  {
+    title: 'Legal',
+    links: [
+      { label: 'Privacidad', to: '/privacidad', icon: Shield },
+      { label: 'Cookies', to: '/cookies', icon: Cookie },
+      { label: 'Licencias', to: '/licencias', icon: Scale },
+    ],
+  },
+];
+
+const socialLinks = [
+  { label: 'GitHub', url: 'https://github.com/JoseANG3L', icon: Github },
+  { label: 'X', url: 'https://x.com/byANG3L_HD', icon: Twitter },
+  { label: 'Instagram', url: 'https://www.instagram.com/ijoseang3l/', icon: Instagram },
+  { label: 'Facebook', url: 'https://www.facebook.com/jose.angel.625627/', icon: Facebook },
+];
+
+export default function Footer() {
   const location = useLocation();
+  const returnTo = location.pathname + location.search + location.hash;
 
   return (
-    <footer className="bg-white dark:bg-dark-bg border-t border-gray-200 dark:border-gray-800 pt-12 pb-6 px-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
-        {/* Columna 1: Sobre BSWorld */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white">BSWorld</h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-            Tu plataforma definitiva para descubrir, compartir y descargar mods de BombSquad. 
-            Conecta con la comunidad y lleva tu experiencia al siguiente nivel.
+    <footer className="border-t border-gray-200 bg-white text-gray-600 dark:border-gray-800 dark:bg-dark-bg dark:text-gray-400">
+      <div className="mx-auto max-w-screen-2xl px-4 sm:px-6 lg:px-12">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-5 py-6 sm:grid-cols-3 lg:grid-cols-[1.6fr_repeat(3,minmax(0,1fr))] lg:gap-x-10 lg:py-9">
+          <div className="col-span-full border-b border-gray-200 pb-5 dark:border-gray-800 lg:col-span-1 lg:border-0 lg:pb-0">
+            <h3 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">BSWorld</h3>
+            <p className="mt-2 max-w-sm text-sm leading-relaxed">
+              Tu plataforma definitiva para descubrir, compartir y descargar mods de BombSquad.
+              Conecta con la comunidad y lleva tu experiencia al siguiente nivel.
+            </p>
+            <div className="mt-3 flex gap-2">
+              {socialLinks.map(({ label, url, icon }) => (
+                <a key={label} href={url} target="_blank" rel="noopener noreferrer" aria-label={label}
+                  className="grid h-9 w-9 place-items-center rounded-lg bg-gray-100 transition-colors hover:bg-primary-50 hover:text-primary-700 focus-visible:outline-primary-500 dark:bg-dark-surface dark:hover:bg-primary-500/10 dark:hover:text-primary-300">
+                  {createElement(icon, { size: 17, 'aria-hidden': true })}
+                </a>
+              ))}
+            </div>
+          </div>
+
+          {groups.map(({ title, links }) => {
+            const primary = title === 'Navegación';
+            return (
+              <nav key={title} aria-label={title} className={primary ? 'col-span-full sm:col-span-1' : undefined}>
+                <h4 className="mb-2 text-xs font-bold uppercase tracking-wider text-gray-800 dark:text-gray-200">{title}</h4>
+                <ul className={primary ? 'grid grid-cols-2 gap-x-6 sm:grid-cols-1' : undefined}>
+                  {links.map(({ label, to, icon }) => (
+                    <li key={to}>
+                      <NavLink to={to} end state={to === '/subir' ? { returnTo } : undefined}
+                        className="inline-flex min-h-9 items-center gap-2 rounded-sm text-sm transition-colors hover:text-primary-700 focus-visible:outline-primary-500 aria-[current=page]:font-semibold aria-[current=page]:text-primary-700 dark:hover:text-primary-300 dark:aria-[current=page]:text-primary-300">
+                        {createElement(icon, { size: 15, 'aria-hidden': true })}
+                        {label}
+                      </NavLink>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+            );
+          })}
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-t border-gray-200 py-4 text-xs dark:border-gray-800">
+          <p>© 2026 BSWorld · Todos los derechos reservados</p>
+          <p className="inline-flex items-center gap-1.5">
+            Hecho con <Heart size={13} className="fill-rose-500 text-rose-500" aria-label="amor" /> para la comunidad
           </p>
-          <div className="flex items-center gap-3">
-            <a href="https://github.com/JoseANG3L" target="_blank" rel="noopener noreferrer" aria-label="GitHub" className="p-2 rounded-lg bg-gray-100 dark:bg-[#1D1F23] text-gray-600 dark:text-gray-400 hover:bg-primary-100 dark:hover:bg-primary-900/30 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-              <Github size={18} />
-            </a>
-            <a href="https://x.com/byANG3L_HD" target="_blank" rel="noopener noreferrer" aria-label="X" className="p-2 rounded-lg bg-gray-100 dark:bg-[#1D1F23] text-gray-600 dark:text-gray-400 hover:bg-primary-100 dark:hover:bg-primary-900/30 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-              <Twitter size={18} />
-            </a>
-            <a href="https://www.instagram.com/ijoseang3l/" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="p-2 rounded-lg bg-gray-100 dark:bg-[#1D1F23] text-gray-600 dark:text-gray-400 hover:bg-primary-100 dark:hover:bg-primary-900/30 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-              <Instagram size={18} />
-            </a>
-            <a href="https://www.facebook.com/jose.angel.625627/" target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="p-2 rounded-lg bg-gray-100 dark:bg-[#1D1F23] text-gray-600 dark:text-gray-400 hover:bg-primary-100 dark:hover:bg-primary-900/30 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-              <Facebook size={18} />
-            </a>
-          </div>
-        </div>
-
-        {/* Columna 2: Navegación */}
-        <div>
-          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-4 uppercase tracking-wider">Navegación</h4>
-          <ul className="space-y-3">
-            <li>
-              <Link to="/" className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-                <Zap size={14} />
-                Inicio
-              </Link>
-            </li>
-            {FEATURES.comunidad && (
-              <li>
-                <Link to="/comunidad" className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-                  <Zap size={14} />
-                  Comunidad
-                </Link>
-              </li>
-            )}
-            <li>
-              <Link to="/mods" className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-                <Zap size={14} />
-                Mods
-              </Link>
-            </li>
-            <li>
-              <Link to="/mapas" className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-                <Zap size={14} />
-                Mapas
-              </Link>
-            </li>
-            <li>
-              <Link to="/minijuegos" className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-                <Zap size={14} />
-                Minijuegos
-              </Link>
-            </li>
-            <li>
-              <Link to="/modpacks" className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-                <Zap size={14} />
-                Modpacks
-              </Link>
-            </li>
-            <li>
-              <Link to="/paquetes" className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-                <Zap size={14} />
-                Paquetes
-              </Link>
-            </li>
-            <li>
-              <Link to="/personajes" className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-                <Zap size={14} />
-                Personajes
-              </Link>
-            </li>
-            <li>
-              <Link to="/destacados" className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-                <Zap size={14} />
-                Destacados
-              </Link>
-            </li>
-            <li>
-              <Link
-                to="/subir"
-                state={{ returnTo: `${location.pathname}${location.search}${location.hash}` }}
-                className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
-              >
-                <Zap size={14} />
-                Subir Mod
-              </Link>
-            </li>
-          </ul>
-        </div>
-
-        {/* Columna 3: Recursos */}
-        <div>
-          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-4 uppercase tracking-wider">Recursos</h4>
-          <ul className="space-y-3">
-            <li>
-              <Link to="/acerca-de" className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-                <Info size={14} />
-                Acerca de
-              </Link>
-            </li>
-            <li>
-              <Link to="/contacto" className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-                <Mail size={14} />
-                Contacto
-              </Link>
-            </li>
-            <li>
-              <Link to="/ayuda" className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-                <HelpCircle size={14} />
-                Ayuda
-              </Link>
-            </li>
-            <li>
-              <Link to="/terminos" className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-                <FileText size={14} />
-                Términos
-              </Link>
-            </li>
-          </ul>
-        </div>
-
-        {/* Columna 4: Legal */}
-        <div>
-          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-4 uppercase tracking-wider">Legal</h4>
-          <ul className="space-y-3">
-            <li>
-              <Link to="/privacidad" className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-                <Shield size={14} />
-                Privacidad
-              </Link>
-            </li>
-            <li>
-              <Link to="/cookies" className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-                <Shield size={14} />
-                Cookies
-              </Link>
-            </li>
-            <li>
-              <Link to="/licencias" className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-                <FileText size={14} />
-                Licencias
-              </Link>
-            </li>
-          </ul>
-        </div>
-      </div>
-
-      {/* Barra inferior */}
-      <div className="border-t border-gray-200 dark:border-gray-800 pt-6">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-            <span>© 2026 BSWorld</span>
-            <span>•</span>
-            <span>Todos los derechos reservados</span>
-          </div>
-          <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-            <span>Hecho con</span>
-            <Heart size={14} className="text-red-500 fill-red-500" />
-            <span>para la comunidad</span>
-          </div>
         </div>
       </div>
     </footer>
   );
-};
-
-export default Footer;
+}

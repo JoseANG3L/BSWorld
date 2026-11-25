@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { NavLink } from 'react-router-dom';
+import InfoPage, { InfoBack, InfoHero } from '../components/InfoPage';
 import { Heart, Code, Globe, Shield, Zap, Coffee, Github, Twitter, Users, Download, FileCode, Server, Facebook, Instagram, Youtube, Twitch } from 'lucide-react';
 import { clsx } from 'clsx';
 import AvatarRenderer from '../components/AvatarRenderer'; 
@@ -10,31 +10,31 @@ import LoadingSpinner from '../components/LoadingSpinner';
 // --- SUB-COMPONENTES ---
 
 const StatCard = ({ icon: Icon, value, label, color, loading }) => (
-  <div className="flex flex-col items-center justify-center p-4 bg-white dark:bg-[#1e1e1e] rounded-2xl border border-gray-300 dark:border-gray-700 transition-all shadow-sm hover:shadow-md h-32">
+  <div className="flex min-w-0 flex-col items-center justify-center py-2">
     <div className={clsx("p-2 rounded-lg mb-2 bg-opacity-10", color.bg, color.text)}>
-      <Icon size={20} />
+      {React.createElement(Icon, { size: 20, "aria-hidden": true })}
     </div>
     {loading ? (
         <LoadingSpinner variant="inline" size={24} />
     ) : (
-        <span className="text-xl md:text-2xl font-black text-gray-900 dark:text-white mb-1 animate-fade-in-up">
+        <span className="text-xl md:text-2xl font-bold tabular-nums text-gray-900 dark:text-white mb-1 animate-fade-in-up">
             {value}
         </span>
     )}
-    <span className="text-xs font-bold uppercase tracking-wider text-gray-400 text-center">{label}</span>
+    <span className="text-xs font-medium text-gray-600 dark:text-gray-400 text-center">{label}</span>
   </div>
 );
 
 const TechBadge = ({ label }) => (
-  <span className="px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-[#1D1F23] text-gray-600 dark:text-gray-300 text-xs font-bold border border-gray-300 dark:border-gray-700 shadow-sm transition-colors cursor-default select-none">
+  <span className="px-3 py-1.5 rounded-lg bg-primary-50 dark:bg-primary-500/10 text-primary-700 dark:text-primary-300 text-xs font-medium">
     {label}
   </span>
 );
 
 const FeatureItem = ({ icon: Icon, title, desc }) => (
-  <div className="flex gap-4 p-4 md:p-5 rounded-2xl bg-white dark:bg-[#1e1e1e] border border-gray-300 dark:border-gray-700 shadow-sm transition-colors">
-    <div className="p-3 h-fit rounded-xl bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400">
-      <Icon size={24} />
+  <div className="flex items-start gap-3">
+    <div className="p-2 shrink-0 rounded-lg bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400">
+      {React.createElement(Icon, { size: 24, "aria-hidden": true })}
     </div>
     <div>
       <h4 className="font-bold text-gray-900 dark:text-white mb-1.5">{title}</h4>
@@ -71,24 +71,13 @@ const AcercaDe = () => {
   };
 
   return (
-    <div className="animate-fade-in-up" style={{ animationDuration: '200ms' }}>
-      
-      {/* --- HERO SECTION --- */}
-      <div className="relative bg-gradient-to-r from-primary-800 via-primary-700 to-primary-500 rounded-3xl overflow-hidden mb-6 p-4 md:p-6 shadow-lg">
-        <div className="max-w-3xl">
-          <h1 className="text-2xl md:text-5xl font-black text-white mb-2 md:mb-4 leading-tight">
-            Construyendo el futuro de <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-amber-500">BSWorld</span>
-          </h1>
-          
-          <p className="text-primary-100 text-md md:text-lg leading-relaxed">
-            Somos una comunidad dedicada a recopilar, actualizar y compartir los mejores mods para BombSquad. 
-            Creemos un espacio abierto, seguro y lleno de creatividad.
-          </p>
-        </div>
-      </div>
+    <InfoPage wide>
+      <InfoBack />
+      <InfoHero icon={Globe} title="Construyendo el futuro de BSWorld"
+        desc="Somos una comunidad dedicada a recopilar, actualizar y compartir los mejores mods para BombSquad. Creemos un espacio abierto, seguro y lleno de creatividad." />
 
       {/* --- BARRA DE ESTADÍSTICAS (CON DATOS REALES) --- */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div className="mb-6 grid grid-cols-2 gap-y-3 border-b border-gray-200 pb-5 dark:border-gray-800 sm:grid-cols-4">
         <StatCard 
             icon={Users} 
             value={formatNumber(stats.users)} 
@@ -127,7 +116,7 @@ const AcercaDe = () => {
           
           {/* Misión y Valores */}
           <div>
-            <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
               <Globe className="text-primary-600" />
               Nuestra Filosofía
             </h3>
@@ -156,7 +145,7 @@ const AcercaDe = () => {
           </div>
 
           {/* Stack Tecnológico */}
-          <div className="bg-white dark:bg-[#1e1e1e] p-4 md:p-8 rounded-3xl border border-gray-300 dark:border-gray-700 shadow-sm">
+          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-transparent dark:bg-dark-surface md:p-6">
             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
               Stack Tecnológico
             </h3>
@@ -176,11 +165,11 @@ const AcercaDe = () => {
         <div className="flex flex-col gap-4 md:gap-6">
           
           {/* Card del Creador */}
-          <div className="bg-white dark:bg-[#1e1e1e] px-6 pt-4 pb-6 rounded-3xl border border-gray-300 dark:border-gray-700 shadow-lg text-center relative overflow-hidden group">
+          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-transparent dark:bg-dark-surface md:p-6 text-center relative overflow-hidden group">
             
             <div className="relative z-10">
               {/* Avatar Container */}
-              <div className="w-28 h-28 mx-auto rounded-full p-1 bg-white dark:bg-[#1e1e1e] mb-4 shadow-xl border-2 border-gray-50 dark:border-gray-800">
+              <div className="mx-auto mb-3 h-20 w-20">
                  <div className="w-full h-full rounded-full overflow-hidden">
                     <AvatarRenderer 
                         avatar="https://yt3.googleusercontent.com/x70TGBZqG4aVeiRw5ZeYxc3mkVyHtCFQ_5qphjeJaqVhYkpWZ517Xu7y69_0iOlkIhdj2VZFCVg=s900-c-k-c0x00ffffff-no-rj" 
@@ -197,30 +186,29 @@ const AcercaDe = () => {
               </p>
 
               <div className="flex justify-center gap-2 flex-wrap">
-                <a href="https://www.facebook.com/jose.angel.625627/" target="_blank" rel="noopener noreferrer" className="p-2 rounded-xl bg-gray-100 dark:bg-[#1D1F23] text-gray-600 dark:text-gray-300 hover:bg-[#4267B2] hover:text-white transition-all hover:-translate-y-1"><Facebook size={18} /></a>
-                <a href="https://github.com/JoseANG3L" target="_blank" rel="noopener noreferrer" className="p-2 rounded-xl bg-gray-100 dark:bg-[#1D1F23] text-gray-600 dark:text-gray-300 hover:bg-black hover:text-white transition-all hover:-translate-y-1"><Github size={18} /></a>
-                <a href="https://www.instagram.com/ijoseang3l/" target="_blank" rel="noopener noreferrer" className="p-2 rounded-xl bg-gray-100 dark:bg-[#1D1F23] text-gray-600 dark:text-gray-300 hover:bg-[#E1306C] hover:text-white transition-all hover:-translate-y-1"><Instagram size={18} /></a>
-                <a href="https://www.twitch.tv/ijoseang3l" target="_blank" rel="noopener noreferrer" className="p-2 rounded-xl bg-gray-100 dark:bg-[#1D1F23] text-gray-600 dark:text-gray-300 hover:bg-[#9146FF] hover:text-white transition-all hover:-translate-y-1"><Twitch size={18} /></a>
-                <a href="https://x.com/byANG3L_HD" target="_blank" rel="noopener noreferrer" className="p-2 rounded-xl bg-gray-100 dark:bg-[#1D1F23] text-gray-600 dark:text-gray-300 hover:bg-[#1DA1F2] hover:text-white transition-all hover:-translate-y-1"><Twitter size={18} /></a>
-                <a href="https://www.youtube.com/c/@JoseANG3LYT" target="_blank" rel="noopener noreferrer" className="p-2 rounded-xl bg-gray-100 dark:bg-[#1D1F23] text-gray-600 dark:text-gray-300 hover:bg-[#FF0000] hover:text-white transition-all hover:-translate-y-1"><Youtube size={18} /></a>
+                <a href="https://www.facebook.com/jose.angel.625627/" target="_blank" rel="noopener noreferrer" className="p-2 rounded-xl bg-gray-100 dark:bg-[#1D1F23] text-gray-600 dark:text-gray-300 hover:bg-[#4267B2] hover:text-white transition-all hover:-translate-y-1" aria-label="Facebook"><Facebook size={18} /></a>
+                <a href="https://github.com/JoseANG3L" target="_blank" rel="noopener noreferrer" className="p-2 rounded-xl bg-gray-100 dark:bg-[#1D1F23] text-gray-600 dark:text-gray-300 hover:bg-black hover:text-white transition-all hover:-translate-y-1" aria-label="GitHub"><Github size={18} /></a>
+                <a href="https://www.instagram.com/ijoseang3l/" target="_blank" rel="noopener noreferrer" className="p-2 rounded-xl bg-gray-100 dark:bg-[#1D1F23] text-gray-600 dark:text-gray-300 hover:bg-[#E1306C] hover:text-white transition-all hover:-translate-y-1" aria-label="Instagram"><Instagram size={18} /></a>
+                <a href="https://www.twitch.tv/ijoseang3l" target="_blank" rel="noopener noreferrer" className="p-2 rounded-xl bg-gray-100 dark:bg-[#1D1F23] text-gray-600 dark:text-gray-300 hover:bg-[#9146FF] hover:text-white transition-all hover:-translate-y-1" aria-label="Twitch"><Twitch size={18} /></a>
+                <a href="https://x.com/byANG3L_HD" target="_blank" rel="noopener noreferrer" className="p-2 rounded-xl bg-gray-100 dark:bg-[#1D1F23] text-gray-600 dark:text-gray-300 hover:bg-[#1DA1F2] hover:text-white transition-all hover:-translate-y-1" aria-label="X"><Twitter size={18} /></a>
+                <a href="https://www.youtube.com/c/@JoseANG3LYT" target="_blank" rel="noopener noreferrer" className="p-2 rounded-xl bg-gray-100 dark:bg-[#1D1F23] text-gray-600 dark:text-gray-300 hover:bg-[#FF0000] hover:text-white transition-all hover:-translate-y-1" aria-label="YouTube"><Youtube size={18} /></a>
               </div>
             </div>
           </div>
 
           {/* Card de Apoyo */}
-          <div className="bg-gradient-to-br from-pink-600 to-rose-600 p-4 md:p-8 rounded-3xl shadow-xl text-white text-center relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full opacity-10 -mr-10 -mt-10 blur-2xl"></div>
+          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-transparent dark:bg-dark-surface md:p-6 text-center text-gray-900 dark:text-white">
             
-            <Heart size={40} className="mx-auto mb-4 text-pink-200 animate-pulse" fill="currentColor" />
+            <Heart size={24} className="mx-auto mb-3 text-rose-500" fill="currentColor" />
             <h3 className="text-xl font-bold mb-2">Apoya el Proyecto</h3>
-            <p className="text-pink-100 text-sm mb-6 leading-relaxed">
+            <p className="text-gray-600 dark:text-gray-300 text-sm mb-4 leading-relaxed">
               Mantener los servidores y el desarrollo cuesta tiempo y café. Si te gusta BSWorld, considera apoyarnos.
             </p>
             <a 
               href="https://www.buymeacoffee.com/joseang3l" 
               target="_blank" 
               rel="noopener noreferrer"
-              className="w-full py-3 rounded-xl bg-white text-pink-600 font-bold hover:bg-pink-50 transition-colors flex items-center justify-center gap-2 shadow-lg"
+              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-primary-600 px-4 text-sm font-semibold text-white hover:bg-primary-700"
             >
               <Coffee size={20} />
               Invítame un Café
@@ -237,7 +225,7 @@ const AcercaDe = () => {
         </p>
       </div>
 
-    </div>
+    </InfoPage>
   );
 };
 

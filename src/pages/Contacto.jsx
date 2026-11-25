@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { 
-  Mail, MessageSquare, Send, MapPin, HelpCircle, CheckCircle, 
-  ArrowRight, User, FileText, ChevronDown, Server, ExternalLink 
+import {
+  Mail, MessageSquare, Send, HelpCircle, CheckCircle,
+  User, ChevronDown, ExternalLink
 } from 'lucide-react';
 import { clsx } from 'clsx';
+import InfoPage, { InfoBack, InfoHero } from '../components/InfoPage';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 // --- COMPONENTE: TARJETA DE CONTACTO RÁPIDO ---
@@ -12,12 +13,12 @@ const ContactOption = ({ icon: Icon, title, value, link, color, description }) =
     href={link}
     target="_blank"
     rel="noreferrer"
-    className="group flex items-start gap-4 p-5 rounded-2xl bg-white dark:bg-[#1e1e1e] border border-gray-300 dark:border-gray-700 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
+    className="group flex items-start gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-transparent dark:bg-dark-surface md:p-6 hover:border-primary-400 dark:hover:bg-white/10"
   >
-    <div className={clsx("p-3 rounded-xl text-white shadow-md transition-transform group-hover:scale-110 shrink-0", color)}>
-      <Icon size={24} />
+    <div className={clsx("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white", color)}>
+      {React.createElement(Icon, { size: 24, "aria-hidden": true })}
     </div>
-    <div className="flex-1">
+    <div className="min-w-0 flex-1 break-words">
       <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
         {title}
         <ExternalLink size={14} className="opacity-0 group-hover:opacity-50 transition-opacity" />
@@ -35,6 +36,7 @@ const FAQItem = ({ question, answer }) => {
   return (
     <div className="border-b border-gray-300 dark:border-gray-700 last:border-0">
       <button 
+        type="button" aria-expanded={isOpen}
         onClick={() => setIsOpen(!isOpen)}
         className="w-full py-4 flex items-center justify-between text-left group"
       >
@@ -44,11 +46,11 @@ const FAQItem = ({ question, answer }) => {
         <ChevronDown size={18} className={clsx("text-gray-400 transition-transform duration-300", isOpen && "rotate-180 text-primary-500")} />
       </button>
       
-      <div className={clsx("overflow-hidden transition-all duration-300 ease-in-out", isOpen ? "max-h-40 opacity-100 pb-4" : "max-h-0 opacity-0")}>
-        <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+      {isOpen && (
+        <p className="pb-4 text-sm leading-relaxed text-gray-600 dark:text-gray-300">
           {answer}
         </p>
-      </div>
+      )}
     </div>
   );
 };
@@ -56,12 +58,12 @@ const FAQItem = ({ question, answer }) => {
 // --- COMPONENTE: INPUT CON ICONO ---
 const InputGroup = ({ icon: Icon, ...props }) => (
   <div className="relative group">
-    <div className="absolute left-4 top-3.5 text-gray-400 group-focus-within:text-primary-500 transition-colors">
-      <Icon size={20} />
+    <div className="pointer-events-none absolute left-3 top-2.5 text-gray-400 group-focus-within:text-primary-500 transition-colors">
+      {React.createElement(Icon, { size: 20, "aria-hidden": true })}
     </div>
     <input 
       {...props}
-      className="w-full pl-12 pr-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-300 dark:border-gray-700 outline-none transition-all dark:text-white placeholder:text-gray-400"
+      className="search-field w-full bg-gray-50 py-2.5 pl-10 pr-3 text-sm text-gray-900 dark:bg-dark-bg dark:text-white placeholder:text-gray-400"
     />
   </div>
 );
@@ -76,29 +78,16 @@ const Contacto = () => {
   };
 
   return (
-    <div className="animate-fade-in-up" style={{ animationDuration: '200ms' }}>
-      
-      {/* --- HERO HEADER --- */}
-      <div className="relative bg-gradient-to-r from-primary-800 via-primary-700 to-primary-500 rounded-3xl overflow-hidden mb-4 md:mb-8 text-center p-4 md:p-6">
-        <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
-        <div className="relative z-10 max-w-2xl mx-auto">
-          <div className="inline-flex p-3 bg-white/10 rounded-2xl mb-2 md:mb-4 backdrop-blur-sm border border-white/10 shadow-inner">
-             <Mail className="text-white" size={32} />
-          </div>
-          <h1 className="text-2xl md:text-5xl font-black text-white mb-2 md:mb-4 tracking-tight">
-            Hablemos de <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-amber-500">Mods</span>
-          </h1>
-          <p className="text-md md:text-lg text-primary-100 leading-relaxed">
-            ¿Tienes una idea brillante, encontraste un bug o simplemente quieres saludar? Estamos aquí para escucharte.
-          </p>
-        </div>
-      </div>
+    <InfoPage wide>
+      <InfoBack />
+      <InfoHero icon={Mail} title="Hablemos de Mods"
+        desc="¿Tienes una idea brillante, encontraste un bug o simplemente quieres saludar? Estamos aquí para escucharte." />
 
-      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-10">
+      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-12 lg:gap-6">
         
         {/* --- COLUMNA IZQUIERDA: FORMULARIO (7 cols) --- */}
         <div className="lg:col-span-7">
-          <div className="bg-white dark:bg-[#1e1e1e] p-4 md:p-8 rounded-3xl border border-gray-300 dark:border-gray-700 shadow-md relative overflow-hidden">
+          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-transparent dark:bg-dark-surface md:p-6">
             
             {formStatus === 'success' ? (
               <div className="h-96 flex flex-col items-center justify-center text-center animate-fade-in-up">
@@ -131,27 +120,27 @@ const Contacto = () => {
                 </div>
 
                 <div className="relative group">
-                    <div className="absolute left-4 top-3.5 text-gray-400">
+                    <div className="pointer-events-none absolute left-3 top-2.5 text-gray-400">
                         <HelpCircle size={20} />
                     </div>
-                    <select className="w-full pl-12 pr-4 py-3 rounded-xl bg-gray-50 dark:bg-[#1D1F23] border border-gray-300 dark:border-gray-700 outline-none transition-all dark:text-white cursor-pointer appearance-none">
+                    <select aria-label="Motivo de contacto" className="search-field w-full cursor-pointer appearance-none bg-gray-50 px-10 py-2.5 text-sm text-gray-900 dark:bg-dark-bg dark:text-white">
                         <option>Soporte Técnico</option>
                         <option>Reportar un Bug</option>
                         <option>Subir mi Mod</option>
                         <option>Colaboración</option>
                         <option>Otro</option>
                     </select>
-                    <ChevronDown className="absolute right-4 top-3.5 text-gray-400 pointer-events-none" size={18} />
+                    <ChevronDown className="absolute right-3 top-3 text-gray-400 pointer-events-none" size={18} />
                 </div>
 
                 <div className="relative group">
-                    <div className="absolute left-4 top-3.5 text-gray-400 group-focus-within:text-primary-500 transition-colors">
+                    <div className="pointer-events-none absolute left-3 top-2.5 text-gray-400 group-focus-within:text-primary-500 transition-colors">
                         <MessageSquare size={20} />
                     </div>
                     <textarea 
                         rows="5" required 
                         placeholder="Cuéntanos los detalles..." 
-                        className="w-full pl-12 pr-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 outline-none transition-all resize-none dark:text-white placeholder:text-gray-400"
+                        className="search-field w-full bg-gray-50 py-2.5 pl-10 pr-3 text-sm text-gray-900 dark:bg-dark-bg resize-y dark:text-white placeholder:text-gray-400"
                     ></textarea>
                 </div>
 
@@ -159,10 +148,10 @@ const Contacto = () => {
                   type="submit"
                   disabled={formStatus === 'submitting'}
                   className={clsx(
-                    "py-4 rounded-xl text-white font-bold text-lg flex items-center justify-center gap-2 transition-all shadow-lg shadow-primary-600/30",
+                    "min-h-10 rounded-xl px-5 text-sm font-semibold text-white flex items-center justify-center gap-2 transition-colors sm:self-start",
                     formStatus === 'submitting' 
                       ? "bg-gray-400 cursor-not-allowed" 
-                      : "bg-primary-600 hover:bg-primary-700 hover:scale-[1.01] active:scale-[0.99]"
+                      : "bg-primary-600 hover:bg-primary-700"
                   )}
                 >
                   {formStatus === 'submitting' ? <LoadingSpinner variant="inline" size={20} /> : <Send size={20} />}
@@ -197,7 +186,7 @@ const Contacto = () => {
           </div>
 
           {/* FAQ Accordion */}
-          <div className="bg-white dark:bg-[#1e1e1e] p-4 md:p-6 rounded-3xl border border-gray-300 dark:border-gray-700 shadow-sm">
+          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-transparent dark:bg-dark-surface md:p-6">
             <h3 className="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
               <HelpCircle className="text-primary-500" size={20} />
               Preguntas Frecuentes
@@ -225,7 +214,7 @@ const Contacto = () => {
 
         </div>
       </div>
-    </div>
+    </InfoPage>
   );
 };
 

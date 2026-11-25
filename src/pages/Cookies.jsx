@@ -18,21 +18,21 @@ const Cookies = () => (
       desc="BSWorld no usa cookies de publicidad ni rastreo de terceros."
     />
     <InfoSection title="Qué guardamos en tu navegador">
-      <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse">
-          <thead>
+      <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-dark-surface">
+        <table className="w-full min-w-[28rem] border-collapse text-left text-sm leading-relaxed [&_td]:px-3 [&_td]:py-3 [&_th]:px-3 [&_th]:py-2">
+          <thead className="bg-gray-50 text-xs dark:bg-dark-bg">
             <tr className="border-b border-gray-200 dark:border-gray-700">
-              <th className="py-2 pr-4 font-bold text-gray-900 dark:text-white">Nombre</th>
-              <th className="py-2 pr-4 font-bold text-gray-900 dark:text-white">Finalidad</th>
-              <th className="py-2 font-bold text-gray-900 dark:text-white">Duración</th>
+              <th scope="col">Nombre</th>
+              <th scope="col">Finalidad</th>
+              <th scope="col">Duración</th>
             </tr>
           </thead>
           <tbody>
             {ROWS.map((r) => (
               <tr key={r.nombre} className="border-b border-gray-100 dark:border-gray-800 last:border-0">
-                <td className="py-2 pr-4 font-mono text-xs">{r.nombre}</td>
-                <td className="py-2 pr-4">{r.fin}</td>
-                <td className="py-2">{r.dura}</td>
+                <td className="font-mono text-xs">{r.nombre}</td>
+                <td>{r.fin}</td>
+                <td>{r.dura}</td>
               </tr>
             ))}
           </tbody>
