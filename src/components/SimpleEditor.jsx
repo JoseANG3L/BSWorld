@@ -110,7 +110,7 @@ const SimpleEditor = ({ value = '', onChange, placeholder = 'Escribe la descripc
             type="button"
             onClick={() => setIsEditing((editing) => !editing)}
             aria-label={isEditing ? 'Cambiar a modo vista' : 'Cambiar a modo edición'}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-semibold text-gray-600 transition-colors hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/5"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-2.5 py-1.5 text-xs font-semibold text-gray-600 transition-colors hover:bg-gray-100 dark:border-transparent dark:text-gray-300 dark:bg-[#2b2b2b] dark:hover:bg-[#242424]"
         >
             {isEditing ? <Eye size={14} /> : <Edit3 size={14} />}
             {isEditing ? 'Vista' : 'Editar'}

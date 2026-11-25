@@ -26,7 +26,7 @@ const Inicio = () => {
             </div>
 
             <Link to="/mods?sort=recientes" aria-label="Ver todos los mods"
-              className="px-3 py-1.5 flex items-center gap-1.5 border border-gray-300 dark:border-transparent rounded-lg bg-gray-50 hover:bg-gray-200 dark:bg-[#1e1e1e] dark:hover:bg-[#2a2a2a] text-gray-800 dark:text-white transition-all shadow-sm active:scale-95"
+              className="px-3 py-1.5 flex items-center gap-1.5 border border-gray-300 dark:border-transparent rounded-lg bg-gray-50 hover:bg-gray-200 dark:bg-[#2b2b2b] dark:hover:bg-[#242424] text-gray-800 dark:text-white transition-all shadow-sm active:scale-95"
             >
               <span className="md:block hidden pl-1 text-sm font-semibold">Ver todos</span>
               <ArrowRight size={16} strokeWidth={3} />
